@@ -3,7 +3,7 @@ import re
 from tkinter import N
 from typing import Iterable, NamedTuple
 
-from attr import dataclass
+from dataclasses import dataclass
 from fasp.util.ast import SyntacticCheckVisitor, SyntacticError
 
 from clingo import ast

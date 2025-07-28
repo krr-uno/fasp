@@ -1,7 +1,6 @@
 import re
 from typing import Sequence
 import clingo
-from sympy import Function
 
 from fasp.symbol import FunctionSymbol
 
