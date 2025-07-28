@@ -1,38 +1,14 @@
 import unittest
 
 from clingo import ast
-from clingo.ast import ASTType
-
-from clingox.ast import normalize_symbolic_terms
+from clingo.core import Location, Position, Library
 
 from fasp.util.ast import SyntacticCheckVisitor, SyntacticError
 
 INVALID_ASTTYPES = {
-    ASTType.Aggregate,
-    ASTType.ConditionalLiteral,
-    ASTType.Defined,
-    ASTType.Disjunction,
-    ASTType.Edge,
-    ASTType.HeadAggregate,
-    ASTType.HeadAggregateElement,
-    ASTType.Heuristic,
-    ASTType.Id,
-    ASTType.Minimize,
-    ASTType.ProjectAtom,
-    ASTType.ProjectSignature,
-    ASTType.Script,
-    ASTType.TheoryAtom,
-    ASTType.TheoryAtomDefinition,
-    ASTType.TheoryAtomElement,
-    ASTType.TheoryDefinition,
-    ASTType.TheoryFunction,
-    ASTType.TheoryGuard,
-    ASTType.TheoryGuardDefinition,
-    ASTType.TheoryOperatorDefinition,
-    ASTType.TheorySequence,
-    ASTType.TheoryTermDefinition,
-    ASTType.TheoryUnparsedTerm,
-    ASTType.TheoryUnparsedTermElement,
+    ast.HeadSetAggregate,
+    ast.BodyConditionalLiteral,
+    ast.HeadDisjunction,
 }
 
 
@@ -40,6 +16,9 @@ class TestSyntacticChecker(unittest.TestCase):
     """
     Test class for the syntactic checker.
     """
+
+    def setUp(self):
+        self.lib = Library()
 
     def assertEqualErrors(self, program, expected_errors):
         """
@@ -53,10 +32,9 @@ class TestSyntacticChecker(unittest.TestCase):
         syntactic_checker = SyntacticCheckVisitor(INVALID_ASTTYPES)
 
         def callback(statement):
-            statement = normalize_symbolic_terms(statement)
-            statement = syntactic_checker.visit(statement)
+            statement.visit(syntactic_checker)
 
-        ast.parse_string(program, callback)
+        ast.parse_string(self.lib, program, callback)
         self.assertCountEqual(syntactic_checker.errors, expected_errors)
 
     def test_correct(self):
@@ -84,25 +62,26 @@ class TestSyntacticChecker(unittest.TestCase):
         """
         expected_errors = [
             SyntacticError(
-                ast.Location(
-                    ast.Position("<string>", 3, 18), ast.Position("<string>", 3, 23)
+                Location(
+                    Position(self.lib, "<string>", 3, 18), Position(self.lib, "<string>", 3, 24)
                 ),
                 "unexpected b: c",
-                ASTType.ConditionalLiteral,
+                ast.BodyConditionalLiteral,
             ),
             SyntacticError(
-                ast.Location(
-                    ast.Position("<string>", 4, 13), ast.Position("<string>", 4, 17)
+                Location(
+                    Position(self.lib, "<string>", 4, 13), Position(self.lib, "<string>", 4, 20)
                 ),
                 "unexpected a; c",
-                ASTType.Disjunction,
+                ast.HeadDisjunction,
             ),
             SyntacticError(
-                ast.Location(
-                    ast.Position("<string>", 5, 13), ast.Position("<string>", 5, 16)
+                Location(
+                    Position(self.lib, "<string>", 5, 13), Position(self.lib, "<string>", 5, 16)
                 ),
                 "unexpected { b }",
-                ASTType.Aggregate,
+                ast.HeadSetAggregate,
             ),
         ]
+        self.maxDiff = None 
         self.assertEqualErrors(program, expected_errors)

@@ -6,10 +6,10 @@ from clingo.ast import parse_string
 
 from fasp.ast.syntax_checking import SymbolSignature, get_evaluable_functions
 
-from fasp.util.ast import EnhancedTransformer, create_literal
+from fasp.util.ast import HeadBodyVisitor, create_literal
 
 
-class NormalForm2PredicateTransformer(EnhancedTransformer):
+class NormalForm2PredicateTransformer(HeadBodyVisitor):
     """
     A class to transform a program in functional normal form into a regular program.
     """

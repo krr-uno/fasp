@@ -1,7 +1,93 @@
+from functools import singledispatchmethod
+
 from platform import node
 from typing import AbstractSet, Any, NamedTuple, Optional
 
 from clingo import ast
+from clingo.core import Library, Location, Position
+from clingo.ast import (
+    AggregateFunction,
+    ArgumentTuple,
+    BinaryOperator,
+    BodyAggregate,
+    BodyAggregateElement,
+    BodyConditionalLiteral,
+    BodySetAggregate,
+    BodySimpleLiteral,
+    BodyTheoryAtom,
+    CommentType,
+    Edge,
+    HeadAggregate,
+    HeadAggregateElement,
+    HeadConditionalLiteral,
+    HeadDisjunction,
+    HeadSetAggregate,
+    HeadSimpleLiteral,
+    HeadTheoryAtom,
+    IncludeType,
+    LeftGuard,
+    LiteralBoolean,
+    LiteralComparison,
+    LiteralSymbolic,
+    OptimizeElement,
+    OptimizeTuple,
+    OptimizeType,
+    Precedence,
+    Program,
+    ProgramPart,
+    Projection,
+    ProjectionMode,
+    Relation,
+    RewriteContext,
+    RightGuard,
+    SetAggregateElement,
+    Sign,
+    StatementComment,
+    StatementConst,
+    StatementDefined,
+    StatementEdge,
+    StatementExternal,
+    StatementHeuristic,
+    StatementInclude,
+    StatementOptimize,
+    StatementParts,
+    StatementProgram,
+    StatementProject,
+    StatementProjectSignature,
+    StatementRule,
+    StatementScript,
+    StatementShow,
+    StatementShowNothing,
+    StatementShowSignature,
+    StatementTheory,
+    StatementWeakConstraint,
+    TermAbsolute,
+    TermBinaryOperation,
+    TermFunction,
+    TermSymbolic,
+    TermTuple,
+    TermUnaryOperation,
+    TermVariable,
+    TheoryAtomDefinition,
+    TheoryAtomElement,
+    TheoryAtomType,
+    TheoryGuardDefinition,
+    TheoryOperatorDefinition,
+    TheoryOperatorType,
+    TheoryRightGuard,
+    TheoryTermDefinition,
+    TheoryTermFunction,
+    TheoryTermSymbolic,
+    TheoryTermTuple,
+    TheoryTermUnparsed,
+    TheoryTermVariable,
+    TheoryTupleType,
+    UnaryOperator,
+    UnparsedElement,
+)
+
+
+AST = AggregateFunction | ArgumentTuple | BinaryOperator | BodyAggregate | BodyAggregateElement | BodyConditionalLiteral | BodySetAggregate | BodySimpleLiteral | BodyTheoryAtom | CommentType | Edge | HeadAggregate | HeadAggregateElement | HeadConditionalLiteral | HeadDisjunction | HeadSetAggregate | HeadSimpleLiteral | HeadTheoryAtom | IncludeType | LeftGuard | LiteralBoolean | LiteralComparison | LiteralSymbolic | OptimizeElement | OptimizeTuple | OptimizeType | Precedence | Program | ProgramPart | Projection | ProjectionMode | Relation | RewriteContext | RightGuard | SetAggregateElement | Sign | StatementComment | StatementConst | StatementDefined | StatementEdge | StatementExternal | StatementHeuristic | StatementInclude | StatementOptimize | StatementParts | StatementProgram | StatementProject | StatementProjectSignature | StatementRule | StatementScript | StatementShow | StatementShowNothing | StatementShowSignature | StatementTheory | StatementWeakConstraint | TermAbsolute | TermBinaryOperation | TermFunction | TermSymbolic | TermTuple | TermUnaryOperation | TermVariable | TheoryAtomDefinition | TheoryAtomElement | TheoryAtomType | TheoryGuardDefinition | TheoryOperatorDefinition | TheoryOperatorType | TheoryRightGuard | TheoryTermDefinition | TheoryTermFunction | TheoryTermSymbolic | TheoryTermTuple | TheoryTermUnparsed | TheoryTermVariable | TheoryTupleType | UnaryOperator | UnparsedElement
 
 
 class SyntacticError(NamedTuple):
@@ -14,7 +100,7 @@ class SyntacticError(NamedTuple):
         information (any): Additional information about the error.
     """
 
-    location: ast.Location
+    location: Location
     message: str
     information: Optional[Any] = None
 
@@ -22,15 +108,26 @@ class SyntacticError(NamedTuple):
         return f"{self.location}: error: syntax error, {self.message}"
 
 
-class EnhancedTransformer(ast.Transformer):
+class HeadBodyVisitor:
 
-    def visit_Rule(self, node: ast.AST, *args: Any, **kwargs: Any) -> ast.AST:
+    def __init__(self, library: Library):
+        self.lib = library
+
+    @singledispatchmethod
+    def _dispatch(self, expr: AST) -> None:
+        """
+        Order bodies of statements.
+        """
+        return expr.visit(self._lib, self._dispatch)
+
+    @_dispatch.register
+    def _(self, node: ast.StatementRule, *args: Any, **kwargs: Any) -> None:
         """
         Visit the Rule node, setting the 'head' flag accordingly for children.
 
         Parameters
         ----------
-        node : ast.AST
+        node : AST
             The Rule node.
 
         Returns
@@ -39,33 +136,13 @@ class EnhancedTransformer(ast.Transformer):
             The (potentially transformed) Rule node.
         """
         kwargs["head"] = True
-        head = self.visit(node.head, *args, **kwargs)
+        node.head.visit(self._lib, self._dispatch)
         kwargs["head"] = False
-        body = self.visit_sequence(node.body, *args, **kwargs)
-        if head is node.head and body is node.body:
-            return node
-        return node.update(head=head, body=body)
-
-    def visit_Literal(self, node: ast.AST, *args, **kwargs: Any) -> ast.AST:
-        """
-        Visit a literal node and propagate its sign to children via kwargs.
-
-        Parameters
-        ----------
-        node : ast.AST
-            The literal node to visit.
-
-        Returns
-        -------
-        AST
-            The (potentially transformed) Literal node.
-        """
-        kwargs["sign"] = node.sign
-        kwargs["location"] = node.location
-        return node.update(**self.visit_children(node, *args, **kwargs))
+        for element in node.body:
+            element.visit(self._lib, self._dispatch)
 
 
-class SyntacticCheckVisitor(EnhancedTransformer):
+class SyntacticCheckVisitor:
     """
     A visitor that checks for syntactic errors in the AST.
 
@@ -73,41 +150,38 @@ class SyntacticCheckVisitor(EnhancedTransformer):
     traverse the AST and check for specific syntactic conditions.
     """
 
-    def __init__(self, invalid_ASTTypes: AbstractSet[ast.ASTType]) -> None:
+    def __init__(self, invalid_ASTTypes: AbstractSet[type[AST]]) -> None:
         """
         Initializes the SyntacticCheckVisitor.
 
         Args:
-            invalid_ASTTypes (set[ast.ASTType]): A set of AST types that are considered invalid.
+            invalid_ASTTypes (set[ASTType]): A set of AST types that are considered invalid.
         """
-        super().__init__()
         self.invalid_ASTTypes = invalid_ASTTypes
         self.errors = []
 
-    def visit(self, node: ast.AST, *args: Any, **kwargs: Any) -> ast.AST:
+    def __call__(self, node: AST) -> None:
         """
         Visit the given AST node and check for invalid AST types.
 
         Parameters
         ----------
-        node : ast.AST
+        node : AST
             The AST node to visit.
         """
-        if node.ast_type in self.invalid_ASTTypes:
+        if type(node) in self.invalid_ASTTypes:
             self.errors.append(
-                SyntacticError(node.location, f"unexpected {node}", node.ast_type)
+                SyntacticError(node.location, f"unexpected {node}", type(node))
             )
-            return node
-        return super().visit(node, *args, **kwargs)
+        else:
+            node.visit(self)
 
 
-_POSITION = ast.Position("<aux>", 0, 0)
-_LOCATION = ast.Location(_POSITION, _POSITION)
 
-
-def create_literal(atom: ast.AST, sign: ast.Sign = ast.Sign.NoSign) -> ast.AST:
+def create_literal(lib: Library, atom: AST, sign: ast.Sign = ast.Sign.NoSign) -> AST:
     if hasattr(atom, "location"):
         location = atom.location
     else:
-        location = _LOCATION
+        position = Position(lib, "<aux>", 0, 0)
+        location = Location(lib, position, position)
     return ast.Literal(location, sign, ast.SymbolicAtom(atom))

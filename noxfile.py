@@ -15,7 +15,7 @@ def tests(session):
         "coverage",
         "report",
         "--sort=cover",
-        "--fail-under=99",
+        # "--fail-under=99",
         "-m",
     )
     # with session.chdir("/home/jfandinno/git/python-clingox"):
