@@ -1,8 +1,7 @@
 import unittest
 
 from clingo import ast
-
-from clingox.ast import normalize_symbolic_terms
+from clingo.core import Library
 
 from fasp.ast.syntax_checking import get_evaluable_functions, ParsingException
 
@@ -11,6 +10,9 @@ class TestSyntacticChecker(unittest.TestCase):
     """
     Test class for the syntactic checker.
     """
+
+    def setUp(self):
+        self.lib = Library()
 
     def assertEqualFunctions(self, program, expected):
         """
@@ -23,10 +25,9 @@ class TestSyntacticChecker(unittest.TestCase):
         statements = []
 
         def callback(statement):
-            statement = normalize_symbolic_terms(statement)
             statements.append(statement)
 
-        ast.parse_string(program, callback)
+        ast.parse_string(self.lib, program, callback)
 
         evaluable_functions = get_evaluable_functions(statements)
 
@@ -47,18 +48,31 @@ class TestSyntacticChecker(unittest.TestCase):
 
     def test_incorrect(self):
         """Test syntax checking with an incorrect program snippet."""
-        program = """
-            #program actions.
+        program = """\
             a :- b.
             b :- not c.
             c :- c.
             f > 1 :- g = h.
             f = 1 :- not g = h.
             f2(X) = 1 :- p(X).
+            5 = f :- q(Y).
         """
         with self.assertRaises(ParsingException) as captured_stderr:
             self.assertEqualFunctions(program, ["f/0", "f2/1"])
-        self.assertEqual(
-            captured_stderr.exception.errors[0].message,
-            "unexpected comparison f > 1 in the head. Assignments are of the form 'FUNCTION = TERM'.",
+        messages = map(
+            lambda e: (e.location.begin.line, e.message),
+            captured_stderr.exception.errors,
+        )
+        self.assertCountEqual(
+            messages,
+            [
+                (
+                    4,
+                    "unexpected comparison f>1 in the head. Assignments are of the form 'FUNCTION = TERM'.",
+                ),
+                (
+                    7,
+                    "unexpected comparison 5=f in the head. Assignments are of the form 'FUNCTION = TERM'.",
+                ),
+            ],
         )

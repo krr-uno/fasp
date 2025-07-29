@@ -63,25 +63,28 @@ class TestSyntacticChecker(unittest.TestCase):
         expected_errors = [
             SyntacticError(
                 Location(
-                    Position(self.lib, "<string>", 3, 18), Position(self.lib, "<string>", 3, 24)
+                    Position(self.lib, "<string>", 3, 18),
+                    Position(self.lib, "<string>", 3, 24),
                 ),
                 "unexpected b: c",
                 ast.BodyConditionalLiteral,
             ),
             SyntacticError(
                 Location(
-                    Position(self.lib, "<string>", 4, 13), Position(self.lib, "<string>", 4, 20)
+                    Position(self.lib, "<string>", 4, 13),
+                    Position(self.lib, "<string>", 4, 20),
                 ),
                 "unexpected a; c",
                 ast.HeadDisjunction,
             ),
             SyntacticError(
                 Location(
-                    Position(self.lib, "<string>", 5, 13), Position(self.lib, "<string>", 5, 16)
+                    Position(self.lib, "<string>", 5, 13),
+                    Position(self.lib, "<string>", 5, 16),
                 ),
                 "unexpected { b }",
                 ast.HeadSetAggregate,
             ),
         ]
-        self.maxDiff = None 
+        self.maxDiff = None
         self.assertEqualErrors(program, expected_errors)

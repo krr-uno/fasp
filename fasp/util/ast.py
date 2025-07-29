@@ -1,9 +1,11 @@
+from ast import arg
 from functools import singledispatchmethod
 
 from platform import node
-from typing import AbstractSet, Any, NamedTuple, Optional
+from typing import AbstractSet, Any, NamedTuple, Optional, Sequence
 
 from clingo import ast
+from clingo.symbol import SymbolType, Symbol
 from clingo.core import Library, Location, Position
 from clingo.ast import (
     AggregateFunction,
@@ -87,7 +89,86 @@ from clingo.ast import (
 )
 
 
-AST = AggregateFunction | ArgumentTuple | BinaryOperator | BodyAggregate | BodyAggregateElement | BodyConditionalLiteral | BodySetAggregate | BodySimpleLiteral | BodyTheoryAtom | CommentType | Edge | HeadAggregate | HeadAggregateElement | HeadConditionalLiteral | HeadDisjunction | HeadSetAggregate | HeadSimpleLiteral | HeadTheoryAtom | IncludeType | LeftGuard | LiteralBoolean | LiteralComparison | LiteralSymbolic | OptimizeElement | OptimizeTuple | OptimizeType | Precedence | Program | ProgramPart | Projection | ProjectionMode | Relation | RewriteContext | RightGuard | SetAggregateElement | Sign | StatementComment | StatementConst | StatementDefined | StatementEdge | StatementExternal | StatementHeuristic | StatementInclude | StatementOptimize | StatementParts | StatementProgram | StatementProject | StatementProjectSignature | StatementRule | StatementScript | StatementShow | StatementShowNothing | StatementShowSignature | StatementTheory | StatementWeakConstraint | TermAbsolute | TermBinaryOperation | TermFunction | TermSymbolic | TermTuple | TermUnaryOperation | TermVariable | TheoryAtomDefinition | TheoryAtomElement | TheoryAtomType | TheoryGuardDefinition | TheoryOperatorDefinition | TheoryOperatorType | TheoryRightGuard | TheoryTermDefinition | TheoryTermFunction | TheoryTermSymbolic | TheoryTermTuple | TheoryTermUnparsed | TheoryTermVariable | TheoryTupleType | UnaryOperator | UnparsedElement
+AST = (
+    AggregateFunction
+    | ArgumentTuple
+    | BinaryOperator
+    | BodyAggregate
+    | BodyAggregateElement
+    | BodyConditionalLiteral
+    | BodySetAggregate
+    | BodySimpleLiteral
+    | BodyTheoryAtom
+    | CommentType
+    | Edge
+    | HeadAggregate
+    | HeadAggregateElement
+    | HeadConditionalLiteral
+    | HeadDisjunction
+    | HeadSetAggregate
+    | HeadSimpleLiteral
+    | HeadTheoryAtom
+    | IncludeType
+    | LeftGuard
+    | LiteralBoolean
+    | LiteralComparison
+    | LiteralSymbolic
+    | OptimizeElement
+    | OptimizeTuple
+    | OptimizeType
+    | Precedence
+    | Program
+    | ProgramPart
+    | Projection
+    | ProjectionMode
+    | Relation
+    | RewriteContext
+    | RightGuard
+    | SetAggregateElement
+    | Sign
+    | StatementComment
+    | StatementConst
+    | StatementDefined
+    | StatementEdge
+    | StatementExternal
+    | StatementHeuristic
+    | StatementInclude
+    | StatementOptimize
+    | StatementParts
+    | StatementProgram
+    | StatementProject
+    | StatementProjectSignature
+    | StatementRule
+    | StatementScript
+    | StatementShow
+    | StatementShowNothing
+    | StatementShowSignature
+    | StatementTheory
+    | StatementWeakConstraint
+    | TermAbsolute
+    | TermBinaryOperation
+    | TermFunction
+    | TermSymbolic
+    | TermTuple
+    | TermUnaryOperation
+    | TermVariable
+    | TheoryAtomDefinition
+    | TheoryAtomElement
+    | TheoryAtomType
+    | TheoryGuardDefinition
+    | TheoryOperatorDefinition
+    | TheoryOperatorType
+    | TheoryRightGuard
+    | TheoryTermDefinition
+    | TheoryTermFunction
+    | TheoryTermSymbolic
+    | TheoryTermTuple
+    | TheoryTermUnparsed
+    | TheoryTermVariable
+    | TheoryTupleType
+    | UnaryOperator
+    | UnparsedElement
+)
 
 
 class SyntacticError(NamedTuple):
@@ -160,7 +241,7 @@ class SyntacticCheckVisitor:
         self.invalid_ASTTypes = invalid_ASTTypes
         self.errors = []
 
-    def __call__(self, node: AST) -> None:
+    def visit(self, node: AST, *args: Any, **kwargs: Any) -> None:
         """
         Visit the given AST node and check for invalid AST types.
 
@@ -174,8 +255,10 @@ class SyntacticCheckVisitor:
                 SyntacticError(node.location, f"unexpected {node}", type(node))
             )
         else:
-            node.visit(self)
+            node.visit(self, args, kwargs)
 
+    def __call__(self, node: AST, *args: Any, **kwargs: Any) -> None:
+        self.visit(node, *args, **kwargs)
 
 
 def create_literal(lib: Library, atom: AST, sign: ast.Sign = ast.Sign.NoSign) -> AST:
@@ -185,3 +268,22 @@ def create_literal(lib: Library, atom: AST, sign: ast.Sign = ast.Sign.NoSign) ->
         position = Position(lib, "<aux>", 0, 0)
         location = Location(lib, position, position)
     return ast.Literal(location, sign, ast.SymbolicAtom(atom))
+
+
+def is_function(node: AST) -> bool:
+    return (
+        isinstance(node, ast.TermFunction)
+        or isinstance(node, ast.TermSymbolic)
+        and node.symbol.type == SymbolType.Function
+    )
+
+
+def function_arguments(node: ast.TermFunction |  ast.TermSymbolic) -> tuple[str, ArgumentTuple | Sequence[Symbol]]:
+    if isinstance(node, ast.TermSymbolic):
+        name = node.symbol.name
+        arguments = node.symbol.arguments
+    else:
+        name = node.name
+        assert len(node.pool) == 1, f"Terms must be unpooled {node}"
+        arguments = node.pool[0].arguments
+    return name, arguments

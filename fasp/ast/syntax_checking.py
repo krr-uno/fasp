@@ -1,41 +1,14 @@
-from filecmp import cmp
-import re
-from tkinter import N
-from typing import Iterable, NamedTuple
-
+from ast import arguments
+from functools import singledispatchmethod
+from typing import Any, Iterable
 from dataclasses import dataclass
-from fasp.util.ast import SyntacticCheckVisitor, SyntacticError
 
 from clingo import ast
-from clingo.ast import ASTType
 
-INVALID_ASTTYPES = {
-    # ASTType.Aggregate,
-    # ASTType.ConditionalLiteral,
-    ASTType.Defined,
-    ASTType.Disjunction,
-    ASTType.Edge,
-    ASTType.HeadAggregate,
-    ASTType.HeadAggregateElement,
-    ASTType.Heuristic,
-    ASTType.Id,
-    ASTType.Minimize,
-    ASTType.ProjectAtom,
-    ASTType.ProjectSignature,
-    ASTType.Script,
-    ASTType.TheoryAtom,
-    ASTType.TheoryAtomDefinition,
-    ASTType.TheoryAtomElement,
-    ASTType.TheoryDefinition,
-    ASTType.TheoryFunction,
-    ASTType.TheoryGuard,
-    ASTType.TheoryGuardDefinition,
-    ASTType.TheoryOperatorDefinition,
-    ASTType.TheorySequence,
-    ASTType.TheoryTermDefinition,
-    ASTType.TheoryUnparsedTerm,
-    ASTType.TheoryUnparsedTermElement,
-}
+from fasp.util.ast import SyntacticError, AST, is_function, function_arguments
+
+
+INVALID_ASTTYPES = {}
 
 
 @dataclass(frozen=True, slots=True, order=True)
@@ -55,49 +28,57 @@ class SymbolSignature:
         return f"{self.name}/{self.arity}"
 
 
-class EvaluableFunctionCollector(SyntacticCheckVisitor):
+class EvaluableFunctionCollector:
     """
     Visitor to collect function symbols from the AST.
     """
 
     def __init__(self):
-        super().__init__(INVALID_ASTTYPES)
+        self.errors = []
         self.function_symbols = set()
 
-    def visit_Rule(self, node, *args, **kwargs):
-        """Visit a Rule node and process its head."""
-        self.visit(node.head, *args, **kwargs)
-        # only visits the head
-        return node
+    @singledispatchmethod
+    def visit(self, node, *args: Any, **kwargs: Any) -> None:
+        """
+        Visit the given AST node and check for invalid AST types.
 
-    def visit_Comparison(self, node, *args, **kwargs):
+        Parameters
+        ----------
+        node : AST
+            The AST node to visit.
+        """
+        node.visit(self, args, kwargs)
+
+    @visit.register
+    def _(self, node: ast.LiteralComparison, *args, **kwargs) -> None:
         """Visit a Comparison node (assignment) and record the function name and arity."""
-        if kwargs["sign"] != ast.Sign.NoSign:
+        if node.sign != ast.Sign.NoSign:
             self.errors.append(
                 SyntacticError(
-                    kwargs["location"],
+                    node.location,
                     f"unexpected negated comparison {node} in the head. Assignments are of the form 'FUNCTION = TERM'.",
-                    node.ast_type,
+                    type(node),
                 )
             )
             return node
         if (
-            node.term.ast_type != ASTType.Function
-            or len(node.guards) != 1
-            or node.guards[0].comparison != ast.ComparisonOperator.Equal
+            not is_function(node.left)
+            or len(node.right) != 1
+            or node.right[0].relation != ast.Relation.Equal
         ):
             self.errors.append(
                 SyntacticError(
-                    kwargs["location"],
+                    node.location,
                     f"unexpected comparison {node} in the head. Assignments are of the form 'FUNCTION = TERM'.",
-                    node.ast_type,
+                    type(node),
                 )
             )
             return node
-        self.function_symbols.add(
-            SymbolSignature(node.term.name, len(node.term.arguments))
-        )
-        return node
+        name, arguments = function_arguments(node.left)
+        self.function_symbols.add(SymbolSignature(name, len(arguments)))
+
+    def __call__(self, node: AST, *args, **kwargs):
+        self.visit(node, args, kwargs)
 
 
 class ParsingException(Exception):
@@ -119,19 +100,20 @@ class ParsingException(Exception):
         return f"ParsingException: {self.errors}"
 
 
-def get_evaluable_functions(program: Iterable[ast.AST]) -> set[SymbolSignature]:
+def get_evaluable_functions(program: Iterable[AST]) -> set[SymbolSignature]:
     """
     Collects all evaluable function symbols from the given program.
 
     Args:
-        program (Iterable[ast.AST]): The program to analyze.
+        program (Iterable[AST]): The program to analyze.
 
     Returns:
         set[FunctionSymbol]: A set of FunctionSymbol instances representing the functions found.
     """
     collector = EvaluableFunctionCollector()
     for statement in program:
-        collector.visit(statement)
+        if isinstance(statement, ast.StatementRule):
+            statement.head.visit(collector)
     if collector.errors:
         raise ParsingException(collector.errors)
     return collector.function_symbols
