@@ -34,14 +34,11 @@ class NormalForm2PredicateTransformer:
         self.prefix = prefix
 
     @singledispatchmethod
-    def rewrite(self, node) -> AST:
-        result = node.transform(self.library, self.rewrite)
-        if not result:
-            return node
-        return result
+    def _dispatch(self, node) -> AST:
+        return node.transform(self.library, self.rewrite)
 
-    @rewrite.register
-    def _(self, node: ast.LiteralComparison, *args: Any, **kwargs: Any) -> AST:
+    @_dispatch.register
+    def _(self, node: ast.LiteralComparison, *args: Any, **kwargs: Any) -> AST | None:
         """
         Visit a Comparison node and transform it if it is an evaluable function.
         """
@@ -51,10 +48,10 @@ class NormalForm2PredicateTransformer:
             or len(node.right) != 1
             or node.right[0].relation != ast.Relation.Equal
         ):
-            return node
+            return None
         name, arguments = function_arguments(node.left)
         if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
-            return node
+            return None
         if __debug__:
             if is_function(node.right[0].term):
                 name2, arguments2 = function_arguments(node.right[0].term)
@@ -74,6 +71,12 @@ class NormalForm2PredicateTransformer:
                 0,
             ),
         )
+
+    def rewrite(self, node, *args, **kwargs) -> AST:
+        result = self._dispatch(node, *args, **kwargs)
+        if not result:
+            return node
+        return result
 
 
 def _functional_constraint(
