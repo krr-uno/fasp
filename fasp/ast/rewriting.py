@@ -1,4 +1,8 @@
+from ast import arguments
+from functools import singledispatchmethod
+from inspect import signature
 from itertools import chain
+import re
 from typing import AbstractSet, Any, Iterable
 from clingo import ast
 from clingo.core import Location, Position, Library
@@ -8,50 +12,73 @@ from clingo.ast import parse_string
 
 from fasp.ast.syntax_checking import SymbolSignature, get_evaluable_functions
 
-from fasp.util.ast import HeadBodyVisitor, create_literal, AST, is_function
+from fasp.util.ast import create_literal, AST, function_arguments, is_function
 
 
-class NormalForm2PredicateTransformer(HeadBodyVisitor):
+class NormalForm2PredicateTransformer:
     """
     A class to transform a program in functional normal form into a regular program.
     """
 
     def __init__(
-        self, evaluable_functions: AbstractSet[SymbolSignature], prefix: str = "F"
+        self,
+        library: Library,
+        evaluable_functions: AbstractSet[SymbolSignature],
+        prefix: str = "F",
     ) -> None:
         """
         Initialize the transformer with the set of evaluable functions.
         """
+        self.library = library
         self.evaluable_functions = evaluable_functions
         self.prefix = prefix
 
-    def visit_Comparison(self, node: AST, *args: Any, **kwargs: Any):
+    @singledispatchmethod
+    def rewrite(self, node) -> AST:
+        result = node.transform(self.library, self.rewrite)
+        if not result:
+            return node
+        return result
+
+    @rewrite.register
+    def _(self, node: ast.LiteralComparison, *args: Any, **kwargs: Any) -> AST:
         """
         Visit a Comparison node and transform it if it is an evaluable function.
         """
-        assert len(node.guards) >= 1, "Comparison must have at least one guard."
+        assert len(node.right) >= 1, "Comparison must have at least one guard."
         if (
             not is_function(node.left)
-            or len(node.guards) != 1
-            or node.right[0].comparison != ast.Relation.Equal
-            or SymbolSignature(node.term.name, len(node.term.arguments)) not in self.evaluable_functions
+            or len(node.right) != 1
+            or node.right[0].relation != ast.Relation.Equal
         ):
             return node
-        term = node.guards[0].term
-        assert (
-            term.ast_type != ast.ASTType.Function
-            or SymbolSignature(term.name, len(term.arguments))
-            not in self.evaluable_functions
-        ), "Guard term must not be an evaluable function."
-        return ast.Function(
-            kwargs["location"],
-            f"{self.prefix}{node.term.name}",
-            [*node.term.arguments, node.guards[0].term],
-            0,
+        name, arguments = function_arguments(node.left)
+        if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
+            return node
+        if __debug__:
+            if is_function(node.right[0].term):
+                name2, arguments2 = function_arguments(node.right[0].term)
+                signature = SymbolSignature(name2, len(arguments2))
+                assert (
+                    signature not in self.evaluable_functions
+                ), "Guard term must not be an evaluable function."
+        return ast.LiteralSymbolic(
+            self.library,
+            node.location,
+            ast.Sign.NoSign,
+            ast.TermFunction(
+                self.library,
+                node.left.location,
+                f"{self.prefix}{name}",
+                [ast.ArgumentTuple(self.library, [*arguments, node.right[0].term])],
+                0,
+            ),
         )
 
 
-def _functional_constraint(library: Library, function: SymbolSignature, location: Location, prefix: str = "F") -> ast.StatementRule:
+def _functional_constraint(
+    library: Library, function: SymbolSignature, prefix: str = "F"
+) -> ast.StatementRule:
     """
     Generate a functional constraint for a single evaluable function.
 
@@ -64,43 +91,52 @@ def _functional_constraint(library: Library, function: SymbolSignature, location
     """
     position = Position(library, "<functional>", 0, 0)
     location = Location(position, position)
-    anonymous_variable = ast.Variable(location, "_")
-    return_variable = ast.Variable(location, "V")
+    anonymous_variable = ast.TermVariable(library, location, "_")
+    return_variable = ast.TermVariable(library, location, "V")
     if function.arity == 0:
         args1 = [anonymous_variable]
         args2 = [return_variable]
     else:
-        args1 = [ast.Variable(location, f"X{i}") for i in range(function.arity)]
+        args1 = [
+            ast.TermVariable(library, location, f"X{i}") for i in range(function.arity)
+        ]
         args2 = list(args1)
         args1.append(anonymous_variable)
         args2.append(return_variable)
     name = f"{prefix}{function.name}"
-    lit1 = create_literal(ast.Function(location, name, args1, 0))
-    lit2 = create_literal(ast.Function(location, name, args2, 0))
+    args1tuple = ast.ArgumentTuple(library, args1)
+    args2tuple = ast.ArgumentTuple(library, args2)
+    lit1 = create_literal(
+        library, 
+        ast.TermFunction(library, location, name, [args1tuple], 0),
+        body=True
+    )
+    lit2 = create_literal(
+        library, ast.TermFunction(library, location, name, [args2tuple], 0)
+    )
     agg = ast.BodyAggregate(
         library,
         location,
         ast.Sign.NoSign,
         ast.LeftGuard(
             library,
-            ast.TermSymbolic(library, location, Number(1)),
-            ast.Relation.GreaterThan,
+            ast.TermSymbolic(library, location, Number(library, 1)),
+            ast.Relation.Greater,
         ),
         ast.AggregateFunction.Count,
         [
-            ast.BodyAggregateElement(
-                library, location, [return_variable], [lit2]
-            ),
+            ast.BodyAggregateElement(library, location, [return_variable], [lit2]),
         ],
         None,
     )
-    head = create_literal(ast.BooleanConstant(False))
+    head = ast.HeadSimpleLiteral(
+        library, ast.LiteralBoolean(library, location, ast.Sign.NoSign, False)
+    )
     return ast.StatementRule(library, location, head, [lit1, agg])
 
 
 def functional_constraints(
-    library: Library,
-    evaluable_functions: Iterable[SymbolSignature], prefix: str = "F"
+    library: Library, evaluable_functions: Iterable[SymbolSignature], prefix: str = "F"
 ) -> Iterable[ast.StatementRule]:
     """
     Generate functional constraints for evaluable functions.
@@ -111,12 +147,11 @@ def functional_constraints(
     Returns:
         list[ast.AST]: A list of constraints for the functional normal form.
     """
-    return (_functional_constraint(library, fun) for fun in evaluable_functions)
+    return (_functional_constraint(library, fun, prefix) for fun in evaluable_functions)
 
 
 def functional2asp(
-    library: Library,
-    program: list[ast.StatementRule], prefix: str = "F"
+    library: Library, program: list[ast.StatementRule], prefix: str = "F"
 ) -> tuple[set[SymbolSignature], list[ast.StatementRule]]:
     """
     Transform a program in functional normal form into a regular program.
@@ -128,10 +163,10 @@ def functional2asp(
         Iterable[ast.AST]: The transformed program.
     """
     evaluable_functions = get_evaluable_functions(program)
-    transformer = NormalForm2PredicateTransformer(evaluable_functions, prefix)
+    transformer = NormalForm2PredicateTransformer(library, evaluable_functions, prefix)
     return evaluable_functions, list(
         chain(
-            (statement.transform(library, transformer) for statement in program),
-            functional_constraints(evaluable_functions, prefix),
+            (transformer.rewrite(statement) for statement in program),
+            functional_constraints(library, evaluable_functions, prefix),
         )
     )

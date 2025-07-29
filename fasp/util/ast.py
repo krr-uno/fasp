@@ -261,13 +261,26 @@ class SyntacticCheckVisitor:
         self.visit(node, *args, **kwargs)
 
 
-def create_literal(lib: Library, atom: AST, sign: ast.Sign = ast.Sign.NoSign) -> AST:
+def create_literal(
+    library: Library,
+    atom: AST,
+    sign: ast.Sign = ast.Sign.NoSign,
+    *,
+    head: bool = False,
+    body: bool = False,
+) -> AST:
     if hasattr(atom, "location"):
         location = atom.location
     else:
-        position = Position(lib, "<aux>", 0, 0)
-        location = Location(lib, position, position)
-    return ast.Literal(location, sign, ast.SymbolicAtom(atom))
+        position = Position(library, "<aux>", 0, 0)
+        location = Location(library, position, position)
+    literal = ast.LiteralSymbolic(library, location, sign, atom)
+    if head:
+        return ast.HeadSimpleLiteral(library, literal)
+    elif body:
+        return ast.BodySimpleLiteral(library, literal)
+    else:
+        return literal
 
 
 def is_function(node: AST) -> bool:
@@ -278,7 +291,9 @@ def is_function(node: AST) -> bool:
     )
 
 
-def function_arguments(node: ast.TermFunction |  ast.TermSymbolic) -> tuple[str, ArgumentTuple | Sequence[Symbol]]:
+def function_arguments(
+    node: ast.TermFunction | ast.TermSymbolic,
+) -> tuple[str, ArgumentTuple | Sequence[Symbol]]:
     if isinstance(node, ast.TermSymbolic):
         name = node.symbol.name
         arguments = node.symbol.arguments

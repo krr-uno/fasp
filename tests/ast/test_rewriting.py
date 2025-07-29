@@ -4,10 +4,9 @@ from turtle import st
 import unittest
 
 from clingo import ast
-from fasp.util.ast import Library
+from fasp.util.ast import AST, Library
 
 from fasp.ast.rewriting import functional2asp
-
 
 
 class TestSyntacticChecker(unittest.TestCase):
@@ -40,9 +39,10 @@ class TestSyntacticChecker(unittest.TestCase):
 
         expected_lines = [line.strip() for line in expected.splitlines()]
 
-        self.assertCountEqual(list(map(str, result)), expected_lines)
+        self.maxDiff = None
+        self.assertCountEqual(list(map(lambda x: str(x).strip(), result)), expected_lines)
         for statement in result:
-            self.assertIsInstance(statement, ast.AST)
+            self.assertIsInstance(statement, AST)
 
     def test_correct(self):
         """Test syntax checking with a correct program snippet."""
@@ -51,8 +51,8 @@ class TestSyntacticChecker(unittest.TestCase):
             a :- b.
             b :- not c.
             c :- c.
-            f = X :- X = 1; g = h.
-            f = X :- X = 1; not g = h.
+            f = X :- X=1; g=h.
+            f=X :- X=1; not g=h.
             f2(X) = Y :- p(X,Y).
             f3(X) = a :- p(X).
             f4(X) = 5 :- p(X).
@@ -65,16 +65,16 @@ class TestSyntacticChecker(unittest.TestCase):
             a :- b.
             b :- not c.
             c :- c.
-            Ff(X) :- X = 1; g = h.
-            Ff(X) :- X = 1; not g = h.
+            Ff(X) :- X=1; g=h.
+            Ff(X) :- X=1; not g=h.
             Ff2(X,Y) :- p(X,Y).
             Ff3(X,a) :- p(X).
             Ff4(X,5) :- p(X).
             Ff3(X,a(b,5)) :- p(X).
-            #false :- Ff(_); 1 > #count { Ff(V) }.
-            #false :- Ff2(X0,_); 1 > #count { Ff2(X0,V) }.
-            #false :- Ff3(X0,_); 1 > #count { Ff3(X0,V) }.
-            #false :- Ff4(X0,_); 1 > #count { Ff4(X0,V) }.
+            :- Ff(_); 1 > #count { V: Ff(V) }.
+            :- Ff2(X0,_); 1 > #count { V: Ff2(X0,V) }.
+            :- Ff3(X0,_); 1 > #count { V: Ff3(X0,V) }.
+            :- Ff4(X0,_); 1 > #count { V: Ff4(X0,V) }.
         """
         ).strip()
         self.assertEqualRewrite(program, expected)

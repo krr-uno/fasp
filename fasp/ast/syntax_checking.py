@@ -36,8 +36,29 @@ class EvaluableFunctionCollector:
     def __init__(self):
         self.errors = []
         self.function_symbols = set()
-        self._UNCOLLECTABLE = {ast.LiteralBoolean, ast.LiteralSymbolic, ast.HeadTheoryAtom, 
-                      ast.StatementTheory, ast.StatementOptimize, ast.StatementWeakConstraint, ast.StatementShow, ast.StatementShowNothing, ast.StatementShowSignature, ast.StatementProject, ast.StatementProjectSignature, ast.StatementDefined, ast.StatementExternal, ast.StatementEdge, ast.StatementHeuristic, ast.StatementScript, ast.StatementInclude, ast.StatementProgram, ast.StatementParts, ast.StatementConst, ast.StatementComment}
+        self._UNCOLLECTABLE = {
+            ast.LiteralBoolean,
+            ast.LiteralSymbolic,
+            ast.HeadTheoryAtom,
+            ast.StatementTheory,
+            ast.StatementOptimize,
+            ast.StatementWeakConstraint,
+            ast.StatementShow,
+            ast.StatementShowNothing,
+            ast.StatementShowSignature,
+            ast.StatementProject,
+            ast.StatementProjectSignature,
+            ast.StatementDefined,
+            ast.StatementExternal,
+            ast.StatementEdge,
+            ast.StatementHeuristic,
+            ast.StatementScript,
+            ast.StatementInclude,
+            ast.StatementProgram,
+            ast.StatementParts,
+            ast.StatementConst,
+            ast.StatementComment,
+        }
 
     @singledispatchmethod
     def collect(self, node, *args: Any, **kwargs: Any) -> None:
@@ -88,7 +109,6 @@ class EvaluableFunctionCollector:
             return node
         name, arguments = function_arguments(node.left)
         self.function_symbols.add(SymbolSignature(name, len(arguments)))
-
 
 
 class ParsingException(Exception):
