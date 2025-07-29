@@ -4,18 +4,22 @@ from turtle import st
 import unittest
 
 from clingo import ast
-from clingo.ast import ASTType
-
-from clingox.ast import normalize_symbolic_terms
+from fasp.util.ast import Library
 
 from fasp.ast.rewriting import functional2asp
-from fasp.util.ast import SyntacticCheckVisitor, SyntacticError
+
 
 
 class TestSyntacticChecker(unittest.TestCase):
     """
     Test class for the syntactic checker.
     """
+
+    def setUp(self):
+        """
+        Set up the test case with a library instance.
+        """
+        self.lib = Library()
 
     def assertEqualRewrite(self, program, expected):
         """
@@ -28,12 +32,11 @@ class TestSyntacticChecker(unittest.TestCase):
         statements = []
 
         def callback(statement):
-            statement = normalize_symbolic_terms(statement)
             statements.append(statement)
 
-        ast.parse_string(program, callback)
+        ast.parse_string(self.lib, program, callback)
 
-        _, result = functional2asp(statements)
+        _, result = functional2asp(self.lib, statements)
 
         expected_lines = [line.strip() for line in expected.splitlines()]
 

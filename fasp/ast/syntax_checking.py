@@ -37,8 +37,10 @@ class EvaluableFunctionCollector:
         self.errors = []
         self.function_symbols = set()
 
+    _UNCOLLECTABLE = {ast.LiteralBoolean, ast.LiteralSymbolic, ast.HeadTheoryAtom}
+
     @singledispatchmethod
-    def visit(self, node, *args: Any, **kwargs: Any) -> None:
+    def collect(self, node, *args: Any, **kwargs: Any) -> None:
         """
         Visit the given AST node and check for invalid AST types.
 
@@ -47,9 +49,10 @@ class EvaluableFunctionCollector:
         node : AST
             The AST node to visit.
         """
-        node.visit(self, args, kwargs)
+        if type(node) not in EvaluableFunctionCollector._UNCOLLECTABLE:
+            node.visit(self.collect, args, kwargs)
 
-    @visit.register
+    @collect.register
     def _(self, node: ast.LiteralComparison, *args, **kwargs) -> None:
         """Visit a Comparison node (assignment) and record the function name and arity."""
         if node.sign != ast.Sign.NoSign:
@@ -77,8 +80,6 @@ class EvaluableFunctionCollector:
         name, arguments = function_arguments(node.left)
         self.function_symbols.add(SymbolSignature(name, len(arguments)))
 
-    def __call__(self, node: AST, *args, **kwargs):
-        self.visit(node, args, kwargs)
 
 
 class ParsingException(Exception):
@@ -113,7 +114,7 @@ def get_evaluable_functions(program: Iterable[AST]) -> set[SymbolSignature]:
     collector = EvaluableFunctionCollector()
     for statement in program:
         if isinstance(statement, ast.StatementRule):
-            statement.head.visit(collector)
+            collector.collect(statement.head)
     if collector.errors:
         raise ParsingException(collector.errors)
     return collector.function_symbols
