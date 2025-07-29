@@ -72,7 +72,7 @@ class NormalForm2PredicateTransformer:
             ),
         )
 
-    def rewrite(self, node, *args, **kwargs) -> AST | None:
+    def rewrite(self, node, *args, **kwargs) -> AST:
         result = self._dispatch(node, *args, **kwargs)
         if not result:
             return node
