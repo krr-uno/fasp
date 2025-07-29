@@ -36,8 +36,8 @@ class EvaluableFunctionCollector:
     def __init__(self):
         self.errors = []
         self.function_symbols = set()
-
-    _UNCOLLECTABLE = {ast.LiteralBoolean, ast.LiteralSymbolic, ast.HeadTheoryAtom}
+        self._UNCOLLECTABLE = {ast.LiteralBoolean, ast.LiteralSymbolic, ast.HeadTheoryAtom, 
+                      ast.StatementTheory, ast.StatementOptimize, ast.StatementWeakConstraint, ast.StatementShow, ast.StatementShowNothing, ast.StatementShowSignature, ast.StatementProject, ast.StatementProjectSignature, ast.StatementDefined, ast.StatementExternal, ast.StatementEdge, ast.StatementHeuristic, ast.StatementScript, ast.StatementInclude, ast.StatementProgram, ast.StatementParts, ast.StatementConst, ast.StatementComment}
 
     @singledispatchmethod
     def collect(self, node, *args: Any, **kwargs: Any) -> None:
@@ -49,12 +49,21 @@ class EvaluableFunctionCollector:
         node : AST
             The AST node to visit.
         """
-        if type(node) not in EvaluableFunctionCollector._UNCOLLECTABLE:
+        if type(node) not in self._UNCOLLECTABLE:
             node.visit(self.collect, args, kwargs)
 
     @collect.register
+    def _(self, node: ast.StatementRule, *args, **kwargs) -> None:
+        """
+        Visit a Rule node and collect function symbols from the head.
+        """
+        return node.head.visit(self.collect, *args, **kwargs)
+
+    @collect.register
     def _(self, node: ast.LiteralComparison, *args, **kwargs) -> None:
-        """Visit a Comparison node (assignment) and record the function name and arity."""
+        """
+        Visit a Comparison node (assignment) and record the function name and arity.
+        """
         if node.sign != ast.Sign.NoSign:
             self.errors.append(
                 SyntacticError(
@@ -114,7 +123,7 @@ def get_evaluable_functions(program: Iterable[AST]) -> set[SymbolSignature]:
     collector = EvaluableFunctionCollector()
     for statement in program:
         if isinstance(statement, ast.StatementRule):
-            collector.collect(statement.head)
+            collector.collect(statement)
     if collector.errors:
         raise ParsingException(collector.errors)
     return collector.function_symbols
