@@ -5,7 +5,7 @@ from clingo.solve import SolveResult
 from clingo.stats import Stats
 from clingo.symbol import Symbol
 
-from fasp.solving import Model
+from fasp.solve import Model
 
 from .ast.parsing import parse_files
 
@@ -86,3 +86,12 @@ class Control:
         ) as handle:
             for model in handle:
                 yield Model(model, self.prefix)
+
+    def main(self) -> Iterable[Model]:
+        """
+        Main function to be called after parsing and grounding.
+
+        This function is a generator that yields models from the solve method.
+        """
+        self.ground()
+        return self.solve()
