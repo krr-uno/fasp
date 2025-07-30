@@ -60,6 +60,7 @@ class NormalForm2PredicateTransformer:
                 assert (
                     signature not in self.evaluable_functions
                 ), "Guard term must not be an evaluable function."
+
         return ast.LiteralSymbolic(
             self.library,
             node.location,

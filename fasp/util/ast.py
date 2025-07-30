@@ -2,7 +2,7 @@ from ast import arg
 from functools import singledispatchmethod
 
 from platform import node
-from typing import AbstractSet, Any, NamedTuple, Optional, Sequence, TypeIs
+from typing import AbstractSet, Any, NamedTuple, Optional, Sequence, TypeIs, cast
 
 from clingo import ast
 from clingo.symbol import SymbolType, Symbol
@@ -299,3 +299,12 @@ def function_arguments(
         assert len(node.pool) == 1, f"Terms must be unpooled {node}"
         arguments = node.pool[0].arguments
     return name, arguments
+
+def function_arguments_ast(
+    library: Library,
+    node: ast.TermFunction | ast.TermSymbolic,
+) -> tuple[str, Sequence[ArgumentAST]]:
+    name, arguments = function_arguments(node)
+    if arguments and isinstance(arguments[0], ast.TermFunction):
+        return name, cast(Sequence[ArgumentAST], arguments)
+    return name, [ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments]
