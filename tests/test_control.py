@@ -1,6 +1,9 @@
+
 from os import PathLike
 from pathlib import Path
 import unittest
+
+from clingo.core import Library
 
 from fasp.control import Control
 
@@ -9,8 +12,11 @@ EXAMPLES = Path(__file__).parent.parent / "examples"
 
 class TestControl(unittest.TestCase):
 
+    def setUp(self):
+        self.library = Library()
+
     def assert_models(self, program: PathLike, expected_models):
-        control = Control(["0"])
+        control = Control(self.library, ["0"])
 
         control.load(str(program))
         control.ground()

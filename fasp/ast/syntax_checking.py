@@ -8,7 +8,7 @@ from clingo import ast
 from fasp.util.ast import SyntacticError, AST, is_function, function_arguments
 
 
-INVALID_ASTTYPES = {}
+# INVALID_ASTTYPES = {}
 
 
 @dataclass(frozen=True, slots=True, order=True)
@@ -78,7 +78,7 @@ class EvaluableFunctionCollector:
         """
         Visit a Rule node and collect function symbols from the head.
         """
-        return node.head.visit(self.collect, *args, **kwargs)
+        node.head.visit(self.collect, *args, **kwargs)
 
     @collect.register
     def _(self, node: ast.LiteralComparison, *args, **kwargs) -> None:
@@ -93,7 +93,7 @@ class EvaluableFunctionCollector:
                     type(node),
                 )
             )
-            return node
+            return
         if (
             not is_function(node.left)
             or len(node.right) != 1
@@ -106,7 +106,7 @@ class EvaluableFunctionCollector:
                     type(node),
                 )
             )
-            return node
+            return
         name, arguments = function_arguments(node.left)
         self.function_symbols.add(SymbolSignature(name, len(arguments)))
 

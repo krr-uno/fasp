@@ -2,22 +2,19 @@ from ast import arg
 from functools import singledispatchmethod
 
 from platform import node
-from typing import AbstractSet, Any, NamedTuple, Optional, Sequence
+from typing import AbstractSet, Any, NamedTuple, Optional, Sequence, TypeIs
 
 from clingo import ast
 from clingo.symbol import SymbolType, Symbol
 from clingo.core import Library, Location, Position
 from clingo.ast import (
-    AggregateFunction,
     ArgumentTuple,
-    BinaryOperator,
     BodyAggregate,
     BodyAggregateElement,
     BodyConditionalLiteral,
     BodySetAggregate,
     BodySimpleLiteral,
     BodyTheoryAtom,
-    CommentType,
     Edge,
     HeadAggregate,
     HeadAggregateElement,
@@ -26,24 +23,16 @@ from clingo.ast import (
     HeadSetAggregate,
     HeadSimpleLiteral,
     HeadTheoryAtom,
-    IncludeType,
     LeftGuard,
     LiteralBoolean,
     LiteralComparison,
     LiteralSymbolic,
     OptimizeElement,
     OptimizeTuple,
-    OptimizeType,
-    Precedence,
-    Program,
     ProgramPart,
     Projection,
-    ProjectionMode,
-    Relation,
-    RewriteContext,
     RightGuard,
     SetAggregateElement,
-    Sign,
     StatementComment,
     StatementConst,
     StatementDefined,
@@ -72,10 +61,8 @@ from clingo.ast import (
     TermVariable,
     TheoryAtomDefinition,
     TheoryAtomElement,
-    TheoryAtomType,
     TheoryGuardDefinition,
     TheoryOperatorDefinition,
-    TheoryOperatorType,
     TheoryRightGuard,
     TheoryTermDefinition,
     TheoryTermFunction,
@@ -83,23 +70,46 @@ from clingo.ast import (
     TheoryTermTuple,
     TheoryTermUnparsed,
     TheoryTermVariable,
-    TheoryTupleType,
-    UnaryOperator,
     UnparsedElement,
 )
 
+StatementAST = (
+      StatementRule
+    | StatementTheory
+    | StatementOptimize
+    | StatementWeakConstraint
+    | StatementShow
+    | StatementShowNothing
+    | StatementShowSignature
+    | StatementProject
+    | StatementProjectSignature
+    | StatementDefined
+    | StatementExternal
+    | StatementEdge
+    | StatementHeuristic
+    | StatementScript
+    | StatementInclude
+    | StatementProgram
+    | StatementParts
+    | StatementConst
+    | StatementComment
+)
+
+TermAST = TermVariable | TermSymbolic | TermAbsolute | TermUnaryOperation | TermBinaryOperation | TermTuple | TermFunction
+ArgumentAST = TermAST | Projection
+LiteralAST = LiteralBoolean | LiteralComparison | LiteralSymbolic
 
 AST = (
-    AggregateFunction
+      StatementAST
+    | TermAST
+    | LiteralAST
     | ArgumentTuple
-    | BinaryOperator
     | BodyAggregate
     | BodyAggregateElement
     | BodyConditionalLiteral
     | BodySetAggregate
     | BodySimpleLiteral
     | BodyTheoryAtom
-    | CommentType
     | Edge
     | HeadAggregate
     | HeadAggregateElement
@@ -108,56 +118,17 @@ AST = (
     | HeadSetAggregate
     | HeadSimpleLiteral
     | HeadTheoryAtom
-    | IncludeType
     | LeftGuard
-    | LiteralBoolean
-    | LiteralComparison
-    | LiteralSymbolic
     | OptimizeElement
     | OptimizeTuple
-    | OptimizeType
-    | Precedence
-    | Program
     | ProgramPart
     | Projection
-    | ProjectionMode
-    | Relation
-    | RewriteContext
     | RightGuard
     | SetAggregateElement
-    | Sign
-    | StatementComment
-    | StatementConst
-    | StatementDefined
-    | StatementEdge
-    | StatementExternal
-    | StatementHeuristic
-    | StatementInclude
-    | StatementOptimize
-    | StatementParts
-    | StatementProgram
-    | StatementProject
-    | StatementProjectSignature
-    | StatementRule
-    | StatementScript
-    | StatementShow
-    | StatementShowNothing
-    | StatementShowSignature
-    | StatementTheory
-    | StatementWeakConstraint
-    | TermAbsolute
-    | TermBinaryOperation
-    | TermFunction
-    | TermSymbolic
-    | TermTuple
-    | TermUnaryOperation
-    | TermVariable
     | TheoryAtomDefinition
     | TheoryAtomElement
-    | TheoryAtomType
     | TheoryGuardDefinition
     | TheoryOperatorDefinition
-    | TheoryOperatorType
     | TheoryRightGuard
     | TheoryTermDefinition
     | TheoryTermFunction
@@ -165,8 +136,6 @@ AST = (
     | TheoryTermTuple
     | TheoryTermUnparsed
     | TheoryTermVariable
-    | TheoryTupleType
-    | UnaryOperator
     | UnparsedElement
 )
 
@@ -189,38 +158,38 @@ class SyntacticError(NamedTuple):
         return f"{self.location}: error: syntax error, {self.message}"
 
 
-class HeadBodyVisitor:
+# class HeadBodyVisitor:
 
-    def __init__(self, library: Library):
-        self.lib = library
+#     def __init__(self, library: Library):
+#         self.lib = library
 
-    @singledispatchmethod
-    def _dispatch(self, expr: AST) -> None:
-        """
-        Order bodies of statements.
-        """
-        return expr.visit(self._lib, self._dispatch)
+#     @singledispatchmethod
+#     def _dispatch(self, expr: AST) -> None:
+#         """
+#         Order bodies of statements.
+#         """
+#         expr.visit(self.lib, self._dispatch)
 
-    @_dispatch.register
-    def _(self, node: ast.StatementRule, *args: Any, **kwargs: Any) -> None:
-        """
-        Visit the Rule node, setting the 'head' flag accordingly for children.
+#     @_dispatch.register
+#     def _(self, node: ast.StatementRule, *args: Any, **kwargs: Any) -> None:
+#         """
+#         Visit the Rule node, setting the 'head' flag accordingly for children.
 
-        Parameters
-        ----------
-        node : AST
-            The Rule node.
+#         Parameters
+#         ----------
+#         node : AST
+#             The Rule node.
 
-        Returns
-        -------
-        AST
-            The (potentially transformed) Rule node.
-        """
-        kwargs["head"] = True
-        node.head.visit(self._lib, self._dispatch)
-        kwargs["head"] = False
-        for element in node.body:
-            element.visit(self._lib, self._dispatch)
+#         Returns
+#         -------
+#         AST
+#             The (potentially transformed) Rule node.
+#         """
+#         kwargs["head"] = True
+#         node.head.visit(self._lib, self._dispatch)
+#         kwargs["head"] = False
+#         for element in node.body:
+#             element.visit(self._lib, self._dispatch)
 
 
 class SyntacticCheckVisitor:
@@ -239,7 +208,7 @@ class SyntacticCheckVisitor:
             invalid_ASTTypes (set[ASTType]): A set of AST types that are considered invalid.
         """
         self.invalid_ASTTypes = invalid_ASTTypes
-        self.errors = []
+        self.errors: list[SyntacticError] = []
 
     def visit(self, node: AST, *args: Any, **kwargs: Any) -> None:
         """
@@ -251,6 +220,7 @@ class SyntacticCheckVisitor:
             The AST node to visit.
         """
         if type(node) in self.invalid_ASTTypes:
+            assert hasattr(node, "location"), f"Node {node} has no location"
             self.errors.append(
                 SyntacticError(node.location, f"unexpected {node}", type(node))
             )
@@ -263,27 +233,54 @@ class SyntacticCheckVisitor:
 
 def create_literal(
     library: Library,
-    atom: AST,
+    atom: TermAST,
     sign: ast.Sign = ast.Sign.NoSign,
-    *,
-    head: bool = False,
-    body: bool = False,
-) -> AST:
+) -> LiteralAST:
     if hasattr(atom, "location"):
         location = atom.location
     else:
         position = Position(library, "<aux>", 0, 0)
-        location = Location(library, position, position)
-    literal = ast.LiteralSymbolic(library, location, sign, atom)
-    if head:
-        return ast.HeadSimpleLiteral(library, literal)
-    elif body:
-        return ast.BodySimpleLiteral(library, literal)
-    else:
-        return literal
+        location = Location(position, position)
+    return ast.LiteralSymbolic(library, location, sign, atom)
+    
+def create_head_literal(
+    library: Library,
+    atom: TermAST,
+    sign: ast.Sign = ast.Sign.NoSign,
+) -> HeadSimpleLiteral:
+    """
+    Create a head literal from a term AST.
+
+    Args:
+        library (Library): The library to use for creating the literal.
+        atom (TermAST): The term AST to create the literal from.
+        sign (ast.Sign): The sign of the literal.
+
+    Returns:
+        HeadSimpleLiteral: The created head literal.
+    """
+    return ast.HeadSimpleLiteral(library, create_literal(library, atom, sign))
+
+def create_body_literal(
+    library: Library,
+    atom: TermAST,
+    sign: ast.Sign = ast.Sign.NoSign,
+) -> BodySimpleLiteral:
+    """
+    Create a body literal from a term AST.
+
+    Args:
+        library (Library): The library to use for creating the literal.
+        atom (TermAST): The term AST to create the literal from.
+        sign (ast.Sign): The sign of the literal.
+
+    Returns:
+        BodySimpleLiteral: The created body literal.
+    """
+    return ast.BodySimpleLiteral(library, create_literal(library, atom, sign))
 
 
-def is_function(node: AST) -> bool:
+def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
     return (
         isinstance(node, ast.TermFunction)
         or isinstance(node, ast.TermSymbolic)
@@ -293,10 +290,10 @@ def is_function(node: AST) -> bool:
 
 def function_arguments(
     node: ast.TermFunction | ast.TermSymbolic,
-) -> tuple[str, ArgumentTuple | Sequence[Symbol]]:
+) -> tuple[str, Sequence[ArgumentAST] | Sequence[Symbol]]:
     if isinstance(node, ast.TermSymbolic):
         name = node.symbol.name
-        arguments = node.symbol.arguments
+        arguments: Sequence[ArgumentAST] | Sequence[Symbol] = node.symbol.arguments
     else:
         name = node.name
         assert len(node.pool) == 1, f"Terms must be unpooled {node}"

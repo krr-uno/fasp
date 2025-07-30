@@ -6,7 +6,7 @@ import unittest
 from clingo import ast
 from fasp.util.ast import AST, Library
 
-from fasp.ast.rewriting import functional2asp
+from fasp.ast.rewriting import _functional2asp
 
 
 class TestSyntacticChecker(unittest.TestCase):
@@ -35,7 +35,7 @@ class TestSyntacticChecker(unittest.TestCase):
 
         ast.parse_string(self.lib, program, callback)
 
-        _, result = functional2asp(self.lib, statements)
+        _, result = _functional2asp(self.lib, statements)
 
         expected_lines = [line.strip() for line in expected.splitlines()]
 

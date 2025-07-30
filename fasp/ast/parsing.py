@@ -1,20 +1,21 @@
+from operator import call
 from typing import Optional, Sequence
 
-from clingo import Logger, ast
-from clingo.ast import AST
+from clingo import ast
+from clingo.core import Library
+
+from fasp.util.ast import AST, StatementAST
 
 from .syntax_checking import SymbolSignature
 from . import rewriting
 
-from clingo.ast import parse_files
 
 
 def parse_files(
+    library: Library,
     files: Sequence[str],
-    logger: Optional[Logger] = None,
-    message_limit: int = 20,
     prefix: str = "F",
-) -> tuple[set[SymbolSignature], list[ast.AST]]:
+) -> tuple[set[SymbolSignature], ast.Program]:
     """
     Parse the programs in the given files and return an abstract syntax tree for
     each statement via a callback.
@@ -27,13 +28,7 @@ def parse_files(
     ----------
     files
         List of file names.
-    callback
-        Callable taking an ast as argument.
-    logger
-        Function to intercept messages normally printed to standard error.
-    message_limit
-        The maximum number of messages passed to the logger.
     """
-    statements = []
-    ast.parse_files(files, statements.append, None, logger, message_limit)
-    return rewriting.functional2asp(statements, prefix)
+    statements: list[StatementAST] = []
+    ast.parse_files(library, files, statements.append)
+    return rewriting.functional2asp(library, statements, prefix)

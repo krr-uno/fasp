@@ -1,6 +1,8 @@
 import re
 from typing import Sequence
 import clingo
+from clingo import solve
+from clingo.symbol import Symbol, SymbolType
 
 from fasp.symbol import FunctionSymbol
 
@@ -22,18 +24,17 @@ class Model:
     use.
     """
 
-    def __init__(self, model: clingo.Model, prefix: str = "F"):
+    def __init__(self, model: solve.Model, prefix: str = "F"):
         self.clingo_model = model
         self.prefix = prefix
 
     def predicate_symbols(
         self,
+        shown: bool = False,
         atoms: bool = False,
         terms: bool = False,
-        shown: bool = False,
         theory: bool = False,
-        complement: bool = False,
-    ) -> Sequence[clingo.Symbol]:
+    ) -> Sequence[Symbol]:
         """
         Return the list of atoms, terms, or CSP assignments in the model.
 
@@ -65,19 +66,19 @@ class Model:
         return [
             symbol
             for symbol in self.clingo_model.symbols(
-                atoms, terms, shown, theory, complement
+                shown, atoms, terms, theory
             )
-            if symbol.type != clingo.SymbolType.Function
+            if symbol.type != SymbolType.Function
             or not symbol.name.startswith(self.prefix)
         ]
 
     def function_symbols(
         self,
-    ) -> Sequence[clingo.Symbol]:
+    ) -> Sequence[FunctionSymbol]:
         return [
             FunctionSymbol.from_symbol(symbol)
             for symbol in self.clingo_model.symbols(atoms=True)
-            if symbol.type == clingo.SymbolType.Function
+            if symbol.type == SymbolType.Function
             and symbol.name.startswith(self.prefix)
         ]
 

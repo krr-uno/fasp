@@ -1,8 +1,9 @@
 from typing import Any, Callable, Iterable, Optional, Sequence, Tuple, Union
 
 import clingo
-from clingo import Logger, SolveResult, StatisticsMap, Symbol, ast
-from clingo.ast import ProgramBuilder
+from clingo.solve import SolveResult
+from clingo.stats import Stats
+from clingo.symbol import Symbol
 
 from fasp.solving import Model
 
@@ -13,14 +14,12 @@ class Control:
 
     def __init__(
         self,
-        arguments: Sequence[str] = [],
-        logger: Optional[Logger] = None,
-        message_limit: int = 20,
+        library: clingo.core.Library,
+        options: Sequence[str] = [],
         prefix: str = "F",
     ):
-        self.logger = logger
-        self.message_limit = message_limit
-        self.clingo_control = clingo.Control(arguments, logger, message_limit)
+        self.library = library
+        self.clingo_control = clingo.control.Control(library, options)
         self.prefix = prefix
 
     def load(self, file: str) -> None:
@@ -32,12 +31,12 @@ class Control:
         file
             The path of the file to load.
         """
-        _, statements = parse_files(
-            [file], self.logger, self.message_limit, self.prefix
+        _, program = parse_files(
+            self.library,
+            [file],
+            self.prefix,
         )
-        with ProgramBuilder(self.clingo_control) as builder:
-            for statement in statements:
-                builder.add(statement)
+        self.clingo_control.join(program)
 
     def ground(
         self,
@@ -66,20 +65,21 @@ class Control:
 
     def solve(
         self,
-        assumptions: Sequence[Union[Tuple[Symbol, bool], int]] = (),
-        on_unsat: Optional[Callable[[Sequence[int]], None]] = None,
-        on_statistics: Optional[Callable[[StatisticsMap, StatisticsMap], None]] = None,
-        on_finish: Optional[Callable[[SolveResult], None]] = None,
-        on_core: Optional[Callable[[Sequence[int]], None]] = None,
+        assumptions: Sequence[tuple[clingo.symbol.Symbol, bool] | int] = [],
+        on_unsat: Callable[[Sequence[int]], None] | None = None,
+        on_stats: (
+            Callable[[clingo.stats.Stats, clingo.stats.Stats], None] | None
+        ) = None,
+        on_finish: Callable[[clingo.solve.SolveResult], None] | None = None,
         *,
         async_: bool = False,
     ) -> Iterable[Model]:
         with self.clingo_control.solve(
             assumptions,
+            None,
             on_unsat,
-            on_statistics,
+            on_stats,
             on_finish,
-            on_core,
             yield_=True,
             async_=async_,
         ) as handle:

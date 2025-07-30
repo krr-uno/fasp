@@ -1,18 +1,18 @@
-from ast import arguments
+
 from functools import singledispatchmethod
 from inspect import signature
 from itertools import chain
 import re
-from typing import AbstractSet, Any, Iterable
+from typing import AbstractSet, Any, Iterable,cast
 from clingo import ast
 from clingo.core import Location, Position, Library
 from clingo.symbol import Number
-from clingo.ast import parse_string
+
 
 
 from fasp.ast.syntax_checking import SymbolSignature, get_evaluable_functions
 
-from fasp.util.ast import create_literal, AST, function_arguments, is_function
+from fasp.util.ast import create_literal, create_body_literal, AST, StatementAST, function_arguments, is_function
 
 
 class NormalForm2PredicateTransformer:
@@ -34,7 +34,7 @@ class NormalForm2PredicateTransformer:
         self.prefix = prefix
 
     @singledispatchmethod
-    def _dispatch(self, node) -> AST:
+    def _dispatch(self, node) -> AST | None:
         return node.transform(self.library, self.rewrite)
 
     @_dispatch.register
@@ -49,6 +49,7 @@ class NormalForm2PredicateTransformer:
             or node.right[0].relation != ast.Relation.Equal
         ):
             return None
+        # assert type(node.left) in {ast.}
         name, arguments = function_arguments(node.left)
         if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
             return None
@@ -68,15 +69,14 @@ class NormalForm2PredicateTransformer:
                 node.left.location,
                 f"{self.prefix}{name}",
                 [ast.ArgumentTuple(self.library, [*arguments, node.right[0].term])],
-                0,
             ),
         )
 
-    def rewrite(self, node, *args, **kwargs) -> AST:
+    def rewrite(self, node: StatementAST, *args, **kwargs) -> StatementAST:
         result = self._dispatch(node, *args, **kwargs)
         if not result:
             return node
-        return result
+        return cast(StatementAST,result)
 
 
 def _functional_constraint(
@@ -109,13 +109,12 @@ def _functional_constraint(
     name = f"{prefix}{function.name}"
     args1tuple = ast.ArgumentTuple(library, args1)
     args2tuple = ast.ArgumentTuple(library, args2)
-    lit1 = create_literal(
+    lit1 = create_body_literal(
         library, 
-        ast.TermFunction(library, location, name, [args1tuple], 0),
-        body=True
+        ast.TermFunction(library, location, name, [args1tuple]),
     )
     lit2 = create_literal(
-        library, ast.TermFunction(library, location, name, [args2tuple], 0)
+        library, ast.TermFunction(library, location, name, [args2tuple])
     )
     agg = ast.BodyAggregate(
         library,
@@ -153,9 +152,9 @@ def functional_constraints(
     return (_functional_constraint(library, fun, prefix) for fun in evaluable_functions)
 
 
-def functional2asp(
-    library: Library, program: list[ast.StatementRule], prefix: str = "F"
-) -> tuple[set[SymbolSignature], list[ast.StatementRule]]:
+def _functional2asp(
+    library: Library, statements: list[StatementAST], prefix: str = "F"
+) -> tuple[set[SymbolSignature], list[StatementAST]]:
     """
     Transform a program in functional normal form into a regular program.
 
@@ -165,11 +164,29 @@ def functional2asp(
     Returns:
         Iterable[ast.AST]: The transformed program.
     """
-    evaluable_functions = get_evaluable_functions(program)
+    evaluable_functions = get_evaluable_functions(statements)
     transformer = NormalForm2PredicateTransformer(library, evaluable_functions, prefix)
     return evaluable_functions, list(
         chain(
-            (transformer.rewrite(statement) for statement in program),
+            (transformer.rewrite(statement) for statement in statements),
             functional_constraints(library, evaluable_functions, prefix),
         )
     )
+
+def functional2asp(
+    library: Library, statements: list[StatementAST], prefix: str = "F"
+) -> tuple[set[SymbolSignature], ast.Program]:
+    """
+    Transform a program in functional normal form into a regular program.
+
+    Args:
+        program (Iterable[ast.AST]): The program to transform.
+
+    Returns:
+        Iterable[ast.AST]: The transformed program.
+    """
+    evaluable_functions, statements = _functional2asp(library, statements, prefix)
+    program = ast.Program(library)
+    for statement in statements:
+        program.add(statement)
+    return evaluable_functions, program

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Self, Sequence
 
-from clingo import Symbol
+from clingo.symbol import Symbol, SymbolType
 import clingo
 
 
@@ -37,10 +37,10 @@ class FunctionSymbol:
             The converted function symbol.
         """
         assert len(symbol.name) > prefix_len
-        assert symbol.type == clingo.SymbolType.Function
+        assert symbol.type == SymbolType.Function
         assert len(symbol.arguments) >= 1
 
-        name = symbol.arguments.name[prefix_len:]
+        name = symbol.name[prefix_len:]
         args = symbol.arguments[:-1]
         return_value = symbol.arguments[-1]
         return cls(name, return_value, args)
