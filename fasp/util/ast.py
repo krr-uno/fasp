@@ -210,6 +210,7 @@ class SyntacticCheckVisitor:
         self.invalid_ASTTypes = invalid_ASTTypes
         self.errors: list[SyntacticError] = []
 
+
     def visit(self, node: AST, *args: Any, **kwargs: Any) -> None:
         """
         Visit the given AST node and check for invalid AST types.
@@ -243,6 +244,7 @@ def create_literal(
         location = Location(position, position)
     return ast.LiteralSymbolic(library, location, sign, atom)
     
+
 def create_head_literal(
     library: Library,
     atom: TermAST,
@@ -260,6 +262,7 @@ def create_head_literal(
         HeadSimpleLiteral: The created head literal.
     """
     return ast.HeadSimpleLiteral(library, create_literal(library, atom, sign))
+
 
 def create_body_literal(
     library: Library,
@@ -299,6 +302,7 @@ def function_arguments(
         assert len(node.pool) == 1, f"Terms must be unpooled {node}"
         arguments = node.pool[0].arguments
     return name, arguments
+
 
 def function_arguments_ast(
     library: Library,
