@@ -17,12 +17,13 @@ class Control:
         library: clingo.core.Library,
         options: Sequence[str] = [],
         prefix: str = "F",
+        clingo_control: Optional[clingo.control.Control] = None,
     ):
         self.library = library
-        self.clingo_control = clingo.control.Control(library, options)
+        self.clingo_control = clingo_control or clingo.control.Control(library, options)
         self.prefix = prefix
 
-    def load(self, file: str) -> None:
+    def parse_files(self, files: Sequence[str]) -> None:
         """
         Extend the logic program with a (non-ground) logic program in a file.
 
@@ -33,7 +34,7 @@ class Control:
         """
         _, program = parse_files(
             self.library,
-            [file],
+            files,
             self.prefix,
         )
         self.clingo_control.join(program)
