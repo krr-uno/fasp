@@ -305,6 +305,6 @@ def function_arguments_ast(
     node: ast.TermFunction | ast.TermSymbolic,
 ) -> tuple[str, Sequence[ArgumentAST]]:
     name, arguments = function_arguments(node)
-    if arguments and isinstance(arguments[0], ast.TermFunction):
+    if arguments and isinstance(arguments[0], ArgumentAST):
         return name, cast(Sequence[ArgumentAST], arguments)
     return name, [ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments]

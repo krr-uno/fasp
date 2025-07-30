@@ -12,7 +12,7 @@ from clingo.symbol import Number
 
 from fasp.ast.syntax_checking import SymbolSignature, get_evaluable_functions
 
-from fasp.util.ast import create_literal, create_body_literal, AST, StatementAST, function_arguments, is_function
+from fasp.util.ast import create_literal, create_body_literal, AST, StatementAST, function_arguments_ast, function_arguments, is_function
 
 
 class NormalForm2PredicateTransformer:
@@ -50,7 +50,7 @@ class NormalForm2PredicateTransformer:
         ):
             return None
         # assert type(node.left) in {ast.}
-        name, arguments = function_arguments(node.left)
+        name, arguments = function_arguments_ast(self.library, node.left)
         if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
             return None
         if __debug__:
