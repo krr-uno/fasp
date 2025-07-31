@@ -121,14 +121,14 @@ class TestRewrite(unittest.TestCase):
             program, expected, expected_head_types, prerewrite_expected_head_types
         )
 
-    def test_safety(self):
+    def test_safety_1(self):
         program = """\
         a(X) :- b.
         """
         errors = []
         library = Library(logger=lambda t, msg: errors.append((t, msg)))
         rewrite_context = ast.RewriteContext(library)
-        statement = ast.parse_statement(self.library, program)
+        statement = ast.parse_statement(library, program)
         self.assertIsInstance(statement, ast.StatementRule)
         self.assertEqual(str(statement), "a(X) :- b.")
         result = ast.rewrite_statement(rewrite_context, statement)
@@ -147,3 +147,158 @@ class TestRewrite(unittest.TestCase):
             ),
         )
         self.assertEqual(len(result), 0)
+
+    def test_safety_2(self):
+        errors = []
+        library = Library(logger=lambda t, msg: errors.append((t, msg)))
+        rewrite_context = ast.RewriteContext(library)
+        program = """\
+        p(Y) :- b(X); 5*Y+7=X*X.
+        """
+        statement = ast.parse_statement(library, program)
+        self.assertIsInstance(statement, ast.StatementRule)
+        self.assertEqual(str(statement).strip(), "p(Y) :- b(X); 5*Y+7=X*X.")
+        result = ast.rewrite_statement(rewrite_context, statement)
+        self.assertEqual(str(result[0]).strip(), "p(Y) :- b(X); 5*Y+7=X*X.")
+        program = """\
+        p(Y) :- b(X); 0*Y+7=X*X.
+        """
+        statement = ast.parse_statement(library, program)
+        self.assertIsInstance(statement, ast.StatementRule)
+        self.assertEqual(str(statement).strip(), "p(Y) :- b(X); 0*Y+7=X*X.")
+        self.assertEqual(len(errors), 0)
+        result = ast.rewrite_statement(rewrite_context, statement)
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(
+            errors[0],
+            (
+                core.MessageType.Error,
+                textwrap.dedent(
+                    """\
+            <string>:1:9-33: error: unsafe variables in:
+              p(Y) :- b(X); 0*Y+7=X*X.
+            note: the following variables are unsafe:
+              Y"""
+                ),
+            ),
+        )
+        self.assertEqual(len(result), 0)
+
+    
+
+    def test_pool_1(self):
+        program = """\
+        p(X;Y,Z) :- q(X,Y,Z).
+        """
+        expected = """\
+        #program base.
+        p(X) :- q(X,Y,Z).
+        p(Y,Z) :- q(X,Y,Z).
+        """
+        self.maxDiff = None
+        self.assertEqualRewritten(program, expected)
+
+    def test_pool_2(self):
+        program = """\
+        p(X;(Y,Z)) :- q(X,Y,Z).
+        """
+        expected = """\
+        #program base.
+        p(X) :- q(X,Y,Z).
+        p((Y,Z)) :- q(X,Y,Z).
+        """
+        self.maxDiff = None
+        self.assertEqualRewritten(program, expected)
+
+    def test_unary_operator(self):
+        program = """\
+        p(--X) :- q(X).
+        """
+        expected = """\
+        #program base.
+        p(-(-X)) :- q(X).
+        """
+        self.maxDiff = None
+        self.assertEqualRewritten(program, expected)
+
+    def test_arithmetic_1(self):
+        program = """\
+        p(X) :- q(X).
+        p(X+Y) :- q(X,Y).
+        p(X-Y) :- q(X,Y).
+        p(X*Y) :- q(X,Y).
+        p(X/Y) :- q(X,Y).
+        p(2*X+Y) :- q(X,Y).
+        p(2*(X+Y)) :- q(X,Y).
+        """
+        expected = """\
+        #program base.
+        p(X) :- q(X).
+        p(X+Y) :- q(X,Y).
+        p(X-Y) :- q(X,Y).
+        p(X*Y) :- q(X,Y).
+        p(X/Y) :- q(X,Y).
+        p(2*X+Y) :- q(X,Y).
+        p(2*(X+Y)) :- q(X,Y).
+        """
+        self.maxDiff = None
+        self.assertEqualRewritten(program, expected)
+
+    def test_arithmetic_1(self):
+        program = """\
+        p(X) :- q(X).
+        p(Z) :- q(X,Y); Z=X+Y.
+        p(Z) :- q(X,Y); Z=X-Y.
+        p(Z) :- q(X,Y); Z=X*Y.
+        p(Z) :- q(X,Y); Z=X/Y.
+        p(Z) :- q(X,Y); Z=2*X+Y.
+        p(Z) :- q(X,Y); Z=2*(X+Y).
+        """
+        expected = """\
+        #program base.
+        p(X) :- q(X).
+        p(Z) :- q(X,Y); Z=X+Y.
+        p(Z) :- q(X,Y); Z=X-Y.
+        p(Z) :- q(X,Y); Z=X*Y.
+        p(Z) :- q(X,Y); Z=X/Y.
+        p(Z) :- q(X,Y); Z=2*X+Y.
+        p(Z) :- q(X,Y); Z=2*(X+Y).
+        """
+        self.maxDiff = None
+        self.assertEqualRewritten(program, expected)
+
+    def test_arithmetic_1(self):
+        program = """\
+        :- q1(X,Y,Z); W=3*X+5*Y+Z.
+        :- q2(X,Y,Z); W=X+Y+Z.
+        :- q3(X,Y); W+5=X+Y+5.
+        :- q4(X,Y); W+5=X+5+Y.
+        :- q5(X,Y,Z); W+5=X+Y+5+Z.
+        """
+        expected = """\
+        #program base.
+        :- q1(X,Y,Z); W=3*X+5*Y+Z.
+        :- q2(X,Y,Z); W=X+Y+Z.
+        :- q3(X,Y); 1*W+5=X+Y+5.
+        :- q4(X,Y); 1*W+5=X+(Y+5).
+        :- q5(X,Y,Z); 1*W+5=X+Y+5+Z.
+        """
+        self.maxDiff = None
+        self.assertEqualRewritten(program, expected)
+
+    def test_intervals(self):
+        program = """\
+        p1(X) :- q1(X, 1..3).
+        p2(X..Y) :- q2(X, Y).
+        p3(X) :- q3(X,Y, X..Y).
+        p4(2*(X..Y)) :- q4(X, Y).
+        """
+        expected = """\
+        #program base.
+        p1(X) :- q1(X,1*__A_0+0); __A_0=1..3.
+        p2(__A_1) :- q2(X,Y); __A_1=X..Y.
+        p3(X) :- q3(X,Y,1*__A_2+0); __A_2=X..Y.
+        p4(2*__A_3+0) :- q4(X,Y); __A_3=X..Y.
+        """
+        self.maxDiff = None
+        self.assertEqualRewritten(program, expected)
