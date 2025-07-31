@@ -64,5 +64,3 @@ def lint_pylint(session):
 def typecheck(session):
     session.install("mypy")
     session.run("mypy", "-p", PROJECT_NAME)
-
-

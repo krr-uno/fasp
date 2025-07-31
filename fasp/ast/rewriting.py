@@ -1,18 +1,24 @@
-
 from functools import singledispatchmethod
 from inspect import signature
 from itertools import chain
 import re
-from typing import AbstractSet, Any, Iterable,cast
+from typing import AbstractSet, Any, Iterable, cast
 from clingo import ast
 from clingo.core import Location, Position, Library
 from clingo.symbol import Number
 
 
-
 from fasp.ast.syntax_checking import SymbolSignature, get_evaluable_functions
 
-from fasp.util.ast import create_literal, create_body_literal, AST, StatementAST, function_arguments_ast, function_arguments, is_function
+from fasp.util.ast import (
+    create_literal,
+    create_body_literal,
+    AST,
+    StatementAST,
+    function_arguments_ast,
+    function_arguments,
+    is_function,
+)
 
 
 class NormalForm2PredicateTransformer:
@@ -77,7 +83,7 @@ class NormalForm2PredicateTransformer:
         result = self._dispatch(node, *args, **kwargs)
         if not result:
             return node
-        return cast(StatementAST,result)
+        return cast(StatementAST, result)
 
 
 def _functional_constraint(
@@ -111,7 +117,7 @@ def _functional_constraint(
     args1tuple = ast.ArgumentTuple(library, args1)
     args2tuple = ast.ArgumentTuple(library, args2)
     lit1 = create_body_literal(
-        library, 
+        library,
         ast.TermFunction(library, location, name, [args1tuple]),
     )
     lit2 = create_literal(
@@ -173,6 +179,7 @@ def _functional2asp(
             functional_constraints(library, evaluable_functions, prefix),
         )
     )
+
 
 def functional2asp(
     library: Library, statements: list[StatementAST], prefix: str = "F"

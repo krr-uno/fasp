@@ -10,7 +10,6 @@ from .syntax_checking import SymbolSignature
 from . import rewriting
 
 
-
 def parse_files(
     library: Library,
     files: Sequence[str],

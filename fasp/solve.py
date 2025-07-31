@@ -65,9 +65,7 @@ class Model:
         """
         return [
             symbol
-            for symbol in self.clingo_model.symbols(
-                shown, atoms, terms, theory
-            )
+            for symbol in self.clingo_model.symbols(shown, atoms, terms, theory)
             if symbol.type != SymbolType.Function
             or not symbol.name.startswith(self.prefix)
         ]
@@ -81,7 +79,7 @@ class Model:
             if symbol.type == SymbolType.Function
             and symbol.name.startswith(self.prefix)
         ]
-    
+
     def to_str(self, *, ordered: bool = False) -> str:
         """
         Return a string representation of the model.

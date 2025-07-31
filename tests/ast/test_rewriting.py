@@ -32,7 +32,7 @@ class TestSyntacticChecker(unittest.TestCase):
             expected_errors (list): The list of expected SyntacticError instances.
         """
         statements = []
-        
+
         def callback(statement):
             statements.append(statement)
 
@@ -43,7 +43,9 @@ class TestSyntacticChecker(unittest.TestCase):
         expected_lines = [line.strip() for line in expected.splitlines()]
 
         self.maxDiff = None
-        self.assertCountEqual(list(map(lambda x: str(x).strip(), result)), expected_lines)
+        self.assertCountEqual(
+            list(map(lambda x: str(x).strip(), result)), expected_lines
+        )
         for statement in result:
             self.assertIsInstance(statement, AST)
 
@@ -81,7 +83,6 @@ class TestSyntacticChecker(unittest.TestCase):
         """
         ).strip()
         self.assertEqualRewrite(program, expected)
-
 
     def test_symbol_argument(self):
         """Test syntax checking with a correct program snippet."""

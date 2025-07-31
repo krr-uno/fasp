@@ -74,7 +74,7 @@ from clingo.ast import (
 )
 
 StatementAST = (
-      StatementRule
+    StatementRule
     | StatementTheory
     | StatementOptimize
     | StatementWeakConstraint
@@ -95,12 +95,20 @@ StatementAST = (
     | StatementComment
 )
 
-TermAST = TermVariable | TermSymbolic | TermAbsolute | TermUnaryOperation | TermBinaryOperation | TermTuple | TermFunction
+TermAST = (
+    TermVariable
+    | TermSymbolic
+    | TermAbsolute
+    | TermUnaryOperation
+    | TermBinaryOperation
+    | TermTuple
+    | TermFunction
+)
 ArgumentAST = TermAST | Projection
 LiteralAST = LiteralBoolean | LiteralComparison | LiteralSymbolic
 
 AST = (
-      StatementAST
+    StatementAST
     | TermAST
     | LiteralAST
     | ArgumentTuple
@@ -210,7 +218,6 @@ class SyntacticCheckVisitor:
         self.invalid_ASTTypes = invalid_ASTTypes
         self.errors: list[SyntacticError] = []
 
-
     def visit(self, node: AST, *args: Any, **kwargs: Any) -> None:
         """
         Visit the given AST node and check for invalid AST types.
@@ -243,7 +250,7 @@ def create_literal(
         position = Position(library, "<aux>", 0, 0)
         location = Location(position, position)
     return ast.LiteralSymbolic(library, location, sign, atom)
-    
+
 
 def create_head_literal(
     library: Library,
@@ -311,4 +318,6 @@ def function_arguments_ast(
     name, arguments = function_arguments(node)
     if arguments and isinstance(arguments[0], ArgumentAST):
         return name, cast(Sequence[ArgumentAST], arguments)
-    return name, [ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments]
+    return name, [
+        ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
+    ]
