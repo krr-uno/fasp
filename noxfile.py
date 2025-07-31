@@ -1,14 +1,18 @@
 import os
 import nox
 
-PYTHON_VERSIONS = [f"3.{i}" for i in range(12, 13)]
+PYTHON_VERSIONS = [f"3.{i}" for i in range(13, 14)]
+
+nox.options.sessions = "lint_pylint", "typecheck", "test"
+
+PROJECT_NAME = "fasp"
 
 
 @nox.session(python=PYTHON_VERSIONS)
-def tests(session):
+def test(session):
     """Run the test suite."""
     session.install("clingo")
-    session.install("clingox")
+    # session.install("clingox")
     session.install("coverage")
     session.run("coverage", "run", "-m", "unittest", "discover", "-v")
     session.run(
@@ -18,6 +22,47 @@ def tests(session):
         # "--fail-under=99",
         "-m",
     )
-    # with session.chdir("/home/jfandinno/git/python-clingox"):
-    #     session.install("-e", ".")
-    # session.run("python", "-m", "unittest", "discover", "-v")
+
+
+@nox.session
+def format(session):
+    session.install("black", "isort", "autoflake")
+    check = "check" in session.posargs
+
+    autoflake_args = [
+        "--in-place",
+        "--imports=clingo",
+        "--ignore-init-module-imports",
+        "--remove-unused-variables",
+        "-r",
+        PROJECT_NAME,
+    ]
+    if check:
+        autoflake_args.remove("--in-place")
+    session.run("autoflake", *autoflake_args)
+
+    isort_args = ["--profile", "black", PROJECT_NAME]
+    if check:
+        isort_args.insert(0, "--check")
+        isort_args.insert(1, "--diff")
+    session.run("isort", *isort_args)
+
+    black_args = [PROJECT_NAME]
+    if check:
+        black_args.insert(0, "--check")
+        black_args.insert(1, "--diff")
+    session.run("black", *black_args)
+
+
+@nox.session
+def lint_pylint(session):
+    session.install("pylint")
+    session.run("pylint", PROJECT_NAME)
+
+
+@nox.session(python=PYTHON_VERSIONS)
+def typecheck(session):
+    session.install("mypy")
+    session.run("mypy", "-p", PROJECT_NAME)
+
+
