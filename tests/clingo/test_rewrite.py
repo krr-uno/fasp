@@ -1,8 +1,9 @@
-import enum
 from itertools import chain
+import textwrap
 import unittest
 
 from clingo import ast
+from clingo import core
 from clingo.core import Library
 
 
@@ -105,3 +106,28 @@ class TestRewrite(unittest.TestCase):
         ]
         self.maxDiff = None
         self.assertEqualRewritten(program, expected, expected_head_types, prerewrite_expected_head_types)
+
+    
+    def test_safety(self):
+        program = """\
+        a(X) :- b.
+        """
+        errors = []
+        library = Library(logger=lambda t,msg: errors.append((t,msg)))
+        rewrite_context = ast.RewriteContext(library)
+        statement = ast.parse_statement(self.library, program)
+        self.assertIsInstance(statement, ast.StatementRule)
+        self.assertEqual(str(statement), "a(X) :- b.")
+        result = ast.rewrite_statement(rewrite_context, statement)
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0], (
+            core.MessageType.Error,
+            textwrap.dedent("""\
+            <string>:1:9-19: error: unsafe variables in:
+              a(X) :- b.
+            note: the following variables are unsafe:
+              X"""
+            )))
+        self.assertEqual(len(result), 0)
+        
+
