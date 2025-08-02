@@ -10,7 +10,7 @@ from clingo.core import Library
 
 from fasp.app import main
 
-from .examples import EXAMPLES
+from .examples import EXAMPLES, Example
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 
@@ -42,6 +42,10 @@ class TestControl(unittest.TestCase):
         self.assertCountEqual(models, expected_models)
 
     def test_app(self):
+        EXAMPLES.append(Example(
+            [TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"],
+            ["f=1"]
+        ))
         for i, example in enumerate(EXAMPLES):
             file_names = [f.name for f in example.files]
             with self.subTest(f"{i}: {file_names}"):

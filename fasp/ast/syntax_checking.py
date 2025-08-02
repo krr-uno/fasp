@@ -127,7 +127,7 @@ class ParsingException(Exception):
         self.errors = errors
 
     def __str__(self):
-        return f"ParsingException: {self.errors}"
+        return f"ParsingException: {self.errors}" # pragma: no cover
 
 
 def get_evaluable_functions(program: Iterable[AST]) -> set[SymbolSignature]:

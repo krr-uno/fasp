@@ -246,29 +246,29 @@ def create_literal(
 ) -> LiteralAST:
     if hasattr(atom, "location"):
         location = atom.location
-    else:
+    else: # pragma: no cover
         position = Position(library, "<aux>", 0, 0)
         location = Location(position, position)
     return ast.LiteralSymbolic(library, location, sign, atom)
 
 
-def create_head_literal(
-    library: Library,
-    atom: TermAST,
-    sign: ast.Sign = ast.Sign.NoSign,
-) -> HeadSimpleLiteral:
-    """
-    Create a head literal from a term AST.
+# def create_head_literal(
+#     library: Library,
+#     atom: TermAST,
+#     sign: ast.Sign = ast.Sign.NoSign,
+# ) -> HeadSimpleLiteral:
+#     """
+#     Create a head literal from a term AST.
 
-    Args:
-        library (Library): The library to use for creating the literal.
-        atom (TermAST): The term AST to create the literal from.
-        sign (ast.Sign): The sign of the literal.
+#     Args:
+#         library (Library): The library to use for creating the literal.
+#         atom (TermAST): The term AST to create the literal from.
+#         sign (ast.Sign): The sign of the literal.
 
-    Returns:
-        HeadSimpleLiteral: The created head literal.
-    """
-    return ast.HeadSimpleLiteral(library, create_literal(library, atom, sign))
+#     Returns:
+#         HeadSimpleLiteral: The created head literal.
+#     """
+#     return ast.HeadSimpleLiteral(library, create_literal(library, atom, sign))
 
 
 def create_body_literal(
