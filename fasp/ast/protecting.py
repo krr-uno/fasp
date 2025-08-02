@@ -10,7 +10,7 @@ from clingo import ast
 from clingo.core import Location, Position, Library
 from clingo.symbol import Symbol, Number, SymbolType
 
-from fasp.util.ast import AST, StatementAST
+from fasp.util.ast import AST
 
 INT_TO_SIGN = [
     ast.Sign.NoSign,

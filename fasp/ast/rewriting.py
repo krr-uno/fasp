@@ -8,6 +8,7 @@ from clingo.core import Location, Position, Library
 from clingo.symbol import Number
 
 
+from fasp.ast.protecting import COMPARISON_NAME
 from fasp.ast.syntax_checking import SymbolSignature, get_evaluable_functions
 
 from fasp.util.ast import (
@@ -31,6 +32,7 @@ class NormalForm2PredicateTransformer:
         library: Library,
         evaluable_functions: AbstractSet[SymbolSignature],
         prefix: str = "F",
+        comparison_name: str = COMPARISON_NAME
     ) -> None:
         """
         Initialize the transformer with the set of evaluable functions.
@@ -38,10 +40,20 @@ class NormalForm2PredicateTransformer:
         self.library = library
         self.evaluable_functions = evaluable_functions
         self.prefix = prefix
+        self.comparison_name = comparison_name
 
     @singledispatchmethod
-    def _dispatch(self, node) -> AST | None:
+    def _dispatch(self, node: AST) -> AST | None:
         return node.transform(self.library, self.rewrite)
+
+    @_dispatch.register
+    def _(self, node: ast.LiteralSymbolic, *args: Any, **kwargs: Any) -> AST | None:
+        if not isinstance(node.atom, ast.TermFunction):
+            return node
+        name = node.atom.name
+        if name != self.comparison_name:
+            return node
+        return node
 
     @_dispatch.register
     def _(self, node: ast.LiteralComparison, *args: Any, **kwargs: Any) -> AST | None:
@@ -80,9 +92,7 @@ class NormalForm2PredicateTransformer:
         )
 
     def rewrite(self, node: StatementAST, *args, **kwargs) -> StatementAST:
-        result = self._dispatch(node, *args, **kwargs)
-        if not result:
-            return node
+        result = self._dispatch(node, *args, **kwargs) or node
         return cast(StatementAST, result)
 
 
