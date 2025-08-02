@@ -26,7 +26,7 @@ class TestControl(unittest.TestCase):
 
     def test_basic(self):
         self.assert_models(
-            [EXAMPLES / "ex01.lp"],
+            [EXAMPLES / "ex01_asp.lp"],
             [
                 "b(1) b(2) b(3)",
                 "a b(1) b(2) b(3) c(1) c(2) c(3)",

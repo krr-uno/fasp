@@ -1,3 +1,4 @@
+import sys
 from typing import Any, Callable, Iterable, Optional, Sequence, Tuple, Union
 
 import clingo
@@ -94,4 +95,7 @@ class Control:
         This function is a generator that yields models from the solve method.
         """
         self.ground()
-        return self.solve()
+        for i, model in enumerate(self.solve()):
+            sys.stdout.write(f"Answer {i + 1}:\n")
+            sys.stdout.write(str(model) + "\n")
+            

@@ -1,11 +1,11 @@
 from typing import Sequence
+import sys
 
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.core import Library
 from clingo.control import Control as ClingoControl
 
 from fasp.control import Control
-
 
 class FaspApp(App):
     def __init__(self, library: Library, clingo_options: Sequence[str]) -> None:
@@ -47,4 +47,10 @@ def fasp_main(
         If True, raise exceptions on errors instead of printing them.
     """
     app = FaspApp(library, options)
+    options.append("--outf=3")
     clingo_main(library, options, app, raise_errors)
+
+
+def main():
+    with Library() as library:
+        fasp_main(library, sys.argv[1:])
