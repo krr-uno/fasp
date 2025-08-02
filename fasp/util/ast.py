@@ -246,7 +246,7 @@ def create_literal(
 ) -> LiteralAST:
     if hasattr(atom, "location"):
         location = atom.location
-    else: # pragma: no cover
+    else:  # pragma: no cover
         position = Position(library, "<aux>", 0, 0)
         location = Location(position, position)
     return ast.LiteralSymbolic(library, location, sign, atom)

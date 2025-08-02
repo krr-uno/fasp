@@ -14,6 +14,7 @@ from .examples import EXAMPLES, Example
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 
+
 class TestControl(unittest.TestCase):
 
     def execute_app(self, files: PathLike) -> tuple[str, str]:
@@ -42,18 +43,19 @@ class TestControl(unittest.TestCase):
         self.assertCountEqual(models, expected_models)
 
     def test_app(self):
-        EXAMPLES.append(Example(
-            [TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"],
-            ["f=1"]
-        ))
+        EXAMPLES.append(Example([TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"], ["f=1"]))
         for i, example in enumerate(EXAMPLES):
             file_names = [f.name for f in example.files]
             with self.subTest(f"{i}: {file_names}"):
                 self.assert_models(example.files, example.models)
 
-
     def test_syntactic_error(self):
         output, err = self.execute_app([TEST_EXAMPLES_PATH / "ex01_syntactic_error.lp"])
         self.assertEqual(output.strip(), "")
-        self.assertEqual(err.splitlines()[0].strip(), "tests/examples/ex01_syntactic_error.lp:1:1-7: error: syntax error, unexpected comparison a>5 in the head. Assignments are of the form 'FUNCTION = TERM'.")
-        self.assertEqual(err.splitlines()[1].strip(), "*** ERROR: (fasp): parsing failed")
+        self.assertEqual(
+            err.splitlines()[0].strip(),
+            "tests/examples/ex01_syntactic_error.lp:1:1-7: error: syntax error, unexpected comparison a>5 in the head. Assignments are of the form 'FUNCTION = TERM'.",
+        )
+        self.assertEqual(
+            err.splitlines()[1].strip(), "*** ERROR: (fasp): parsing failed"
+        )
