@@ -167,26 +167,31 @@ def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
     return ast.RightGuard(library, INT_TO_RELATION[relation_int.number], term2)
 
 
-# def comparison_arguments(
-#     library: Library,
-#     literal: ast.LiteralSymbolic,
-# ) -> tuple[Location, ast.Sign, TermAST, list[ast.RightGuard]]:
-#     atom = literal.atom
-#     assert isinstance(
-#         atom, ast.TermFunction
-#     ), f"Expected a function term, got {atom}: {type(atom)}"
-#     arguments = atom.pool[0].arguments
-#     assert (
-#         len(arguments) == 3
-#     ), f"Expected 3 arguments, got {len(arguments)}: {arguments}"
-#     left = arguments[0]
-#     assert not isinstance(left, ast.Projection)
-#     sign = INT_TO_SIGN[arguments[2].symbol.number]
-#     right = [
-#         _restore_guard(library, cast(ast.TermFunction, g))
-#         for g in cast(ast.ArgumentTuple, arguments[1].pool[0]).arguments
-#     ]
-#     return literal.location, sign, left, right
+def comparison_arguments(
+    library: Library,
+    literal: ast.LiteralSymbolic,
+) -> tuple[Location, ast.Sign, TermAST, list[ast.RightGuard]]:
+    atom = literal.atom
+    assert isinstance(
+        atom, ast.TermFunction
+    ), f"Expected a function term, got {atom}: {type(atom)}"
+    arguments = atom.pool[0].arguments
+    assert (
+        len(arguments) == 3
+    ), f"Expected 3 arguments, got {len(arguments)}: {arguments}"
+    left = arguments[0]
+    assert not isinstance(left, ast.Projection)
+    assert isinstance(arguments[2], ast.TermSymbolic)
+    sign = INT_TO_SIGN[arguments[2].symbol.number]
+    argument = arguments[1]
+    assert isinstance(
+        argument, ast.TermTuple
+    ), f"Expected a tuple term, got {argument}: {type(argument)}"
+    right = [
+        _restore_guard(library, cast(ast.TermFunction, g))
+        for g in cast(ast.ArgumentTuple, argument.pool[0]).arguments
+    ]
+    return literal.location, sign, left, right
 
 
 def restore_comparison(
