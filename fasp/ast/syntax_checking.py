@@ -82,29 +82,23 @@ class EvaluableFunctionCollector:
         """
         node.head.visit(self.collect, *args, **kwargs)
 
-    # @collect.register
-    # def _(self, node: ast.LiteralSymbolic, *args, **kwargs) -> None:
-    #     """
-    #     Visit a Comparison node (assignment) and record the function name and arity.
-    #     """
-    #     if not isinstance(node.atom, ast.TermFunction):
-    #         return
-    #     name = node.atom.name
-    #     if name != self.comparison_name:
-    #         return node
-    #     return node
+    @collect.register
+    def _(self, node: ast.LiteralSymbolic, *args, **kwargs) -> None:
+        """
+        Visit a Comparison node (assignment) and record the function name and arity.
+        """
+        if not isinstance(node.atom, ast.TermFunction):
+            return
+        name = node.atom.name
+        if name != self.comparison_name:
+            return node
+        return node
 
     @collect.register
     def _(self, node: ast.LiteralComparison, *args, **kwargs) -> None:
         """
         Visit a Comparison node (assignment) and record the function name and arity.
         """
-        # if not isinstance(node.atom, ast.TermFunction):
-        #     return
-        # name = node.atom.name
-        # if name != self.comparison_name:
-        #     return node
-        # return node
         if node.sign != ast.Sign.NoSign:
             self.errors.append(
                 SyntacticError(
