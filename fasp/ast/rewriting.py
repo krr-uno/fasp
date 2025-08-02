@@ -32,7 +32,7 @@ class NormalForm2PredicateTransformer:
         library: Library,
         evaluable_functions: AbstractSet[SymbolSignature],
         prefix: str = "F",
-        comparison_name: str = COMPARISON_NAME
+        comparison_name: str = COMPARISON_NAME,
     ) -> None:
         """
         Initialize the transformer with the set of evaluable functions.
@@ -46,14 +46,14 @@ class NormalForm2PredicateTransformer:
     def _dispatch(self, node: AST) -> AST | None:
         return node.transform(self.library, self.rewrite)
 
-    @_dispatch.register
-    def _(self, node: ast.LiteralSymbolic, *args: Any, **kwargs: Any) -> AST | None:
-        if not isinstance(node.atom, ast.TermFunction):
-            return node
-        name = node.atom.name
-        if name != self.comparison_name:
-            return node
-        return node
+    # @_dispatch.register
+    # def _(self, node: ast.LiteralSymbolic, *args: Any, **kwargs: Any) -> AST | None:
+    #     if not isinstance(node.atom, ast.TermFunction):
+    #         return node
+    #     name = node.atom.name
+    #     if name != self.comparison_name:
+    #         return node
+    #     return node
 
     @_dispatch.register
     def _(self, node: ast.LiteralComparison, *args: Any, **kwargs: Any) -> AST | None:

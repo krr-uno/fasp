@@ -10,7 +10,7 @@ from clingo import ast
 from clingo.core import Location, Position, Library
 from clingo.symbol import Symbol, Number, SymbolType
 
-from fasp.util.ast import AST
+from fasp.util.ast import AST, TermAST
 
 INT_TO_SIGN = [
     ast.Sign.NoSign,
@@ -165,6 +165,28 @@ def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
         term2, ast.Projection
     ), f"Expected a non-tuple term, got {term2}: {type(term2)}"
     return ast.RightGuard(library, INT_TO_RELATION[relation_int.number], term2)
+
+
+# def comparison_arguments(
+#     library: Library,
+#     literal: ast.LiteralSymbolic,
+# ) -> tuple[Location, ast.Sign, TermAST, list[ast.RightGuard]]:
+#     atom = literal.atom
+#     assert isinstance(
+#         atom, ast.TermFunction
+#     ), f"Expected a function term, got {atom}: {type(atom)}"
+#     arguments = atom.pool[0].arguments
+#     assert (
+#         len(arguments) == 3
+#     ), f"Expected 3 arguments, got {len(arguments)}: {arguments}"
+#     left = arguments[0]
+#     assert not isinstance(left, ast.Projection)
+#     sign = INT_TO_SIGN[arguments[2].symbol.number]
+#     right = [
+#         _restore_guard(library, cast(ast.TermFunction, g))
+#         for g in cast(ast.ArgumentTuple, arguments[1].pool[0]).arguments
+#     ]
+#     return literal.location, sign, left, right
 
 
 def restore_comparison(

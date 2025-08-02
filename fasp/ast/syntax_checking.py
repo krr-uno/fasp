@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from clingo import ast
 
+from fasp.ast.protecting import COMPARISON_NAME
 from fasp.util.ast import SyntacticError, AST, is_function, function_arguments
 
 
@@ -33,9 +34,10 @@ class EvaluableFunctionCollector:
     Visitor to collect function symbols from the AST.
     """
 
-    def __init__(self):
-        self.errors = []
-        self.function_symbols = set()
+    def __init__(self, comparison_name: str = COMPARISON_NAME):
+        self.comparison_name = comparison_name
+        self.errors: list[SyntacticError] = []
+        self.function_symbols: set[SymbolSignature] = set()
         self._UNCOLLECTABLE = {
             ast.LiteralBoolean,
             ast.LiteralSymbolic,
@@ -80,11 +82,29 @@ class EvaluableFunctionCollector:
         """
         node.head.visit(self.collect, *args, **kwargs)
 
+    # @collect.register
+    # def _(self, node: ast.LiteralSymbolic, *args, **kwargs) -> None:
+    #     """
+    #     Visit a Comparison node (assignment) and record the function name and arity.
+    #     """
+    #     if not isinstance(node.atom, ast.TermFunction):
+    #         return
+    #     name = node.atom.name
+    #     if name != self.comparison_name:
+    #         return node
+    #     return node
+
     @collect.register
     def _(self, node: ast.LiteralComparison, *args, **kwargs) -> None:
         """
         Visit a Comparison node (assignment) and record the function name and arity.
         """
+        # if not isinstance(node.atom, ast.TermFunction):
+        #     return
+        # name = node.atom.name
+        # if name != self.comparison_name:
+        #     return node
+        # return node
         if node.sign != ast.Sign.NoSign:
             self.errors.append(
                 SyntacticError(
