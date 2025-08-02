@@ -1,3 +1,4 @@
+import sys
 from fasp.app import main
 
-main()
+main(sys.argv[1:])

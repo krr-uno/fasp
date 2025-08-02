@@ -51,6 +51,6 @@ def fasp_main(
     clingo_main(library, options, app, raise_errors)
 
 
-def main():
+def main(options: Sequence[str] = []) -> None:
     with Library() as library:
-        fasp_main(library, sys.argv[1:])
+        fasp_main(library, options)

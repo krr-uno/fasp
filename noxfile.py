@@ -8,12 +8,13 @@ nox.options.sessions = "lint_pylint", "typecheck", "test"
 PROJECT_NAME = "fasp"
 
 
-@nox.session(python=PYTHON_VERSIONS)
+# @nox.session(python=PYTHON_VERSIONS)
+@nox.session
 def test(session):
     """Run the test suite."""
-    session.install("clingo")
-    # session.install("clingox")
-    session.install("coverage")
+    # session.install("clingo")
+    # # session.install("clingox")
+    # session.install("coverage")
     session.run("coverage", "run", "-m", "unittest", "discover", "-v")
     session.run(
         "coverage",
@@ -26,7 +27,7 @@ def test(session):
 
 @nox.session
 def format(session):
-    session.install("black", "isort", "autoflake")
+    # session.install("black", "isort", "autoflake")
     check = "check" in session.posargs
 
     autoflake_args = [
@@ -56,11 +57,12 @@ def format(session):
 
 @nox.session
 def lint_pylint(session):
-    session.install("pylint")
+    # session.install("pylint")
     session.run("pylint", PROJECT_NAME)
 
 
-@nox.session(python=PYTHON_VERSIONS)
+# @nox.session(python=PYTHON_VERSIONS)
+@nox.session
 def typecheck(session):
-    session.install("mypy")
+    # session.install("mypy")
     session.run("mypy", "-p", PROJECT_NAME)
