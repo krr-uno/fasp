@@ -3,6 +3,7 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
+from fasp.ast.protecting import protect_comparisons
 from fasp.ast.syntax_checking import get_evaluable_functions, ParsingException
 
 
@@ -28,6 +29,8 @@ class TestSyntacticChecker(unittest.TestCase):
             statements.append(statement)
 
         ast.parse_string(self.lib, program, callback)
+
+        statements = list(protect_comparisons(self.lib, statements))
 
         evaluable_functions = get_evaluable_functions(statements)
 

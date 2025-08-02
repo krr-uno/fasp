@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from clingo import ast
 
-from fasp.ast.protecting import COMPARISON_NAME
+from fasp.ast.protecting import COMPARISON_NAME, restore_comparison_arguments
 from fasp.util.ast import SyntacticError, AST, is_function, function_arguments
 
 
@@ -91,8 +91,33 @@ class EvaluableFunctionCollector:
             return
         name = node.atom.name
         if name != self.comparison_name:
-            return node
-        return node
+            return
+        sign, left, right = restore_comparison_arguments(node.atom)
+
+        if sign != ast.Sign.NoSign:
+            self.errors.append(
+                SyntacticError(
+                    node.location,
+                    f"unexpected negated comparison {node} in the head. Assignments are of the form 'FUNCTION = TERM'.",
+                    type(node),
+                )
+            )
+            return
+        if (
+            not is_function(left)
+            or len(right) != 1
+            or right[0].relation != ast.Relation.Equal
+        ):
+            self.errors.append(
+                SyntacticError(
+                    node.location,
+                    f"unexpected comparison {node} in the head. Assignments are of the form 'FUNCTION = TERM'.",
+                    type(node),
+                )
+            )
+            return
+        name, arguments = function_arguments(left)
+        self.function_symbols.add(SymbolSignature(name, len(arguments)))
 
     @collect.register
     def _(self, node: ast.LiteralComparison, *args, **kwargs) -> None:

@@ -5,6 +5,7 @@ from inspect import signature
 from itertools import chain
 import re
 from typing import AbstractSet, Any, Iterable, cast
+from attr import dataclass
 from click import Argument
 from clingo import ast
 from clingo.core import Location, Position, Library
@@ -146,8 +147,31 @@ def protect_comparisons(library: Library, statements: Iterable[AST]) -> Iterable
     transformer = _ComparisonProtectorTransformer(library)
     return (transformer.rewrite(statement) for statement in statements)
 
+@dataclass
+class RightGuard:
+    """
+    A class to represent a right guard in a comparison.
 
-def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
+    Attributes:
+        relation (ast.Relation): The relation of the guard.
+        term (TermAST): The term associated with the guard.
+    """
+    relation: ast.Relation
+    term: TermAST
+
+    def to_ast(self, library: Library) -> ast.RightGuard:
+        """
+        Convert the RightGuard to an AST RightGuard.
+
+        Args:
+            library (Library): The Clingo library.
+
+        Returns:
+            ast.RightGuard: The AST representation of the right guard.
+        """
+        return ast.RightGuard(library, self.relation, self.term)
+
+def _restore_guard_arguments(term: ast.TermFunction) -> tuple[RightGuard]:
     arguments = term.pool[0].arguments
     term1 = arguments[0]
     assert isinstance(
@@ -164,11 +188,13 @@ def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
     assert not isinstance(
         term2, ast.Projection
     ), f"Expected a non-tuple term, got {term2}: {type(term2)}"
-    return ast.RightGuard(library, INT_TO_RELATION[relation_int.number], term2)
+    return RightGuard(INT_TO_RELATION[relation_int.number], term2)
 
+def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
+    relation, term2 = _restore_guard_arguments(term)
+    return ast.RightGuard(library, relation, term2)
 
 def restore_comparison_arguments(
-    library: Library,
     atom: ast.TermFunction,
 ) -> tuple[ast.Sign, TermAST, list[ast.RightGuard]]:
     arguments = atom.pool[0].arguments
@@ -184,7 +210,7 @@ def restore_comparison_arguments(
         argument, ast.TermTuple
     ), f"Expected a tuple term, got {argument}: {type(argument)}"
     right = [
-        _restore_guard(library, cast(ast.TermFunction, g))
+        _restore_guard_arguments(cast(ast.TermFunction, g))
         for g in cast(ast.ArgumentTuple, argument.pool[0]).arguments
     ]
     return sign, left, right
@@ -199,4 +225,5 @@ def restore_comparison(
     if not isinstance(atom, ast.TermFunction) or atom.name != comparison_name:
         return literal
     sign, left, right = restore_comparison_arguments(library, atom)
+    right = [ast.RightGuard(library, r[0], r[1]) for r in right]
     return ast.LiteralComparison(library, literal.location, sign, left, right)
