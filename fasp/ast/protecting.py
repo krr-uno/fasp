@@ -104,8 +104,6 @@ class ComparisonProtector:
         return self.protect_comparison(comparison)
 
 
-
-
 class _ComparisonProtectorTransformer:
     """
     A transformer to protect comparisons in a Clingo AST.
@@ -148,15 +146,24 @@ def protect_comparisons(library: Library, statements: Iterable[AST]) -> Iterable
     transformer = _ComparisonProtectorTransformer(library)
     return (transformer.rewrite(statement) for statement in statements)
 
+
 def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
     arguments = term.pool[0].arguments
     term1 = arguments[0]
-    assert isinstance(term1, ast.TermSymbolic), f"Expected a symbolic term, got {term1}: {type(term1)}"
+    assert isinstance(
+        term1, ast.TermSymbolic
+    ), f"Expected a symbolic term, got {term1}: {type(term1)}"
     relation_int = term1.symbol
-    assert isinstance(relation_int, Symbol), f"Expected a symbol, got {relation_int}: {type(relation_int)}"
-    assert relation_int.type == SymbolType.Number, f"Expected a number, got {relation_int}: {relation_int.type}"
+    assert isinstance(
+        relation_int, Symbol
+    ), f"Expected a symbol, got {relation_int}: {type(relation_int)}"
+    assert (
+        relation_int.type == SymbolType.Number
+    ), f"Expected a number, got {relation_int}: {relation_int.type}"
     term2 = arguments[1]
-    assert not isinstance(term2, ast.Projection), f"Expected a non-tuple term, got {term2}: {type(term2)}"
+    assert not isinstance(
+        term2, ast.Projection
+    ), f"Expected a non-tuple term, got {term2}: {type(term2)}"
     return ast.RightGuard(library, INT_TO_RELATION[relation_int.number], term2)
 
 
@@ -166,21 +173,22 @@ def restore_comparison(
     comparison_name: str = COMPARISON_NAME,
 ) -> ast.LiteralSymbolic | ast.LiteralComparison:
     atom = literal.atom
-    assert isinstance(atom, ast.TermFunction), f"Expected a function term, got {atom}: {type(atom)}"
+    assert isinstance(
+        atom, ast.TermFunction
+    ), f"Expected a function term, got {atom}: {type(atom)}"
     arguments = atom.pool[0].arguments
     if atom.name != comparison_name:
         return literal
     left = arguments[0]
     assert not isinstance(left, ast.Projection)
     argument = arguments[1]
-    assert isinstance(argument, ast.TermTuple), f"Expected a tuple term, got {argument}: {type(argument)}"
-    right = [_restore_guard(library, cast(ast.TermFunction,g)) for g in cast(ast.ArgumentTuple,argument.pool[0]).arguments]
+    assert isinstance(
+        argument, ast.TermTuple
+    ), f"Expected a tuple term, got {argument}: {type(argument)}"
+    right = [
+        _restore_guard(library, cast(ast.TermFunction, g))
+        for g in cast(ast.ArgumentTuple, argument.pool[0]).arguments
+    ]
     assert isinstance(arguments[2], ast.TermSymbolic)
     sign = INT_TO_SIGN[arguments[2].symbol.number]
-    return ast.LiteralComparison(
-        library,
-        literal.location,
-        sign,
-        left,
-        right,
-    )
+    return ast.LiteralComparison(library, literal.location, sign, left, right)

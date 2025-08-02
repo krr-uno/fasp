@@ -9,13 +9,16 @@ from clingo.core import Library
 from clingo.ast import RewriteContext, rewrite_statement
 from fasp.util.ast import AST
 
-from fasp.ast.protecting import _ComparisonProtectorTransformer, _restore_guard, protect_comparisons, restore_comparison
+from fasp.ast.protecting import (
+    _ComparisonProtectorTransformer,
+    _restore_guard,
+    protect_comparisons,
+    restore_comparison,
+)
 
 
 class TestProtectComparisons(unittest.TestCase):
-    """
-    
-    """
+    """ """
 
     def setUp(self):
         """
@@ -85,10 +88,9 @@ class TestProtectComparisons(unittest.TestCase):
         ).strip()
         self.assertEqualRewrite(program, expected)
 
+
 class TestRestoreComparisons(unittest.TestCase):
-    """
-    
-    """
+    """ """
 
     def setUp(self):
         """
