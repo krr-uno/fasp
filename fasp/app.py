@@ -40,7 +40,7 @@ class FaspApp(App):
 
 
 def fasp_main(
-    library: Library, options: Sequence[str] = [], raise_errors: bool = False
+    library: Library, options: list[str] = [], raise_errors: bool = False
 ) -> None:
     """
     Main function for the fasp application.
@@ -61,4 +61,4 @@ def fasp_main(
 
 def main(options: Sequence[str] = []) -> None:
     with Library() as library:
-        fasp_main(library, options)
+        fasp_main(library, list(options))

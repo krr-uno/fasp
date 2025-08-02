@@ -88,11 +88,9 @@ class Control:
             for model in handle:
                 yield Model(model, self.prefix)
 
-    def main(self) -> Iterable[Model]:
+    def main(self) -> None:
         """
         Main function to be called after parsing and grounding.
-
-        This function is a generator that yields models from the solve method.
         """
         self.ground()
         for i, model in enumerate(self.solve()):
