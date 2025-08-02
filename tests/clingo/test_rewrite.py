@@ -242,7 +242,7 @@ class TestRewrite(unittest.TestCase):
         self.maxDiff = None
         self.assertEqualRewritten(program, expected)
 
-    def test_arithmetic_1(self):
+    def test_arithmetic_2(self):
         program = """\
         p(X) :- q(X).
         p(Z) :- q(X,Y); Z=X+Y.
@@ -265,7 +265,7 @@ class TestRewrite(unittest.TestCase):
         self.maxDiff = None
         self.assertEqualRewritten(program, expected)
 
-    def test_arithmetic_1(self):
+    def test_arithmetic_3(self):
         program = """\
         :- q1(X,Y,Z); W=3*X+5*Y+Z.
         :- q2(X,Y,Z); W=X+Y+Z.

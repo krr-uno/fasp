@@ -5,6 +5,7 @@ from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.core import Library
 from clingo.control import Control as ClingoControl
 
+from fasp.ast.syntax_checking import ParsingException
 from fasp.control import Control
 
 
@@ -28,7 +29,13 @@ class FaspApp(App):
             prefix,
             clingo_control,
         )
-        control.parse_files(files)
+        try:
+            control.parse_files(files)
+        except ParsingException as e:
+            for error in e.errors:
+                sys.stderr.write(str(error) + "\n")
+            sys.stderr.write(f"*** ERROR: (fasp): parsing failed")
+            return
         control.main()
 
 
@@ -55,3 +62,4 @@ def fasp_main(
 def main(options: Sequence[str] = []) -> None:
     with Library() as library:
         fasp_main(library, options)
+
