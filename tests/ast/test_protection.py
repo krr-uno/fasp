@@ -50,7 +50,7 @@ class TestSyntacticChecker(unittest.TestCase):
         for statement in result:
             self.assertIsInstance(statement, AST)
 
-    def test_correct(self):
+    def test_basic(self):
         """Test syntax checking with a correct program snippet."""
         program = """\
             f = 100 :- not g = 100.
@@ -67,24 +67,21 @@ class TestSyntacticChecker(unittest.TestCase):
         ).strip()
         self.assertEqualRewrite(program, expected)
 
-    # def test_symbol_argument(self):
-    #     """Test syntax checking with a correct program snippet."""
-    #     program = """\
-    #         f0 = X :- X=1; g=h.
-    #         f1(a) = X :- X=1; not g=h.
-    #         f1(5) = X :- X=1; not g=h.
-    #         f2(a,b) = X :- X=1; not g=h.
-    #     """
-    #     expected = textwrap.dedent(
-    #         """\
-    #         #program base.
-    #         Ff0(X) :- X=1; g=h.
-    #         Ff1(a,X) :- X=1; not g=h.
-    #         Ff1(5,X) :- X=1; not g=h.
-    #         Ff2(a,b,X) :- X=1; not g=h.
-    #         :- Ff0(_); 1 > #count { V: Ff0(V) }.
-    #         :- Ff1(X0,_); 1 > #count { V: Ff1(X0,V) }.
-    #         :- Ff2(X0,X1,_); 1 > #count { V: Ff2(X0,X1,V) }.
-    #     """
-    #     ).strip()
-    #     self.assertEqualRewrite(program, expected)
+    def test_aggregates(self):
+        """Test syntax checking with a correct program snippet."""
+        program = """\
+            {f = 100} = 1 :- #count{ X,Y : g = X, not h = Y } > 5.
+            #count { X : f(X) = Y : p(X) } :- q(Y).
+            #sum { X : f(X) = Y : p(X) } :- q(Y).
+        """
+        expected = textwrap.dedent(
+            """\
+            #program base.
+            { CMP(f,(GRD(0,100),),0) } = 1 :- #count { X,Y: CMP(g,(GRD(0,X),),0), CMP(h,(GRD(0,Y),),1) } > 5.
+            #count { X: CMP(f(X),(GRD(0,Y),),0): p(X) } :- q(Y).
+            #sum { X: CMP(f(X),(GRD(0,Y),),0): p(X) } :- q(Y).
+        """
+        ).strip()
+        self.assertEqualRewrite(program, expected)
+
+    
