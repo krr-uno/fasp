@@ -1,3 +1,5 @@
+from ast import arg
+from doctest import COMPARISON_FLAGS
 from functools import singledispatchmethod
 from inspect import signature
 from itertools import chain
@@ -6,7 +8,7 @@ from typing import AbstractSet, Any, Iterable, cast
 from click import Argument
 from clingo import ast
 from clingo.core import Location, Position, Library
-from clingo.symbol import Number
+from clingo.symbol import Symbol, Number, SymbolType
 
 from fasp.util.ast import AST, StatementAST
 
@@ -29,13 +31,21 @@ SIGN_TO_INT = {r: i for i, r in enumerate(INT_TO_SIGN)}
 
 RELATION_TO_INT = {r: i for i, r in enumerate(INT_TO_RELATION)}
 
+COMPARISON_NAME = "CMP"
+GUARD_NAME = "GRD"
+
 
 class ComparisonProtector:
     """
     A class to protect comparisons in a Clingo AST.
     """
 
-    def __init__(self, library: Library, comparison_name: str = "CMP", guard_name: str = "GRD"):
+    def __init__(
+        self,
+        library: Library,
+        comparison_name: str = COMPARISON_NAME,
+        guard_name: str = GUARD_NAME,
+    ):
         self.library = library
         self.comparison_name = comparison_name
         self.guard_name = guard_name
@@ -64,7 +74,7 @@ class ComparisonProtector:
         """
         Rewrites a LiteralComparison as a positive LiteralSymbolic of the form
             Comparison(left, right, sign)
-        where right is a tuple of functions symbols Guard(operator, term)
+        where right is a tuple of functions symbols Guard(relation, term)
         """
         location = comparison.location
         sign = self.sign_to_int[comparison.sign]
@@ -72,7 +82,12 @@ class ComparisonProtector:
         right = ast.TermTuple(
             self.library,
             location,
-            [ast.ArgumentTuple(self.library, [self._guard_to_function(location, g) for g in comparison.right])],
+            [
+                ast.ArgumentTuple(
+                    self.library,
+                    [self._guard_to_function(location, g) for g in comparison.right],
+                )
+            ],
         )
         atom = ast.TermFunction(
             self.library,
@@ -87,6 +102,8 @@ class ComparisonProtector:
         Call method to protect a comparison.
         """
         return self.protect_comparison(comparison)
+
+
 
 
 class _ComparisonProtectorTransformer:
@@ -111,7 +128,7 @@ class _ComparisonProtectorTransformer:
         self, node: ast.LiteralBoolean | ast.LiteralSymbolic
     ) -> ast.LiteralBoolean | ast.LiteralSymbolic:
         return node
-    
+
     def rewrite(self, node: AST) -> AST:
         if not isinstance(node, ast.StatementRule):
             return node
@@ -130,3 +147,33 @@ def protect_comparisons(library: Library, statements: Iterable[AST]) -> Iterable
     """
     transformer = _ComparisonProtectorTransformer(library)
     return (transformer.rewrite(statement) for statement in statements)
+
+def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
+    arguments = term.pool[0].arguments
+    term = arguments[0]
+    assert isinstance(term, ast.TermSymbolic), f"Expected a symbolic term, got {term}: {type(term)}"
+    relation_int = term.symbol
+    assert isinstance(relation_int, Symbol), f"Expected a symbol, got {relation_int}: {type(relation_int)}"
+    assert relation_int.type == SymbolType.Number, f"Expected a number, got {relation_int}: {relation_int.type}"
+    return ast.RightGuard(library, INT_TO_RELATION[relation_int.number], arguments[1])
+
+
+def restore_comparison(
+    library: Library,
+    literal: ast.LiteralSymbolic,
+    comparison_name: str = COMPARISON_NAME,
+) -> ast.LiteralSymbolic | ast.LiteralComparison:
+    atom = literal.atom
+    arguments = atom.pool[0].arguments
+    if atom.name != comparison_name:
+        return literal
+    left = arguments[0]
+    right = [_restore_guard(library, g) for g in arguments[1].pool[0].arguments]
+    sign = INT_TO_SIGN[arguments[2].symbol.number]
+    return ast.LiteralComparison(
+        library,
+        literal.location,
+        sign,
+        left,
+        right,
+    )

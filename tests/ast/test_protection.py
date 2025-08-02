@@ -1,3 +1,4 @@
+from difflib import restore
 from math import exp
 import textwrap
 from turtle import st
@@ -8,12 +9,12 @@ from clingo.core import Library
 from clingo.ast import RewriteContext, rewrite_statement
 from fasp.util.ast import AST
 
-from fasp.ast.protecting import protect_comparisons
+from fasp.ast.protecting import _ComparisonProtectorTransformer, _restore_guard, protect_comparisons, restore_comparison
 
 
-class TestSyntacticChecker(unittest.TestCase):
+class TestProtectComparisons(unittest.TestCase):
     """
-    Test class for the syntactic checker.
+    
     """
 
     def setUp(self):
@@ -84,4 +85,29 @@ class TestSyntacticChecker(unittest.TestCase):
         ).strip()
         self.assertEqualRewrite(program, expected)
 
+class TestRestoreComparisons(unittest.TestCase):
+    """
     
+    """
+
+    def setUp(self):
+        """
+        Set up the test case with a library instance.
+        """
+        self.lib = Library()
+        self.rewrite_context = RewriteContext(self.lib)
+
+    def test_restore(self):
+        cmp = ast.parse_literal(self.lib, "a=100")
+        self.assertEqual(str(cmp), "a=100")
+        transformer = _ComparisonProtectorTransformer(self.lib)
+        protected = transformer.dispatch(cmp)
+        self.assertEqual(str(protected), "CMP(a,(GRD(0,100),),0)")
+        guard = protected.atom.pool[0].arguments[1].pool[0].arguments[0]
+        self.assertEqual(str(guard), "GRD(0,100)")
+        self.assertIsInstance(guard, ast.TermFunction)
+        restored_guard = _restore_guard(self.lib, guard)
+        self.assertEqual(str(restored_guard), " = 100")
+        restored = restore_comparison(self.lib, protected)
+        self.assertEqual(str(restored), "a=100")
+        self.assertIsInstance(restored, ast.LiteralComparison)
