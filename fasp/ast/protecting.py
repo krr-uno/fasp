@@ -199,16 +199,4 @@ def restore_comparison(
     if not isinstance(atom, ast.TermFunction) or atom.name != comparison_name:
         return literal
     sign, left, right = restore_comparison_arguments(library, atom)
-    # left = arguments[0]
-    # assert not isinstance(left, ast.Projection)
-    # argument = arguments[1]
-    # assert isinstance(
-    #     argument, ast.TermTuple
-    # ), f"Expected a tuple term, got {argument}: {type(argument)}"
-    # right = [
-    #     _restore_guard(library, cast(ast.TermFunction, g))
-    #     for g in cast(ast.ArgumentTuple, argument.pool[0]).arguments
-    # ]
-    # assert isinstance(arguments[2], ast.TermSymbolic)
-    # sign = INT_TO_SIGN[arguments[2].symbol.number]
     return ast.LiteralComparison(library, literal.location, sign, left, right)
