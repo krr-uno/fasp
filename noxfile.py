@@ -56,7 +56,7 @@ def format(session):
 
 
 @nox.session
-def lint_pylint(session):
+def lint(session):
     # session.install("pylint")
     session.run("pylint", PROJECT_NAME)
 
