@@ -6,7 +6,7 @@ from clingo.core import Library
 
 from fasp.control import Control
 
-EXAMPLES = Path(__file__).parent.parent / "examples"
+from .examples import EXAMPLES
 
 
 class TestControl(unittest.TestCase):
@@ -24,11 +24,8 @@ class TestControl(unittest.TestCase):
             models.append(str(model))
         self.assertCountEqual(models, expected_models)
 
-    def test_basic(self):
-        self.assert_models(
-            [EXAMPLES / "ex01_asp.lp"],
-            [
-                "b(1) b(2) b(3)",
-                "a b(1) b(2) b(3) c(1) c(2) c(3)",
-            ],
-        )
+    def test_app(self):
+        for i, example in enumerate(EXAMPLES):
+            file_names = [f.name for f in example.files]
+            with self.subTest(f"{i}: {file_names}"):
+                self.assert_models(example.files, example.models)

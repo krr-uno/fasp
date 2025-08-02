@@ -184,8 +184,6 @@ class TestRewrite(unittest.TestCase):
         )
         self.assertEqual(len(result), 0)
 
-    
-
     def test_pool_1(self):
         program = """\
         p(X;Y,Z) :- q(X,Y,Z).

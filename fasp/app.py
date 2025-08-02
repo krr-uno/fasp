@@ -7,6 +7,7 @@ from clingo.control import Control as ClingoControl
 
 from fasp.control import Control
 
+
 class FaspApp(App):
     def __init__(self, library: Library, clingo_options: Sequence[str]) -> None:
         super().__init__("fasp", "1.0.0")

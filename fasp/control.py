@@ -98,4 +98,3 @@ class Control:
         for i, model in enumerate(self.solve()):
             sys.stdout.write(f"Answer {i + 1}:\n")
             sys.stdout.write(str(model) + "\n")
-            
