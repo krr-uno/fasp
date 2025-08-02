@@ -170,7 +170,7 @@ def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
 def  restore_comparison_arguments(
     library: Library,
     atom: ast.TermFunction,
-) -> tuple[Location, ast.Sign, TermAST, list[ast.RightGuard]]:
+) -> tuple[ast.Sign, TermAST, list[ast.RightGuard]]:
     arguments = atom.pool[0].arguments
     assert (
         len(arguments) == 3
