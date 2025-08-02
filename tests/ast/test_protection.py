@@ -60,9 +60,9 @@ class TestSyntacticChecker(unittest.TestCase):
         expected = textwrap.dedent(
             """\
             #program base.
-            Comparison(f,(Guard(0,100),),0) :- Comparison(g,(Guard(0,100),),1).
-            Comparison(f(X),(Guard(1,100),),0) :- Comparison(1000,(Guard(3,g(X,Y)),Guard(3,1010)),0).
-            Comparison(f(a,5),(Guard(2,100),),0) :- Comparison(g("string"),(Guard(4,100),),0); Comparison(h(3+5),(Guard(5,300),),1); Comparison(z,(Guard(0,p),),2).
+            CMP(f,(GRD(0,100),),0) :- CMP(g,(GRD(0,100),),1).
+            CMP(f(X),(GRD(1,100),),0) :- CMP(1000,(GRD(3,g(X,Y)),GRD(3,1010)),0).
+            CMP(f(a,5),(GRD(2,100),),0) :- CMP(g("string"),(GRD(4,100),),0); CMP(h(3+5),(GRD(5,300),),1); CMP(z,(GRD(0,p),),2).
         """
         ).strip()
         self.assertEqualRewrite(program, expected)

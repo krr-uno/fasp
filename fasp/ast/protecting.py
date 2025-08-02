@@ -35,7 +35,7 @@ class ComparisonProtector:
     A class to protect comparisons in a Clingo AST.
     """
 
-    def __init__(self, library: Library, comparison_name: str = "Comparison", guard_name: str = "Guard"):
+    def __init__(self, library: Library, comparison_name: str = "CMP", guard_name: str = "GRD"):
         self.library = library
         self.comparison_name = comparison_name
         self.guard_name = guard_name
