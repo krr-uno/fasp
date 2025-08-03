@@ -4,14 +4,14 @@ from functools import singledispatchmethod
 from inspect import signature
 from itertools import chain
 import re
-from typing import AbstractSet, Any, Iterable, cast
+from typing import AbstractSet, Any, Iterable, TypeVar, cast
 from attr import dataclass
 from click import Argument
 from clingo import ast
 from clingo.core import Location, Position, Library
 from clingo.symbol import Symbol, Number, SymbolType
 
-from fasp.util.ast import AST, TermAST
+from fasp.util.ast import AST, StatementAST, TermAST
 
 INT_TO_SIGN = [
     ast.Sign.NoSign,
@@ -105,6 +105,8 @@ class ComparisonProtector:
         return self.protect_comparison(comparison)
 
 
+AST_T = TypeVar('AST_T', bound='AST')
+
 class _ComparisonProtectorTransformer:
     """
     A transformer to protect comparisons in a Clingo AST.
@@ -115,8 +117,8 @@ class _ComparisonProtectorTransformer:
         self.protect_comparison = ComparisonProtector(library)
 
     @singledispatchmethod
-    def dispatch(self, node: AST) -> AST:
-        return node.transform(self.library, self.dispatch) or node
+    def dispatch(self, node: AST_T) -> AST_T:
+        return cast(AST_T, node.transform(self.library, self.dispatch)) or node
 
     @dispatch.register
     def _(self, node: ast.LiteralComparison) -> ast.LiteralSymbolic:
@@ -128,13 +130,13 @@ class _ComparisonProtectorTransformer:
     ) -> ast.LiteralBoolean | ast.LiteralSymbolic:
         return node
 
-    def rewrite(self, node: AST) -> AST:
+    def rewrite(self, node: StatementAST) -> StatementAST:
         if not isinstance(node, ast.StatementRule):
             return node
         return node.transform(self.library, self.dispatch) or node
 
 
-def protect_comparisons(library: Library, statements: Iterable[AST]) -> Iterable[AST]:
+def protect_comparisons(library: Library, statements: Iterable[StatementAST]) -> Iterable[StatementAST]:
     """
     Protect comparisons in a Clingo AST.
 
@@ -254,7 +256,21 @@ class _ComparisonRestorationTransformer:
     ) -> ast.LiteralBoolean | ast.LiteralComparison:
         return node
 
-    def rewrite(self, node: AST) -> AST:
+    def rewrite(self, node: StatementAST) -> StatementAST:
         if not isinstance(node, ast.StatementRule):
             return node
         return node.transform(self.library, self.dispatch) or node
+
+
+def restore_comparisons(library: Library, statements: Iterable[StatementAST]) -> Iterable[StatementAST]:
+    """
+    Protect comparisons in a Clingo AST.
+
+    Args:
+        statements (Iterable[AST]): The AST statements to protect.
+
+    Returns:
+        Iterable[AST]: The protected AST statements.
+    """
+    transformer = _ComparisonRestorationTransformer(library)
+    return (transformer.rewrite(statement) for statement in statements)

@@ -3,7 +3,7 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from fasp.ast.protecting import protect_comparisons
+from fasp.ast.protecting import protect_comparisons, restore_comparisons
 from fasp.ast.syntax_checking import get_evaluable_functions, ParsingException
 
 
@@ -15,7 +15,7 @@ class TestSyntacticChecker(unittest.TestCase):
     def setUp(self):
         self.lib = Library()
 
-    def assertEqualFunctions(self, program, expected):
+    def assertEqualFunctions(self, program, expected_functions, expected_program=None):
         """
         Helper method to assert that the syntactic checker finds the expected errors.
 
@@ -30,11 +30,12 @@ class TestSyntacticChecker(unittest.TestCase):
 
         ast.parse_string(self.lib, program, callback)
 
-        # statements = list(protect_comparisons(self.lib, statements))
+        statements = list(protect_comparisons(self.lib, statements))
+        statements = list(restore_comparisons(self.lib, statements))
 
         evaluable_functions = get_evaluable_functions(statements)
 
-        self.assertCountEqual(set(map(str, evaluable_functions)), set(expected))
+        self.assertCountEqual(set(map(str, evaluable_functions)), set(expected_functions))
 
     def test_correct(self):
         """Test syntax checking with a correct program snippet."""
@@ -106,3 +107,12 @@ class TestSyntacticChecker(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_choice(self):
+        """Test syntax checking with a correct program snippet."""
+        program = """
+            { a = 1 } :- b.
+            { f(X) = Y : p(Y) } :- q(X).
+            { f(X) = Y : g = Y } :- q(X).
+        """
+        # self.assertEqualFunctions(program, ["a/0", "f/1"])

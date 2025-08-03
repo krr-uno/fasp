@@ -1,14 +1,30 @@
 from math import exp
 import textwrap
 from turtle import st
+from typing import Iterable
 import unittest
 
 from clingo import ast
 from clingo.core import Library
 from clingo.ast import RewriteContext, rewrite_statement
-from fasp.util.ast import AST
+from fasp.ast.protecting import protect_comparisons, restore_comparisons
+from fasp.util.ast import AST, StatementAST
 
 from fasp.ast.rewriting import _functional2asp
+
+
+def normalize_statements(library: Library, statements: Iterable[StatementAST]) -> Iterable[StatementAST]:
+    """
+    Normalize a list of AST statements by rewriting them to a functional form.
+
+    Args:
+        statements (Iterable[StatementAST]): The AST statements to normalize.
+
+    Returns:
+        StatementAST: The normalized AST statements.
+    """
+    rewrite_context = RewriteContext(library)
+    return (restore_comparisons(rewrite_statement(statement, rewrite_context)) for statement in protect_comparisons(statements))
 
 
 class TestSyntacticChecker(unittest.TestCase):
