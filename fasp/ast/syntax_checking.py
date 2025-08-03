@@ -25,7 +25,7 @@ class SymbolSignature:
     name: str
     arity: int
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name}/{self.arity}"
 
 
@@ -63,7 +63,7 @@ class EvaluableFunctionCollector:
         }
 
     @singledispatchmethod
-    def collect(self, node, *args: Any, **kwargs: Any) -> None:
+    def collect(self, node: AST, *args: Any, **kwargs: Any) -> None:
         """
         Visit the given AST node and check for invalid AST types.
 
@@ -76,14 +76,14 @@ class EvaluableFunctionCollector:
             node.visit(self.collect, args, kwargs)
 
     @collect.register
-    def _(self, node: ast.StatementRule, *args, **kwargs) -> None:
+    def _(self, node: ast.StatementRule, *args: Any, **kwargs: Any) -> None:
         """
         Visit a Rule node and collect function symbols from the head.
         """
         node.head.visit(self.collect, *args, **kwargs)
 
     @collect.register
-    def _(self, node: ast.LiteralSymbolic, *args, **kwargs) -> None:
+    def _(self, node: ast.LiteralSymbolic, *args: Any, **kwargs: Any) -> None:
         """
         Visit a Comparison node (assignment) and record the function name and arity.
         """
@@ -120,7 +120,7 @@ class EvaluableFunctionCollector:
         self.function_symbols.add(SymbolSignature(name, len(arguments)))
 
     @collect.register
-    def _(self, node: ast.LiteralComparison, *args, **kwargs) -> None:
+    def _(self, node: ast.LiteralComparison, *args: Any, **kwargs: Any) -> None:
         """
         Visit a Comparison node (assignment) and record the function name and arity.
         """
@@ -165,7 +165,7 @@ class ParsingException(Exception):
         super().__init__(errors)
         self.errors = errors
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"ParsingException: {self.errors}"  # pragma: no cover
 
 

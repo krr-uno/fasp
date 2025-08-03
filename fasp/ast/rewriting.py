@@ -91,7 +91,7 @@ class NormalForm2PredicateTransformer:
             ),
         )
 
-    def rewrite(self, node: StatementAST, *args, **kwargs) -> StatementAST:
+    def rewrite(self, node: StatementAST, *args: Any, **kwargs: Any) -> StatementAST:
         result = self._dispatch(node, *args, **kwargs) or node
         return cast(StatementAST, result)
 
