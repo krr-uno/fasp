@@ -194,11 +194,6 @@ def _restore_guard_arguments(term: ast.TermFunction) -> RightGuard:
     return RightGuard(INT_TO_RELATION[relation_int.number], term2)
 
 
-# def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
-#     right = _restore_guard_arguments(term)
-#     return ast.RightGuard(library, right.relation, right.term)
-
-
 def restore_comparison_arguments(
     atom: ast.TermFunction,
 ) -> tuple[ast.Sign, TermAST, list[RightGuard]]:
