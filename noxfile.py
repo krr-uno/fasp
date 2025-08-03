@@ -1,9 +1,9 @@
-import os
 import nox
 
 PYTHON_VERSIONS = [f"3.{i}" for i in range(13, 14)]
 
-nox.options.sessions = "lint_pylint", "typecheck", "test"
+nox.options.sessions = "lint", "typecheck", "test"
+nox.options.default_venv_backend = None
 
 PROJECT_NAME = "fasp"
 

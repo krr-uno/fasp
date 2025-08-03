@@ -1,6 +1,4 @@
-from math import exp
 import textwrap
-from turtle import st
 from typing import Iterable
 import unittest
 

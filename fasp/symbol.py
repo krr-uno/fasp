@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Self, Sequence
 
 from clingo.symbol import Symbol, SymbolType
-import clingo
 
 
 @dataclass(frozen=True, slots=True, order=True)

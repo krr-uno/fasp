@@ -1,6 +1,4 @@
-import re
 from typing import Sequence
-import clingo
 from clingo import solve
 from clingo.symbol import Symbol, SymbolType
 

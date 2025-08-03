@@ -1,9 +1,7 @@
 import sys
-from typing import Any, Callable, Iterable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Iterable, Optional, Sequence, Tuple
 
 import clingo
-from clingo.solve import SolveResult
-from clingo.stats import Stats
 from clingo.symbol import Symbol
 
 from fasp.solve import Model

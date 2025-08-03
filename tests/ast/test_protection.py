@@ -1,16 +1,14 @@
-from difflib import restore
-from math import exp
 import textwrap
-from turtle import st
 import unittest
 
 from clingo import ast
 from clingo.core import Library
-from clingo.ast import RewriteContext, rewrite_statement
+from clingo.ast import RewriteContext
 from fasp.util.ast import AST
 
 from fasp.ast.protecting import (
     _ComparisonProtectorTransformer,
+    _ComparisonRestorationTransformer,
     _restore_guard_arguments,
     protect_comparisons,
     restore_comparison,
@@ -118,3 +116,12 @@ class TestRestoreComparisons(unittest.TestCase):
         restored = restore_comparison(self.lib, protected)
         self.assertEqual(str(restored), "a=100")
         self.assertIsInstance(restored, ast.LiteralComparison)
+
+    def test_restore_symbolic(self):
+        lit = ast.parse_literal(self.lib, "#true")
+        transformer = _ComparisonProtectorTransformer(self.lib)
+        protected = transformer.dispatch(lit)
+        restorer = _ComparisonRestorationTransformer(self.lib)
+        restored = restorer.dispatch(protected)
+        self.assertEqual(lit, restored)
+

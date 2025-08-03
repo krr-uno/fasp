@@ -1,12 +1,8 @@
-import enum
-from math import exp
 from os import PathLike
 from pathlib import Path
-import textwrap
 import unittest
 import io, contextlib
 
-from clingo.core import Library
 
 from fasp.app import main
 

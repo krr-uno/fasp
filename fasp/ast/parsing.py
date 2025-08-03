@@ -1,10 +1,9 @@
-from operator import call
-from typing import Optional, Sequence
+from typing import Sequence
 
 from clingo import ast
 from clingo.core import Library
 
-from fasp.util.ast import AST, StatementAST
+from fasp.util.ast import StatementAST
 
 from .syntax_checking import SymbolSignature
 from . import rewriting

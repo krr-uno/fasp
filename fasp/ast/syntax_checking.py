@@ -1,4 +1,3 @@
-from ast import arguments
 from functools import singledispatchmethod
 from typing import Any, Iterable
 from dataclasses import dataclass
@@ -81,43 +80,6 @@ class EvaluableFunctionCollector:
         Visit a Rule node and collect function symbols from the head.
         """
         node.head.visit(self.collect, *args, **kwargs)
-
-    @collect.register
-    def _(self, node: ast.LiteralSymbolic, *args: Any, **kwargs: Any) -> None:
-        """
-        Visit a Comparison node (assignment) and record the function name and arity.
-        """
-        if not isinstance(node.atom, ast.TermFunction):
-            return
-        name = node.atom.name
-        if name != self.comparison_name:
-            return
-        sign, left, right = restore_comparison_arguments(node.atom)
-
-        if sign != ast.Sign.NoSign:
-            self.errors.append(
-                SyntacticError(
-                    node.location,
-                    f"unexpected negated comparison {node} in the head. Assignments are of the form 'FUNCTION = TERM'.",
-                    type(node),
-                )
-            )
-            return
-        if (
-            not is_function(left)
-            or len(right) != 1
-            or right[0].relation != ast.Relation.Equal
-        ):
-            self.errors.append(
-                SyntacticError(
-                    node.location,
-                    f"unexpected comparison {node} in the head. Assignments are of the form 'FUNCTION = TERM'.",
-                    type(node),
-                )
-            )
-            return
-        name, arguments = function_arguments(left)
-        self.function_symbols.add(SymbolSignature(name, len(arguments)))
 
     @collect.register
     def _(self, node: ast.LiteralComparison, *args: Any, **kwargs: Any) -> None:

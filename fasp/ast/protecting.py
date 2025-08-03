@@ -1,12 +1,6 @@
-from ast import arg
-from doctest import COMPARISON_FLAGS
 from functools import singledispatchmethod
-from inspect import signature
-from itertools import chain
-import re
-from typing import AbstractSet, Any, Iterable, TypeVar, cast
+from typing import Iterable, cast
 from attr import dataclass
-from click import Argument
 from clingo import ast
 from clingo.core import Location, Position, Library
 from clingo.symbol import Symbol, Number, SymbolType
@@ -226,7 +220,7 @@ def restore_comparison(
     if not isinstance(atom, ast.TermFunction) or atom.name != comparison_name:
         return literal
     sign, left, right = restore_comparison_arguments(atom)
-    ast_right = [ast.RightGuard(library, r.relation, r.term) for r in right]
+    ast_right = [r.to_ast(library) for r in right]
     return ast.LiteralComparison(library, literal.location, sign, left, ast_right)
 
 

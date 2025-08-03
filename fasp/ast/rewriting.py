@@ -1,7 +1,5 @@
 from functools import singledispatchmethod
-from inspect import signature
 from itertools import chain
-import re
 from typing import AbstractSet, Any, Iterable, cast
 from clingo import ast
 from clingo.core import Location, Position, Library
