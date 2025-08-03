@@ -1,6 +1,7 @@
 from functools import singledispatchmethod
 from typing import Iterable, cast
 from dataclasses import dataclass
+
 from clingo import ast
 from clingo.core import Location, Position, Library
 from clingo.symbol import Symbol, Number, SymbolType
