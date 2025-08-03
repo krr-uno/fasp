@@ -11,10 +11,14 @@ from fasp.util.ast import AST
 
 from fasp.ast.protecting import (
     _ComparisonProtectorTransformer,
-    _restore_guard,
+    _restore_guard_arguments,
     protect_comparisons,
     restore_comparison,
 )
+
+def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
+    right = _restore_guard_arguments(term)
+    return ast.RightGuard(library, right.relation, right.term)
 
 
 class TestProtectComparisons(unittest.TestCase):
