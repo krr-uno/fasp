@@ -147,6 +147,7 @@ def protect_comparisons(library: Library, statements: Iterable[AST]) -> Iterable
     transformer = _ComparisonProtectorTransformer(library)
     return (transformer.rewrite(statement) for statement in statements)
 
+
 @dataclass
 class RightGuard:
     """
@@ -156,6 +157,7 @@ class RightGuard:
         relation (ast.Relation): The relation of the guard.
         term (TermAST): The term associated with the guard.
     """
+
     relation: ast.Relation
     term: TermAST
 
@@ -171,7 +173,8 @@ class RightGuard:
         """
         return ast.RightGuard(library, self.relation, self.term)
 
-def _restore_guard_arguments(term: ast.TermFunction) -> tuple[RightGuard]:
+
+def _restore_guard_arguments(term: ast.TermFunction) -> RightGuard:
     arguments = term.pool[0].arguments
     term1 = arguments[0]
     assert isinstance(
@@ -190,13 +193,15 @@ def _restore_guard_arguments(term: ast.TermFunction) -> tuple[RightGuard]:
     ), f"Expected a non-tuple term, got {term2}: {type(term2)}"
     return RightGuard(INT_TO_RELATION[relation_int.number], term2)
 
+
 def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
-    relation, term2 = _restore_guard_arguments(term)
-    return ast.RightGuard(library, relation, term2)
+    right = _restore_guard_arguments(term)
+    return ast.RightGuard(library, right.relation, right.term)
+
 
 def restore_comparison_arguments(
     atom: ast.TermFunction,
-) -> tuple[ast.Sign, TermAST, list[ast.RightGuard]]:
+) -> tuple[ast.Sign, TermAST, list[RightGuard]]:
     arguments = atom.pool[0].arguments
     assert (
         len(arguments) == 3
@@ -224,6 +229,37 @@ def restore_comparison(
     atom = literal.atom
     if not isinstance(atom, ast.TermFunction) or atom.name != comparison_name:
         return literal
-    sign, left, right = restore_comparison_arguments(library, atom)
-    right = [ast.RightGuard(library, r[0], r[1]) for r in right]
-    return ast.LiteralComparison(library, literal.location, sign, left, right)
+    sign, left, right = restore_comparison_arguments(atom)
+    ast_right = [ast.RightGuard(library, r.relation, r.term) for r in right]
+    return ast.LiteralComparison(library, literal.location, sign, left, ast_right)
+
+
+class _ComparisonRestorationTransformer:
+    """
+    A transformer to restore comparisons in a Clingo AST.
+    """
+
+    def __init__(self, library: Library):
+        self.library = library
+        self.protect_comparison = ComparisonProtector(library)
+
+    @singledispatchmethod
+    def dispatch(self, node: AST) -> AST:
+        return node.transform(self.library, self.dispatch) or node
+
+    @dispatch.register
+    def _(
+        self, node: ast.LiteralSymbolic
+    ) -> ast.LiteralSymbolic | ast.LiteralComparison:
+        return restore_comparison(self.library, node)
+
+    @dispatch.register
+    def _(
+        self, node: ast.LiteralBoolean | ast.LiteralComparison
+    ) -> ast.LiteralBoolean | ast.LiteralComparison:
+        return node
+
+    def rewrite(self, node: AST) -> AST:
+        if not isinstance(node, ast.StatementRule):
+            return node
+        return node.transform(self.library, self.dispatch) or node
