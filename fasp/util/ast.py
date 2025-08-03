@@ -2,7 +2,7 @@ from ast import arg
 from functools import singledispatchmethod
 
 from platform import node
-from typing import AbstractSet, Any, NamedTuple, Optional, Sequence, TypeIs, cast
+from typing import AbstractSet, Any, NamedTuple, Optional, Sequence, TypeIs, TypeVar, cast
 
 from clingo import ast
 from clingo.symbol import SymbolType, Symbol
@@ -147,6 +147,70 @@ AST = (
     | UnparsedElement
 )
 
+AST_T = TypeVar('AST_T', ArgumentTuple,
+    BodyAggregate,
+    BodyAggregateElement,
+    BodyConditionalLiteral,
+    BodySetAggregate,
+    BodySimpleLiteral,
+    BodyTheoryAtom,
+    Edge,
+    HeadAggregate,
+    HeadAggregateElement,
+    HeadConditionalLiteral,
+    HeadDisjunction,
+    HeadSetAggregate,
+    HeadSimpleLiteral,
+    HeadTheoryAtom,
+    LeftGuard,
+    LiteralBoolean,
+    LiteralComparison,
+    LiteralSymbolic,
+    OptimizeElement,
+    OptimizeTuple,
+    ProgramPart,
+    Projection,
+    RightGuard,
+    SetAggregateElement,
+    StatementComment,
+    StatementConst,
+    StatementDefined,
+    StatementEdge,
+    StatementExternal,
+    StatementHeuristic,
+    StatementInclude,
+    StatementOptimize,
+    StatementParts,
+    StatementProgram,
+    StatementProject,
+    StatementProjectSignature,
+    StatementRule,
+    StatementScript,
+    StatementShow,
+    StatementShowNothing,
+    StatementShowSignature,
+    StatementTheory,
+    StatementWeakConstraint,
+    TermAbsolute,
+    TermBinaryOperation,
+    TermFunction,
+    TermSymbolic,
+    TermTuple,
+    TermUnaryOperation,
+    TermVariable,
+    TheoryAtomDefinition,
+    TheoryAtomElement,
+    TheoryGuardDefinition,
+    TheoryOperatorDefinition,
+    TheoryRightGuard,
+    TheoryTermDefinition,
+    TheoryTermFunction,
+    TheoryTermSymbolic,
+    TheoryTermTuple,
+    TheoryTermUnparsed,
+    TheoryTermVariable,
+    UnparsedElement,
+)
 
 class SyntacticError(NamedTuple):
     """

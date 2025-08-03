@@ -11,7 +11,7 @@ from clingo import ast
 from clingo.core import Location, Position, Library
 from clingo.symbol import Symbol, Number, SymbolType
 
-from fasp.util.ast import AST, StatementAST, TermAST
+from fasp.util.ast import AST, AST_T, StatementAST, TermAST
 
 INT_TO_SIGN = [
     ast.Sign.NoSign,
@@ -105,7 +105,6 @@ class ComparisonProtector:
         return self.protect_comparison(comparison)
 
 
-AST_T = TypeVar('AST_T', bound='AST')
 
 class _ComparisonProtectorTransformer:
     """
@@ -118,7 +117,7 @@ class _ComparisonProtectorTransformer:
 
     @singledispatchmethod
     def dispatch(self, node: AST_T) -> AST_T:
-        return cast(AST_T, node.transform(self.library, self.dispatch)) or node
+        return node.transform(self.library, self.dispatch) or node
 
     @dispatch.register
     def _(self, node: ast.LiteralComparison) -> ast.LiteralSymbolic:
