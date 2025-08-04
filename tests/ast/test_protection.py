@@ -16,9 +16,7 @@ from fasp.ast.protecting import (
 
 
 def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
-    position = Position(library, "<aux>", 0, 0)
-    location = Location(position, position)
-    right = _restore_guard_arguments(location, term)
+    right = _restore_guard_arguments(term)
     return ast.RightGuard(library, right.relation, right.term)
 
 

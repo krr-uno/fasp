@@ -371,25 +371,29 @@ def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
 
 
 def function_arguments(
-    node: ast.TermFunction | ast.TermSymbolic,
+    node: ast.TermFunction | ast.TermSymbolic | Symbol,
 ) -> tuple[str, Sequence[ArgumentAST] | Sequence[Symbol]]:
     if isinstance(node, ast.TermSymbolic):
         name = node.symbol.name
         arguments: Sequence[ArgumentAST] | Sequence[Symbol] = node.symbol.arguments
-    else:
+    elif isinstance(node, ast.TermFunction):
         name = node.name
         assert len(node.pool) == 1, f"Terms must be unpooled {node}"
         arguments = node.pool[0].arguments
+    else:
+        assert node.type == SymbolType.Function, f"Expected a symbol function, got {node}: {node.type}"
+        name = node.name
+        arguments = node.arguments
     return name, arguments
 
 
 def function_arguments_ast(
     library: Library,
     node: ast.TermFunction | ast.TermSymbolic,
-) -> tuple[str, Sequence[ArgumentAST]]:
+) -> tuple[str, Sequence[TermAST]]:
     name, arguments = function_arguments(node)
-    if arguments and isinstance(arguments[0], ArgumentAST):
-        return name, cast(Sequence[ArgumentAST], arguments)
+    if arguments and isinstance(arguments[0], TermAST):
+        return name, cast(Sequence[TermAST], arguments)
     return name, [
         ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
     ]

@@ -8,7 +8,7 @@ from clingo.core import Location, Position, Library
 from clingo.symbol import Symbol, Number, SymbolType
 
 from fasp import symbol
-from fasp.util.ast import AST, AST_T, StatementAST, TermAST, function_arguments_ast, is_function
+from fasp.util.ast import AST, AST_T, StatementAST, TermAST, function_arguments, function_arguments_ast, is_function
 
 INT_TO_SIGN = [
     ast.Sign.NoSign,
@@ -156,11 +156,10 @@ class RightGuard:
         relation (ast.Relation): The relation of the guard.
         term (TermAST): The term associated with the guard.
     """
-    location: Location
     relation: ast.Relation
     term: TermAST | symbol.Symbol
 
-    def to_ast(self, library: Library) -> ast.RightGuard:
+    def to_ast(self, library: Library, location: Location) -> ast.RightGuard:
         """
         Convert the RightGuard to an AST RightGuard.
 
@@ -171,24 +170,18 @@ class RightGuard:
             ast.RightGuard: The AST representation of the right guard.
         """
         if isinstance(self.term, symbol.Symbol):
-            term = ast.TermSymbolic(library, self.location, self.term)
+            term = ast.TermSymbolic(library, location, self.term)
         else:
             term = self.term
         return ast.RightGuard(library, self.relation, term)
 
 
-def _restore_guard_arguments(location: Location, term: ast.TermFunction | symbol.Symbol) -> RightGuard:
-    if isinstance(term, symbol.Symbol):
-        relation_int = term.arguments[0]
-        term2 = term.arguments[1]
-    else:
-        relation_int = term.pool[0].arguments[0].symbol
-        term2 = term.pool[0].arguments[1]
-        location = term.location
-    # assert type(
-    #     term1, ast.TermSymbolic
-    # ), f"Expected a symbolic term, got {term1}: {type(term1)}"
-    # relation_int = term1.symbol
+def _restore_guard_arguments(term: ast.TermFunction | symbol.Symbol) -> RightGuard:
+    _,arguments = function_arguments(term)
+    relation_int = arguments[0]
+    term2 = arguments[1]
+    if isinstance(relation_int, ast.TermSymbolic):
+        relation_int = relation_int.symbol
     assert isinstance(
         relation_int, Symbol
     ), f"Expected a symbol, got {relation_int}: {type(relation_int)}"
@@ -199,32 +192,31 @@ def _restore_guard_arguments(location: Location, term: ast.TermFunction | symbol
     assert not isinstance(
         term2, ast.Projection
     ), f"Expected a non-tuple term, got {term2}: {type(term2)}"
-    return RightGuard(location, INT_TO_RELATION[relation_int.number], term2)
+    return RightGuard(INT_TO_RELATION[relation_int.number], term2)
 
 
 def restore_comparison_arguments(
-    location: Location,
     arguments: Sequence[TermAST],
 ) -> tuple[ast.Sign, TermAST, list[RightGuard]]:
     assert (
         len(arguments) == 3
     ), f"Expected 3 arguments, got {len(arguments)}: {arguments}"
     left = arguments[0]
+    right = arguments[1]
+    sign = arguments[2]
     assert not isinstance(left, ast.Projection)
-    assert isinstance(arguments[2], ast.TermSymbolic)
-    sign = INT_TO_SIGN[arguments[2].symbol.number]
-    argument_rigth = arguments[1]
-    assert type(argument_rigth) in {ast.TermTuple, ast.TermSymbolic}, f"Expected a tuple term, got {argument_rigth}: {type(argument_rigth)}"
-    if isinstance(argument_rigth, ast.TermSymbolic):
-        # If it's a symbolic term, it should be a tuple with one argument
-        assert argument_rigth.symbol.type == SymbolType.Tuple
-        guards = argument_rigth.symbol.arguments
+    assert isinstance(right, ast.TermTuple) or isinstance(right, ast.TermSymbolic), f"Expected a tuple term, got {right}: {type(right)}"
+    assert isinstance(sign, ast.TermSymbolic)
+    sign = INT_TO_SIGN[sign.symbol.number]
+    if isinstance(right, ast.TermSymbolic):
+        assert right.symbol.type == SymbolType.Tuple
+        right = right.symbol.arguments
     else:
-        assert isinstance(argument_rigth, ast.TermTuple)
-        guards = argument_rigth.pool[0].arguments
+        assert isinstance(right, ast.TermTuple) and isinstance(right.pool[0], ast.ArgumentTuple)
+        right = cast(Sequence[ast.TermFunction], right.pool[0].arguments)
     right = [
-        _restore_guard_arguments(location, g)
-        for g in guards
+        _restore_guard_arguments(g)
+        for g in right
     ]
     return sign, left, right
 
@@ -235,15 +227,13 @@ def restore_comparison(
     comparison_name: str = COMPARISON_NAME,
 ) -> ast.LiteralSymbolic | ast.LiteralComparison:
     atom = literal.atom
-    # if not isinstance(atom, ast.TermFunction) or atom.name != comparison_name:
-    #     return literal
     if not is_function(atom):
         return literal
     function_name, arguments = function_arguments_ast(library, atom) 
     if function_name != comparison_name:
         return literal
-    sign, left, right = restore_comparison_arguments(literal.location, arguments)
-    ast_right = [r.to_ast(library) for r in right]
+    sign, left, right = restore_comparison_arguments(arguments)
+    ast_right = [r.to_ast(library, literal.location) for r in right]
     return ast.LiteralComparison(library, literal.location, sign, left, ast_right)
 
 
