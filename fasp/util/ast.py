@@ -1,5 +1,13 @@
-
-from typing import AbstractSet, Any, NamedTuple, Optional, Sequence, TypeIs, TypeVar, cast
+from typing import (
+    AbstractSet,
+    Any,
+    NamedTuple,
+    Optional,
+    Sequence,
+    TypeIs,
+    TypeVar,
+    cast,
+)
 
 from clingo import ast
 from clingo.symbol import SymbolType, Symbol
@@ -144,7 +152,9 @@ AST = (
     | UnparsedElement
 )
 
-AST_T = TypeVar('AST_T', ArgumentTuple,
+AST_T = TypeVar(
+    "AST_T",
+    ArgumentTuple,
     BodyAggregate,
     BodyAggregateElement,
     BodyConditionalLiteral,
@@ -208,6 +218,7 @@ AST_T = TypeVar('AST_T', ArgumentTuple,
     TheoryTermVariable,
     UnparsedElement,
 )
+
 
 class SyntacticError(NamedTuple):
     """

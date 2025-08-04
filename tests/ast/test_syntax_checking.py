@@ -35,7 +35,9 @@ class TestSyntacticChecker(unittest.TestCase):
 
         evaluable_functions = get_evaluable_functions(statements)
 
-        self.assertCountEqual(set(map(str, evaluable_functions)), set(expected_functions))
+        self.assertCountEqual(
+            set(map(str, evaluable_functions)), set(expected_functions)
+        )
 
     def test_correct(self):
         """Test syntax checking with a correct program snippet."""

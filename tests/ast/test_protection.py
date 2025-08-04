@@ -2,7 +2,7 @@ import textwrap
 import unittest
 
 from clingo import ast
-from clingo.core import Library
+from clingo.core import Library, Location, Position
 from clingo.ast import RewriteContext
 from fasp.util.ast import AST
 
@@ -16,7 +16,9 @@ from fasp.ast.protecting import (
 
 
 def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
-    right = _restore_guard_arguments(term)
+    position = Position(library, "<aux>", 0, 0)
+    location = Location(position, position)
+    right = _restore_guard_arguments(location, term)
     return ast.RightGuard(library, right.relation, right.term)
 
 
@@ -124,4 +126,3 @@ class TestRestoreComparisons(unittest.TestCase):
         restorer = _ComparisonRestorationTransformer(self.lib)
         restored = restorer.dispatch(protected)
         self.assertEqual(lit, restored)
-

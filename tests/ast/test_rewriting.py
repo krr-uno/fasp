@@ -1,3 +1,5 @@
+from math import exp
+import re
 import textwrap
 from typing import Iterable
 import unittest
@@ -8,10 +10,12 @@ from clingo.ast import RewriteContext, rewrite_statement
 from fasp.ast.protecting import protect_comparisons, restore_comparisons
 from fasp.util.ast import AST, StatementAST
 
-from fasp.ast.rewriting import _functional2asp
+from fasp.ast.rewriting import _functional2asp, normalize_ast
 
 
-def normalize_statements(library: Library, statements: Iterable[StatementAST]) -> Iterable[StatementAST]:
+def normalize_statements(
+    library: Library, statements: Iterable[StatementAST]
+) -> Iterable[StatementAST]:
     """
     Normalize a list of AST statements by rewriting them to a functional form.
 
@@ -22,7 +26,10 @@ def normalize_statements(library: Library, statements: Iterable[StatementAST]) -
         StatementAST: The normalized AST statements.
     """
     rewrite_context = RewriteContext(library)
-    return (restore_comparisons(rewrite_statement(statement, rewrite_context)) for statement in protect_comparisons(statements))
+    return (
+        restore_comparisons(rewrite_statement(statement, rewrite_context))
+        for statement in protect_comparisons(statements)
+    )
 
 
 class TestSyntacticChecker(unittest.TestCase):
@@ -119,3 +126,84 @@ class TestSyntacticChecker(unittest.TestCase):
         """
         ).strip()
         self.assertEqualRewrite(program, expected)
+
+
+class TestNormalizeStatements(unittest.TestCase):
+    """
+    Test class for the normalization of AST statements.
+    """
+
+    def setUp(self):
+        """
+        Set up the test case with a library instance.
+        """
+        self.lib = Library()
+
+    def assertEqualNormalization(self, program, expected=None):
+        statements = []
+
+        def callback(statement):
+            statements.append(statement)
+
+        ast.parse_string(self.lib, program, callback)
+        program_l = [str(stmt).strip() for stmt in statements]
+
+        result = restore_comparisons(self.lib, protect_comparisons(self.lib, statements))
+        result = [str(stmt).strip() for stmt in result]
+        self.maxDiff = None
+        if expected is None:
+            self.assertCountEqual(result, program_l)
+
+        result = normalize_ast(self.lib, statements)
+        result = [str(stmt).strip() for stmt in result]
+        if expected is None:
+            expected = program_l
+        else:
+            expected = [line.strip() for line in expected.splitlines()]
+        self.assertCountEqual(result, expected)
+
+    def test_normalize_statements_basic(self):
+        """Test normalization of AST statements."""
+        program = """
+            a :- b.
+            b :- not c.
+            c :- c.
+            f = X :- X=1; g=h.
+            f=X :- X=1; not g=h.
+            f2(X) = Y :- p(X,Y).
+            f3(X) = a :- p(X).
+            f4(X) = 5 :- p(X).
+            f3(X) = a(b,5) :- p(X).
+        """
+        self.assertEqualNormalization(program)
+
+    def test_normalize_statements_basic(self):
+        """Test normalization of AST statements."""
+        program = """
+            { d }.
+            #sum { X: p(X,Y): q(X) } :- r(Y).
+            b :- not c.
+            c :- c.
+            f=X :- X=1; g=h.
+            f=X :- X=1; not g=h.
+            f2(X)=Y :- p(X,Y).
+            f3(X)=a :- p(X).
+            f4(X)=5 :- p(X).
+            f3(X)=a(b,5) :- p(X).
+        """
+        expected = textwrap.dedent(
+            """\
+            #program base.
+            #count { 0,d: d }.
+            #sum { X: p(X,Y): q(X) } :- r(Y).
+            b :- not c.
+            c :- c.
+            f=X :- X=1; g=h.
+            f=X :- X=1; not g=h.
+            f2(X)=Y :- p(X,Y).
+            f3(X)=a :- p(X).
+            f4(X)=5 :- p(X).
+            f3(X)=a(b,5) :- p(X).
+        """
+        ).strip()
+        self.assertEqualNormalization(program, expected)

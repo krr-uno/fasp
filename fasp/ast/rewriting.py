@@ -1,12 +1,17 @@
 from functools import singledispatchmethod
 from itertools import chain
+import stat
 from typing import AbstractSet, Any, Iterable, cast
 from clingo import ast
 from clingo.core import Location, Position, Library
 from clingo.symbol import Number
 
 
-from fasp.ast.protecting import COMPARISON_NAME
+from fasp.ast.protecting import (
+    COMPARISON_NAME,
+    protect_comparisons,
+    restore_comparisons,
+)
 from fasp.ast.syntax_checking import SymbolSignature, get_evaluable_functions
 
 from fasp.util.ast import (
@@ -18,6 +23,19 @@ from fasp.util.ast import (
     function_arguments,
     is_function,
 )
+
+
+def normalize_ast(
+    library: Library, statements: Iterable[StatementAST]
+) -> Iterable[StatementAST]:
+    rewrite_context = ast.RewriteContext(library)
+    return restore_comparisons(
+        library,
+        chain.from_iterable(
+            ast.rewrite_statement(rewrite_context, stmt)
+            for stmt in protect_comparisons(library, statements)
+        ),
+    )
 
 
 class NormalForm2PredicateTransformer:
@@ -192,6 +210,7 @@ def functional2asp(
     Returns:
         Iterable[ast.AST]: The transformed program.
     """
+    # statements = normalize_ast(library, statements)
     evaluable_functions, statements = _functional2asp(library, statements, prefix)
     program = ast.Program(library)
     for statement in statements:
