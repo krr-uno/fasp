@@ -152,6 +152,7 @@ AST = (
     | UnparsedElement
 )
 
+
 AST_T = TypeVar(
     "AST_T",
     ArgumentTuple,
@@ -219,6 +220,7 @@ AST_T = TypeVar(
     UnparsedElement,
 )
 
+FunctionLikeAST = TermFunction | TermSymbolic | TermTuple | Symbol
 
 class SyntacticError(NamedTuple):
     """
@@ -371,18 +373,24 @@ def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
 
 
 def function_arguments(
-    node: ast.TermFunction | ast.TermSymbolic | Symbol,
+    node: FunctionLikeAST,
 ) -> tuple[str, Sequence[ArgumentAST] | Sequence[Symbol]]:
-    if isinstance(node, ast.TermSymbolic):
-        name = node.symbol.name
-        arguments: Sequence[ArgumentAST] | Sequence[Symbol] = node.symbol.arguments
+    if isinstance(node, ast.TermTuple):
+        name = ""
+        assert len(node.pool) == 1 and isinstance(node.pool[0], ast.ArgumentTuple), f"Terms must be unpooled {node}"
+        arguments = node.pool[0].arguments
     elif isinstance(node, ast.TermFunction):
         name = node.name
         assert len(node.pool) == 1, f"Terms must be unpooled {node}"
         arguments = node.pool[0].arguments
     else:
-        assert node.type == SymbolType.Function, f"Expected a symbol function, got {node}: {node.type}"
-        name = node.name
+        if isinstance(node, ast.TermSymbolic):
+            node = node.symbol
+        if node.type == SymbolType.Tuple:
+            name = ""
+        else:
+            assert node.type == SymbolType.Function, f"Expected a symbol function, got {node}: {node.type}"
+            name = node.name
         arguments = node.arguments
     return name, arguments
 

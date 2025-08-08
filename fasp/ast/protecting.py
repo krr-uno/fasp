@@ -8,7 +8,7 @@ from clingo.core import Location, Position, Library
 from clingo.symbol import Symbol, Number, SymbolType
 
 from fasp import symbol
-from fasp.util.ast import AST, AST_T, ArgumentAST, StatementAST, TermAST, function_arguments, function_arguments_ast, is_function
+from fasp.util.ast import AST, AST_T, ArgumentAST, FunctionLikeAST, StatementAST, TermAST, function_arguments, function_arguments_ast, is_function
 
 INT_TO_SIGN = [
     ast.Sign.NoSign,
@@ -205,23 +205,15 @@ def restore_comparison_arguments(
     right = arguments[1]
     sign = arguments[2]
     assert not isinstance(left, ast.Projection)
-    assert isinstance(right, ast.TermTuple) or isinstance(right, ast.TermSymbolic) or isinstance(right, symbol.Symbol), f"Expected a tuple term, got {right}: {type(right)}"
-    assert isinstance(sign, ast.TermSymbolic) or isinstance(sign, symbol.Symbol), f"Expected a tuple term, got {sign}: {type(sign)}"
+    assert isinstance(right, FunctionLikeAST), f"Expected a tuple term, got {right}: {type(right)}"
+    assert isinstance(sign, ast.TermSymbolic | symbol.Symbol), f"Expected a tuple term, got {sign}: {type(sign)}"
     if isinstance(sign, ast.TermSymbolic):
         sign = sign.symbol
     sign = INT_TO_SIGN[sign.number]
-    if isinstance(right, symbol.Symbol):
-        assert right.type == SymbolType.Tuple, f"Expected a tuple symbol, got {right}: {right.type}"
-        right = right.arguments
-    elif isinstance(right, ast.TermSymbolic):
-        assert right.symbol.type == SymbolType.Tuple
-        right = right.symbol.arguments
-    else:
-        assert isinstance(right, ast.TermTuple) and isinstance(right.pool[0], ast.ArgumentTuple)
-        right = cast(Sequence[ast.TermFunction], right.pool[0].arguments)
+    _, right = function_arguments(right)
     right = [
         _restore_guard_arguments(g)
-        for g in right
+        for g in cast(Sequence[ast.TermFunction] | Sequence[Symbol], right)
     ]
     return sign, left, right
 

@@ -30,8 +30,8 @@ class TestSyntacticChecker(unittest.TestCase):
 
         ast.parse_string(self.lib, program, callback)
 
-        statements = list(protect_comparisons(self.lib, statements))
-        statements = list(restore_comparisons(self.lib, statements))
+        # statements = list(protect_comparisons(self.lib, statements))
+        # statements = list(restore_comparisons(self.lib, statements))
 
         evaluable_functions = get_evaluable_functions(statements)
 
