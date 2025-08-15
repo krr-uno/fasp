@@ -5,8 +5,8 @@ father(abel)=adam.
 mother(cain)=eve.
 mother(abel)=eve.
 
-% person(father(X)).
-% person(mother(X)).
+person(father(X)).
+person(mother(X)).
 % person(X):- \E father(X).
 % person(X):- \E mother(X).
 % male(father(X)).
