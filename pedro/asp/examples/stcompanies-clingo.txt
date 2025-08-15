@@ -1,0 +1,17 @@
+#show controls/2.
+company(c1).
+company(c2).
+company(c3).
+
+owns(c1,c2,51).
+owns(c2,c3,51).
+%owns(c3,c2,1).
+controls(C1,C1,C2,V) :- owns(C1,C2,V).
+controls(C1,C2,C3,V) :- owns(C2,C3,V), controls(C1,C2).
+
+% Default value controls(C1,C2,C3,0) not needed for sum
+
+%controls(C1,C3) :- #sum{V: controls(C1,C2,C3,V), company(C2)}>50, company(C1), company(C3).
+
+sum(C1,C3,Z) :- #sum{V:controls(C1,C2,C3,V),company(C2)}=Z,company(C1), company(C3).
+controls(C1,C3) :- sum(C1,C3,V), V>50, company(C1), company(C3).

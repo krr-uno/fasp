@@ -1,0 +1,23 @@
+% 2 gear wheels
+val(0). val(1). val(2). val(3). val(4).
+wheel(a). wheel(b).
+sit(0). sit(1).
+bool(t). bool(f).
+
+% Effect axiom
+speed(X,1):=N :- spin(X,0)=N, val(N), wheel(X).
+
+% Indirect effects
+speed(a,I):=speed(b,I) :- connected(I)=t, sit(I).
+speed(b,I):=speed(a,I) :- connected(I)=t, sit(I).
+
+% Inertia
+connected(1):=V :- connected(0)=V, not connected(1) != V, bool(V).
+speed(X,1):=V :- speed(X,0)=V, not speed(X,1) != V, val(V), wheel(X).
+
+% Initial situation
+connected(0):=t.
+speed(a,0):=0.
+speed(b,0):=0.
+
+spin(a,0):=3.

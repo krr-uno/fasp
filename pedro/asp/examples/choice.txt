@@ -1,0 +1,10 @@
+% Example of choice:
+% lppf -n 0 choice.txt
+% returns 4 solutions
+
+z:=4.
+p(1).
+q(0).
+
+b in {X+2,z,W,z+1} :- p(X),q(W).
+

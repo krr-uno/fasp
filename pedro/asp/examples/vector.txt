@@ -1,0 +1,3 @@
+int(0). int(1). int(2).
+
+sum(v(X,Y),v(Z,T)) := X+Z :- int(X), int(Y), int(Z), int(T).

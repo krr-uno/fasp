@@ -1,0 +1,13 @@
+day(1..7).
+
+income(1,5).
+income(3,6).
+income(5,1).
+income(6,10).
+income(7,2).
+
+% Complete unknown days with 0: this is not needed for total(Y)
+%income(X,0) :- not nozero(X), day(X).
+%nozero(X) :- income(X,V), V!=0.
+
+total(Y) :- #sum{X : day(D), income(D,X)} = Y.

@@ -1,0 +1,14 @@
+t(a).
+t(b).
+
+% Total decidable function
+% f(X) in {Y | t(Y)} :- t(X).
+
+% Default value is 'a'
+f(X):=a :- not f(X) != a, t(X).
+
+% Exception for the default
+f(b):=b.
+
+p(f(X)) :- not q(X), t(X).
+q(f(X)) :- not p(X), t(X).

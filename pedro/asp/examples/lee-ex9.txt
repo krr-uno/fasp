@@ -1,0 +1,7 @@
+#function c.
+d:=2 :- c=1.
+d:=1.
+:- not \E c.
+:- not \E d.
+c:=7 :- not aux.
+aux :- not c=7.

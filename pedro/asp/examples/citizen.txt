@@ -1,0 +1,12 @@
+person(juancarlos).
+person(philip).
+country(spain).
+country(france).
+
+king(spain):=juancarlos.
+
+% P is a regular citizen: we have no evidence that P is a king
+citizen(P,C) :- not king(C) = P, person(P), country(C).
+
+% P is a subject: P is not THE king
+subject(P,C) :- king(C) != P, person(P), country(C).
