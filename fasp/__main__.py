@@ -1,4 +1,7 @@
 import sys
-from fasp.app import main
+from fasp.app import main as app_main
 
-main(sys.argv[1:])
+def main():
+    app_main(sys.argv[1:])
+
+main()

@@ -1,0 +1,20 @@
+[project]
+name = "fasp"
+version = "0.0.1"
+description = "A functional ASP solver"
+authors = [
+    { name = "Jorge Fandinno", email = "jfandinno@unomaha.edu" }
+]
+readme = "README.md"
+requires-python = ">=3.13.5"
+dependencies = []
+
+[project.scripts]
+fasp = "fasp.__main__:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["fasp"]
