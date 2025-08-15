@@ -61,5 +61,4 @@ def fasp_main(
 
 def main(options: Sequence[str] = []) -> None:
     with Library() as library:
-        print(options, sys.argv)
         fasp_main(library, list(options))
