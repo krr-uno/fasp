@@ -2,7 +2,7 @@ import nox
 
 PYTHON_VERSIONS = [f"3.{i}" for i in range(13, 14)]
 
-nox.options.sessions = "lint", "typecheck", "test"
+nox.options.sessions = "typecheck", "test"
 nox.options.default_venv_backend = None
 
 PROJECT_NAME = "fasp"
@@ -55,15 +55,15 @@ def format(session):
     session.run("black", *black_args)
 
 
-@nox.session
-def lint(session):
-    # session.install("pylint")
-    # session.run("pylint", PROJECT_NAME)
-    pass
+# @nox.session
+# def lint(session):
+#     # session.install("pylint")
+#     # session.run("pylint", PROJECT_NAME)
+#     pass
 
 
 # @nox.session(python=PYTHON_VERSIONS)
 @nox.session
 def typecheck(session):
     # session.install("mypy")
-    session.run("mypy", "-p", PROJECT_NAME)
+    session.run("mypy", "--allow-redefinition-new", "--local-partial-types", "-p", PROJECT_NAME)
