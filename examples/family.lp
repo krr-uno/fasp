@@ -15,3 +15,5 @@ male(Y) :- father(_)=Y.
 female(Y) :- mother(_)=Y.
 
 orphan(X) :- person(X), not father(X)=_, not mother(X)=_.
+
+n_orphan = N :- N = #count{X : orphan(X)}.
