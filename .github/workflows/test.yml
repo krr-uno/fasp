@@ -36,7 +36,7 @@ jobs:
           conda create -y -n clingo6 python=3.13
 
           conda activate clingo6 || true
-          conda install -c potassco/label/dev-20 -c conda-forge clingo=6.0
+          conda install potassco/label/dev-20::clingo
 
           echo "after conda activate clingo6: PATH=$PATH;"
           which clingo || true
