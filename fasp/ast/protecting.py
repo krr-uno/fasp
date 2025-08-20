@@ -1,14 +1,23 @@
-from ast import arg
+from dataclasses import dataclass
 from functools import singledispatchmethod
 from typing import Iterable, Sequence, cast
-from dataclasses import dataclass
 
 from clingo import ast
-from clingo.core import Location, Position, Library
-from clingo.symbol import Symbol, Number, SymbolType
+from clingo.core import Library, Location, Position
+from clingo.symbol import Number, Symbol, SymbolType
 
 from fasp import symbol
-from fasp.util.ast import AST, AST_T, ArgumentAST, FunctionLikeAST, StatementAST, TermAST, function_arguments, function_arguments_ast, is_function
+from fasp.util.ast import (
+    AST,
+    AST_T,
+    ArgumentAST,
+    FunctionLikeAST,
+    StatementAST,
+    TermAST,
+    function_arguments,
+    function_arguments_ast,
+    is_function,
+)
 
 INT_TO_SIGN = [
     ast.Sign.NoSign,
@@ -156,6 +165,7 @@ class RightGuard:
         relation (ast.Relation): The relation of the guard.
         term (TermAST): The term associated with the guard.
     """
+
     relation: ast.Relation
     term: TermAST | symbol.Symbol
 
@@ -177,7 +187,7 @@ class RightGuard:
 
 
 def _restore_guard_arguments(term: ast.TermFunction | symbol.Symbol) -> RightGuard:
-    _,arguments = function_arguments(term)
+    _, arguments = function_arguments(term)
     relation_int = arguments[0]
     term2 = arguments[1]
     if isinstance(relation_int, ast.TermSymbolic):
@@ -205,8 +215,12 @@ def restore_comparison_arguments(
     right = arguments[1]
     sign = arguments[2]
     assert not isinstance(left, ast.Projection)
-    assert isinstance(right, FunctionLikeAST), f"Expected a tuple term, got {right}: {type(right)}"
-    assert isinstance(sign, ast.TermSymbolic | symbol.Symbol), f"Expected a tuple term, got {sign}: {type(sign)}"
+    assert isinstance(
+        right, FunctionLikeAST
+    ), f"Expected a tuple term, got {right}: {type(right)}"
+    assert isinstance(
+        sign, ast.TermSymbolic | symbol.Symbol
+    ), f"Expected a tuple term, got {sign}: {type(sign)}"
     if isinstance(sign, ast.TermSymbolic):
         sign = sign.symbol
     sign = INT_TO_SIGN[sign.number]
@@ -224,16 +238,17 @@ def restore_comparison(
     comparison_name: str = COMPARISON_NAME,
 ) -> ast.LiteralSymbolic | ast.LiteralComparison:
     atom = literal.atom
-    if not is_function(atom):
-        return literal
-    function_name, arguments = function_arguments(atom) 
+    assert is_function(atom)
+    function_name, arguments = function_arguments(atom)
     if function_name != comparison_name:
         return literal
     sign, left, right = restore_comparison_arguments(arguments)
     ast_right = [r.to_ast(library, literal.location) for r in right]
     if isinstance(left, symbol.Symbol):
         left = ast.TermSymbolic(library, literal.location, left)
-    assert not isinstance(left, ast.Projection), f"Expected a non-projection term, got {left}: {type(left)}"
+    assert not isinstance(
+        left, ast.Projection
+    ), f"Expected a non-projection term, got {left}: {type(left)}"
     return ast.LiteralComparison(library, literal.location, sign, left, ast_right)
 
 

@@ -1,3 +1,4 @@
+import stat
 import textwrap
 import unittest
 
@@ -46,7 +47,7 @@ class TestProtectComparisons(unittest.TestCase):
 
         ast.parse_string(self.lib, program, callback)
 
-        result = protect_comparisons(self.lib, statements)
+        result = list(protect_comparisons(self.lib, statements))
 
         expected_lines = [line.strip() for line in expected.splitlines()]
 

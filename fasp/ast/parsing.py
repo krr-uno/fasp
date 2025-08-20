@@ -5,8 +5,8 @@ from clingo.core import Library
 
 from fasp.util.ast import StatementAST
 
-from .syntax_checking import SymbolSignature
 from . import rewriting
+from .syntax_checking import SymbolSignature
 
 
 def parse_files(

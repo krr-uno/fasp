@@ -1,11 +1,10 @@
 from functools import singledispatchmethod
 from itertools import chain
-import stat
 from typing import AbstractSet, Any, Iterable, cast
-from clingo import ast
-from clingo.core import Location, Position, Library
-from clingo.symbol import Number
 
+from clingo import ast
+from clingo.core import Library, Location, Position
+from clingo.symbol import Number
 
 from fasp.ast.protecting import (
     COMPARISON_NAME,
@@ -13,14 +12,13 @@ from fasp.ast.protecting import (
     restore_comparisons,
 )
 from fasp.ast.syntax_checking import SymbolSignature, get_evaluable_functions
-
 from fasp.util.ast import (
-    create_literal,
-    create_body_literal,
     AST,
     StatementAST,
-    function_arguments_ast,
+    create_body_literal,
+    create_literal,
     function_arguments,
+    function_arguments_ast,
     is_function,
 )
 

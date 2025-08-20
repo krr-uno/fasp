@@ -13,23 +13,23 @@ from fasp.util.ast import AST, StatementAST
 from fasp.ast.rewriting import _functional2asp, normalize_ast
 
 
-def normalize_statements(
-    library: Library, statements: Iterable[StatementAST]
-) -> Iterable[StatementAST]:
-    """
-    Normalize a list of AST statements by rewriting them to a functional form.
+# def normalize_statements(
+#     library: Library, statements: Iterable[StatementAST]
+# ) -> Iterable[StatementAST]:
+#     """
+#     Normalize a list of AST statements by rewriting them to a functional form.
 
-    Args:
-        statements (Iterable[StatementAST]): The AST statements to normalize.
+#     Args:
+#         statements (Iterable[StatementAST]): The AST statements to normalize.
 
-    Returns:
-        StatementAST: The normalized AST statements.
-    """
-    rewrite_context = RewriteContext(library)
-    return (
-        restore_comparisons(rewrite_statement(statement, rewrite_context))
-        for statement in protect_comparisons(statements)
-    )
+#     Returns:
+#         StatementAST: The normalized AST statements.
+#     """
+#     rewrite_context = RewriteContext(library)
+#     return (
+#         restore_comparisons(rewrite_statement(statement, rewrite_context))
+#         for statement in protect_comparisons(statements)
+#     )
 
 
 class TestSyntacticChecker(unittest.TestCase):
@@ -177,7 +177,7 @@ class TestNormalizeStatements(unittest.TestCase):
         """
         self.assertEqualNormalization(program)
 
-    def test_normalize_statements_basic(self):
+    def test_normalize_statements_choices_aggregates(self):
         """Test normalization of AST statements."""
         program = """
             { d }.

@@ -10,8 +10,6 @@ from typing import (
 )
 
 from clingo import ast
-from clingo.symbol import SymbolType, Symbol
-from clingo.core import Library, Location, Position
 from clingo.ast import (
     ArgumentTuple,
     BodyAggregate,
@@ -77,6 +75,8 @@ from clingo.ast import (
     TheoryTermVariable,
     UnparsedElement,
 )
+from clingo.core import Library, Location, Position
+from clingo.symbol import Symbol, SymbolType
 
 StatementAST = (
     StatementRule
@@ -221,6 +221,7 @@ AST_T = TypeVar(
 )
 
 FunctionLikeAST = TermFunction | TermSymbolic | TermTuple | Symbol
+
 
 class SyntacticError(NamedTuple):
     """
@@ -377,7 +378,9 @@ def function_arguments(
 ) -> tuple[str, Sequence[ArgumentAST] | Sequence[Symbol]]:
     if isinstance(node, ast.TermTuple):
         name = ""
-        assert len(node.pool) == 1 and isinstance(node.pool[0], ast.ArgumentTuple), f"Terms must be unpooled {node}"
+        assert len(node.pool) == 1 and isinstance(
+            node.pool[0], ast.ArgumentTuple
+        ), f"Terms must be unpooled {node}"
         arguments = node.pool[0].arguments
     elif isinstance(node, ast.TermFunction):
         name = node.name
@@ -389,7 +392,9 @@ def function_arguments(
         if node.type == SymbolType.Tuple:
             name = ""
         else:
-            assert node.type == SymbolType.Function, f"Expected a symbol function, got {node}: {node.type}"
+            assert (
+                node.type == SymbolType.Function
+            ), f"Expected a symbol function, got {node}: {node.type}"
             name = node.name
         arguments = node.arguments
     return name, arguments

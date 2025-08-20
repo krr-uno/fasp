@@ -1,12 +1,11 @@
+from dataclasses import dataclass
 from functools import singledispatchmethod
 from typing import Any, Iterable
-from dataclasses import dataclass
 
 from clingo import ast
 
 from fasp.ast.protecting import COMPARISON_NAME, restore_comparison_arguments
-from fasp.util.ast import SyntacticError, AST, is_function, function_arguments
-
+from fasp.util.ast import AST, SyntacticError, function_arguments, is_function
 
 # INVALID_ASTTYPES = {}
 

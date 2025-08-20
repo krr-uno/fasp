@@ -1,13 +1,13 @@
-from typing import Sequence
 import sys
+from typing import Sequence
 
 from clingo.app import App, AppOptions, Flag, clingo_main
-from clingo.core import Library
 from clingo.control import Control as ClingoControl
+from clingo.core import Library
 
+from fasp.__version__ import __version__
 from fasp.ast.syntax_checking import ParsingException
 from fasp.control import Control
-from fasp.__version__ import __version__
 
 
 class FaspApp(App):
@@ -63,4 +63,4 @@ def fasp_main(
 def main(options: Sequence[str] = []) -> int:
     with Library() as library:
         return fasp_main(library, list(options))
-    return 1
+    return 1  # pragma: no cover
