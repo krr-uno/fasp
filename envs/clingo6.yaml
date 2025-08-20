@@ -87,11 +87,7 @@ dependencies:
       - astroid==3.3.11
       - autoflake==2.3.1
       - coverage==7.10.1
-      - dill==0.4.0
-      - fasp==0.0.1
       - isort==6.0.1
-      - mccabe==0.7.0
       - pyflakes==3.4.0
       - pylint==3.3.7
-      - tomlkit==0.13.3
 
