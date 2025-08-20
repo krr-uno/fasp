@@ -7,11 +7,12 @@ from clingo.control import Control as ClingoControl
 
 from fasp.ast.syntax_checking import ParsingException
 from fasp.control import Control
+from fasp.__version__ import __version__
 
 
 class FaspApp(App):
     def __init__(self, library: Library, clingo_options: Sequence[str]) -> None:
-        super().__init__("fasp", "1.0.0")
+        super().__init__("fasp", __version__)
         self._order = Flag()
         self._library = library
         self._clingo_options = clingo_options
