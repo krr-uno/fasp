@@ -4,6 +4,7 @@ on:
   push:
       paths:
         - 'envs/clingo6.yaml'
+        
 
 env:
   FORCE_COLOR: "3"
