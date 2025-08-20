@@ -4,10 +4,12 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - clingo=6.0.0=py313h3fd9d12_58
-  - pip=25.1=pyhc872135_2
   - python=3.13.5=h4612cfd_100_cp313
   - python_abi=3.13=0_cp313
+  - pip=25.1=pyhc872135_2  
+  - clingo=6.0.0=py313h3fd9d12_58
+  - mypy=1.17.1=py313h07c4f96_0
+  - black=25.1.0=py313h06a4308_0
   - pip:
       - autoflake==2.3.1
       - coverage==7.10.1
