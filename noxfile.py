@@ -2,8 +2,8 @@ import os
 import nox
 
 PYTHON_VERSIONS = False
-if "GITHUB_ACTIONS" in os.environ:
-    PYTHON_VERSIONS = [f"3.{i}" for i in range(13, 14)]
+# if "GITHUB_ACTIONS" in os.environ:
+#     PYTHON_VERSIONS = [f"3.{i}" for i in range(13, 14)]
 
 nox.options.sessions = "typecheck", "test", "format"
 nox.options.default_venv_backend = None
