@@ -22,6 +22,8 @@ jobs:
         shell: bash -l {0}
 
     steps:
+    - name: "checkout repository"
+      uses: actions/checkout@v3
     - uses: conda-incubator/setup-miniconda@v2
       with:
         miniconda-version: "latest"
@@ -34,9 +36,6 @@ jobs:
     - run: |
         conda info
         conda list
-    - name: "checkout repository"
-      uses: actions/checkout@v3
-
     # - name: "setup python 3.13"
     #   uses: actions/setup-python@v4
     #   with:
