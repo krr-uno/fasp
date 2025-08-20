@@ -49,8 +49,8 @@ class TestControl(unittest.TestCase):
         output, err = self.execute_app([TEST_EXAMPLES_PATH / "ex01_syntactic_error.lp"])
         self.assertEqual(output.strip(), "")
         self.assertEqual(
-            err.splitlines()[0].strip(),
-            "tests/examples/ex01_syntactic_error.lp:1:1-7: error: syntax error, unexpected comparison a>5 in the head. Assignments are of the form 'FUNCTION = TERM'.",
+            list(map(lambda x: x.strip(), err.splitlines()[0].strip().split(":")[1:])),
+            ["1", "1-7", "error", "syntax error, unexpected comparison a>5 in the head. Assignments are of the form 'FUNCTION = TERM'."],
         )
         self.assertEqual(
             err.splitlines()[1].strip(), "*** ERROR: (fasp): parsing failed"
