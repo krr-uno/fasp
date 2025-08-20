@@ -8,7 +8,8 @@ conda activate clingo6
 conda install -c potassco/label/dev-20 -c conda-forge clingo
 git clone https://github.com/krr-uno/fasp.git
 cd fasp
-python -m pip install -e .
+git pull
+pip install -e .
 fasp examples/family.lp
 ```
 
@@ -27,3 +28,5 @@ As an example, assignment fact
 father(cain)=adam.
 ```
 means that assigns the value ```adam``` to ```father(cain)```.
+
+
