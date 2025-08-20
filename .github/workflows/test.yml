@@ -30,17 +30,7 @@ jobs:
         auto-update-conda: true
         activate-environment: clingo6
         auto-activate-base: false
-    - name: Create conda environment with clingo 6
-      run: |
-          set -x
-          echo "begin: PATH=$PATH;"
-          conda create -y -n clingo6 python=3.13
-
-          conda activate clingo6 || true
-          conda install -c potassco/label/dev-20 -c conda-forge "clingo>=6.0.0"
-
-          echo "after conda activate clingo6: PATH=$PATH;"
-          which clingo || true
+        environment-file: envs/clingo6.yaml
     - run: |
         conda info
         conda list
