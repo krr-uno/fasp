@@ -16,15 +16,18 @@ def check_versions(args) -> int:
     if clingo_version < (6, 0, 0):
         sys.stderr.write(f"*** ERROR: fasp requires clingo library version 6.0.0 or higher, found version {clingo_version_str}.\n")
         return 1
-    sys.stdout.write(f"clingo version {clingo_version_str}\n\n")
+    sys.stdout.write(f"clingo version {clingo_version_str}\n")
     return 0
 
 def main() -> int:
     args = frozenset(sys.argv[1:])
-    if not "-v" in args and not "--version" in args:
+    version_mode = "-v" in args or "--version" in args
+    if not version_mode:
         sys.stdout.write(f"fasp version {__version__}\n")
     if error_code := check_versions(args) != 0:
         return error_code
+    if not version_mode:
+        sys.stdout.write("\n")
     from fasp.app import main as app_main
     return app_main(sys.argv[1:])
 
