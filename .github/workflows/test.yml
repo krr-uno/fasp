@@ -36,11 +36,8 @@ jobs:
           conda create -y -n clingo6 python=3.13
 
           conda activate clingo6 || true
+          conda install clingo
           echo "after conda activate clingo6: PATH=$PATH;"
-          which clingo || true
-
-          $CONDA/bin/activate clingo6 || true
-          echo "after CONDA/bin/activate clingo6: PATH=$PATH;"
           which clingo || true
     - uses: conda-incubator/setup-miniconda@v2
       with:
@@ -53,10 +50,10 @@ jobs:
     - name: "checkout repository"
       uses: actions/checkout@v3
 
-    - name: "setup python 3.13"
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.13
+    # - name: "setup python 3.13"
+    #   uses: actions/setup-python@v4
+    #   with:
+    #     python-version: 3.13
 
     - name: install nox
       run: python -m pip install nox black isort autoflake
