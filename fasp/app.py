@@ -41,7 +41,7 @@ class FaspApp(App):
 
 def fasp_main(
     library: Library, options: list[str] = [], raise_errors: bool = False
-) -> None:
+) -> int:
     """
     Main function for the fasp application.
 
@@ -56,9 +56,10 @@ def fasp_main(
     """
     app = FaspApp(library, options)
     options.append("--outf=3")
-    clingo_main(library, options, app, raise_errors)
+    return clingo_main(library, options, app, raise_errors)
 
 
-def main(options: Sequence[str] = []) -> None:
+def main(options: Sequence[str] = []) -> int:
     with Library() as library:
-        fasp_main(library, list(options))
+        return fasp_main(library, list(options))
+    return 1
