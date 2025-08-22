@@ -153,7 +153,7 @@ AST = (
 )
 
 
-AST_T = TypeVar(
+AST_T = TypeVar(  # pylint: disable=invalid-name
     "AST_T",
     ArgumentTuple,
     BodyAggregate,
@@ -283,14 +283,14 @@ class SyntacticCheckVisitor:
     traverse the AST and check for specific syntactic conditions.
     """
 
-    def __init__(self, invalid_ASTTypes: AbstractSet[type[AST]]) -> None:
+    def __init__(self, invalid_ast_types: AbstractSet[type[AST]]) -> None:
         """
         Initializes the SyntacticCheckVisitor.
 
         Args:
             invalid_ASTTypes (set[ASTType]): A set of AST types that are considered invalid.
         """
-        self.invalid_ASTTypes = invalid_ASTTypes
+        self.invalid_ast_types = invalid_ast_types  # pylint: disable=invalid-name
         self.errors: list[SyntacticError] = []
 
     def visit(self, node: AST, *args: Any, **kwargs: Any) -> None:
@@ -302,7 +302,7 @@ class SyntacticCheckVisitor:
         node : AST
             The AST node to visit.
         """
-        if type(node) in self.invalid_ASTTypes:
+        if type(node) in self.invalid_ast_types:
             assert hasattr(node, "location"), f"Node {node} has no location"
             self.errors.append(
                 SyntacticError(node.location, f"unexpected {node}", type(node))

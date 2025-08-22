@@ -14,7 +14,7 @@ class Control:
     def __init__(
         self,
         library: clingo.core.Library,
-        options: Sequence[str] = [],
+        options: Sequence[str] = (),
         prefix: str = "F",
         clingo_control: Optional[clingo.control.Control] = None,
     ):
@@ -65,7 +65,7 @@ class Control:
 
     def solve(
         self,
-        assumptions: Sequence[tuple[clingo.symbol.Symbol, bool] | int] = [],
+        assumptions: Sequence[tuple[clingo.symbol.Symbol, bool] | int] = (),
         on_unsat: Callable[[Sequence[int]], None] | None = None,
         on_stats: (
             Callable[[clingo.stats.Stats, clingo.stats.Stats], None] | None

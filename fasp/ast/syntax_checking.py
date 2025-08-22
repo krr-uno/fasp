@@ -36,7 +36,7 @@ class EvaluableFunctionCollector:
         self.comparison_name = comparison_name
         self.errors: list[SyntacticError] = []
         self.function_symbols: set[SymbolSignature] = set()
-        self._UNCOLLECTABLE = {
+        self._UNCOLLECTABLE = {  # pylint: disable=invalid-name
             ast.LiteralBoolean,
             ast.LiteralSymbolic,
             ast.HeadTheoryAtom,
@@ -81,7 +81,7 @@ class EvaluableFunctionCollector:
         node.head.visit(self.collect, *args, **kwargs)
 
     @collect.register
-    def _(self, node: ast.LiteralComparison, *args: Any, **kwargs: Any) -> None:
+    def _(self, node: ast.LiteralComparison, *_args: Any, **_kwargs: Any) -> None:
         """
         Visit a Comparison node (assignment) and record the function name and arity.
         """

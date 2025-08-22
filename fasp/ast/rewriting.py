@@ -61,7 +61,7 @@ class NormalForm2PredicateTransformer:
         return node.transform(self.library, self.rewrite)
 
     @_dispatch.register
-    def _(self, node: ast.LiteralComparison, *args: Any, **kwargs: Any) -> AST | None:
+    def _(self, node: ast.LiteralComparison, *_args: Any, **_kwars: Any) -> AST | None:
         """
         Visit a Comparison node and transform it if it is an evaluable function.
         """
