@@ -15,7 +15,6 @@ from fasp.util.ast import (
     StatementAST,
     TermAST,
     function_arguments,
-    function_arguments_ast,
     is_function,
 )
 

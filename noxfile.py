@@ -1,4 +1,3 @@
-import os
 import nox
 
 PYTHON_VERSIONS = False
@@ -9,7 +8,6 @@ nox.options.sessions = "typecheck", "test", "format"
 nox.options.default_venv_backend = None
 
 PROJECT_NAME = "fasp"
-
 
 
 @nox.session(python=PYTHON_VERSIONS)
@@ -36,7 +34,7 @@ def format(session):
         if max_version != session.python:
             return
         session.install("black", "isort", "autoflake")
-        
+
     check = "check" in session.posargs
 
     autoflake_args = [
@@ -74,4 +72,6 @@ def format(session):
 @nox.session(python=PYTHON_VERSIONS)
 def typecheck(session):
     # session.install("mypy")
-    session.run("mypy", "--allow-redefinition-new", "--local-partial-types", "-p", PROJECT_NAME)
+    session.run(
+        "mypy", "--allow-redefinition-new", "--local-partial-types", "-p", PROJECT_NAME
+    )

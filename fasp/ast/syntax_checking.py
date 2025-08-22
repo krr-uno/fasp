@@ -4,7 +4,7 @@ from typing import Any, Iterable
 
 from clingo import ast
 
-from fasp.ast.protecting import COMPARISON_NAME, restore_comparison_arguments
+from fasp.ast.protecting import COMPARISON_NAME
 from fasp.util.ast import AST, SyntacticError, function_arguments, is_function
 
 # INVALID_ASTTYPES = {}

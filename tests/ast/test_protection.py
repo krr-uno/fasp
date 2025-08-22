@@ -1,9 +1,8 @@
-import stat
 import textwrap
 import unittest
 
 from clingo import ast
-from clingo.core import Library, Location, Position
+from clingo.core import Library
 from clingo.ast import RewriteContext
 from fasp.util.ast import AST
 

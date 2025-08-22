@@ -1,14 +1,11 @@
-from math import exp
-import re
 import textwrap
-from typing import Iterable
 import unittest
 
 from clingo import ast
 from clingo.core import Library
-from clingo.ast import RewriteContext, rewrite_statement
+from clingo.ast import RewriteContext
 from fasp.ast.protecting import protect_comparisons, restore_comparisons
-from fasp.util.ast import AST, StatementAST
+from fasp.util.ast import AST
 
 from fasp.ast.rewriting import _functional2asp, normalize_ast
 
@@ -148,7 +145,9 @@ class TestNormalizeStatements(unittest.TestCase):
         ast.parse_string(self.lib, program, callback)
         program_l = [str(stmt).strip() for stmt in statements]
 
-        result = restore_comparisons(self.lib, protect_comparisons(self.lib, statements))
+        result = restore_comparisons(
+            self.lib, protect_comparisons(self.lib, statements)
+        )
         result = [str(stmt).strip() for stmt in result]
         self.maxDiff = None
         if expected is None:

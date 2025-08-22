@@ -35,13 +35,13 @@ class FaspApp(App):
         except ParsingException as e:
             for error in e.errors:
                 sys.stderr.write(str(error) + "\n")
-            sys.stderr.write(f"*** ERROR: (fasp): parsing failed")
+            sys.stderr.write("*** ERROR: (fasp): parsing failed")
             return
         control.main()
 
 
 def fasp_main(
-    library: Library, options: list[str] = [], raise_errors: bool = False
+    library: Library, options: list[str] | None = None, raise_errors: bool = False
 ) -> int:
     """
     Main function for the fasp application.
@@ -55,12 +55,14 @@ def fasp_main(
     raise_errors
         If True, raise exceptions on errors instead of printing them.
     """
+    if options is None:  # pragma: no cover
+        options = []
     app = FaspApp(library, options)
     options.append("--outf=3")
     return clingo_main(library, options, app, raise_errors)
 
 
-def main(options: Sequence[str] = []) -> int:
+def main(options: Sequence[str] = ()) -> int:
     with Library() as library:
         return fasp_main(library, list(options))
     return 1  # pragma: no cover

@@ -3,7 +3,6 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from fasp.ast.protecting import protect_comparisons, restore_comparisons
 from fasp.ast.syntax_checking import get_evaluable_functions, ParsingException
 
 
