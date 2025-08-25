@@ -43,7 +43,7 @@ jobs:
     - name: Conda install packages
       shell: bash -l {0}
       run: |
-        conda install -name potassco -c --file envs/clingo6.yaml
+        conda install -name potassco --file envs/clingo6.yaml
 
     # - uses: conda-incubator/setup-miniconda@v2
     
