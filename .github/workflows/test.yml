@@ -29,13 +29,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
         channels: conda-forge
         channel-priority: strict
-        activate-environment: potassco
+        activate-environment: clingo6
         auto-update-conda: true
 
     - name: Conda install clingo
       shell: bash -l {0}
       run: |
-        conda install -c potassco/label/dev-20 clingo
+        conda install --name clingo6 -c potassco/label/dev-20 clingo
 
     - name: "checkout repository"
       uses: actions/checkout@v3
@@ -43,7 +43,7 @@ jobs:
     - name: Conda install packages
       shell: bash -l {0}
       run: |
-        conda install --name potassco --file envs/clingo6.yaml
+        conda install --name clingo6 --file envs/clingo6.yaml
 
     # - uses: conda-incubator/setup-miniconda@v2
     
