@@ -7,6 +7,8 @@ from typing import (
     TypeIs,
     TypeVar,
     cast,
+    Set,
+    Iterable
 )
 
 from clingo import ast
@@ -78,6 +80,7 @@ from clingo.ast import (
 from clingo.core import Library, Location, Position
 from clingo.symbol import Symbol, SymbolType
 
+import sys
 StatementAST = (
     StatementRule
     | StatementTheory
@@ -410,3 +413,63 @@ def function_arguments_ast(
     return name, [
         ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
     ]
+
+class FreshVariableManager:
+    """Singleton-style manager to generate fresh variables across a program."""
+
+    _used: Set[str] = set()
+    _initialized: bool = False
+
+    @classmethod
+    def collect_vars(cls, statements: Iterable[ast.StatementRule]):
+        """
+        Collect variable names from the program once.
+        Must be called before using fresh_variable.
+        """
+        if cls._initialized:
+            return
+        cls._used.clear()
+        for stmt in statements:
+            cls._collect_vars(stmt)
+        cls._initialized = True
+
+    @classmethod
+    def _collect_vars(cls, node):
+        if node is None:
+            return
+        if isinstance(node, ast.TermVariable):
+            cls._used.add(node.name)
+            return
+        if isinstance(node, (list, tuple)):
+            for elem in node:
+                cls._collect_vars(elem)
+            return
+        # Recursively visit all children to look for variables
+        if hasattr(node, "visit") and callable(node.visit):
+            node.visit(cls._collect_vars)
+
+    @classmethod
+    def fresh_variable(cls, lib: Library, location: Location, base: str = "V") -> ast.TermVariable:
+        """
+        Return a TermVariable with a fresh name not in the program.
+        Requires collect_vars() to be called first.
+        """
+        if not cls._initialized:
+            raise RuntimeError(
+                "FreshVariableManager not initialized. Call collect_vars(statements) first."
+            )
+
+        # If base itself is unused, return it immediately
+        if base not in cls._used:
+            cls._used.add(base)
+            return ast.TermVariable(lib, location, base, False)
+
+        # Otherwise find next available base+i
+        for i in range(1, sys.maxsize):
+            candidate = f"{base}{i}"
+            if candidate not in cls._used:
+                cls._used.add(candidate)
+                return ast.TermVariable(lib, location, candidate, False)
+
+        raise RuntimeError(f"Could not generate fresh variable for base '{base}'")
+
