@@ -43,8 +43,8 @@ jobs:
     - name: Conda install packages
       shell: bash -l {0}
       run: |
-        conda install --name clingo6 --file envs/clingo6.yaml
-
+        conda install --name clingo6 --file envs/requirements.txt
+        
     # - uses: conda-incubator/setup-miniconda@v2
     
     #   with:
