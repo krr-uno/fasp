@@ -1,11 +1,12 @@
+# name: clingo6
 channels:
-  - potassco/label/dev-20
-  - conda-forge
+  # - potassco/label/dev-20
+  # - conda-forge
   - defaults
 dependencies:
   - python=3.13.5
   - pip=25.1
-  # - clingo=6.0.0
+  # - potassco/label/dev-20::clingo=6.0.0
   - nox=2025.5.1
   - mypy=1.17.1
   - black=25.1.0
