@@ -91,9 +91,8 @@ class TestSyntacticChecker(unittest.TestCase):
         self.maxDiff = None
         self.assertEqualErrors(program, expected_errors)
 
-
-class TestFreshVariableManager(unittest.TestCase):
-    """Tests FreshVariableManager for creating fresh variables."""
+class TestVariableManager(unittest.TestCase):
+    """Tests VariableCollector and FreshVariableGenerator."""
 
     def setUp(self):
         self.lib = Library()
@@ -101,11 +100,6 @@ class TestFreshVariableManager(unittest.TestCase):
             Position(self.lib, "<stdin>", 1, 1),
             Position(self.lib, "<stdin>", 1, 1),
         )
-        # Reset state before every test
-        from fasp.util import ast as util_ast
-        util_ast.FreshVariableManager._used.clear()
-        util_ast.FreshVariableManager._initialized = False
-        self.mgr = util_ast.FreshVariableManager
         self.ast = ast
 
     def parse_program(self, program: str):
@@ -113,56 +107,166 @@ class TestFreshVariableManager(unittest.TestCase):
         self.ast.parse_string(self.lib, program, stmts.append)
         return stmts
 
-    def test_collect_vars_only_once(self):
-        """collect_vars should do nothing on repeated calls."""
-        stmts = self.parse_program("p(X). q(Y).")
-        self.mgr.collect_vars(stmts)
-        used_first = set(self.mgr._used)
-        # Second call should be a no-op
-        self.mgr.collect_vars(stmts)
-        self.assertEqual(used_first, self.mgr._used)
+
+    # VariableCollector tests
+
+    def test_collect_vars_from_program(self):
+        stmts = self.parse_program("p(X,Y). q(Z).")
+        collector = util_ast.VariableCollector()
+        used = collector.collect(stmts)
+        self.assertEqual(used, {"X", "Y", "Z"})
 
     def test_collect_vars_handles_none_and_lists(self):
-        """_collect_vars should handle None and lists."""
-        # Call private method directly with None
-        self.mgr._collect_vars(None)  # should not raise
+        collector = util_ast.VariableCollector()
 
-        # A variable inside a list
-        term_var = self.ast.TermVariable(self.lib, self.loc, "X", False)
-        self.mgr._collect_vars([term_var])  # should recurse
-        self.assertIn("X", self.mgr._used)
+        # None should not raise
+        collector._collect_vars(None)
 
-    def test_fresh_variable_requires_collect_first(self):
-        """fresh_variable should raise if not initialized."""
-        with self.assertRaises(RuntimeError):
-            self.mgr.fresh_variable(self.lib, self.loc, base="X")
+        # List with a TermVariable should work
+        var = self.ast.TermVariable(self.lib, self.loc, "A", False)
+        collector._collect_vars([var])
+        self.assertIn("A", collector.used)
 
-    def test_fresh_variable_normal_and_numbered(self):
-        """fresh_variable should generate unused names sequentially."""
-        stmts = self.parse_program("p(X,Y).")
-        self.mgr.collect_vars(stmts)
+    def test_collect_vars_isolated_instances(self):
+        stmts1 = self.parse_program("p(X).")
+        stmts2 = self.parse_program("q(Y).")
 
-        v1 = self.mgr.fresh_variable(self.lib, self.loc, base="X")
-        v2 = self.mgr.fresh_variable(self.lib, self.loc, base="X")
-        v3 = self.mgr.fresh_variable(self.lib, self.loc, base="Z")
+        c1 = util_ast.VariableCollector()
+        c2 = util_ast.VariableCollector()
+
+        used1 = c1.collect(stmts1)
+        used2 = c2.collect(stmts2)
+
+        self.assertEqual(used1, {"X"})
+        self.assertEqual(used2, {"Y"})
+        
+    def test_collector_complex_program(self):
+        """
+        Collector should handle variables across aggregates, comparisons, 
+        guards, arithmetic, and nested terms.
+        """
+        program = """
+        % Rule with head aggregate
+        f(X) = #sum { Y : p(Y,Z) } :- q(X,Z).
+
+        % Rule with body aggregate and comparison
+        r(A) :- #count { B : s(B,C) } > D, t(E,F).
+
+        % Rule with nested arithmetic and guards
+        u(G) :- v(H), v(I), w(J), w(K), L = M+N, O != P.
+
+        % Disjunction rule with shared variables
+        a(Y1) | b(Y2) :- c(Y1,Y2,Y3).
+        """
+
+        stmts = self.parse_program(program)
+        collector = util_ast.VariableCollector()
+        used = collector.collect(stmts)
+
+        # All variables across the program should be collected
+        expected = {
+            "X", "Y", "Z",
+            "A", "B", "C", "D", "E", "F",
+            "G", "H", "I", "J", "K", "L", "M", "N", "O", "P",
+            "Y1", "Y2", "Y3",
+        }
+
+        self.assertEqual(used, expected)
+
+
+    # FreshVariableGenerator tests
+
+    def test_fresh_variable_simple_and_numbered(self):
+        gen = util_ast.FreshVariableGenerator({"X"})
+        v1 = gen.fresh_variable(self.lib, self.loc, base="X")
+        v2 = gen.fresh_variable(self.lib, self.loc, base="X")
+        v3 = gen.fresh_variable(self.lib, self.loc, base="Z")
 
         self.assertEqual(v1.name, "X1")
         self.assertEqual(v2.name, "X2")
         self.assertEqual(v3.name, "Z")
 
-    def test_exhaustion_runtime_error(self):
-        """Force exhaustion path."""
-        self.mgr._initialized = True
-        # Pre-fill _used with base and all candidates up to some small number
-        self.mgr._used = {f"X{i}" for i in range(1, 10)}
-        self.mgr._used.add("X")  # also block bare "X"
+    def test_fresh_variable_with_empty_used(self):
+        gen = util_ast.FreshVariableGenerator()
+        v = gen.fresh_variable(self.lib, self.loc, base="Y")
+        self.assertEqual(v.name, "Y")
 
+    def test_generator_isolated_instances(self):
+        gen1 = util_ast.FreshVariableGenerator({"X"})
+        gen2 = util_ast.FreshVariableGenerator({"Y"})
+
+        v1 = gen1.fresh_variable(self.lib, self.loc, "X")
+        v2 = gen2.fresh_variable(self.lib, self.loc, "Y")
+
+        self.assertTrue(v1.name.startswith("X1"))
+        self.assertTrue(v2.name.startswith("Y1"))
+
+    def test_exhaustion_runtime_error(self):
+        # Pre-fill all X candidates
+        used = {f"X{i}" for i in range(1, 10)}
+        used.add("X")
+        gen = util_ast.FreshVariableGenerator(used)
+
+        import sys
         # Set sys.maxsize down so loop terminates quickly for testing
+        orig_max = sys.maxsize
+        sys.maxsize = 10
+        try:
+            with self.assertRaises(RuntimeError):
+                gen.fresh_variable(self.lib, self.loc, base="X")
+        finally:
+            sys.maxsize = orig_max
+    
+
+    # VariableCollector and FreshVariableGenerator integration tests
+
+    def test_pipeline_basic_program(self):
+        """Collector should feed into generator with proper fresh variables."""
+        stmts = self.parse_program("p(X,Y). q(Z).")
+        collector = util_ast.VariableCollector()
+        used = collector.collect(stmts)
+        self.assertEqual(used, {"X", "Y", "Z"})
+
+        gen = util_ast.FreshVariableGenerator(used)
+        v1 = gen.fresh_variable(self.lib, self.loc, "X")
+        v2 = gen.fresh_variable(self.lib, self.loc, "Y")
+        v3 = gen.fresh_variable(self.lib, self.loc, "W")
+
+        self.assertEqual(v1.name, "X1")
+        self.assertEqual(v2.name, "Y1")
+        self.assertEqual(v3.name, "W")
+    
+    def test_pipeline_multiple_rules(self):
+        """Variables across multiple rules should all be collected and respected."""
+        stmts = self.parse_program("p(A). q(B,C). r(D,E,F).")
+        collector = util_ast.VariableCollector()
+        used = collector.collect(stmts)
+        self.assertEqual(used, {"A", "B", "C", "D", "E", "F"})
+
+        gen = util_ast.FreshVariableGenerator(used)
+        v1 = gen.fresh_variable(self.lib, self.loc, "A")
+        v2 = gen.fresh_variable(self.lib, self.loc, "C")
+        v3 = gen.fresh_variable(self.lib, self.loc, "G")
+
+        self.assertEqual(v1.name, "A1")
+        self.assertEqual(v2.name, "C1")
+        self.assertEqual(v3.name, "G")
+    
+    def test_pipeline_exhaustion(self):
+        """Integration exhaustion case should still raise RuntimeError."""
+        stmts = self.parse_program("p(X).")
+        collector = util_ast.VariableCollector()
+        used = collector.collect(stmts)
+
+        # Artificially fill up candidates
+        used.update({f"X{i}" for i in range(1, 10)})
+
+        gen = util_ast.FreshVariableGenerator(used)
         import sys
         orig_max = sys.maxsize
         sys.maxsize = 10
         try:
             with self.assertRaises(RuntimeError):
-                self.mgr.fresh_variable(self.lib, self.loc, base="X")
+                gen.fresh_variable(self.lib, self.loc, "X")
         finally:
             sys.maxsize = orig_max

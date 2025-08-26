@@ -414,62 +414,57 @@ def function_arguments_ast(
         ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
     ]
 
-class FreshVariableManager:
-    """Singleton-style manager to generate fresh variables across a program."""
+class VariableCollector:
+    """
+    Class to collect variables from a list of AST statements.
 
-    _used: Set[str] = set()
-    _initialized: bool = False
+    Usage:
+        collector = VariableCollector()
+        used_vars = collector.collect(statements)
+    """
+    def __init__(self):
+        self.used: Set[str] = set()
 
-    @classmethod
-    def collect_vars(cls, statements: Iterable[ast.StatementRule]):
-        """
-        Collect variable names from the program once.
-        Must be called before using fresh_variable.
-        """
-        if cls._initialized:
-            return
-        cls._used.clear()
+    def collect(self, statements: Iterable[ast.StatementRule]) -> Set[str]:
+        self.used.clear()
         for stmt in statements:
-            cls._collect_vars(stmt)
-        cls._initialized = True
+            self._collect_vars(stmt)
+        return self.used
 
-    @classmethod
-    def _collect_vars(cls, node):
+    def _collect_vars(self, node):
         if node is None:
             return
         if isinstance(node, ast.TermVariable):
-            cls._used.add(node.name)
+            self.used.add(node.name)
             return
         if isinstance(node, (list, tuple)):
             for elem in node:
-                cls._collect_vars(elem)
+                self._collect_vars(elem)
             return
-        # Recursively visit all children to look for variables
+        # Recursively visit all children
         if hasattr(node, "visit") and callable(node.visit):
-            node.visit(cls._collect_vars)
+            node.visit(self._collect_vars)
 
-    @classmethod
-    def fresh_variable(cls, lib: Library, location: Location, base: str = "V") -> ast.TermVariable:
-        """
-        Return a TermVariable with a fresh name not in the program.
-        Requires collect_vars() to be called first.
-        """
-        if not cls._initialized:
-            raise RuntimeError(
-                "FreshVariableManager not initialized. Call collect_vars(statements) first."
-            )
+class FreshVariableGenerator:
+    """
+    Class to generate fresh variables given a set of already-used names.
+    
+    Usage:
+        gen = FreshVariableGenerator(used_vars)
+        v1 = gen.fresh_variable(lib, loc, "X")
+    """
+    def __init__(self, used: Set[str] | None = None):
+        self.used: Set[str] = set(used) if used else set()
 
-        # If base itself is unused, return it immediately
-        if base not in cls._used:
-            cls._used.add(base)
+    def fresh_variable(self, lib: Library, location: Location, base: str = "V") -> ast.TermVariable:
+        if base not in self.used:
+            self.used.add(base)
             return ast.TermVariable(lib, location, base, False)
 
-        # Otherwise find next available base+i
         for i in range(1, sys.maxsize):
             candidate = f"{base}{i}"
-            if candidate not in cls._used:
-                cls._used.add(candidate)
+            if candidate not in self.used:
+                self.used.add(candidate)
                 return ast.TermVariable(lib, location, candidate, False)
 
         raise RuntimeError(f"Could not generate fresh variable for base '{base}'")
-
