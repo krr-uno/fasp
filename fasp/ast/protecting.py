@@ -6,7 +6,7 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number, Symbol, SymbolType
 
-from fasp import symbol
+# from fasp import symbol
 from fasp.util.ast import (
     AST,
     AST_T,
@@ -166,7 +166,7 @@ class RightGuard:
     """
 
     relation: ast.Relation
-    term: TermAST | symbol.Symbol
+    term: TermAST | Symbol
 
     def to_ast(self, library: Library, location: Location) -> ast.RightGuard:
         """
@@ -178,14 +178,14 @@ class RightGuard:
         Returns:
             ast.RightGuard: The AST representation of the right guard.
         """
-        if isinstance(self.term, symbol.Symbol):
+        if isinstance(self.term, Symbol):
             term = ast.TermSymbolic(library, location, self.term)
         else:
             term = self.term
         return ast.RightGuard(library, self.relation, term)
 
 
-def _restore_guard_arguments(term: ast.TermFunction | symbol.Symbol) -> RightGuard:
+def _restore_guard_arguments(term: ast.TermFunction | Symbol) -> RightGuard:
     _, arguments = function_arguments(term)
     relation_int = arguments[0]
     term2 = arguments[1]
@@ -205,8 +205,8 @@ def _restore_guard_arguments(term: ast.TermFunction | symbol.Symbol) -> RightGua
 
 
 def restore_comparison_arguments(
-    arguments: Sequence[ArgumentAST] | Sequence[symbol.Symbol],
-) -> tuple[ast.Sign, ArgumentAST | symbol.Symbol, list[RightGuard]]:
+    arguments: Sequence[ArgumentAST] | Sequence[Symbol],
+) -> tuple[ast.Sign, ArgumentAST | Symbol, list[RightGuard]]:
     assert (
         len(arguments) == 3
     ), f"Expected 3 arguments, got {len(arguments)}: {arguments}"
@@ -218,7 +218,7 @@ def restore_comparison_arguments(
         right, FunctionLikeAST
     ), f"Expected a tuple term, got {right}: {type(right)}"
     assert isinstance(
-        sign, ast.TermSymbolic | symbol.Symbol
+        sign, ast.TermSymbolic | Symbol
     ), f"Expected a tuple term, got {sign}: {type(sign)}"
     if isinstance(sign, ast.TermSymbolic):
         sign = sign.symbol
@@ -243,7 +243,7 @@ def restore_comparison(
         return literal
     sign, left, right = restore_comparison_arguments(arguments)
     ast_right = [r.to_ast(library, literal.location) for r in right]
-    if isinstance(left, symbol.Symbol):
+    if isinstance(left, Symbol):
         left = ast.TermSymbolic(library, literal.location, left)
     assert not isinstance(
         left, ast.Projection

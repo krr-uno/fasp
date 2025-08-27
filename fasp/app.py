@@ -30,6 +30,12 @@ class FaspApp(App):
             self._asp_output,
         )
 
+    def _run_asp_output(self, control: Control, files: Sequence[str]) -> None:
+        program = control.program_from_parse_files(files)
+        sys.stdout.write("\n".join(map(str, program)))
+        sys.stdout.write("\n")
+        return
+
     def main(self, clingo_control: ClingoControl, files: Sequence[str]) -> None:
         prefix = "F"
         control = Control(
@@ -40,9 +46,7 @@ class FaspApp(App):
         )
         try:
             if self._asp_output.value:
-                program = control.program_from_parse_files(files)
-                sys.stdout.write("\n".join(map(str, program)))
-                sys.stdout.write("\n")
+                self._run_asp_output(control, files)
                 return
             control.parse_files(files)
         except ParsingException as e:
