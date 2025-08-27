@@ -8,7 +8,7 @@ from typing import (
     TypeVar,
     cast,
     Set,
-    Iterable
+    Iterable,
 )
 
 from clingo import ast
@@ -81,6 +81,7 @@ from clingo.core import Library, Location, Position
 from clingo.symbol import Symbol, SymbolType
 
 import sys
+
 StatementAST = (
     StatementRule
     | StatementTheory
@@ -414,6 +415,7 @@ def function_arguments_ast(
         ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
     ]
 
+
 class VariableCollector:
     """
     Class to collect variables from a list of AST statements.
@@ -422,6 +424,7 @@ class VariableCollector:
         collector = VariableCollector()
         used_vars = collector.collect(statements)
     """
+
     def __init__(self):
         self.used: Set[str] = set()
 
@@ -445,18 +448,22 @@ class VariableCollector:
         if hasattr(node, "visit") and callable(node.visit):
             node.visit(self._collect_vars)
 
+
 class FreshVariableGenerator:
     """
     Class to generate fresh variables given a set of already-used names.
-    
+
     Usage:
         gen = FreshVariableGenerator(used_vars)
         v1 = gen.fresh_variable(lib, loc, "X")
     """
+
     def __init__(self, used: Set[str] | None = None):
         self.used: Set[str] = set(used) if used else set()
 
-    def fresh_variable(self, lib: Library, location: Location, base: str = "V") -> ast.TermVariable:
+    def fresh_variable(
+        self, lib: Library, location: Location, base: str = "V"
+    ) -> ast.TermVariable:
         if base not in self.used:
             self.used.add(base)
             return ast.TermVariable(lib, location, base, False)

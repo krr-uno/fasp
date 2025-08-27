@@ -91,6 +91,7 @@ class TestSyntacticChecker(unittest.TestCase):
         self.maxDiff = None
         self.assertEqualErrors(program, expected_errors)
 
+
 class TestVariableManager(unittest.TestCase):
     """Tests VariableCollector and FreshVariableGenerator."""
 
@@ -106,7 +107,6 @@ class TestVariableManager(unittest.TestCase):
         stmts = []
         self.ast.parse_string(self.lib, program, stmts.append)
         return stmts
-
 
     # VariableCollector tests
 
@@ -139,10 +139,10 @@ class TestVariableManager(unittest.TestCase):
 
         self.assertEqual(used1, {"X"})
         self.assertEqual(used2, {"Y"})
-        
+
     def test_collector_complex_program(self):
         """
-        Collector should handle variables across aggregates, comparisons, 
+        Collector should handle variables across aggregates, comparisons,
         guards, arithmetic, and nested terms.
         """
         program = """
@@ -165,14 +165,31 @@ class TestVariableManager(unittest.TestCase):
 
         # All variables across the program should be collected
         expected = {
-            "X", "Y", "Z",
-            "A", "B", "C", "D", "E", "F",
-            "G", "H", "I", "J", "K", "L", "M", "N", "O", "P",
-            "Y1", "Y2", "Y3",
+            "X",
+            "Y",
+            "Z",
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J",
+            "K",
+            "L",
+            "M",
+            "N",
+            "O",
+            "P",
+            "Y1",
+            "Y2",
+            "Y3",
         }
 
         self.assertEqual(used, expected)
-
 
     # FreshVariableGenerator tests
 
@@ -208,6 +225,7 @@ class TestVariableManager(unittest.TestCase):
         gen = util_ast.FreshVariableGenerator(used)
 
         import sys
+
         # Set sys.maxsize down so loop terminates quickly for testing
         orig_max = sys.maxsize
         sys.maxsize = 10
@@ -216,7 +234,6 @@ class TestVariableManager(unittest.TestCase):
                 gen.fresh_variable(self.lib, self.loc, base="X")
         finally:
             sys.maxsize = orig_max
-    
 
     # VariableCollector and FreshVariableGenerator integration tests
 
@@ -235,7 +252,7 @@ class TestVariableManager(unittest.TestCase):
         self.assertEqual(v1.name, "X1")
         self.assertEqual(v2.name, "Y1")
         self.assertEqual(v3.name, "W")
-    
+
     def test_pipeline_multiple_rules(self):
         """Variables across multiple rules should all be collected and respected."""
         stmts = self.parse_program("p(A). q(B,C). r(D,E,F).")
@@ -251,7 +268,7 @@ class TestVariableManager(unittest.TestCase):
         self.assertEqual(v1.name, "A1")
         self.assertEqual(v2.name, "C1")
         self.assertEqual(v3.name, "G")
-    
+
     def test_pipeline_exhaustion(self):
         """Integration exhaustion case should still raise RuntimeError."""
         stmts = self.parse_program("p(X).")
@@ -263,6 +280,7 @@ class TestVariableManager(unittest.TestCase):
 
         gen = util_ast.FreshVariableGenerator(used)
         import sys
+
         orig_max = sys.maxsize
         sys.maxsize = 10
         try:
