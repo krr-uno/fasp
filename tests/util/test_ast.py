@@ -116,16 +116,6 @@ class TestVariableManager(unittest.TestCase):
         used = collector.collect(stmts)
         self.assertEqual(used, {"X", "Y", "Z"})
 
-    def test_collect_vars_handles_none_and_lists(self):
-        collector = util_ast.VariableCollector()
-
-        # None should not raise
-        collector._collect_vars(None)
-
-        # List with a TermVariable should work
-        var = self.ast.TermVariable(self.lib, self.loc, "A", False)
-        collector._collect_vars([var])
-        self.assertIn("A", collector.used)
 
     def test_collect_vars_isolated_instances(self):
         stmts1 = self.parse_program("p(X).")
@@ -195,17 +185,17 @@ class TestVariableManager(unittest.TestCase):
 
     def test_fresh_variable_simple_and_numbered(self):
         gen = util_ast.FreshVariableGenerator({"X"})
-        v1 = gen.fresh_variable(self.lib, self.loc, base="X")
-        v2 = gen.fresh_variable(self.lib, self.loc, base="X")
-        v3 = gen.fresh_variable(self.lib, self.loc, base="Z")
+        v1 = gen.fresh_variable(self.lib, self.loc, name="X")
+        v2 = gen.fresh_variable(self.lib, self.loc, name="X")
+        v3 = gen.fresh_variable(self.lib, self.loc, name="Z")
 
-        self.assertEqual(v1.name, "X1")
-        self.assertEqual(v2.name, "X2")
+        self.assertEqual(v1.name, "X2")
+        self.assertEqual(v2.name, "X3")
         self.assertEqual(v3.name, "Z")
 
     def test_fresh_variable_with_empty_used(self):
         gen = util_ast.FreshVariableGenerator()
-        v = gen.fresh_variable(self.lib, self.loc, base="Y")
+        v = gen.fresh_variable(self.lib, self.loc, name="Y")
         self.assertEqual(v.name, "Y")
 
     def test_generator_isolated_instances(self):
@@ -215,8 +205,8 @@ class TestVariableManager(unittest.TestCase):
         v1 = gen1.fresh_variable(self.lib, self.loc, "X")
         v2 = gen2.fresh_variable(self.lib, self.loc, "Y")
 
-        self.assertTrue(v1.name.startswith("X1"))
-        self.assertTrue(v2.name.startswith("Y1"))
+        self.assertTrue(v1.name.startswith("X2"))
+        self.assertTrue(v2.name.startswith("Y2"))
 
     def test_exhaustion_runtime_error(self):
         # Pre-fill all X candidates
@@ -231,7 +221,7 @@ class TestVariableManager(unittest.TestCase):
         sys.maxsize = 10
         try:
             with self.assertRaises(RuntimeError):
-                gen.fresh_variable(self.lib, self.loc, base="X")
+                gen.fresh_variable(self.lib, self.loc, name="X")
         finally:
             sys.maxsize = orig_max
 
@@ -249,8 +239,8 @@ class TestVariableManager(unittest.TestCase):
         v2 = gen.fresh_variable(self.lib, self.loc, "Y")
         v3 = gen.fresh_variable(self.lib, self.loc, "W")
 
-        self.assertEqual(v1.name, "X1")
-        self.assertEqual(v2.name, "Y1")
+        self.assertEqual(v1.name, "X2")
+        self.assertEqual(v2.name, "Y2")
         self.assertEqual(v3.name, "W")
 
     def test_pipeline_multiple_rules(self):
@@ -265,8 +255,8 @@ class TestVariableManager(unittest.TestCase):
         v2 = gen.fresh_variable(self.lib, self.loc, "C")
         v3 = gen.fresh_variable(self.lib, self.loc, "G")
 
-        self.assertEqual(v1.name, "A1")
-        self.assertEqual(v2.name, "C1")
+        self.assertEqual(v1.name, "A2")
+        self.assertEqual(v2.name, "C2")
         self.assertEqual(v3.name, "G")
 
     def test_pipeline_exhaustion(self):

@@ -156,7 +156,7 @@ AST = (
 )
 
 
-AST_T = TypeVar(  # pylint: disable=invalid-name
+AST_T = TypeVar(
     "AST_T",
     ArgumentTuple,
     BodyAggregate,
@@ -286,14 +286,14 @@ class SyntacticCheckVisitor:
     traverse the AST and check for specific syntactic conditions.
     """
 
-    def __init__(self, invalid_ast_types: AbstractSet[type[AST]]) -> None:
+    def __init__(self, invalid_ASTTypes: AbstractSet[type[AST]]) -> None:
         """
         Initializes the SyntacticCheckVisitor.
 
         Args:
             invalid_ASTTypes (set[ASTType]): A set of AST types that are considered invalid.
         """
-        self.invalid_ast_types = invalid_ast_types  # pylint: disable=invalid-name
+        self.invalid_ASTTypes = invalid_ASTTypes
         self.errors: list[SyntacticError] = []
 
     def visit(self, node: AST, *args: Any, **kwargs: Any) -> None:
@@ -305,7 +305,7 @@ class SyntacticCheckVisitor:
         node : AST
             The AST node to visit.
         """
-        if type(node) in self.invalid_ast_types:
+        if type(node) in self.invalid_ASTTypes:
             assert hasattr(node, "location"), f"Node {node} has no location"
             self.errors.append(
                 SyntacticError(node.location, f"unexpected {node}", type(node))
@@ -428,24 +428,15 @@ class VariableCollector:
         self.used: Set[str] = set()
 
     def collect(self, statements: Iterable[ast.StatementRule]) -> Set[str]:
-        self.used.clear()
         for stmt in statements:
             self._collect_vars(stmt)
         return self.used
 
-    def _collect_vars(self, node):
-        if node is None:
-            return
+    def _collect_vars(self, node: AST) -> None:
         if isinstance(node, ast.TermVariable):
             self.used.add(node.name)
             return
-        if isinstance(node, (list, tuple)):
-            for elem in node:
-                self._collect_vars(elem)
-            return
-        # Recursively visit all children
-        if hasattr(node, "visit") and callable(node.visit):
-            node.visit(self._collect_vars)
+        node.visit(self._collect_vars)
 
 
 class FreshVariableGenerator:
@@ -461,16 +452,16 @@ class FreshVariableGenerator:
         self.used: Set[str] = set(used) if used else set()
 
     def fresh_variable(
-        self, lib: Library, location: Location, base: str = "V"
+        self, lib: Library, location: Location, name: str = "V"
     ) -> ast.TermVariable:
-        if base not in self.used:
-            self.used.add(base)
-            return ast.TermVariable(lib, location, base, False)
+        if name not in self.used:
+            self.used.add(name)
+            return ast.TermVariable(lib, location, name, False)
 
-        for i in range(1, sys.maxsize):
-            candidate = f"{base}{i}"
+        for i in range(2, sys.maxsize):
+            candidate = f"{name}{i}"
             if candidate not in self.used:
                 self.used.add(candidate)
                 return ast.TermVariable(lib, location, candidate, False)
 
-        raise RuntimeError(f"Could not generate fresh variable for base '{base}'")
+        raise RuntimeError(f"Could not generate fresh variable for base '{name}'")
