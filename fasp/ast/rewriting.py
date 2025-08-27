@@ -198,7 +198,7 @@ def _functional2asp(
 
 def functional2asp(
     library: Library, statements: list[StatementAST], prefix: str = "F"
-) -> tuple[set[SymbolSignature], ast.Program]:
+) -> tuple[set[SymbolSignature], list[StatementAST]]:
     """
     Transform a program in functional normal form into a regular program.
 
@@ -210,7 +210,7 @@ def functional2asp(
     """
     # statements = normalize_ast(library, statements)
     evaluable_functions, statements = _functional2asp(library, statements, prefix)
-    program = ast.Program(library)
-    for statement in statements:
-        program.add(statement)
-    return evaluable_functions, program
+    # program = ast.Program(library)
+    # for statement in statements:
+    #     program.add(statement)
+    return evaluable_functions, statements

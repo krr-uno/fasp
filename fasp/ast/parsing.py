@@ -13,7 +13,7 @@ def parse_files(
     library: Library,
     files: Sequence[str],
     prefix: str = "F",
-) -> tuple[set[SymbolSignature], ast.Program]:
+) -> tuple[set[SymbolSignature], list[StatementAST]]:
     """
     Parse the programs in the given files and return an abstract syntax tree for
     each statement via a callback.

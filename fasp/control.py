@@ -2,11 +2,13 @@ import sys
 from typing import Any, Callable, Iterable, Optional, Sequence, Tuple
 
 import clingo
+from clingo import ast
 from clingo.symbol import Symbol
 
 from fasp.solve import Model
 
 from .ast.parsing import parse_files
+from .util.ast import StatementAST
 
 
 class Control:
@@ -19,8 +21,25 @@ class Control:
         clingo_control: Optional[clingo.control.Control] = None,
     ):
         self.library = library
+        self._options = options
         self.clingo_control = clingo_control or clingo.control.Control(library, options)
         self.prefix = prefix
+
+    def program_from_parse_files(self, files: Sequence[str]) -> Sequence[StatementAST]:
+        """
+        Extend the logic program with a (non-ground) logic program in a file.
+
+        Parameters
+        ----------
+        files
+            The paths of the files to load.
+        """
+        _, statements = parse_files(
+            self.library,
+            files,
+            self.prefix,
+        )
+        return statements
 
     def parse_files(self, files: Sequence[str]) -> None:
         """
@@ -31,11 +50,10 @@ class Control:
         file
             The path of the file to load.
         """
-        _, program = parse_files(
-            self.library,
-            files,
-            self.prefix,
-        )
+        statements = self.program_from_parse_files(files)
+        program = ast.Program(self.library)
+        for statement in statements:
+            program.add(statement)
         self.clingo_control.join(program)
 
     def ground(

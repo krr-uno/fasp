@@ -1,3 +1,4 @@
+from math import e
 from os import PathLike
 from pathlib import Path
 import unittest
@@ -13,8 +14,12 @@ TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 
 class TestControl(unittest.TestCase):
 
-    def execute_app(self, files: PathLike) -> tuple[str, str]:
-        args = [str(file) for file in files] + ["0"]
+    def execute_app(
+        self, files: PathLike, *, extra_args: list[str] | None = None
+    ) -> tuple[str, str]:
+        if extra_args is None:
+            extra_args = ["0"]
+        args = [str(file) for file in files] + extra_args
         output_io = io.StringIO()
         err_io = io.StringIO()
         with contextlib.redirect_stdout(output_io):
@@ -59,4 +64,18 @@ class TestControl(unittest.TestCase):
         )
         self.assertEqual(
             err.splitlines()[1].strip(), "*** ERROR: (fasp): parsing failed"
+        )
+
+    def test_asp_output(self):
+        output, err = self.execute_app(
+            [TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"], extra_args=["--asp-output"]
+        )
+        self.assertEqual(err.strip(), "")
+        self.assertEqual(
+            list(map(lambda x: x.strip(), output.splitlines())),
+            [
+                "#program base.",
+                "Ff(1).",
+                ":- Ff(_); 1 > #count { V: Ff(V) }.",
+            ],
         )

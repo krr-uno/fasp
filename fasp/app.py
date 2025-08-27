@@ -1,6 +1,7 @@
 import sys
 from typing import Sequence
 
+from click import option
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.control import Control as ClingoControl
 from clingo.core import Library
@@ -14,12 +15,19 @@ class FaspApp(App):
     def __init__(self, library: Library, clingo_options: Sequence[str]) -> None:
         super().__init__("fasp", __version__)
         self._order = Flag()
+        self._asp_output = Flag()
         self._library = library
         self._clingo_options = clingo_options
 
     def register_options(self, options: AppOptions) -> None:
         options.add_flag(
             "fasp", "order", "Print atoms in models in order.", self._order
+        )
+        options.add_flag(
+            "fasp",
+            "asp-output",
+            "Prints the resulting ASP program from translating evaluable functions away.",
+            self._asp_output,
         )
 
     def main(self, clingo_control: ClingoControl, files: Sequence[str]) -> None:
@@ -31,6 +39,11 @@ class FaspApp(App):
             clingo_control,
         )
         try:
+            if self._asp_output.value:
+                program = control.program_from_parse_files(files)
+                sys.stdout.write("\n".join(map(str, program)))
+                sys.stdout.write("\n")
+                return
             control.parse_files(files)
         except ParsingException as e:
             for error in e.errors:
