@@ -112,8 +112,7 @@ class TestVariableManager(unittest.TestCase):
 
     def test_collect_vars_from_program(self):
         stmts = self.parse_program("p(X,Y). q(Z).")
-        collector = util_ast.VariableCollector()
-        used = collector.collect(stmts)
+        used = util_ast.collect_variables(stmts)
         self.assertEqual(used, {"X", "Y", "Z"})
 
 
@@ -150,8 +149,7 @@ class TestVariableManager(unittest.TestCase):
         """
 
         stmts = self.parse_program(program)
-        collector = util_ast.VariableCollector()
-        used = collector.collect(stmts)
+        used = util_ast.collect_variables(stmts)
 
         # All variables across the program should be collected
         expected = {
@@ -213,8 +211,7 @@ class TestVariableManager(unittest.TestCase):
     def test_pipeline_basic_program(self):
         """Collector should feed into generator with proper fresh variables."""
         stmts = self.parse_program("p(X,Y). q(Z).")
-        collector = util_ast.VariableCollector()
-        used = collector.collect(stmts)
+        used = util_ast.collect_variables(stmts)
         self.assertEqual(used, {"X", "Y", "Z"})
 
         gen = util_ast.FreshVariableGenerator(used)
@@ -228,9 +225,8 @@ class TestVariableManager(unittest.TestCase):
 
     def test_pipeline_multiple_rules(self):
         """Variables across multiple rules should all be collected and respected."""
-        stmts = self.parse_program("p(A). q(B,C). r(D,E,F).")
-        collector = util_ast.VariableCollector()
-        used = collector.collect(stmts)
+        stmts = self.parse_program("p(A). q(B,C). r(D,E,F).")  
+        used = util_ast.collect_variables(stmts)
         self.assertEqual(used, {"A", "B", "C", "D", "E", "F"})
 
         gen = util_ast.FreshVariableGenerator(used)
