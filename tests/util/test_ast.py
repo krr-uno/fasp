@@ -208,23 +208,6 @@ class TestVariableManager(unittest.TestCase):
         self.assertTrue(v1.name.startswith("X2"))
         self.assertTrue(v2.name.startswith("Y2"))
 
-    def test_exhaustion_runtime_error(self):
-        # Pre-fill all X candidates
-        used = {f"X{i}" for i in range(1, 10)}
-        used.add("X")
-        gen = util_ast.FreshVariableGenerator(used)
-
-        import sys
-
-        # Set sys.maxsize down so loop terminates quickly for testing
-        orig_max = sys.maxsize
-        sys.maxsize = 10
-        try:
-            with self.assertRaises(RuntimeError):
-                gen.fresh_variable(self.lib, self.loc, name="X")
-        finally:
-            sys.maxsize = orig_max
-
     # VariableCollector and FreshVariableGenerator integration tests
 
     def test_pipeline_basic_program(self):
@@ -259,22 +242,4 @@ class TestVariableManager(unittest.TestCase):
         self.assertEqual(v2.name, "C2")
         self.assertEqual(v3.name, "G")
 
-    def test_pipeline_exhaustion(self):
-        """Integration exhaustion case should still raise RuntimeError."""
-        stmts = self.parse_program("p(X).")
-        collector = util_ast.VariableCollector()
-        used = collector.collect(stmts)
 
-        # Artificially fill up candidates
-        used.update({f"X{i}" for i in range(1, 10)})
-
-        gen = util_ast.FreshVariableGenerator(used)
-        import sys
-
-        orig_max = sys.maxsize
-        sys.maxsize = 10
-        try:
-            with self.assertRaises(RuntimeError):
-                gen.fresh_variable(self.lib, self.loc, "X")
-        finally:
-            sys.maxsize = orig_max

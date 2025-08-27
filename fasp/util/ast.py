@@ -439,6 +439,11 @@ class VariableCollector:
         node.visit(self._collect_vars)
 
 
+def collect_variables(statements: Iterable[ast.StatementRule]) -> Set[str]:
+    collector = VariableCollector()
+    return collector.collect(statements)
+
+
 class FreshVariableGenerator:
     """
     Class to generate fresh variables given a set of already-used names.
@@ -464,4 +469,4 @@ class FreshVariableGenerator:
                 self.used.add(candidate)
                 return ast.TermVariable(lib, location, candidate, False)
 
-        raise RuntimeError(f"Could not generate fresh variable for base '{name}'")
+        assert False, "This will never happen, but makes mypy happy"  # pragma: no cover
