@@ -1,14 +1,15 @@
+import sys
 from typing import (
     AbstractSet,
     Any,
+    Iterable,
     NamedTuple,
     Optional,
     Sequence,
+    Set,
     TypeIs,
     TypeVar,
     cast,
-    Set,
-    Iterable,
 )
 
 from clingo import ast
@@ -79,8 +80,6 @@ from clingo.ast import (
 )
 from clingo.core import Library, Location, Position
 from clingo.symbol import Symbol, SymbolType
-
-import sys
 
 StatementAST = (
     StatementRule
