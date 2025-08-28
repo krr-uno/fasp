@@ -3,13 +3,7 @@ import unittest
 import subprocess
 
 
-
-
 from fasp.app import main
-
-
-
-
 
 
 class TestControl(unittest.TestCase):
@@ -18,9 +12,11 @@ class TestControl(unittest.TestCase):
         """
         Executes the Clingo solver on the given program and returns its output.
         """
-        result = subprocess.run(["clingo", "--mode=parse"], input=program, text=True, capture_output=True)
+        result = subprocess.run(
+            ["clingo", "--mode=parse"], input=program, text=True, capture_output=True
+        )
         return result.stdout, result.stderr
-    
+
     def assert_errors(self, program: str, expected_errors: list[str]):
         """
         Asserts that the Clingo solver produces the expected error messages for the given program.
@@ -39,7 +35,9 @@ class TestControl(unittest.TestCase):
             -:1:2-3: error: expected one of ':-' '.' but got <eof>
             *** ERROR: (clingo): parsing failed
         """
-        expected_errors = [ l for line in expected_errors.strip().splitlines() if (l:=line.strip())]
+        expected_errors = [
+            l for line in expected_errors.strip().splitlines() if (l := line.strip())
+        ]
         self.assert_errors(program, expected_errors)
 
     def test_two_facts(self):
@@ -51,7 +49,9 @@ class TestControl(unittest.TestCase):
             -:1:3-4: error: expected one of ':-' '.' but got <identifier>
             *** ERROR: (clingo): parsing failed
         """
-        expected_errors = [ l for line in expected_errors.strip().splitlines() if (l:=line.strip())]
+        expected_errors = [
+            l for line in expected_errors.strip().splitlines() if (l := line.strip())
+        ]
         self.assert_errors(program, expected_errors)
 
     def test_missing_dot_or_comma_with_fact(self):
@@ -66,7 +66,9 @@ class TestControl(unittest.TestCase):
             -:1:8-9: error: expected one of '.' but got <identifier>
             *** ERROR: (clingo): parsing failed
         """
-        expected_errors = [ l for line in expected_errors.strip().splitlines() if (l:=line.strip())]
+        expected_errors = [
+            l for line in expected_errors.strip().splitlines() if (l := line.strip())
+        ]
         self.assert_errors(program, expected_errors)
 
     def test_missing_dot(self):
@@ -81,7 +83,9 @@ class TestControl(unittest.TestCase):
             -:1:8-9: error: expected one of '.' but got <identifier>
             *** ERROR: (clingo): parsing failed
         """
-        expected_errors = [ l for line in expected_errors.strip().splitlines() if (l:=line.strip())]
+        expected_errors = [
+            l for line in expected_errors.strip().splitlines() if (l := line.strip())
+        ]
         self.assert_errors(program, expected_errors)
 
     def test_unclosed_string(self):
@@ -93,7 +97,9 @@ class TestControl(unittest.TestCase):
             -:1:3-4: error: expected one of <term> but got <error>
             *** ERROR: (clingo): parsing failed
         """
-        expected_errors = [ l for line in expected_errors.strip().splitlines() if (l:=line.strip())]
+        expected_errors = [
+            l for line in expected_errors.strip().splitlines() if (l := line.strip())
+        ]
         self.assert_errors(program, expected_errors)
 
     def test_unclosed_strings(self):
@@ -105,7 +111,9 @@ class TestControl(unittest.TestCase):
             -:1:17-22: error: expected one of ')' ',' ';' but got <variable>
             *** ERROR: (clingo): parsing failed
         """
-        expected_errors = [ l for line in expected_errors.strip().splitlines() if (l:=line.strip())]
+        expected_errors = [
+            l for line in expected_errors.strip().splitlines() if (l := line.strip())
+        ]
         self.assert_errors(program, expected_errors)
 
     def test_unclosed_string_with_dot(self):
@@ -117,5 +125,7 @@ class TestControl(unittest.TestCase):
             -:1:19-24: error: expected one of ')' ',' ';' but got <identifier>
             *** ERROR: (clingo): parsing failed
         """
-        expected_errors = [ l for line in expected_errors.strip().splitlines() if (l:=line.strip())]
+        expected_errors = [
+            l for line in expected_errors.strip().splitlines() if (l := line.strip())
+        ]
         self.assert_errors(program, expected_errors)

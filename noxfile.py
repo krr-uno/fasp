@@ -73,5 +73,10 @@ def lint(session):
 @nox.session(python=PYTHON_VERSIONS)
 def typecheck(session):
     session.run(
-        "mypy", "--strict", "--allow-redefinition-new", "--local-partial-types", "-p", PROJECT_NAME
+        "mypy",
+        "--strict",
+        "--allow-redefinition-new",
+        "--local-partial-types",
+        "-p",
+        PROJECT_NAME,
     )
