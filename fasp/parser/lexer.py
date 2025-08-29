@@ -1,16 +1,25 @@
 # import regex as re
 import re
+from turtle import st
 from typing import NamedTuple
 
 from click import STRING, group
+from regex import E
 from tomlkit import comment
+
+_RE_UNESCAPED_CHAR = r'[^"\\]'
+_RE_ESCAPE_SEQUENCE = (
+    r"\\[^xu0-7]|[0-7]{1,3}|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|u\{[0-9a-fA-F]+\}"
+)
+_RE_STRING = rf'"({_RE_UNESCAPED_CHAR}|{_RE_ESCAPE_SEQUENCE})*"?'
 
 
 _SPECIFICATION_NON_CODE_BLOCKS_DEFAULT = [
-    ("STRING_START", '"'),  # String
-    ("UNCLOSED_STRING", r'"'),  # Unclosed String
+    ("STRING", _RE_STRING),  # String
     ("B_COMMENT_START", r"%\*"),  # Block comment start
+    ("B_COMMENT_END", r"\*%"),  # Block comment end
     ("L_COMMENT_START", r"%"),  # Line comment start
+    ("ASSIGN", r":="),  # Assignment operator
 ]
 
 _PATTERN_NON_CODE_BLOCKS_DEFAULT = re.compile(
@@ -21,24 +30,117 @@ _PATTERN_NON_CODE_BLOCKS_DEFAULT = re.compile(
     re.MULTILINE,
 )
 
-_RE_UNESCAPED_STRING = r'[^"\\]+'
-_RE_ESCAPE_SEQUENCE = (
-    r"\\[^xu0-7]|[0-7]{1,3}|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|u\{[0-9a-fA-F]+\}"
-)
-# _RE_STRING = rf'"(?:{_RE_UNESCAPED_STRING}|{_RE_ESCAPE_SEQUENCE})*"'
 
-_RE_UNESCAPED_CHAR = r'[^"\\]'
-# _RE_STRING_END = rf'(?:{_RE_UNESCAPED_STRING}|{_RE_ESCAPE_SEQUENCE})*"'
-_RE_STRING_END = rf'({_RE_UNESCAPED_CHAR}|{_RE_ESCAPE_SEQUENCE})*"'
+class NonCodeToken(NamedTuple):
+    type: str
+    start: int
+    end: int
 
-_PATTERN_STRING_END = re.compile(_RE_STRING_END, re.MULTILINE)
 
-# def _find_non_code_blocks(source: str) -> list[re.Match]:
-#     """
-#     Find all non-code blocks (line comments and block comments) in the source code.
-#     """
-#     pattern = re.compile(f"({_RE_LINE_COMMENT}|{_RE_BLOCK_COMMENT_DELIMITERS})", re.MULTILINE)
-#     return pattern.finditer(source)
+class AssignmentToken(NamedTuple):
+    type: str | None
+    start: int
+    end: int
+    previous_non_code_tokens: list[NonCodeToken]
+
+
+class ErrorToken(NamedTuple):
+    type: str
+    start: int
+    end: int
+
+
+def _find_assignments(source: str) -> list[NonCodeToken]:
+    """
+    Find all non-code blocks (line comments and block comments) in the source code.
+    """
+    no_code_tokens = []
+    assignment_tokens = []
+    stack = [None]
+    match = _PATTERN_NON_CODE_BLOCKS_DEFAULT.search(source)
+    while match:
+        kind = match.lastgroup
+        value = match.group()
+        if stack[-1] is None:
+            if kind == "ASSIGN":
+                assignment_tokens.append(
+                    AssignmentToken(kind, match.start(), match.end(), no_code_tokens)
+                )
+                no_code_tokens = []
+            elif kind == "STRING":
+                if len(value) == 1 or value[-1] != '"':
+                    kind = "UNCLOSED_STRING"
+                    end = len(source)
+                else:
+                    end = match.end()
+                no_code_tokens.append(NonCodeToken(kind, match.start(), end))
+            elif kind == "L_COMMENT_START":
+                end = source.find("\n", match.start() + 1)
+                end = end + 1 if end != -1 else len(source)
+                no_code_tokens.append(NonCodeToken("L_COMMENT", match.start(), end))
+            else:  #  kind =="B_COMMENT_START"}
+                stack.append((kind, match.start()))
+        else:  # stack[-1][0] == "B_COMMENT_START":
+            if kind == "B_COMMENT_START":
+                stack.append((kind, match.start()))
+            elif kind == "B_COMMENT_END":
+                open = stack.pop()
+                if stack[-1] is None:
+                    no_code_tokens.append(
+                        NonCodeToken("B_COMMENT", open[1], match.end())
+                    )
+            pass
+        match = _PATTERN_NON_CODE_BLOCKS_DEFAULT.search(source, match.end())
+    #     print('"' * 30)
+    #     print(stack)
+    # print(1, no_code_tokens)
+    if no_code_tokens:
+        if no_code_tokens[-1].type != "UNCLOSED_STRING" and (
+            assignment_tokens or len(stack) > 1
+        ):
+            assignment_tokens.append(
+                AssignmentToken(None, len(source), len(source), no_code_tokens)
+            )
+        # print(2, no_code_tokens)
+        if no_code_tokens[-1].type == "UNCLOSED_STRING":
+            if len(no_code_tokens) > 1:
+                pos = no_code_tokens[-1].start
+                assignment_tokens.append(
+                    AssignmentToken(None, pos, pos, no_code_tokens[:-1])
+                )
+            assignment_tokens.append(
+                ErrorToken("UNCLOSED_STRING", no_code_tokens[-1].start, len(source))
+            )
+    if len(stack) > 1:
+        open = stack[1]
+        if open[0] == "B_COMMENT_START":
+            assignment_tokens.append(
+                ErrorToken("UNCLOSED_BLOCK_COMMENT", open[1], len(source))
+            )
+        else:  # open[0] == "UNCLOSED_STRING":
+            assignment_tokens.append(
+                ErrorToken("UNCLOSED_STRING", open[1], len(source))
+            )
+    # from pprint import pprint
+    # print('"'*30)
+    # for t in no_code_tokens:
+    #     print(f"{t.type:10}", "\t", t.start, "\t",t.end, "\t",source[t.start:t.end])
+    # print('"'*30)
+    # for t in assignment_tokens:
+    #     print(f"{str(t.type):10}", "\t", t.start, "\t",t.end, "\t",source[t.start:t.end])
+    #     for t1 in t.previous_non_code_tokens:
+    #         print(f"    {str(t1.type):10}", "\t", t1.start, "\t",t1.end, "\t",source[t1.start:t1.end])
+    # print('"'*30)
+    return assignment_tokens
+
+
+# _find_assignments(
+#     r"""\
+# p("this string has a %* %  *%. ..", %* block comment  and %* nested block comment % *% . .. *% :- body. % line comment
+# %another line comment
+# f("string.",4) %* block comment *% := %* block comment *% ("another string.",3) .
+# % line comment"""
+# )
 
 # def _find_all_block_comment_delimiters(source: str) -> list[re.Match]:
 #     """
@@ -175,13 +277,6 @@ _PATTERN_STRING_END = re.compile(_RE_STRING_END, re.MULTILINE)
 #         ("STRING", STRING),  # String literal
 #         ("UNCLOSED_STRING", r'"'),
 #     ]
-
-
-# class Token(NamedTuple):
-#     type: int
-#     value: str
-#     line: int
-#     column: int
 
 
 # UNESCAPED_STRING = r'[^"\\]+'

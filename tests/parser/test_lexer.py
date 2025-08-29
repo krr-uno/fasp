@@ -1,3 +1,4 @@
+import textwrap
 import unittest
 
 from fasp.parser import lexer
@@ -13,7 +14,6 @@ class TestNonCodeBlocksRE(unittest.TestCase):
         Find the first non-code block delimiter in the source code.
         """
         match = lexer._PATTERN_NON_CODE_BLOCKS_DEFAULT.search(source, start)
-        # print(match)
         return match
 
     def assertFindFirst(self, code, start, pos, value):
@@ -27,44 +27,44 @@ class TestNonCodeBlocksRE(unittest.TestCase):
             '"string"',
             0,
             0,
-            '"',
+            '"string"',
         )
         self.assertFindFirst(
             'p(1,2,"string").',
             0,
             6,
-            '"',
+            '"string"',
         )
         self.assertFindFirst(
             'p(1,2,"unclosed string).',
             0,
             6,
-            '"',
+            '"unclosed string).',
         )
         self.assertFindFirst(
-            r"""", %* block comment *%""",
+            r' ", %* block comment *% ',
             0,
-            0,
-            r'"',
+            1,
+            r'", %* block comment *% ',
         )
         self.assertFindFirst(
-            r"""", %* block comment *% body.""",
+            r'", %* block comment *% body.',
             0,
             0,
-            r'"',
+            r'", %* block comment *% body.',
         )
         string = r"""p("this string has a %* %  *%", %* block comment *% :- body. % line comment"""
         self.assertFindFirst(
             string,
             0,
             2,
-            r'"',
+            r'"this string has a %* %  *%"',
         )
         self.assertFindFirst(
             string,
             29,
             29,
-            r'"',
+            r'", %* block comment *% :- body. % line comment',
         )
         self.assertFindFirst(
             string,
@@ -75,113 +75,340 @@ class TestNonCodeBlocksRE(unittest.TestCase):
         self.assertFindFirst(
             string,
             48,
-            50,
-            r"%",
+            49,
+            r"*%",
         )
 
-    def find_string_end(self, source: str, start: int):
+
+class TestFindAssignments(unittest.TestCase):
+
+    def test_two_assignment_rules(self):
+        source = textwrap.dedent(
+            """\
+        f(1) := 2.
+        g(3) := 4.
         """
-        Find the first non-code block delimiter in the source code.
+        )
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 2)
+        self.assertEqual(source[assignments[0].start : assignments[0].end], ":=")
+        self.assertEqual(assignments[0].start, 5)
+        self.assertEqual(assignments[0].end, 7)
+        self.assertEqual(source[assignments[1].start : assignments[1].end], ":=")
+        self.assertEqual(assignments[1].start, 16)
+        self.assertEqual(assignments[1].end, 18)
+
+    def test_clingo_code(self):
+        source = textwrap.dedent(
+            """\
+        %  l comment 1.      
+        %* b comment 0. *%
+              %  l comment 2.  
+        f(1) %* b comment 1. *% :- %* b comment 2. *% p("string. .. .\\" end of string"). %* b comment 3. *% %  l comment 3.  
+                %  l comment 4.  
+        %* b comment 4. *%
+        g(3) %* b comment 5. *% :- %* b comment 6. *% 4. %* b comment 7. *% %  l comment 5.  
+               %  l comment 6.                    
+        %* b comment 8. *%
         """
-        match = lexer._PATTERN_STRING_END.match(source, start)
-        return match
+        )
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 0)
 
-    def assertFindStringEnd(self, code, start, value):
-        match = self.find_string_end(code, start)
-        if value is None:
-            self.assertIsNone(match)
-            return
-        self.assertIsNotNone(match)
-        self.assertEqual(match.group(), value)
+    def test_strings(self):
+        source = textwrap.dedent(
+            """\
+        f("string . %* %.") := "string 2 %* not a comment." :- b("string.").
+        p("this is not an assignment :="). %* b comment 9. *%
+        """
+        )
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 2)
+        self.assertEqual(source[assignments[0].start : assignments[0].end], ":=")
+        self.assertEqual(assignments[0].start, 20)
+        self.assertEqual(assignments[0].end, 22)
+        self.assertEqual(len(assignments[0].previous_non_code_tokens), 1)
+        non_code_token = assignments[0].previous_non_code_tokens[0]
+        self.assertEqual(
+            source[non_code_token.start : non_code_token.end], '"string . %* %."'
+        )
+        self.assertEqual(assignments[1].type, None)
+        non_code_tokens = assignments[1].previous_non_code_tokens
+        self.assertEqual(len(non_code_tokens), 4)
+        self.assertEqual(
+            source[non_code_tokens[0].start : non_code_tokens[0].end],
+            '"string 2 %* not a comment."',
+        )
+        self.assertEqual(
+            source[non_code_tokens[1].start : non_code_tokens[1].end], '"string."'
+        )
+        self.assertEqual(
+            source[non_code_tokens[2].start : non_code_tokens[2].end],
+            '"this is not an assignment :="',
+        )
+        self.assertEqual(
+            source[non_code_tokens[3].start : non_code_tokens[3].end],
+            "%* b comment 9. *%",
+        )
 
-    def test_find_string_end(self):
-        self.assertFindStringEnd(
-            '"string"',
-            1,
-            'string"',
+    def test_line_comment_before_assignment(self):
+        source = textwrap.dedent(
+            """\
+        %  l comment.      
+        f(1) := 2."""
         )
-        self.assertFindStringEnd(
-            'p(1,2,"string").',
-            7,
-            'string"',
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 1)
+        self.assertEqual(source[assignments[0].start : assignments[0].end], ":=")
+        self.assertEqual(assignments[0].start, 25)
+        non_code_tokens = assignments[0].previous_non_code_tokens
+        self.assertEqual(len(non_code_tokens), 1)
+        self.assertEqual(
+            source[non_code_tokens[0].start : non_code_tokens[0].end],
+            "%  l comment.      \n",
         )
-        self.assertFindStringEnd(
-            'p(1,2,"unclosed string).',
-            7,
-            None,
+
+    def test_line_comment_after_assignment(self):
+        source = textwrap.dedent(
+            """\
+        f(1) := 2.
+        f(2) := 3.
+                                 %  l comment.      
+        """
         )
-        self.assertFindStringEnd(
-            r'p(1,2,"string % %* aa *% % %* % *% string").',
-            7,
-            r'string % %* aa *% % %* % *% string"',
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 3)
+        self.assertEqual(source[assignments[0].start : assignments[0].end], ":=")
+        self.assertEqual(assignments[0].previous_non_code_tokens, [])
+        self.assertEqual(source[assignments[1].start : assignments[1].end], ":=")
+        self.assertEqual(assignments[1].previous_non_code_tokens, [])
+        self.assertIsNone(assignments[2].type)
+        non_code_tokens = assignments[2].previous_non_code_tokens
+        self.assertEqual(len(non_code_tokens), 1)
+        self.assertEqual(
+            source[non_code_tokens[0].start : non_code_tokens[0].end],
+            "%  l comment.      \n",
         )
-        self.assertFindStringEnd(
-            r'p(1,2,"string \" \\ \" \\").',
-            7,
-            r'string \" \\ \" \\"',
+
+    def test_line_comment_end(self):
+        source = textwrap.dedent(
+            """\
+        f(1) := 2.
+        f(2) := 3.
+                                 %  l comment.      """
         )
-        self.assertFindStringEnd(
-            r'p(1,2,"unclosed % string).',
-            7,
-            None,
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 3)
+        self.assertEqual(source[assignments[0].start : assignments[0].end], ":=")
+        self.assertEqual(assignments[0].previous_non_code_tokens, [])
+        self.assertEqual(source[assignments[1].start : assignments[1].end], ":=")
+        self.assertEqual(assignments[1].previous_non_code_tokens, [])
+        self.assertIsNone(assignments[2].type)
+        non_code_tokens = assignments[2].previous_non_code_tokens
+        self.assertEqual(len(non_code_tokens), 1)
+        self.assertEqual(
+            source[non_code_tokens[0].start : non_code_tokens[0].end],
+            "%  l comment.      ",
         )
-        self.assertFindStringEnd(
-            r'p(1,2,"unclosed %* string).',
-            7,
-            None,
+
+    def test_comments(self):
+        source = textwrap.dedent(
+            """\
+        %  l comment 1.      
+        %* b comment 0. *%
+              %  l comment 2.  
+        f(1) %* b comment 1. *% := %* b comment 2. *% 2. %* b comment 3. *% %  l comment 3.  
+                %  l comment 4.  
+        %* b comment 4. *%
+        g(3) %* b comment 5. *% := %* b comment 6. *% 4. %* b comment 7. *% %  l comment 5.  
+               %  l comment 6. 
+        %* b comment 8. *%"""
         )
-        self.assertFindStringEnd(
-            r'p(1,2,"unclosed *% string).',
-            7,
-            None,
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 3)
+        self.assertEqual(source[assignments[0].start : assignments[0].end], ":=")
+        self.assertEqual(assignments[0].start, 89)
+        self.assertEqual(assignments[0].end, 91)
+        non_code_tokens = assignments[0].previous_non_code_tokens
+        self.assertEqual(len(non_code_tokens), 4)
+        self.assertEqual(
+            source[non_code_tokens[0].start : non_code_tokens[0].end],
+            "%  l comment 1.      \n",
         )
-        self.assertFindStringEnd(
-            r'p(1,2,"string %* *% string).',
-            7,
-            None,
+        self.assertEqual(
+            source[non_code_tokens[1].start : non_code_tokens[1].end],
+            "%* b comment 0. *%",
         )
-        self.assertFindStringEnd(
-            r'p(1,2,"string %* % *% string).',
-            7,
-            None,
+        self.assertEqual(
+            source[non_code_tokens[2].start : non_code_tokens[2].end],
+            "%  l comment 2.  \n",
         )
-        self.assertFindStringEnd(
-            r'p(1,2,"string %* % *% %* string).',
-            7,
-            None,
+        self.assertEqual(
+            source[non_code_tokens[3].start : non_code_tokens[3].end],
+            "%* b comment 1. *%",
         )
-        self.assertFindStringEnd(
-            r'p(1,2,"string %* % *% %* *% string).',
-            7,
-            None,
+        self.assertEqual(source[assignments[1].start : assignments[1].end], ":=")
+        self.assertEqual(assignments[1].start, 220)
+        non_code_tokens = assignments[1].previous_non_code_tokens
+        self.assertEqual(len(non_code_tokens), 6)
+        self.assertEqual(
+            source[non_code_tokens[0].start : non_code_tokens[0].end],
+            "%* b comment 2. *%",
         )
-        self.assertFindStringEnd(
-            r'p(1,2,"very long string very long string).',
-            7,
-            None,
+        self.assertEqual(
+            source[non_code_tokens[1].start : non_code_tokens[1].end],
+            "%* b comment 3. *%",
         )
-        # string = r'''p("this string has a %* %  *%", %* block comment *% :- body. % line comment'''
-        # self.assertFindStringEnd(
-        #     string,
-        #     0,
-        #     2,
-        #     r'"',
-        # )
-        # self.assertFindStringEnd(
-        #     string,
-        #     29,
-        #     29,
-        #     r'"',
-        # )
-        # self.assertFindStringEnd(
-        #     string,
-        #     30,
-        #     32,
-        #     r'%*',
-        # )
-        # self.assertFindStringEnd(
-        #     string,
-        #     48,
-        #     50,
-        #     r'%',
-        # )
+        self.assertEqual(
+            source[non_code_tokens[2].start : non_code_tokens[2].end],
+            "%  l comment 3.  \n",
+        )
+        self.assertEqual(
+            source[non_code_tokens[3].start : non_code_tokens[3].end],
+            "%  l comment 4.  \n",
+        )
+        self.assertEqual(
+            source[non_code_tokens[4].start : non_code_tokens[4].end],
+            "%* b comment 4. *%",
+        )
+        self.assertEqual(
+            source[non_code_tokens[5].start : non_code_tokens[5].end],
+            "%* b comment 5. *%",
+        )
+        self.assertIsNone(assignments[2].type)
+        non_code_tokens = assignments[2].previous_non_code_tokens
+        self.assertEqual(len(non_code_tokens), 5)
+        self.assertEqual(
+            source[non_code_tokens[0].start : non_code_tokens[0].end],
+            "%* b comment 6. *%",
+        )
+        self.assertEqual(
+            source[non_code_tokens[1].start : non_code_tokens[1].end],
+            "%* b comment 7. *%",
+        )
+        self.assertEqual(
+            source[non_code_tokens[2].start : non_code_tokens[2].end],
+            "%  l comment 5.  \n",
+        )
+        self.assertEqual(
+            source[non_code_tokens[3].start : non_code_tokens[3].end],
+            "%  l comment 6. \n",
+        )
+        self.assertEqual(
+            source[non_code_tokens[4].start : non_code_tokens[4].end],
+            "%* b comment 8. *%",
+        )
+
+    def test_nested_comment(self):
+        source = textwrap.dedent(
+            """\
+        %* block comment with a % % %* nested comment % % *% that continues. *% % and a line comment
+        f(1) := 2."""
+        )
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 1)
+        self.assertEqual(source[assignments[0].start : assignments[0].end], ":=")
+        non_code_tokens = assignments[0].previous_non_code_tokens
+        self.assertEqual(len(non_code_tokens), 2)
+        self.assertEqual(
+            source[non_code_tokens[0].start : non_code_tokens[0].end],
+            "%* block comment with a % % %* nested comment % % *% that continues. *%",
+        )
+        self.assertEqual(
+            source[non_code_tokens[1].start : non_code_tokens[1].end],
+            "% and a line comment\n",
+        )
+
+    def test_unclosed_comment(self):
+        source = textwrap.dedent(
+            """\
+        f(1) := 2.
+        %* unclosed comment
+        f(3) := 4.
+        """
+        )
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 2)
+        self.assertEqual(source[assignments[0].start : assignments[0].end], ":=")
+        self.assertIsInstance(assignments[1], lexer.ErrorToken)
+        self.assertEqual(assignments[1].start, 11)
+        self.assertEqual(assignments[1].end, len(source))
+        self.assertEqual(
+            source[assignments[1].start : assignments[1].end],
+            textwrap.dedent(
+                """\
+                %* unclosed comment
+                f(3) := 4.
+                """
+            ),
+        )
+
+    def test_unclosed_string(self):
+        source = textwrap.dedent(
+            """\
+        f(0) := 1.
+        f("unclosed string) := 2.
+        """
+        )
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 2)
+        self.assertEqual(source[assignments[0].start : assignments[0].end], ":=")
+        self.assertIsInstance(assignments[1], lexer.ErrorToken)
+        self.assertEqual(assignments[1].start, 13)
+        self.assertEqual(assignments[1].end, len(source))
+        self.assertEqual(
+            source[assignments[1].start : assignments[1].end],
+            textwrap.dedent(
+                """\
+                "unclosed string) := 2.
+                """
+            ),
+        )
+
+    def test_unclosed_string_in_clingo_code(self):
+        source = textwrap.dedent(
+            """\
+        p("some string").
+        f("unclosed string) := 2.
+        """
+        )
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 2)
+        self.assertIsNone(assignments[0].type)
+        no_code_tokens = assignments[0].previous_non_code_tokens
+        self.assertEqual(source[no_code_tokens[0].start : no_code_tokens[0].end], '"some string"')
+        self.assertIsInstance(assignments[1], lexer.ErrorToken)
+        self.assertEqual(assignments[1].start, 20)
+        self.assertEqual(assignments[1].end, len(source))
+        self.assertEqual(
+            source[assignments[1].start : assignments[1].end],
+            textwrap.dedent(
+                """\
+                "unclosed string) := 2.
+                """
+            ),
+        )
+
+    def test_unclosed_comment_in_clingo_code(self):
+        source = textwrap.dedent(
+            """\
+        p("some string").
+        %* unclosed comment
+        """
+        )
+        assignments = lexer._find_assignments(source)
+        self.assertEqual(len(assignments), 2)
+        self.assertIsNone(assignments[0].type)
+        no_code_tokens = assignments[0].previous_non_code_tokens
+        self.assertEqual(source[no_code_tokens[0].start : no_code_tokens[0].end], '"some string"')
+        self.assertIsInstance(assignments[1], lexer.ErrorToken)
+        self.assertEqual(assignments[1].start, 18)
+        self.assertEqual(assignments[1].end, len(source))
+        self.assertEqual(
+            source[assignments[1].start : assignments[1].end],
+            textwrap.dedent(
+                """\
+                %* unclosed comment
+                """
+            ),
+        )
