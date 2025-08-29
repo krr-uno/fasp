@@ -376,7 +376,9 @@ class TestFindAssignments(unittest.TestCase):
         self.assertEqual(len(assignments), 2)
         self.assertIsNone(assignments[0].type)
         no_code_tokens = assignments[0].previous_non_code_tokens
-        self.assertEqual(source[no_code_tokens[0].start : no_code_tokens[0].end], '"some string"')
+        self.assertEqual(
+            source[no_code_tokens[0].start : no_code_tokens[0].end], '"some string"'
+        )
         self.assertIsInstance(assignments[1], lexer.ErrorToken)
         self.assertEqual(assignments[1].start, 20)
         self.assertEqual(assignments[1].end, len(source))
@@ -400,7 +402,9 @@ class TestFindAssignments(unittest.TestCase):
         self.assertEqual(len(assignments), 2)
         self.assertIsNone(assignments[0].type)
         no_code_tokens = assignments[0].previous_non_code_tokens
-        self.assertEqual(source[no_code_tokens[0].start : no_code_tokens[0].end], '"some string"')
+        self.assertEqual(
+            source[no_code_tokens[0].start : no_code_tokens[0].end], '"some string"'
+        )
         self.assertIsInstance(assignments[1], lexer.ErrorToken)
         self.assertEqual(assignments[1].start, 18)
         self.assertEqual(assignments[1].end, len(source))
@@ -412,3 +416,18 @@ class TestFindAssignments(unittest.TestCase):
                 """
             ),
         )
+
+
+class TestFindAssignmentsRules(unittest.TestCase):
+    def test_find_assignment_rules(self):
+        source = textwrap.dedent(
+            """\
+        f(1) := 2.
+        f(3) := 4.
+        """
+        )
+        assignments = lexer._find_assignments(source)
+        rules = lexer._find_assignment_rules(assignments)
+        self.assertEqual(len(rules), 2)
+        self.assertIsInstance(rules[0], lexer._UnParsedAssignmentRule)
+        self.assertIsInstance(rules[1], lexer._UnParsedAssignmentRule)

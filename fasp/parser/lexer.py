@@ -1,5 +1,6 @@
 # import regex as re
 import re
+from tracemalloc import start
 from turtle import st
 from typing import NamedTuple
 
@@ -50,7 +51,10 @@ class ErrorToken(NamedTuple):
     end: int
 
 
-def _find_assignments(source: str) -> list[NonCodeToken]:
+PreToken = NonCodeToken | AssignmentToken | ErrorToken
+
+
+def _find_assignments(source: str) -> list[PreToken]:
     """
     Find all non-code blocks (line comments and block comments) in the source code.
     """
@@ -132,6 +136,24 @@ def _find_assignments(source: str) -> list[NonCodeToken]:
     #         print(f"    {str(t1.type):10}", "\t", t1.start, "\t",t1.end, "\t",source[t1.start:t1.end])
     # print('"'*30)
     return assignment_tokens
+
+
+class _UnParsedClingoCode(NamedTuple):
+    source: str
+    start_line: int
+    start_col: int
+
+
+class _UnParsedAssignmentRule(NamedTuple):
+    source: str
+    start_line: int
+    start_col: int
+
+
+def _find_assignment_rules(tokens: list[PreToken]):
+    assert tokens
+    blocks = []
+    return blocks
 
 
 # _find_assignments(
