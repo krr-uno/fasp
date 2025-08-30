@@ -1,8 +1,10 @@
-# import regex as re
-import re
+import regex as re
+
+# import re
+from tkinter import N, NO
 from tracemalloc import start
 from turtle import st
-from typing import NamedTuple
+from typing import NamedTuple, Sequence, Sequence
 
 from click import STRING, group
 from regex import E
@@ -31,6 +33,9 @@ _PATTERN_NON_CODE_BLOCKS_DEFAULT = re.compile(
     re.MULTILINE,
 )
 
+_PATTERN_DOT = re.compile(r"(?<!\.)\.(?!\.)")
+_PATTERN_DOT_REVERSE = re.compile(r"(?<!\.)\.(?!\.)", re.REVERSE)
+
 
 class NonCodeToken(NamedTuple):
     type: str
@@ -51,7 +56,7 @@ class ErrorToken(NamedTuple):
     end: int
 
 
-PreToken = NonCodeToken | AssignmentToken | ErrorToken
+PreToken = AssignmentToken | ErrorToken
 
 
 def _find_assignments(source: str) -> list[PreToken]:
@@ -148,11 +153,101 @@ class _UnParsedAssignmentRule(NamedTuple):
     source: str
     start_line: int
     start_col: int
+    assignment_pos : int
 
 
-def _find_assignment_rules(tokens: list[PreToken]):
+def _find_previous_dot(
+    source: str, start: int, end: int, non_code_tokens: Sequence[NonCodeToken]
+):
+    for token in reversed(non_code_tokens):
+        match = _PATTERN_DOT_REVERSE.search(source, token.end, end)
+        if match:
+            return match
+        end = token.start
+    return _PATTERN_DOT_REVERSE.search(source, start, end)
+
+def _find_next_dot(
+    source: str, start: int, end: int, non_code_tokens: Sequence[NonCodeToken]
+):
+    for token in non_code_tokens:
+        match = _PATTERN_DOT.search(source, start, token.start)
+        if match:
+            return match
+        start = token.end
+    return _PATTERN_DOT.search(source, start, end)
+
+
+def _find_assignment_rules(source: str, tokens: list[PreToken]):
     assert tokens
     blocks = []
+    start = 0
+    token = tokens[0]
+    start_line = 0
+    if isinstance(token, AssignmentToken):
+        next_pos = 1
+        while True:
+            if next_pos < len(tokens):
+                end = tokens[next_pos].start
+                next_non_code_tokens = tokens[next_pos].previous_non_code_tokens
+            else:
+                end = len(source)
+                next_non_code_tokens = []
+            rule_start = _find_previous_dot(source, start, token.start, token.previous_non_code_tokens)
+            # print(start, token.start, token.previous_non_code_tokens, f"'{source[start:token.start]}'", rule_start)
+            rule_start = start if rule_start is None else rule_start.end()
+            rule_end = _find_next_dot(source, token.end, end, next_non_code_tokens)
+            if rule_end is None:
+                # expect . but not found
+                pass
+            rule_end = rule_end.end()
+            if start < rule_start:
+                last_line_break = source.rfind("\n", 0, start)
+                if last_line_break == -1:
+                    column = 0
+                else:
+                    column = start - last_line_break
+                blocks.append(
+                    _UnParsedClingoCode(
+                        source[start : rule_start],
+                        start_line,
+                        column,
+                    )
+                )
+                start_line += source.count("\n", start, rule_start)
+            last_line_break = source.rfind("\n", 0, rule_start)
+            # print(f"{rule_start=}")
+            if last_line_break == -1:
+                column = rule_start
+            else:
+                column = rule_start - last_line_break - 1
+            blocks.append(
+                _UnParsedAssignmentRule(
+                    source[rule_start : rule_end],
+                    start_line,
+                    column,
+                    token.start - rule_start,
+                )
+            )
+            if next_pos >= len(tokens):
+                break
+            token = tokens[next_pos]
+            start = rule_end
+            next_pos += 1
+            start_line += source.count("\n", rule_start, rule_end)
+    # deal with error tokens
+    if source[rule_end + 1:].strip():
+        last_line_break = source.rfind("\n", 0, rule_end)
+        if last_line_break == -1:
+            column = rule_end
+        else:
+            column = rule_end - last_line_break - 1
+        blocks.append(
+            _UnParsedClingoCode(
+                source[rule_end:],
+                start_line,
+                column,
+            )
+        )
     return blocks
 
 

@@ -79,6 +79,42 @@ class TestNonCodeBlocksRE(unittest.TestCase):
             r"*%",
         )
 
+    def test_find_dot(self):
+        match = lexer._PATTERN_DOT.search("abc.def")
+        self.assertIsNotNone(match)
+        self.assertEqual(match.start(), 3)
+        self.assertEqual(match.end(), 4)
+
+    def test_find_dot2(self):
+        match = lexer._PATTERN_DOT.search("abc..def.")
+        self.assertIsNotNone(match)
+        self.assertEqual(match.start(), 8)
+        self.assertEqual(match.end(), 9)
+
+    def test_find_dot3(self):
+        match = lexer._PATTERN_DOT.search("abc..def. other .")
+        self.assertIsNotNone(match)
+        self.assertEqual(match.start(), 8)
+        self.assertEqual(match.end(), 9)
+
+    def test_find_dot_reverse(self):
+        match = lexer._PATTERN_DOT_REVERSE.search("abc.def")
+        self.assertIsNotNone(match)
+        self.assertEqual(match.start(), 3)
+        self.assertEqual(match.end(), 4)
+
+    def test_find_dot2_reverse(self):
+        match = lexer._PATTERN_DOT_REVERSE.search("abc..def.")
+        self.assertIsNotNone(match)
+        self.assertEqual(match.start(), 8)
+        self.assertEqual(match.end(), 9)
+
+    def test_find_dot3_reverse(self):
+        match = lexer._PATTERN_DOT_REVERSE.search("abc..def. other .")
+        self.assertIsNotNone(match)
+        self.assertEqual(match.start(), 16)
+        self.assertEqual(match.end(), 17)
+
 
 class TestFindAssignments(unittest.TestCase):
 
@@ -394,9 +430,9 @@ class TestFindAssignments(unittest.TestCase):
     def test_unclosed_comment_in_clingo_code(self):
         source = textwrap.dedent(
             """\
-        p("some string").
-        %* unclosed comment
-        """
+            p("some string").
+            %* unclosed comment
+            """
         )
         assignments = lexer._find_assignments(source)
         self.assertEqual(len(assignments), 2)
@@ -418,16 +454,154 @@ class TestFindAssignments(unittest.TestCase):
         )
 
 
+class TestFindDot(unittest.TestCase):
+    
+    def test_find_dot(self):
+        source = textwrap.dedent(
+            """\
+            f(a) := 1.
+            """
+        )
+        assignments = lexer._find_assignments(source)
+        previous_dot = lexer._find_previous_dot(source, 0, assignments[0].start, assignments[0].previous_non_code_tokens)
+        self.assertIsNone(previous_dot)
+        next_dot = lexer._find_next_dot(source, assignments[0].end, len(source), assignments[0].previous_non_code_tokens)
+        self.assertIsNotNone(next_dot)
+        self.assertEqual(source[:next_dot.end()], "f(a) := 1.")
+
+    def test_find_dot2(self):
+        source = textwrap.dedent(
+            """\
+            f(a) := 1.
+            f(b) := 1.
+            """
+        )
+        assignments = lexer._find_assignments(source)
+        previous_dot = lexer._find_previous_dot(source, 0, assignments[0].start, assignments[0].previous_non_code_tokens)
+        self.assertIsNone(previous_dot)
+        next_dot = lexer._find_next_dot(source, assignments[0].end, assignments[1].start, assignments[0].previous_non_code_tokens)
+        self.assertIsNotNone(next_dot)
+        self.assertEqual(source[:next_dot.end()], "f(a) := 1.")
+        previous_dot = lexer._find_previous_dot(source, 0, assignments[1].start, assignments[1].previous_non_code_tokens)
+        self.assertIsNotNone(previous_dot)
+        next_dot = lexer._find_next_dot(source, assignments[1].end, len(source), [])
+        self.assertIsNotNone(next_dot)
+        self.assertEqual(source[previous_dot.end()+1:next_dot.end()], "f(b) := 1.")
+        
+
+    def test_string(self):
+        source = textwrap.dedent(
+            """\
+            f("one string. something else.") := "another string. something else.".
+            fact("fact string").
+            g("yet another string. something else.") := "final string string. something else.".
+            """
+        )
+        assignments = lexer._find_assignments(source)
+        previous_dot = lexer._find_previous_dot(source, 0, assignments[0].start, assignments[0].previous_non_code_tokens)
+        self.assertIsNone(previous_dot)
+        next_dot = lexer._find_next_dot(source, assignments[0].end, assignments[1].start, assignments[1].previous_non_code_tokens)
+        self.assertIsNotNone(next_dot)
+        self.assertEqual(source[0:next_dot.end()], 'f("one string. something else.") := "another string. something else.".')
+        previous_dot = lexer._find_previous_dot(source, 0, assignments[1].start, assignments[1].previous_non_code_tokens)
+        self.assertIsNotNone(previous_dot)
+        next_dot = lexer._find_next_dot(source, assignments[1].end, len(source), assignments[2].previous_non_code_tokens)
+        self.assertIsNotNone(next_dot)
+        self.assertEqual(source[previous_dot.end()+1:next_dot.end()], 'g("yet another string. something else.") := "final string string. something else.".')
+        
+
 class TestFindAssignmentsRules(unittest.TestCase):
     def test_find_assignment_rules(self):
         source = textwrap.dedent(
             """\
-        f(1) := 2.
+        f(1) := 2. f(a) := b.
+           # comment
+        f(3) := 4.  f(5) := 6.
+
+        """
+        )
+        assignments = lexer._find_assignments(source)
+        rules = lexer._find_assignment_rules(source, assignments)
+        self.assertEqual(len(rules), 4)
+        self.assertIsInstance(rules[0], lexer._UnParsedAssignmentRule)
+        self.assertIsInstance(rules[1], lexer._UnParsedAssignmentRule)
+        self.assertIsInstance(rules[2], lexer._UnParsedAssignmentRule)
+        self.assertIsInstance(rules[3], lexer._UnParsedAssignmentRule)
+        self.assertEqual(rules[0].source, 'f(1) := 2.')
+        self.assertEqual(rules[1].source, ' f(a) := b.')
+        self.assertEqual(rules[2].source, '\n   # comment\nf(3) := 4.')
+        self.assertEqual(rules[3].source, '  f(5) := 6.')
+        self.assertEqual(rules[0].start_line, 0)
+        self.assertEqual(rules[1].start_line, 0)
+        self.assertEqual(rules[2].start_line, 0)
+        self.assertEqual(rules[3].start_line, 2)
+        self.assertEqual(rules[0].start_col, 0)
+        self.assertEqual(rules[1].start_col, 10)
+        # rules[2].start_col does not matter because it starts with a new line
+        self.assertEqual(rules[3].start_col, 10)
+        self.assertEqual(rules[0].assignment_pos, 5)
+        self.assertEqual(rules[1].assignment_pos, 6)
+        self.assertEqual(rules[2].assignment_pos, 5 + len("\n   # comment\n"))
+        self.assertEqual(rules[3].assignment_pos, 7)
+
+    def test_starting_clingo(self):
+        source = textwrap.dedent(
+            """\
+        p(a).
+           # comment
+        p(b) :- p(a).
         f(3) := 4.
         """
         )
         assignments = lexer._find_assignments(source)
-        rules = lexer._find_assignment_rules(assignments)
+        rules = lexer._find_assignment_rules(source, assignments)
+        self.assertEqual(len(rules), 2)
+        self.assertIsInstance(rules[0], lexer._UnParsedClingoCode)
+        self.assertIsInstance(rules[1], lexer._UnParsedAssignmentRule)
+        self.assertEqual(rules[0].source, 'p(a).\n   # comment\np(b) :- p(a).')
+        self.assertEqual(rules[0].start_line, 0)
+        self.assertEqual(rules[0].start_col, 0)
+        self.assertEqual(rules[1].source, '\nf(3) := 4.')
+        self.assertEqual(rules[1].start_line, 2)
+        self.assertEqual(rules[1].start_col, 13)
+
+    def test_ending_clingo(self):
+        source = textwrap.dedent(
+            """\
+        f(3) := 4.
+        p(a).
+           # comment
+        p(b) :- p(a).
+        """
+        )
+        assignments = lexer._find_assignments(source)
+        rules = lexer._find_assignment_rules(source, assignments)
         self.assertEqual(len(rules), 2)
         self.assertIsInstance(rules[0], lexer._UnParsedAssignmentRule)
-        self.assertIsInstance(rules[1], lexer._UnParsedAssignmentRule)
+        self.assertIsInstance(rules[1], lexer._UnParsedClingoCode)
+        self.assertEqual(rules[0].source, 'f(3) := 4.')
+        self.assertEqual(rules[1].source, '\np(a).\n   # comment\np(b) :- p(a).\n')
+        self.assertEqual(rules[0].start_line, 0)
+        self.assertEqual(rules[0].start_col, 0)
+        self.assertEqual(rules[1].start_line, 0)
+        # rules[1].start_col does not matter
+
+    def test_middle_clingo(self):
+        source = textwrap.dedent(
+            """\
+        f(3) := 4.
+        p(a).
+           # comment
+        p(b) :- p(a).
+        f(5) := 6.
+        """
+        )
+        assignments = lexer._find_assignments(source)
+        rules = lexer._find_assignment_rules(source, assignments)
+        self.assertEqual(len(rules), 3)
+        self.assertIsInstance(rules[0], lexer._UnParsedAssignmentRule)
+        self.assertIsInstance(rules[1], lexer._UnParsedClingoCode)
+        self.assertIsInstance(rules[2], lexer._UnParsedAssignmentRule)
+        self.assertEqual(rules[0].source, 'f(3) := 4.')
+        self.assertEqual(rules[1].source, '\np(a).\n   # comment\np(b) :- p(a).')
+        self.assertEqual(rules[2].source, '\nf(5) := 6.')
