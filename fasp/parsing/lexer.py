@@ -143,13 +143,13 @@ def _find_assignments(source: str) -> list[PreToken]:
     return assignment_tokens
 
 
-class _UnParsedClingoCode(NamedTuple):
+class UnParsedClingoCode(NamedTuple):
     source: str
     start_line: int
     start_col: int
 
 
-class _UnParsedAssignmentRule(NamedTuple):
+class UnParsedAssignmentRule(NamedTuple):
     source: str
     start_line: int
     start_col: int
@@ -207,7 +207,7 @@ def split_code(source: str, tokens: list[PreToken]):
                 else:
                     column = start - last_line_break
                 blocks.append(
-                    _UnParsedClingoCode(
+                    UnParsedClingoCode(
                         source[start : rule_start],
                         start_line,
                         column,
@@ -221,7 +221,7 @@ def split_code(source: str, tokens: list[PreToken]):
             else:
                 column = rule_start - last_line_break - 1
             blocks.append(
-                _UnParsedAssignmentRule(
+                UnParsedAssignmentRule(
                     source[rule_start : rule_end],
                     start_line,
                     column,
@@ -242,7 +242,7 @@ def split_code(source: str, tokens: list[PreToken]):
         else:
             column = rule_end - last_line_break - 1
         blocks.append(
-            _UnParsedClingoCode(
+            UnParsedClingoCode(
                 source[rule_end:],
                 start_line,
                 column,
