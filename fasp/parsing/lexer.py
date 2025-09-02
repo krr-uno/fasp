@@ -155,6 +155,7 @@ class UnParsedAssignmentRule(NamedTuple):
     start_col: int
     assignment_pos : int
 
+UnParsedBlock = UnParsedClingoCode | UnParsedAssignmentRule
 
 def _find_previous_dot(
     source: str, start: int, end: int, non_code_tokens: Sequence[NonCodeToken]
@@ -177,7 +178,7 @@ def _find_next_dot(
     return _PATTERN_DOT.search(source, start, end)
 
 
-def split_code(source: str, tokens: list[PreToken]):
+def split_code(source: str, tokens: list[PreToken]) -> list[UnParsedBlock]:
     assert tokens
     blocks = []
     start = 0
