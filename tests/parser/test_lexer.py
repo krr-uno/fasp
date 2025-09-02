@@ -1,7 +1,7 @@
 import textwrap
 import unittest
 
-from fasp.parser import lexer
+from fasp.parsing import lexer
 
 
 class TestNonCodeBlocksRE(unittest.TestCase):
@@ -510,7 +510,7 @@ class TestFindDot(unittest.TestCase):
         self.assertEqual(source[previous_dot.end()+1:next_dot.end()], 'g("yet another string. something else.") := "final string string. something else.".')
         
 
-class TestFindAssignmentsRules(unittest.TestCase):
+class TestSplitCode(unittest.TestCase):
     def test_find_assignment_rules(self):
         source = textwrap.dedent(
             """\
@@ -521,7 +521,7 @@ class TestFindAssignmentsRules(unittest.TestCase):
         """
         )
         assignments = lexer._find_assignments(source)
-        rules = lexer._find_assignment_rules(source, assignments)
+        rules = lexer.split_code(source, assignments)
         self.assertEqual(len(rules), 4)
         self.assertIsInstance(rules[0], lexer._UnParsedAssignmentRule)
         self.assertIsInstance(rules[1], lexer._UnParsedAssignmentRule)
@@ -554,7 +554,7 @@ class TestFindAssignmentsRules(unittest.TestCase):
         """
         )
         assignments = lexer._find_assignments(source)
-        rules = lexer._find_assignment_rules(source, assignments)
+        rules = lexer.split_code(source, assignments)
         self.assertEqual(len(rules), 2)
         self.assertIsInstance(rules[0], lexer._UnParsedClingoCode)
         self.assertIsInstance(rules[1], lexer._UnParsedAssignmentRule)
@@ -575,7 +575,7 @@ class TestFindAssignmentsRules(unittest.TestCase):
         """
         )
         assignments = lexer._find_assignments(source)
-        rules = lexer._find_assignment_rules(source, assignments)
+        rules = lexer.split_code(source, assignments)
         self.assertEqual(len(rules), 2)
         self.assertIsInstance(rules[0], lexer._UnParsedAssignmentRule)
         self.assertIsInstance(rules[1], lexer._UnParsedClingoCode)
@@ -597,7 +597,7 @@ class TestFindAssignmentsRules(unittest.TestCase):
         """
         )
         assignments = lexer._find_assignments(source)
-        rules = lexer._find_assignment_rules(source, assignments)
+        rules = lexer.split_code(source, assignments)
         self.assertEqual(len(rules), 3)
         self.assertIsInstance(rules[0], lexer._UnParsedAssignmentRule)
         self.assertIsInstance(rules[1], lexer._UnParsedClingoCode)
@@ -605,3 +605,24 @@ class TestFindAssignmentsRules(unittest.TestCase):
         self.assertEqual(rules[0].source, 'f(3) := 4.')
         self.assertEqual(rules[1].source, '\np(a).\n   # comment\np(b) :- p(a).')
         self.assertEqual(rules[2].source, '\nf(5) := 6.')
+
+    def test_end_clingo(self):
+        source = textwrap.dedent(
+            """\
+        f(3) := 4.
+        f(5) := 6.
+        p(a).
+           # comment
+        p(b) :- p(a).
+        """
+        )
+        assignments = lexer._find_assignments(source)
+        rules = lexer.split_code(source, assignments)
+        self.assertEqual(len(rules), 3)
+        self.assertIsInstance(rules[0], lexer._UnParsedAssignmentRule)
+        self.assertIsInstance(rules[1], lexer._UnParsedAssignmentRule)
+        self.assertIsInstance(rules[2], lexer._UnParsedClingoCode)
+        self.assertEqual(rules[0].source, 'f(3) := 4.')
+        self.assertEqual(rules[1].source, '\nf(5) := 6.')
+        self.assertEqual(rules[2].source, '\np(a).\n   # comment\np(b) :- p(a).\n')
+        

@@ -177,7 +177,7 @@ def _find_next_dot(
     return _PATTERN_DOT.search(source, start, end)
 
 
-def _find_assignment_rules(source: str, tokens: list[PreToken]):
+def split_code(source: str, tokens: list[PreToken]):
     assert tokens
     blocks = []
     start = 0
