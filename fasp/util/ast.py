@@ -114,7 +114,13 @@ TermAST = (
 )
 ArgumentAST = TermAST | Projection
 LiteralAST = LiteralBoolean | LiteralComparison | LiteralSymbolic
-BodyLiteral = BodySimpleLiteral | BodyAggregate | BodySetAggregate | BodyTheoryAtom | BodyConditionalLiteral
+BodyLiteral = (
+    BodySimpleLiteral
+    | BodyAggregate
+    | BodySetAggregate
+    | BodyTheoryAtom
+    | BodyConditionalLiteral
+)
 
 AST = (
     StatementAST
@@ -472,48 +478,69 @@ class FreshVariableGenerator:
         raise RuntimeError(f"Could not generate fresh variable for base '{base}'")
 
 
-def parse_term(library: Library, code: str) -> Sequence[TermAST|ast.StatementComment]:
+def parse_term(
+    library: Library, code: str
+) -> tuple[TermAST, Sequence[ast.StatementComment], Sequence[ast.StatementComment]]:
     statements = []
     ast.parse_string(library, f"p({code}).", statements.append)
-    processed_statements = []
+    term = None
+    previous_comments = []
+    latter_comments = []
     for st in statements:
         if isinstance(st, ast.StatementProgram):
             continue
         if isinstance(st, ast.StatementComment):
-            processed_statements.append(st)
+            if term is None:
+                previous_comments.append(st)
+            else:
+                latter_comments.append(st)
             continue
         pool = st.head.literal.atom.pool
         if len(pool) != 1:
             raise ValueError(f"Unexpected pool when parsing term: {st}")
         if len(pool[0].arguments) != 1:
             raise ValueError(f"Unexpected arguments when parsing term: {st}")
-        processed_statements.append(pool[0].arguments[0])
-    return processed_statements
+        term = pool[0].arguments[0]
+    return term, previous_comments, latter_comments
 
 
-def parse_body(library: Library, code: str) -> Sequence[Sequence[BodyLiteral] | ast.StatementComment]:
+def parse_body(library: Library, code: str) -> tuple[
+    Sequence[BodyLiteral],
+    Sequence[ast.StatementComment],
+    Sequence[ast.StatementComment],
+]:
     statements = []
-    ast.parse_string(library, f":- {code}.", statements.append)
-    processed_statements = []
+    try:
+        ast.parse_string(library, f":- {code}.", statements.append)
+    except Exception:
+        raise ValueError(f"Error parsing body, found {code}")
+    body = None
+    previous_comments = []
+    latter_comments = []
     for st in statements:
         if isinstance(st, ast.StatementProgram):
             continue
         if isinstance(st, ast.StatementComment):
-            processed_statements.append(st)
+            if body is None:
+                previous_comments.append(st)
+            else:
+                latter_comments.append(st)
             continue
-        processed_statements.append(st.body)
-    return processed_statements
+        if body is not None:
+            raise ValueError(f"Error parsing body, found {code}")
+        body = st.body
+    return body, previous_comments, latter_comments
 
 
-def parse_body_aggregate(library: Library, code: str) -> Sequence[ BodyAggregate | ast.StatementComment]:
-    processed_statements = []
-    for st in parse_body(library, code):
-        if isinstance(st, ast.StatementProgram):
-            continue
-        if isinstance(st, ast.StatementComment):
-            processed_statements.append(st)
-            continue
-        if len(st) != 1 or not isinstance(st[0], ast.BodyAggregate):
-            raise ValueError(f'Unexpected "{st}" when parsing body aggregate when parsing')
-        processed_statements.append(st[0])
-    return processed_statements
+# def parse_body_aggregate(library: Library, code: str) -> Sequence[ BodyAggregate | ast.StatementComment]:
+#     processed_statements = []
+#     for st in parse_body(library, code):
+#         if isinstance(st, ast.StatementProgram):
+#             continue
+#         if isinstance(st, ast.StatementComment):
+#             processed_statements.append(st)
+#             continue
+#         if len(st) != 1 or not isinstance(st[0], ast.BodyAggregate):
+#             raise ValueError(f'Unexpected "{st}" when parsing body aggregate when parsing')
+#         processed_statements.append(st[0])
+#     return processed_statements

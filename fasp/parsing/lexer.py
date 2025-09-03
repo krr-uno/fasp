@@ -1,11 +1,7 @@
-import regex as re
-
 # import re
-from tkinter import N, NO
-from tracemalloc import start
-from turtle import st
-from typing import NamedTuple, Sequence, Sequence
+from typing import NamedTuple, Sequence
 
+import regex as re
 from click import STRING, group
 from regex import E
 from tomlkit import comment
@@ -98,7 +94,6 @@ def _find_assignments(source: str) -> list[PreToken]:
                     no_code_tokens.append(
                         NonCodeToken("B_COMMENT", open[1], match.end())
                     )
-            pass
         match = _PATTERN_NON_CODE_BLOCKS_DEFAULT.search(source, match.end())
     #     print('"' * 30)
     #     print(stack)
@@ -154,10 +149,12 @@ class UnParsedAssignmentRule(NamedTuple):
     start_line: int
     start_col: int
     assignment_pos: int
-    ruleop_pos : int # -1 if a fact
-    aggregate_pos: int # -1 if not an aggregate
+    ruleop_pos: int  # -1 if a fact
+    aggregate_pos: int  # -1 if not an aggregate
+
 
 UnParsedBlock = UnParsedClingoCode | UnParsedAssignmentRule
+
 
 def _find_previous_dot(
     source: str, start: int, end: int, non_code_tokens: Sequence[NonCodeToken]
@@ -180,8 +177,13 @@ def _find_next_dot(
         start = token.end
     return _PATTERN_DOT.search(source, start, end)
 
+
 def _find_next(
-    source: str, start: int, end: int, non_code_tokens: Sequence[NonCodeToken], substring: str
+    source: str,
+    start: int,
+    end: int,
+    non_code_tokens: Sequence[NonCodeToken],
+    substring: str,
 ):
     for token in non_code_tokens:
         pos = source.find(substring, start, token.start)
@@ -215,7 +217,9 @@ def split_code(source: str, tokens: list[PreToken]) -> list[UnParsedBlock]:
             else:
                 end = len(source)
                 next_non_code_tokens = []
-            rule_start = _find_previous_dot(source, start, token.start, token.previous_non_code_tokens)
+            rule_start = _find_previous_dot(
+                source, start, token.start, token.previous_non_code_tokens
+            )
             rule_start = start if rule_start is None else rule_start.end()
             rule_end = _find_next_dot(source, token.end, end, next_non_code_tokens)
             if rule_end is None:
@@ -227,19 +231,23 @@ def split_code(source: str, tokens: list[PreToken]) -> list[UnParsedBlock]:
 
                 blocks.append(
                     UnParsedClingoCode(
-                        source[start : rule_start],
+                        source[start:rule_start],
                         start_line,
                         column,
                     )
                 )
                 start_line += source.count("\n", start, rule_start)
             column = _find_column(source, rule_start)
-            ruleop_pos = _find_next(source, token.start, rule_end, next_non_code_tokens, ":-")
+            ruleop_pos = _find_next(
+                source, token.start, rule_end, next_non_code_tokens, ":-"
+            )
             head_end = ruleop_pos if ruleop_pos != -1 else rule_end
-            aggregate_pos = _find_next(source, token.start, head_end, next_non_code_tokens, "#")
+            aggregate_pos = _find_next(
+                source, token.start, head_end, next_non_code_tokens, "#"
+            )
             blocks.append(
                 UnParsedAssignmentRule(
-                    source[rule_start : rule_end],
+                    source[rule_start:rule_end],
                     start_line,
                     column,
                     token.start - rule_start,
@@ -253,8 +261,8 @@ def split_code(source: str, tokens: list[PreToken]) -> list[UnParsedBlock]:
             start = rule_end
             next_pos += 1
             start_line += source.count("\n", rule_start, rule_end)
-    
-    if source[rule_end + 1:].strip():
+
+    if source[rule_end + 1 :].strip():
         column = _find_column(source, rule_end)
         blocks.append(
             UnParsedClingoCode(

@@ -291,28 +291,58 @@ class TestVariableManager(unittest.TestCase):
             sys.maxsize = orig_max
 
 
+class TestParseTerm(unittest.TestCase):
+
+    def setUp(self):
+        self.messages = []
+        self.lib = Library(logger=lambda t, msg: self.messages.append((t, msg)))
+
     def test_parse_term(self):
         code = "X"
-        term = util_ast.parse_term(self.lib, code)[0]
+        term, pc, lt = util_ast.parse_term(self.lib, code)
         self.assertIsInstance(term, ast.TermVariable)
         self.assertEqual(term.name, "X")
+        self.assertEqual(pc, [])
+        self.assertEqual(lt, [])
         code = "f(X)"
-        term = util_ast.parse_term(self.lib, code)[0]
+        term, pc, lt = util_ast.parse_term(self.lib, code)
         self.assertIsInstance(term, ast.TermFunction)
         self.assertEqual(str(term), "f(X)")
+        self.assertEqual(pc, [])
+        self.assertEqual(lt, [])
         code = "f( %* comment *% X)"
-        term = util_ast.parse_term(self.lib, code)[1]
+        term, pc, lt = util_ast.parse_term(self.lib, code)
         self.assertIsInstance(term, ast.TermFunction)
         self.assertEqual(str(term), "f(X)")
+        self.assertEqual(str(pc[0]), "%* comment *%")
+        self.assertEqual(lt, [])
 
     def test_parse_body(self):
-        code = "q(X), r(X)"
-        body = util_ast.parse_body(self.lib, code)[0]
-        self.assertIsInstance(body, Sequence)
+        code = "q(X), %* comment *% r(X)"
+        body, pc, lt = util_ast.parse_body(self.lib, code)
         self.assertEqual(", ".join(map(str, body)), "q(X), r(X)")
+        self.assertEqual(pc, [])
+        self.assertEqual(str(lt[0]), "%* comment *%")
+        code = "q(X), r(X). p(a)"
+        with self.assertRaises(ValueError) as cm:
+            util_ast.parse_body(self.lib, code)
+        self.assertEqual(
+            str(cm.exception), f"Error parsing body, found {code}"
+        )
+        code = "#sum { X: p(X): q(X) }"
+        with self.assertRaises(ValueError) as cm:
+            util_ast.parse_body(self.lib, code)
+        self.assertEqual(
+            str(cm.exception), f"Error parsing body, found {code}"
+        )
+        self.assertEqual(len(self.messages), 1)
+        # body, pc, lt = util_ast.parse_body(self.lib, code)
+        # self.assertEqual(", ".join(map(str, body)), "q(X), r(X)")
+        # self.assertEqual(pc, [])
+        # self.assertEqual(str(lt[0]), "%* comment *%")
 
-    def test_parse_body_aggregate(self):
-        code = "#sum { X: q(X) }"
-        agg = util_ast.parse_body_aggregate(self.lib, code)[0]
-        # self.assertIsInstance(agg, ast.BodyAggregate)
-        self.assertEqual(str(agg), "#sum { X: q(X) }")
+    # def test_parse_body_aggregate(self):
+    #     code = "#sum { X: q(X) }"
+    #     agg = util_ast.parse_body_aggregate(self.lib, code)[0]
+    #     # self.assertIsInstance(agg, ast.BodyAggregate)
+    #     self.assertEqual(str(agg), "#sum { X: q(X) }")

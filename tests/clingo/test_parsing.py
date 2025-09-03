@@ -2,10 +2,12 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
+
 def parse_string(library: Library, string: str):
     l = []
     ast.parse_string(library, string, l.append)
     return l
+
 
 class TestRewrite(unittest.TestCase):
 
@@ -13,12 +15,15 @@ class TestRewrite(unittest.TestCase):
         self.library = Library()
 
     def test_1(self):
-        l = parse_string(self.library, """\
+        l = parse_string(
+            self.library,
+            """\
             p(1 %* block comment *%). f(1 %* another block comment *%). % comment
             p(1) % line comment
-                         :- q(1).""")
+                         :- q(1).""",
+        )
         self.assertEqual(len(l), 8)
-         
+
         self.assertEqual(str(l[0]), "%* block comment *%")
         self.assertEqual(str(l[1]), "#program base.")
         self.assertEqual(str(l[2]), "p(1).")
