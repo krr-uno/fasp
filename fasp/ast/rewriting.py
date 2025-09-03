@@ -4,7 +4,7 @@ from typing import AbstractSet, Any, Iterable, cast
 
 from clingo import ast
 from clingo.core import Library, Location, Position
-from clingo.symbol import Number
+from clingo.symbol import Number, SymbolType
 
 from fasp.ast.protecting import (
     COMPARISON_NAME,
@@ -280,7 +280,7 @@ class HeadAggregateToBodyRewriteTransformer:
         if right_guard is not None:
             self._error(
                 head.location,
-                "Head aggregate cannot appear on the right-hand side",
+                "Head aggregate cannot appear on the right-hand side of the assignment",
                 type(head),
             )
             return st
@@ -289,7 +289,7 @@ class HeadAggregateToBodyRewriteTransformer:
             # Shouldn't happen for a well-formed head aggregate
             self._error(
                 head.location,
-                "Head aggregate is missing left guard.",
+                "Head aggregate is missing left guard of the assignment",
                 type(head),
             )
             return st
@@ -298,16 +298,36 @@ class HeadAggregateToBodyRewriteTransformer:
         if left_guard.relation != ast.Relation.Equal:
             self._error(
                 head.location,
-                "Head aggregate must use '=' in comparisons",
+                f"aggregates with comparisons cannot not be used in the head, found \"{str(head)}\""+ ", assignments are of the form \"f(X) = #sum{ Y : p(Y,Z) }\"",
                 type(head),
             )
             return st
 
         # Left guard term must be a function term.
-        if not isinstance(left_guard.term, ast.TermFunction):
+        # if not isinstance(left_guard.term, ast.TermFunction):
+        #     self._error(
+        #         head.location,
+        #         f"The left-hand side of an assignment must be a function term, found {type(left_guard.term)} with symbol {(left_guard.term.symbol.type)}",
+        #         type(head),
+        #     )
+        #     return st
+        lhs = left_guard.term
+        if isinstance(lhs, ast.TermFunction):
+            pass
+        elif isinstance(lhs, ast.TermSymbolic):
+            if lhs.symbol.type == SymbolType.Number or lhs.symbol.type == SymbolType.String:
+                self._error(
+                    head.location,
+                    f"The left-hand side of an assignment must be a function term, "
+                    f"found {type(lhs)} with symbol {lhs.symbol.type}",
+                    type(head),
+                )
+                return st
+        else:
             self._error(
                 head.location,
-                "Left side of head aggregate must be a function term",
+                f"The left-hand side of an assignment must be a function term, "
+                f"found {type(lhs)}",
                 type(head),
             )
             return st
