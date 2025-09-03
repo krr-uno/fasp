@@ -20,6 +20,7 @@ from fasp.ast.syntax_checking import (
 from fasp.util.ast import (
     AST,
     BodyLiteralAST,
+    LiteralAST,
     FreshVariableGenerator,
     StatementAST,
     collect_variables,
@@ -326,9 +327,9 @@ class HeadAggregateToBodyRewriteTransformer:
 
         # Convert head-aggregate elements to body-aggregate elements unchanged
         body_elems: list[ast.BodyAggregateElement] = []
-        conditions = []
 
         for el in head.elements:
+            conditions: list[LiteralAST] = []
             if el.literal is not None:
                 conditions.append(el.literal)
             conditions.extend(list(el.condition))

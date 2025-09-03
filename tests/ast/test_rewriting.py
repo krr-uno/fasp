@@ -348,3 +348,15 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         # An error should be recorded
         self.assertEqual(len(rewriter.errors), 1)
         self.assertIn("missing left guard", rewriter.errors[0].message)
+    
+    def test_valid_max_min(self):
+        program = """\
+        f(X) = #max{ Y : p(Y) } :- b(X).
+        f(X) = #min{ Y : q(Y) } :- b(X).
+        """
+        expected = textwrap.dedent("""\
+            #program base.
+            f(X)=W :- b(X); W = #max { Y: p(Y) }.
+            f(X)=W :- b(X); W = #min { Y: q(Y) }.
+        """).strip()
+        self.assertRewriteEqual(program, expected)
