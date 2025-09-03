@@ -13,6 +13,10 @@ class TestParseAssignment(unittest.TestCase):
         self.messages = []
         self.lib = Library(logger=lambda t, msg: self.messages.append((t, msg)))
 
+    def tearDown(self):
+        self.messages = []
+        self.lib = None
+
     def test_parse_assignment_right_hand_side(self):
         code = "g(Y)"
         right, pc, lt = parser._parse_assignment_right(self.lib, code)
@@ -41,10 +45,16 @@ class TestParseAssignment(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
              parser._parse_assignment_right(self.lib, code)
         self.assertEqual(
-            str(cm.exception), f"Expected exactly one term or aggregate in assignment right-hand side of an assignment, found {code}")
+            str(cm.exception), f"Expected exactly one term or aggregate in assignment right-hand side of an assignment, found {code}"
+        )
+        self.assertEqual(len(self.messages), 0)
+
+    def test_parse_assignment_right_hand_side_invalid_aggregate(self):
         code = "#sum { X: p(X): q(X) }"
         with self.assertRaises(ValueError) as cm:
              parser._parse_assignment_right(self.lib, code)
         self.assertEqual(
             str(cm.exception), f"Expected exactly one term or aggregate in assignment right-hand side of an assignment, found {code}")
         self.assertEqual(len(self.messages), 1)
+
+        
