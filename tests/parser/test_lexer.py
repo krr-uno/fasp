@@ -544,6 +544,16 @@ class TestSplitCode(unittest.TestCase):
         self.assertEqual(rules[2].assignment_pos, 5 + len("\n   # comment\n"))
         self.assertEqual(rules[3].assignment_pos, 7)
 
+        self.assertEqual(rules[0].ruleop_pos, -1)
+        self.assertEqual(rules[1].ruleop_pos, -1)
+        self.assertEqual(rules[2].ruleop_pos, -1)
+        self.assertEqual(rules[3].ruleop_pos, -1)
+        self.assertEqual(rules[0].aggregate_pos, -1)
+        self.assertEqual(rules[1].aggregate_pos, -1)
+        self.assertEqual(rules[2].aggregate_pos, -1)
+        self.assertEqual(rules[3].aggregate_pos, -1)
+
+
     def test_starting_clingo(self):
         source = textwrap.dedent(
             """\
@@ -625,4 +635,29 @@ class TestSplitCode(unittest.TestCase):
         self.assertEqual(rules[0].source, 'f(3) := 4.')
         self.assertEqual(rules[1].source, '\nf(5) := 6.')
         self.assertEqual(rules[2].source, '\np(a).\n   # comment\np(b) :- p(a).\n')
-        
+
+    def test_rule_with_body(self):
+        source = "f(3) := 4 :- body."
+        assignments = lexer._find_assignments(source)
+        rules = lexer.split_code(source, assignments)
+        self.assertEqual(len(rules), 1)
+        self.assertIsInstance(rules[0], lexer.UnParsedAssignmentRule)
+        self.assertEqual(rules[0].source, 'f(3) := 4 :- body.')
+        self.assertEqual(rules[0].start_line, 0)
+        self.assertEqual(rules[0].start_col, 0)
+        self.assertEqual(rules[0].assignment_pos, 5)
+        self.assertEqual(rules[0].ruleop_pos, 10)
+        self.assertEqual(rules[0].aggregate_pos, -1)
+
+    def test_rule_with_aggregate(self):
+        source = "f(3) := #sum{X: p(X)} :- body."
+        assignments = lexer._find_assignments(source)
+        rules = lexer.split_code(source, assignments)
+        self.assertEqual(len(rules), 1)
+        self.assertIsInstance(rules[0], lexer.UnParsedAssignmentRule)
+        self.assertEqual(rules[0].source, 'f(3) := #sum{X: p(X)} :- body.')
+        self.assertEqual(rules[0].start_line, 0)
+        self.assertEqual(rules[0].start_col, 0)
+        self.assertEqual(rules[0].assignment_pos, 5)
+        self.assertEqual(rules[0].ruleop_pos, 22)
+        self.assertEqual(rules[0].aggregate_pos, 8)

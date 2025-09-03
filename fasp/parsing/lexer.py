@@ -153,7 +153,9 @@ class UnParsedAssignmentRule(NamedTuple):
     source: str
     start_line: int
     start_col: int
-    assignment_pos : int
+    assignment_pos: int
+    ruleop_pos : int # -1 if a fact
+    aggregate_pos: int # -1 if not an aggregate
 
 UnParsedBlock = UnParsedClingoCode | UnParsedAssignmentRule
 
@@ -167,6 +169,7 @@ def _find_previous_dot(
         end = token.start
     return _PATTERN_DOT_REVERSE.search(source, start, end)
 
+
 def _find_next_dot(
     source: str, start: int, end: int, non_code_tokens: Sequence[NonCodeToken]
 ):
@@ -176,6 +179,25 @@ def _find_next_dot(
             return match
         start = token.end
     return _PATTERN_DOT.search(source, start, end)
+
+def _find_next(
+    source: str, start: int, end: int, non_code_tokens: Sequence[NonCodeToken], substring: str
+):
+    for token in non_code_tokens:
+        pos = source.find(substring, start, token.start)
+        if pos != -1:
+            return pos
+        start = token.end
+    return source.find(substring, start, end)
+
+
+def _find_column(source: str, pos: int) -> int:
+    last_line_break = source.rfind("\n", 0, pos)
+    if last_line_break == -1:
+        column = pos
+    else:
+        column = pos - last_line_break - 1
+    return column
 
 
 def split_code(source: str, tokens: list[PreToken]) -> list[UnParsedBlock]:
@@ -194,7 +216,6 @@ def split_code(source: str, tokens: list[PreToken]) -> list[UnParsedBlock]:
                 end = len(source)
                 next_non_code_tokens = []
             rule_start = _find_previous_dot(source, start, token.start, token.previous_non_code_tokens)
-            # print(start, token.start, token.previous_non_code_tokens, f"'{source[start:token.start]}'", rule_start)
             rule_start = start if rule_start is None else rule_start.end()
             rule_end = _find_next_dot(source, token.end, end, next_non_code_tokens)
             if rule_end is None:
@@ -202,11 +223,8 @@ def split_code(source: str, tokens: list[PreToken]) -> list[UnParsedBlock]:
                 pass
             rule_end = rule_end.end()
             if start < rule_start:
-                last_line_break = source.rfind("\n", 0, start)
-                if last_line_break == -1:
-                    column = 0
-                else:
-                    column = start - last_line_break
+                column = _find_column(source, start)
+
                 blocks.append(
                     UnParsedClingoCode(
                         source[start : rule_start],
@@ -215,18 +233,18 @@ def split_code(source: str, tokens: list[PreToken]) -> list[UnParsedBlock]:
                     )
                 )
                 start_line += source.count("\n", start, rule_start)
-            last_line_break = source.rfind("\n", 0, rule_start)
-            # print(f"{rule_start=}")
-            if last_line_break == -1:
-                column = rule_start
-            else:
-                column = rule_start - last_line_break - 1
+            column = _find_column(source, rule_start)
+            ruleop_pos = _find_next(source, token.start, rule_end, next_non_code_tokens, ":-")
+            head_end = ruleop_pos if ruleop_pos != -1 else rule_end
+            aggregate_pos = _find_next(source, token.start, head_end, next_non_code_tokens, "#")
             blocks.append(
                 UnParsedAssignmentRule(
                     source[rule_start : rule_end],
                     start_line,
                     column,
                     token.start - rule_start,
+                    ruleop_pos,
+                    aggregate_pos,
                 )
             )
             if next_pos >= len(tokens):
@@ -235,13 +253,9 @@ def split_code(source: str, tokens: list[PreToken]) -> list[UnParsedBlock]:
             start = rule_end
             next_pos += 1
             start_line += source.count("\n", rule_start, rule_end)
-    # deal with error tokens
+    
     if source[rule_end + 1:].strip():
-        last_line_break = source.rfind("\n", 0, rule_end)
-        if last_line_break == -1:
-            column = rule_end
-        else:
-            column = rule_end - last_line_break - 1
+        column = _find_column(source, rule_end)
         blocks.append(
             UnParsedClingoCode(
                 source[rule_end:],
@@ -249,6 +263,7 @@ def split_code(source: str, tokens: list[PreToken]) -> list[UnParsedBlock]:
                 column,
             )
         )
+    # deal with error tokens
     return blocks
 
 

@@ -1,3 +1,4 @@
+from typing import Sequence
 import unittest
 
 from clingo import ast
@@ -288,3 +289,30 @@ class TestVariableManager(unittest.TestCase):
                 gen.fresh_variable(self.lib, self.loc, "X")
         finally:
             sys.maxsize = orig_max
+
+
+    def test_parse_term(self):
+        code = "X"
+        term = util_ast.parse_term(self.lib, code)[0]
+        self.assertIsInstance(term, ast.TermVariable)
+        self.assertEqual(term.name, "X")
+        code = "f(X)"
+        term = util_ast.parse_term(self.lib, code)[0]
+        self.assertIsInstance(term, ast.TermFunction)
+        self.assertEqual(str(term), "f(X)")
+        code = "f( %* comment *% X)"
+        term = util_ast.parse_term(self.lib, code)[1]
+        self.assertIsInstance(term, ast.TermFunction)
+        self.assertEqual(str(term), "f(X)")
+
+    def test_parse_body(self):
+        code = "q(X), r(X)"
+        body = util_ast.parse_body(self.lib, code)[0]
+        self.assertIsInstance(body, Sequence)
+        self.assertEqual(", ".join(map(str, body)), "q(X), r(X)")
+
+    def test_parse_body_aggregate(self):
+        code = "#sum { X: q(X) }"
+        agg = util_ast.parse_body_aggregate(self.lib, code)[0]
+        # self.assertIsInstance(agg, ast.BodyAggregate)
+        self.assertEqual(str(agg), "#sum { X: q(X) }")
