@@ -233,6 +233,7 @@ BodyLiteralAST = (
     | BodyTheoryAtom
 )
 
+
 class SyntacticError(NamedTuple):
     """
     Represents a syntactic error in the AST.

@@ -20,8 +20,8 @@ from fasp.ast.syntax_checking import (
 from fasp.util.ast import (
     AST,
     BodyLiteralAST,
-    LiteralAST,
     FreshVariableGenerator,
+    LiteralAST,
     StatementAST,
     collect_variables,
     create_body_literal,
@@ -141,7 +141,8 @@ def _functional_constraint(
     args1tuple = ast.ArgumentTuple(library, args1)
     args2tuple = ast.ArgumentTuple(library, args2)
     lit1 = create_body_literal(
-        library, ast.TermFunction(library, location, name, [args1tuple]),
+        library,
+        ast.TermFunction(library, location, name, [args1tuple]),
     )
     lit2 = create_literal(
         library, ast.TermFunction(library, location, name, [args2tuple])
@@ -156,7 +157,9 @@ def _functional_constraint(
             ast.Relation.Greater,
         ),
         ast.AggregateFunction.Count,
-        [ast.BodyAggregateElement(library, location, [return_variable], [lit2]),],
+        [
+            ast.BodyAggregateElement(library, location, [return_variable], [lit2]),
+        ],
         None,
     )
     head = ast.HeadSimpleLiteral(
@@ -321,7 +324,9 @@ class HeadAggregateToBodyRewriteTransformer:
             head.location,
             ast.Sign.NoSign,
             f_term,
-            [ast.RightGuard(self.library, ast.Relation.Equal, W),],
+            [
+                ast.RightGuard(self.library, ast.Relation.Equal, W),
+            ],
         )
         new_head = ast.HeadSimpleLiteral(self.library, new_head_lit)
 

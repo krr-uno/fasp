@@ -271,6 +271,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         _, errors = self.rewrite(program)
         self.assertEqual(len(errors), 1)
         self.assertIn("Head aggregate cannot appear on the right-hand side", errors[0].message)
+        # change to: Head aggregate cannot appear on the right-hand side of the assignment
 
     def test_non_equality_relation_error(self):
         program = """\
@@ -279,6 +280,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         _, errors = self.rewrite(program)
         self.assertEqual(len(errors), 1)
         self.assertIn("must use '='", errors[0].message)
+        # change to: aggregates with comparisons cannot not be used in the head, found "f(X) < #sum{ Y : p(Y,Z) }", assignments are of the form "f(X) = #sum{ Y : p(Y,Z) }".
 
     def test_invalid_left_term_error(self):
         program = """\
@@ -288,6 +290,18 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
 
         self.assertEqual(len(errors), 1)
         self.assertIn("must be a function term", errors[0].message)
+        # This is correct
+        # a is TermSymbolic whose symbol is a function. Numbers or string are not valid here.
+
+    def test_invalid_left_term_error_number(self):
+        program = """\
+            1 = #sum{ Y : p(Y,Z) } :- b(X,Z).
+        """
+        _, errors = self.rewrite(program)
+
+        self.assertEqual(len(errors), 1)
+        self.assertIn("must be a function term", errors[0].message)
+        # Change to: The right-hand side of an assignment must be a function term
 
     def test_non_rule_statement_passthrough(self):
         program = "p(a)."
@@ -313,6 +327,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         self.assertEqual(len(rewriter.errors), 1)
         self.assertEqual(rewriter.errors[0].message, "dummy message")
         self.assertIs(rewriter.errors[0].information, ast.HeadAggregate)
+        # change to program "f(X) = #sum{ Y : p(Y,Z) : q(Y,Z) } :- b(X,Z)."
     
     def test_malformed_head_aggregate(self):
         # create a dummy HeadAggregate with left=None
@@ -348,6 +363,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         # An error should be recorded
         self.assertEqual(len(rewriter.errors), 1)
         self.assertIn("missing left guard", rewriter.errors[0].message)
+        # try with a string again
     
     def test_valid_max_min(self):
         program = """\
@@ -358,5 +374,15 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
             #program base.
             f(X)=W :- b(X); W = #max { Y: p(Y) }.
             f(X)=W :- b(X); W = #min { Y: q(Y) }.
+        """).strip()
+        self.assertRewriteEqual(program, expected)
+
+    def test_used_variables(self):
+        program = """\
+        f(W) = #max{ W2 : p(W2) } :- b(W).
+        """
+        expected = textwrap.dedent("""\
+            #program base.
+            f(W)=W3 :- b(W); W3 = #max { W2: p(W2) }.
         """).strip()
         self.assertRewriteEqual(program, expected)
