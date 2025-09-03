@@ -2,13 +2,12 @@ import textwrap
 import unittest
 
 from clingo import ast
-from clingo.core import Library
+from clingo.core import Library, Location, Position
 from clingo.ast import RewriteContext
 from fasp.ast.protecting import protect_comparisons, restore_comparisons
 from fasp.util.ast import AST
 
-from fasp.ast.rewriting import _functional2asp, normalize_ast
-
+from fasp.ast.rewriting import _functional2asp, normalize_ast, ParsingException, HeadAggregateToBodyRewriteTransformer
 
 # def normalize_statements(
 #     library: Library, statements: Iterable[StatementAST]
@@ -206,3 +205,146 @@ class TestNormalizeStatements(unittest.TestCase):
         """
         ).strip()
         self.assertEqualNormalization(program, expected)
+    
+    def test_functional2asp_head_aggregate_errors(self):
+        """Test that head aggregates trigger a ParsingException when invalid."""
+
+        # Program with an invalid head aggregate (on the right)
+        program = "#sum{ X : p(X) } = f(Y) :- q(Y)."
+
+        statements = []
+        ast.parse_string(self.lib, program, statements.append)
+
+        # _functional2asp should raise ParsingException
+        with self.assertRaises(ParsingException) as cm:
+            _functional2asp(self.lib, statements)
+
+        exc = cm.exception
+        # Check error with a message about right-hand aggregate
+        self.assertEqual(len(exc.errors), 1)
+        self.assertIn(
+            "Head aggregate cannot appear on the right-hand side", exc.errors[0].message
+        )
+
+class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
+    """
+    Unit tests for the HeadAggregateToBodyRewriteTransformer.
+    """
+
+    def setUp(self):
+        self.lib = Library()
+
+    def parse_program(self, program: str):
+        stmts = []
+        ast.parse_string(self.lib, program, stmts.append)
+        return stmts
+
+    def rewrite(self, program: str):
+        stmts = self.parse_program(program)
+        rewriter = HeadAggregateToBodyRewriteTransformer(self.lib)
+        out = rewriter.rewrite_statements(stmts)
+        return [str(stmt).strip() for stmt in out], rewriter.errors
+
+    def assertRewriteEqual(self, program: str, expected: str):
+        result, errors = self.rewrite(program)
+        expected_lines = [line.strip() for line in expected.splitlines()]
+        self.assertCountEqual(result, expected_lines)
+        # also check that no errors were collected
+        self.assertEqual(errors, [])
+
+    def test_valid_sum_and_count(self):
+        program = """\
+            f(X) = #sum{ Y : p(Y,Z) : q(X), r(X) } :- b(X,Z).
+            f(X) = #count{ Y : p(Y,Z) } :- b(X,Z).
+        """
+        expected = textwrap.dedent("""\
+            #program base.
+            f(X)=W :- b(X,Z); W = #sum { Y: p(Y,Z), q(X), r(X) }.
+            f(X)=W :- b(X,Z); W = #count { Y: p(Y,Z) }.
+        """).strip()
+        self.assertRewriteEqual(program, expected)
+
+    def test_aggregate_on_right_side_error(self):
+        program = """\
+            #sum{ Y : p(Y,Z) } = f(X) :- b(X,Z).
+        """
+        _, errors = self.rewrite(program)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("Head aggregate cannot appear on the right-hand side", errors[0].message)
+
+    def test_non_equality_relation_error(self):
+        program = """\
+            f(X) < #sum{ Y : p(Y,Z) } :- b(X,Z).
+        """
+        _, errors = self.rewrite(program)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("must use '='", errors[0].message)
+
+    def test_invalid_left_term_error(self):
+        program = """\
+            a = #sum{ Y : p(Y,Z) } :- b(X,Z).
+        """
+        _, errors = self.rewrite(program)
+
+        self.assertEqual(len(errors), 1)
+        self.assertIn("must be a function term", errors[0].message)
+
+    def test_non_rule_statement_passthrough(self):
+        program = "p(a)."
+
+        stmts = self.parse_program(program)
+        rewriter = HeadAggregateToBodyRewriteTransformer(self.lib)
+        out = rewriter.rewrite_statements(stmts)
+
+        self.assertEqual("\n".join(str(s) for s in out).strip(),
+                 "#program base.\np(a).")        
+        self.assertEqual(rewriter.errors, [])
+
+    def test_error_method_records(self):
+        rewriter = HeadAggregateToBodyRewriteTransformer(self.lib)
+
+        # Construct Positions for dummy AST
+        begin = Position(self.lib, "test.lp", 1, 1)
+        end = Position(self.lib, "test.lp", 1, 5)
+        dummy_loc = Location(begin, end)
+
+        rewriter._error(dummy_loc, "dummy message", ast.HeadAggregate)
+
+        self.assertEqual(len(rewriter.errors), 1)
+        self.assertEqual(rewriter.errors[0].message, "dummy message")
+        self.assertIs(rewriter.errors[0].information, ast.HeadAggregate)
+    
+    def test_malformed_head_aggregate(self):
+        # create a dummy HeadAggregate with left=None
+        lib = self.lib
+        begin = Position(self.lib, "test.lp", 1, 1)
+        end = Position(self.lib, "test.lp", 1, 5)
+        dummy_loc = Location(begin, end)
+
+        element = ast.HeadAggregateElement(
+            lib,
+            dummy_loc,
+            tuple=[ast.TermVariable(lib, dummy_loc, "X")],
+            literal=ast.LiteralBoolean(lib, dummy_loc, ast.Sign.NoSign, True),
+            condition=[]
+        )
+
+        head_agg = ast.HeadAggregate(
+            lib,
+            dummy_loc,
+            None,  # left guard missing
+            ast.AggregateFunction.Sum,
+            [element],
+            None,  # right guard
+        )
+
+        stmt = ast.StatementRule(lib, dummy_loc, head_agg, [])
+        rewriter = HeadAggregateToBodyRewriteTransformer(lib)
+        out = rewriter._rewrite_statement(stmt)
+        
+        # The original statement is returned unchanged
+        self.assertIs(out, stmt)
+        
+        # An error should be recorded
+        self.assertEqual(len(rewriter.errors), 1)
+        self.assertIn("missing left guard", rewriter.errors[0].message)

@@ -225,6 +225,13 @@ AST_T = TypeVar(
 
 FunctionLikeAST = TermFunction | TermSymbolic | TermTuple | Symbol
 
+BodyLiteralAST = (
+    BodySimpleLiteral
+    | BodyConditionalLiteral
+    | BodyAggregate
+    | BodySetAggregate
+    | BodyTheoryAtom
+)
 
 class SyntacticError(NamedTuple):
     """

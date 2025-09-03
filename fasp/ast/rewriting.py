@@ -11,10 +11,18 @@ from fasp.ast.protecting import (
     protect_comparisons,
     restore_comparisons,
 )
-from fasp.ast.syntax_checking import SymbolSignature, get_evaluable_functions
+from fasp.ast.syntax_checking import (
+    ParsingException,
+    SymbolSignature,
+    SyntacticError,
+    get_evaluable_functions,
+)
 from fasp.util.ast import (
     AST,
+    BodyLiteralAST,
+    FreshVariableGenerator,
     StatementAST,
+    collect_variables,
     create_body_literal,
     create_literal,
     function_arguments,
@@ -132,8 +140,7 @@ def _functional_constraint(
     args1tuple = ast.ArgumentTuple(library, args1)
     args2tuple = ast.ArgumentTuple(library, args2)
     lit1 = create_body_literal(
-        library,
-        ast.TermFunction(library, location, name, [args1tuple]),
+        library, ast.TermFunction(library, location, name, [args1tuple]),
     )
     lit2 = create_literal(
         library, ast.TermFunction(library, location, name, [args2tuple])
@@ -148,9 +155,7 @@ def _functional_constraint(
             ast.Relation.Greater,
         ),
         ast.AggregateFunction.Count,
-        [
-            ast.BodyAggregateElement(library, location, [return_variable], [lit2]),
-        ],
+        [ast.BodyAggregateElement(library, location, [return_variable], [lit2]),],
         None,
     )
     head = ast.HeadSimpleLiteral(
@@ -186,13 +191,21 @@ def _functional2asp(
     Returns:
         Iterable[ast.AST]: The transformed program.
     """
+    ha_rewriter = HeadAggregateToBodyRewriteTransformer(library)
+    statements = ha_rewriter.rewrite_statements(statements)
+    if ha_rewriter.errors:
+        raise ParsingException(ha_rewriter.errors)
+
     evaluable_functions = get_evaluable_functions(statements)
     transformer = NormalForm2PredicateTransformer(library, evaluable_functions, prefix)
-    return evaluable_functions, list(
-        chain(
-            (transformer.rewrite(statement) for statement in statements),
-            functional_constraints(library, evaluable_functions, prefix),
-        )
+    return (
+        evaluable_functions,
+        list(
+            chain(
+                (transformer.rewrite(statement) for statement in statements),
+                functional_constraints(library, evaluable_functions, prefix),
+            )
+        ),
     )
 
 
@@ -214,3 +227,143 @@ def functional2asp(
     for statement in statements:
         program.add(statement)
     return evaluable_functions, program
+
+
+class HeadAggregateToBodyRewriteTransformer:
+    """
+    Rewrites head aggregates of the form:
+        f(X) = #agg{ ... } :- Body.
+    into
+        f(X) = W :- Body, W = #agg{ ... }.
+    where W is a fresh variable not occurring in the original rule.
+
+    Also collects syntactic errors if:
+      - comparison symbol in the head-aggregate is not '='
+      - the aggregate appears on the right-hand side (#agg{...} = f(X))
+    """
+
+    _SUPPORTED_FUNS = {
+        ast.AggregateFunction.Sum,
+        ast.AggregateFunction.Count,
+        ast.AggregateFunction.Max,
+        ast.AggregateFunction.Min,
+    }
+
+    def __init__(self, library: Library) -> None:
+        self.library = library
+        self.errors: list[SyntacticError] = []
+
+    def rewrite_statements(self, statements: list[StatementAST]) -> list[StatementAST]:
+        """Return new statements, recording errors in self.errors."""
+        out: list[StatementAST] = []
+        for st in statements:
+            out.append(self._rewrite_statement(st))
+        return out
+
+    def _rewrite_statement(self, st: StatementAST) -> StatementAST:
+        if not isinstance(st, ast.StatementRule):
+            return st
+
+        head = st.head
+        if not isinstance(head, ast.HeadAggregate):
+            return st
+
+        # Detect whether the aggregate is on the left or right
+        left_guard = head.left  # ast.LeftGuard | None
+        right_guard = head.right  # ast.RightGuard | None
+
+        # Reject aggregates on the right like #sum{...} = f(X)"
+        if right_guard is not None:
+            self._error(
+                head.location,
+                "Head aggregate cannot appear on the right-hand side",
+                type(head),
+            )
+            return st
+
+        if left_guard is None:
+            # Shouldn't happen for a well-formed head aggregate
+            self._error(
+                head.location,
+                "Head aggregate is missing left guard.",
+                type(head),
+            )
+            return st
+
+        # The comparison must be equality
+        if left_guard.relation != ast.Relation.Equal:
+            self._error(
+                head.location,
+                "Head aggregate must use '=' in comparisons",
+                type(head),
+            )
+            return st
+
+        # Left guard term must be a function term.
+        if not isinstance(left_guard.term, ast.TermFunction):
+            self._error(
+                head.location,
+                "Left side of head aggregate must be a function term",
+                type(head),
+            )
+            return st
+
+        # Collect used variables in this rule to generate a fresh W
+        used = collect_variables([st])
+        gen = FreshVariableGenerator(used)
+        W = gen.fresh_variable(self.library, head.location, "W")
+
+        # Build the new head: f(Args) = W
+        f_term = left_guard.term  # ast.TermFunction
+        new_head_lit = ast.LiteralComparison(
+            self.library,
+            head.location,
+            ast.Sign.NoSign,
+            f_term,
+            [ast.RightGuard(self.library, ast.Relation.Equal, W),],
+        )
+        new_head = ast.HeadSimpleLiteral(self.library, new_head_lit)
+
+        # Convert head-aggregate elements to body-aggregate elements unchanged
+        body_elems: list[ast.BodyAggregateElement] = []
+        conditions = []
+
+        for el in head.elements:
+            if el.literal is not None:
+                conditions.append(el.literal)
+            conditions.extend(list(el.condition))
+            # el: ast.HeadAggregateElement
+
+            body_elems.append(
+                ast.BodyAggregateElement(
+                    self.library,
+                    el.location,
+                    list(el.tuple),
+                    conditions,
+                )
+            )
+
+        # Build body aggregate W = #agg{ ... } (as a BodyAggregate with LeftGuard(W, Equal))
+        body_agg = ast.BodyAggregate(
+            self.library,
+            head.location,
+            ast.Sign.NoSign,
+            ast.LeftGuard(self.library, W, ast.Relation.Equal),
+            head.function,
+            body_elems,
+            None,
+        )
+
+        # Preserve the original body and append the equality-to-aggregate literal.
+        new_body: list[BodyLiteralAST] = list(st.body) + [body_agg]
+
+        # Return the rewritten rule.
+        return ast.StatementRule(self.library, st.location, new_head, new_body)
+
+    def _error(
+        self, location: Location, message: str, information: type | None = None
+    ) -> None:
+        """
+        Record a syntactic error at the given location with a structured message.
+        """
+        self.errors.append(SyntacticError(location, message, information))
