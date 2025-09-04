@@ -296,26 +296,35 @@ class HeadAggregateToBodyRewriteTransformer:
 
         # The comparison must be equality
         if left_guard.relation != ast.Relation.Equal:
+            # Suggesting the correct form in error message
+            corrected_guard = ast.LeftGuard(
+                self.library,
+                left_guard.term,
+                ast.Relation.Equal
+            )
+            corrected_head = ast.HeadAggregate(
+                self.library,
+                head.location,
+                corrected_guard,
+                head.function,
+                head.elements,
+                right_guard,
+            )
             self._error(
                 head.location,
-                f"aggregates with comparisons cannot not be used in the head, found \"{str(head)}\""+ ", assignments are of the form \"f(X) = #sum{ Y : p(Y,Z) }\"",
+                f"aggregates with comparisons cannot not be used in the head, found \"{str(head)}\", assignments are of the form \"{str(corrected_head)}\"",
                 type(head),
             )
             return st
 
-        # Left guard term must be a function term.
-        # if not isinstance(left_guard.term, ast.TermFunction):
-        #     self._error(
-        #         head.location,
-        #         f"The left-hand side of an assignment must be a function term, found {type(left_guard.term)} with symbol {(left_guard.term.symbol.type)}",
-        #         type(head),
-        #     )
-        #     return st
         lhs = left_guard.term
+        # QUERY: Should all the types [except(TermSymbolic with SymbolType Number and String)] under util.ast.TermAST be allowed?
         if isinstance(lhs, ast.TermFunction):
             pass
         elif isinstance(lhs, ast.TermSymbolic):
-            if lhs.symbol.type == SymbolType.Number or lhs.symbol.type == SymbolType.String:
+            if lhs.symbol.type == SymbolType.Function:
+                pass
+            else:
                 self._error(
                     head.location,
                     f"The left-hand side of an assignment must be a function term, "
@@ -332,6 +341,16 @@ class HeadAggregateToBodyRewriteTransformer:
             )
             return st
 
+        # if isinstance(lhs, ast.TermSymbolic):
+        #     if lhs.symbol.type in (SymbolType.Number, SymbolType.String):
+        #         self._error(
+        #             head.location,
+        #             f"The left-hand side of an assignment must be a function term, "
+        #             f"found {type(lhs)} with symbol {lhs.symbol.type}",
+        #             type(head),
+        #         )
+        #         return st
+            
         # Collect used variables in this rule to generate a fresh W
         used = collect_variables([st])
         gen = FreshVariableGenerator(used)

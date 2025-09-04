@@ -271,19 +271,16 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         _, errors = self.rewrite(program)
         self.assertEqual(len(errors), 1)
         self.assertIn("Head aggregate cannot appear on the right-hand side of the assignment", errors[0].message)
-        # change to: Head aggregate cannot appear on the right-hand side of the assignment
 
     def test_non_equality_relation_error(self):
         program = """\
-            f(X) < #sum{ Y : p(Y,Z) } :- b(X,Z).
+            g(X) < #max{ Y : p(Y,Z) } :- b(X,Z).
         """
         _, errors = self.rewrite(program)
         self.assertEqual(len(errors), 1)
-        self.assertIn("aggregates with comparisons cannot not be used in the head, found \"f(X) < #sum { Y: p(Y,Z) }\", assignments are of the form \"f(X) = #sum{ Y : p(Y,Z) }\"", errors[0].message)
-        # change to: aggregates with comparisons cannot not be used in the head, found "f(X) < #sum{ Y : p(Y,Z) }", assignments are of the form "f(X) = #sum{ Y : p(Y,Z) }".
-        # Query: does the example form need to be dynamic based on the actual input?
-
-    def test_valid_left_term_no_error(self):
+        self.assertIn("aggregates with comparisons cannot not be used in the head, found \"g(X) < #max { Y: p(Y,Z) }\", assignments are of the form \"g(X) = #max { Y: p(Y,Z) }\"", errors[0].message)
+        
+    def test_valid_left_term_no_error_symbolic_function(self):
         program = """\
             a = #sum{ Y : p(Y,Z) } :- b(X,Z).
         """
@@ -293,18 +290,15 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         # This is correct
         # a is TermSymbolic whose symbol is a function. Numbers or string are not valid here.
 
-    def test_invalid_left_term_error(self):
+    def test_invalid_left_term_error_string(self):
         program = """\
             "as" = #sum{ Y : p(Y,Z) } :- b(X,Z).
-            (1,a) = #sum{ Y : p(Y,Z) } :- b(X,Z).
         """
         _, errors = self.rewrite(program)
 
-        self.assertEqual(len(errors), 2)
-        print(errors[0].message)
+        self.assertEqual(len(errors), 1)
         self.assertIn("The left-hand side of an assignment must be a function term", errors[0].message)
-        # Tuples are valid but does aggregate ever return tuple? Does this need to be made valid.
-
+        
     def test_invalid_left_term_error_number(self):
         program = """\
             1 = #sum{ Y : p(Y,Z) } :- b(X,Z).
@@ -312,18 +306,44 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         _, errors = self.rewrite(program)
 
         self.assertEqual(len(errors), 1)
-        print(errors[0].message)
         self.assertIn("The left-hand side of an assignment must be a function term", errors[0].message)
-        # Change to: The right-hand side of an assignment must be a function term
-        # Query: Should it not be the left-hand side?
+        self.assertIn("found <class 'clingo.ast.TermSymbolic'> with symbol SymbolType.Number", errors[0].message)
+    
+    # Note: Does aggregate ever return tuple? Does this need to be made valid?
+    def test_invalid_left_term_error_tuple(self):
+        program = """\
+            (1,a) = #sum{ Y : p(Y,Z) } :- b(X,Z).
+        """
+        _, errors = self.rewrite(program)
 
-    def test_invalid_left_term_variable(self):
+        self.assertEqual(len(errors), 1)
+        self.assertIn("The left-hand side of an assignment must be a function term", errors[0].message)
+        self.assertIn("found <class 'clingo.ast.TermTuple'>", errors[0].message)
+
+    #  Note: Is TermVariable valid on the left side of an assignment?
+    def test_invalid_left_term_error_variable(self):
         program = textwrap.dedent("""\
             X = #sum{ Y : p(Y,Z) } :- b(X,Z).
         """)
         _, errors = self.rewrite(program)
         self.assertEqual(len(errors), 1)
+        self.assertIn("The left-hand side of an assignment must be a function term", errors[0].message)
         self.assertIn("found <class 'clingo.ast.TermVariable'>", errors[0].message)
+
+    # def test_valid_left_term_no_error_tuple(self):
+    #     program = """\
+    #         (1,a) = #sum{ Y : p(Y,Z) } :- b(X,Z).
+    #     """
+    #     _, errors = self.rewrite(program)
+
+    #     self.assertEqual(len(errors), 0)
+
+    # def test_valid_left_term_no_error_variable(self):
+    #     program = textwrap.dedent("""\
+    #         X = #sum{ Y : p(Y,Z) } :- b(X,Z).
+    #     """)
+    #     _, errors = self.rewrite(program)
+    #     self.assertEqual(len(errors), 0)
 
     def test_non_rule_statement_passthrough(self):
         program = "p(a)."
@@ -336,7 +356,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
                  "#program base.\np(a).")        
         self.assertEqual(rewriter.errors, [])
 
-    def test_error_method_records(self):
+    def test_error_message_and_information(self):
 
         program = "f(X) < #sum{ Y : p(Y,Z) : q(Y,Z) } :- b(X,Z)."
 
@@ -345,11 +365,8 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         out = rewriter.rewrite_statements(stmts)
 
         self.assertEqual(len(rewriter.errors), 1)
-        self.assertEqual(rewriter.errors[0].message, "aggregates with comparisons cannot not be used in the head, found \"f(X) < #sum { Y: p(Y,Z): q(Y,Z) }\", assignments are of the form \"f(X) = #sum{ Y : p(Y,Z) }\"")
+        self.assertEqual(rewriter.errors[0].message, "aggregates with comparisons cannot not be used in the head, found \"f(X) < #sum { Y: p(Y,Z): q(Y,Z) }\", assignments are of the form \"f(X) = #sum { Y: p(Y,Z): q(Y,Z) }\"")
         self.assertIs(rewriter.errors[0].information, ast.HeadAggregate)
-        # change to program "f(X) = #sum{ Y : p(Y,Z) : q(Y,Z) } :- b(X,Z)."
-
-        # Is this correct?
 
     def test_malformed_head_aggregate(self):
         program = textwrap.dedent("""
@@ -366,7 +383,6 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         # An error should be recorded
         self.assertEqual(len(rewriter.errors), 1)
         self.assertEqual("Head aggregate is missing left guard of the assignment", rewriter.errors[0].message)
-        # try with a string again
     
     def test_valid_max_min(self):
         program = """\
@@ -389,3 +405,25 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
             f(W)=W3 :- b(W); W3 = #max { W2: p(W2) }.
         """).strip()
         self.assertRewriteEqual(program, expected)
+    
+    def test_general_program_rewrite(self):
+        program = textwrap.dedent("""
+            #program base.
+            p(a).
+            q(X) :- r(X).
+            f(X) = #sum{ Y : p(Y,Z) : q(X), r(X) } :- b(X,Z).
+            g(X) = a.
+        """).strip()
+
+        expected = textwrap.dedent("""
+            #program base.
+            p(a).
+            q(X) :- r(X).
+            f(X)=W :- b(X,Z); W = #sum { Y: p(Y,Z), q(X), r(X) }.
+            g(X)=a.
+        """).strip()
+
+        result, errors = self.rewrite(program)
+
+        self.assertEqual(errors, [])
+        self.assertCountEqual(result, expected.splitlines())
