@@ -1,3 +1,4 @@
+from email import message
 import sys
 from typing import Sequence
 
@@ -80,6 +81,11 @@ def fasp_main(
 
 
 def main(options: Sequence[str] = ()) -> int:
-    with Library() as library:
-        return fasp_main(library, list(options))
+    messages = []
+    with Library(logger=lambda t, msg: messages.append((t, msg))) as library:
+        try:
+            return fasp_main(library, list(options), raise_errors=True)
+        except Exception as e:
+            print(messages)
+            raise e
     return 1  # pragma: no cover
