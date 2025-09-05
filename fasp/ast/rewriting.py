@@ -273,84 +273,54 @@ class HeadAggregateToBodyRewriteTransformer:
             return st
 
         # Detect whether the aggregate is on the left or right
-        left_guard = head.left  # ast.LeftGuard | None
-        right_guard = head.right  # ast.RightGuard | None
+        left_guard: ast.LeftGuard | None = head.left
+        right_guard: ast.RightGuard | None = head.right
 
         # Reject aggregates on the right like #sum{...} = f(X)"
-        if right_guard is not None:
-            self._error(
-                head.location,
-                "Head aggregate cannot appear on the right-hand side of the assignment",
-                type(head),
-            )
-            return st
-
         if left_guard is None:
             # Shouldn't happen for a well-formed head aggregate
             self._error(
                 head.location,
-                "Head aggregate is missing left guard of the assignment",
-                type(head),
+                f"Missing the left-hand side of the assignment: {str(head)}",
+                head,
+            )
+            return st
+
+        if right_guard is not None:
+            self._error(
+                head.location,
+                f"Wrong assignment syntax: {str(head)}",
+                head,
             )
             return st
 
         # The comparison must be equality
         if left_guard.relation != ast.Relation.Equal:
             # Suggesting the correct form in error message
-            corrected_guard = ast.LeftGuard(
-                self.library,
-                left_guard.term,
-                ast.Relation.Equal
+            corrected_guard = left_guard.update(
+                self.library, relation=ast.Relation.Equal
             )
-            corrected_head = ast.HeadAggregate(
-                self.library,
-                head.location,
-                corrected_guard,
-                head.function,
-                head.elements,
-                right_guard,
-            )
+            corrected_head = head.update(self.library, left=corrected_guard)
             self._error(
                 head.location,
-                f"aggregates with comparisons cannot not be used in the head, found \"{str(head)}\", assignments are of the form \"{str(corrected_head)}\"",
+                f'aggregates with comparisons cannot not be used in the head, found "{str(head)}", assignments are of the form "{str(corrected_head)}"',
                 type(head),
             )
             return st
 
         lhs = left_guard.term
-        # QUERY: Should all the types [except(TermSymbolic with SymbolType Number and String)] under util.ast.TermAST be allowed?
-        if isinstance(lhs, ast.TermFunction):
-            pass
-        elif isinstance(lhs, ast.TermSymbolic):
-            if lhs.symbol.type == SymbolType.Function:
-                pass
-            else:
-                self._error(
-                    head.location,
-                    f"The left-hand side of an assignment must be a function term, "
-                    f"found {type(lhs)} with symbol {lhs.symbol.type}",
-                    type(head),
-                )
-                return st
-        else:
+
+        if not isinstance(lhs, ast.TermFunction) and not (
+            isinstance(lhs, ast.TermSymbolic) and lhs.symbol.type == SymbolType.Function
+        ):
             self._error(
                 head.location,
                 f"The left-hand side of an assignment must be a function term, "
-                f"found {type(lhs)}",
-                type(head),
+                f"found {lhs}",
+                head,
             )
             return st
 
-        # if isinstance(lhs, ast.TermSymbolic):
-        #     if lhs.symbol.type in (SymbolType.Number, SymbolType.String):
-        #         self._error(
-        #             head.location,
-        #             f"The left-hand side of an assignment must be a function term, "
-        #             f"found {type(lhs)} with symbol {lhs.symbol.type}",
-        #             type(head),
-        #         )
-        #         return st
-            
         # Collect used variables in this rule to generate a fresh W
         used = collect_variables([st])
         gen = FreshVariableGenerator(used)
@@ -406,7 +376,7 @@ class HeadAggregateToBodyRewriteTransformer:
         return ast.StatementRule(self.library, st.location, new_head, new_body)
 
     def _error(
-        self, location: Location, message: str, information: type | None = None
+        self, location: Location, message: str, information: Any | None = None
     ) -> None:
         """
         Record a syntactic error at the given location with a structured message.

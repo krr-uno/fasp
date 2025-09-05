@@ -115,7 +115,6 @@ class TestVariableManager(unittest.TestCase):
         used = util_ast.collect_variables(stmts)
         self.assertEqual(used, {"X", "Y", "Z"})
 
-
     def test_collect_vars_isolated_instances(self):
         stmts1 = self.parse_program("p(X).")
         stmts2 = self.parse_program("q(Y).")
@@ -225,7 +224,7 @@ class TestVariableManager(unittest.TestCase):
 
     def test_pipeline_multiple_rules(self):
         """Variables across multiple rules should all be collected and respected."""
-        stmts = self.parse_program("p(A). q(B,C). r(D,E,F).")  
+        stmts = self.parse_program("p(A). q(B,C). r(D,E,F).")
         used = util_ast.collect_variables(stmts)
         self.assertEqual(used, {"A", "B", "C", "D", "E", "F"})
 
@@ -237,5 +236,3 @@ class TestVariableManager(unittest.TestCase):
         self.assertEqual(v1.name, "A2")
         self.assertEqual(v2.name, "C2")
         self.assertEqual(v3.name, "G")
-
-
