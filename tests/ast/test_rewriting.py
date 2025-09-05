@@ -214,7 +214,7 @@ class TestNormalizeStatements(unittest.TestCase):
     def test_functional2asp_head_aggregate_errors(self):
         """Test that head aggregates trigger a ParsingException when invalid."""
 
-        # Program with an invalid head aggregate (on the right)
+        # Program with an invalid aggregate syntax in the head
         program = "f(Y) = #sum{ X : p(X) } = f(Y) :- q(Y)."
 
         statements = []
@@ -225,7 +225,7 @@ class TestNormalizeStatements(unittest.TestCase):
             _functional2asp(self.lib, statements)
 
         exc = cm.exception
-        # Check error with a message about right-hand aggregate
+        # Check error with a message about wrong assignment syntax
         self.assertEqual(len(exc.errors), 1)
         self.assertEqual(
             "Wrong assignment syntax: f(Y) = #sum { X: p(X) } = f(Y)",
@@ -323,11 +323,10 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         _, errors = self.rewrite(program)
 
         self.assertEqual(len(errors), 1)
-        self.assertIn(
-            "The left-hand side of an assignment must be a function term",
+        self.assertEqual(
+            "The left-hand side of an assignment must be a function term, found \"as\"",
             errors[0].message,
         )
-        # 'The left-hand side of an assignment must be a function term, found "as"'
 
     def test_invalid_left_term_error_number(self):
         program = """\
@@ -342,7 +341,6 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         )
         self.assertIn("found 1", errors[0].message)
 
-    # Note: Does aggregate ever return tuple? Does this need to be made valid?
     def test_invalid_left_term_error_tuple(self):
         program = """\
             (1,a) = #sum{ Y : p(Y,Z) } :- b(X,Z).
@@ -356,7 +354,6 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         )
         self.assertIn("found (1,a)", errors[0].message)
 
-    #  Note: Is TermVariable valid on the left side of an assignment?
     def test_invalid_left_term_error_variable(self):
         program = textwrap.dedent(
             """\
@@ -370,21 +367,6 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
             errors[0].message,
         )
         self.assertIn("found X", errors[0].message)
-
-    # def test_valid_left_term_no_error_tuple(self):
-    #     program = """\
-    #         (1,a) = #sum{ Y : p(Y,Z) } :- b(X,Z).
-    #     """
-    #     _, errors = self.rewrite(program)
-
-    #     self.assertEqual(len(errors), 0)
-
-    # def test_valid_left_term_no_error_variable(self):
-    #     program = textwrap.dedent("""\
-    #         X = #sum{ Y : p(Y,Z) } :- b(X,Z).
-    #     """)
-    #     _, errors = self.rewrite(program)
-    #     self.assertEqual(len(errors), 0)
 
     def test_non_rule_statement_passthrough(self):
         program = "p(a)."
