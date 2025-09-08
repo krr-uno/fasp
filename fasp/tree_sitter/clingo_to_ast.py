@@ -18,12 +18,13 @@ import ctypes
 import importlib
 from pathlib import Path
 
-from tree_sitter import Language, Parser
+from tree_sitter import Language, Parser, Tree
 
 # clingo 6 core & ast
 from clingo.core import Location, Position, Library
 from clingo import ast
 from clingo.symbol import Number, String as SymString, Infimum, Supremum
+
 
 # --------------------------- language loader (TS 0.23.6) ----------------------
 
@@ -455,9 +456,14 @@ def convert_statement(lib: Library, src: bytes, node):
 
 # ---------------------------------- driver ------------------------------------
 
-def parse_to_clingo_ast(lib: Library, src: bytes, lang: Language):
+def tree_sitter_parser(src: bytes) -> Tree:
+    lang = load_ts_language("tree_sitter_clingo", None)
     parser = Parser(lang)  # TS 0.23.6
     tree = parser.parse(src)
+    return tree
+
+def parse_to_clingo_ast(lib: Library, src: bytes, lang: Language):
+    tree = tree_sitter_parser(src)
     root = tree.root_node
 
     out = []

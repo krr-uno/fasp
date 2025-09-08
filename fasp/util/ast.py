@@ -1,3 +1,4 @@
+from functools import singledispatch, singledispatchmethod
 from typing import (
     AbstractSet,
     Any,
@@ -410,3 +411,79 @@ def function_arguments_ast(
     return name, [
         ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
     ]
+
+
+
+
+
+
+class SymbolicTermNormalizer:
+    """
+    A visitor that normalizes symbolic terms in the AST.
+
+    This visitor transforms symbolic terms into their corresponding AST representations.
+    """
+
+    def __init__(self, library: Library):
+        """
+        Initializes the SymbolicTermNormalizer.
+
+        Args:
+            library (Library): The library to use for creating AST nodes.
+        """
+        self.library = library
+
+    def _symbol_to_ast(self, x: Symbol, location: Location) -> AST:
+        """
+        Convert the given symbol into an AST.
+
+        Parameters
+        ----------
+        x
+            The symbol to convert.
+        location
+            The location to use.
+
+        Returns
+        -------
+        The converted AST.
+        """
+        if x.type != SymbolType.Function:
+            return ast.SymbolicTerm(self.library, location, x)
+        return ast.TermFunction(
+            self.library,
+            location,
+            x.name,
+            [_symbol_to_ast(a, location) for a in x.arguments],
+            external=False,
+        )
+
+    @singledispatchmethod
+    def _dispatch(self, node: AST) -> AST | None:
+        return node.transform(self.library, self._dispatch)
+
+    @_dispatch.register
+    def _(self, node: ast.TermSymbolic) -> AST | None:
+        """
+        Visit a TermSymbolic node and transform it if it is an evaluable function.
+        """
+        symbol = node.symbol
+        if symbol.type != SymbolType.Function:
+            return node
+        return self._symbol_to_ast(symbol, node.location)
+
+
+def normalize_symbolic_terms(library: Library, node: AST) -> AST:
+    """
+    Normalize symbolic terms in the given AST node.
+
+    Args:
+        library (Library): The library to use for creating AST nodes.
+        node (AST): The AST node to normalize.
+
+    Returns:
+        AST: The normalized AST node.
+    """
+    normalizer = SymbolicTermNormalizer(library)
+    result = normalizer._dispatch(node) or node
+    return result
