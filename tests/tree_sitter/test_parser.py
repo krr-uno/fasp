@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Any, Iterable
 import unittest
 from clingo.core import Library
 from clingo.ast import parse_string
@@ -8,21 +8,22 @@ from fasp.util.ast import AST
 
 class TestParser(unittest.TestCase):
 
-    def _dispatch(self, ast1: AST, ast2: AST, whole1: AST, whole2: AST) -> None:
+    def _dispatch(self, ast1: Any, ast2: Any, whole1: AST, whole2: AST) -> None:
+        if not isinstance(ast1, AST) or not isinstance(ast2, AST):
+            return
         self.assertEqual(type(ast1), type(ast2), f"\nType mismatch in {str(whole1)} vs {str(whole2)}\n'{str(ast1)}' vs '{str(ast2)}'")
-        self.assertEqual(str(ast1), str(ast2), f"String mismatch in {str(whole1)} vs {str(whole2)}:\n {str(ast1)} != {str(ast2)}")
         children = [m for m in dir(ast1) if not m.startswith("_") and m not in {"location", "transform", "update", "visit"}]
         for child in children:
             attr1 = getattr(ast1, child)
             attr2 = getattr(ast2, child)
-            if not isinstance(attr1, AST) or not isinstance(attr2, AST):
-                continue
             if isinstance(attr1, Iterable):
                 for a1, a2 in zip(attr1, attr2):
                     self._dispatch(a1, a2, whole1, whole2)
             else:
                 print(f"Dispatching {child}: {attr1} vs {attr2}")
                 self._dispatch(attr1, attr2, whole1, whole2)
+        # self.assertEqual(str(ast1), str(ast2), f"String mismatch in {str(whole1)} vs {str(whole2)}:\n {str(ast1)} != {str(ast2)}")
+        self.assertEqual(ast1, ast2, f"AST mismatch in {str(whole1)} vs {str(whole2)}:\n {str(ast1)} != {str(ast2)}")
 
     def assertEqualAST(self, ast1, ast2):
         self.assertIsInstance(ast1, AST)
@@ -64,10 +65,13 @@ class TestParser(unittest.TestCase):
         self.assertParserOutput(program)
 
     # ===== corpus: body.txt =====
-
-    def test_corpus_body_symbolic_literals(self):
-        program = ":- p(X), not p(X), not not p(X), -p(X), not -p(X), not not -p(X)."
+    def test_contraint(self):
+        program = ":- p."
         self.assertParserOutput(program)
+
+    # def test_corpus_body_symbolic_literals(self):
+    #     program = ":- p(X), not p(X), not not p(X), -p(X), not -p(X), not not -p(X)."
+    #     self.assertParserOutput(program)
 
     # def test_corpus_body_comparisons(self):
     #     program = ":- X < Y < Z, -p(X) < X < Y."

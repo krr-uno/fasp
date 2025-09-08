@@ -447,7 +447,9 @@ def convert_statement(lib: Library, src: bytes, node):
         for ch in named(node):
             if ch.type == "body":
                 body = convert_body(lib, src, ch)
-        head = ast.HeadDisjunction(lib, location=loc, elements=[])
+        # represent constraints with boolean #false head
+        false_lit = ast.LiteralBoolean(lib, location=loc, sign=ast.Sign.NoSign, value=False)
+        head = ast.HeadSimpleLiteral(lib, literal=false_lit)
         return ast.StatementRule(lib, location=loc, head=head, body=body)
     return None
 
