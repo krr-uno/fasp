@@ -9,7 +9,7 @@ from fasp.util.ast import AST
 class TestParser(unittest.TestCase):
 
     def _dispatch(self, ast1: AST, ast2: AST, whole1: AST, whole2: AST) -> None:
-        self.assertEqual(type(ast1), type(ast2), f"Type mismatch in {str(whole1)} vs {str(whole2)}\n{type(ast1)} != {type(ast2)};\n'{str(ast1)}' vs '{str(ast2)}'")
+        self.assertEqual(type(ast1), type(ast2), f"\nType mismatch in {str(whole1)} vs {str(whole2)}\n'{str(ast1)}' vs '{str(ast2)}'")
         self.assertEqual(str(ast1), str(ast2), f"String mismatch in {str(whole1)} vs {str(whole2)}:\n {str(ast1)} != {str(ast2)}")
         children = [m for m in dir(ast1) if not m.startswith("_") and m not in {"location", "transform", "update", "visit"}]
         for child in children:
