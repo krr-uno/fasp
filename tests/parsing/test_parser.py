@@ -198,3 +198,17 @@ class TestParseAssignment(unittest.TestCase):
 
         """)
         self.helper_parse(code, expected_clingo)
+
+
+    def test_parse_missing_dot(self):
+        code = textwrap.dedent("""\
+            a := 1 :- b
+            b.
+            c := 2.
+            """)
+        expected_clingo = textwrap.dedent("""\
+
+            b.
+
+        """)
+        self.helper_parse(code, expected_clingo)
