@@ -206,9 +206,7 @@ class TestParseAssignment(unittest.TestCase):
             b.
             c := 2.
             """)
-        expected_clingo = textwrap.dedent("""\
-
-            b.
-
-        """)
-        self.helper_parse(code, expected_clingo)
+        with self.assertRaises(RuntimeError) as cm:
+            rules = self.parser.parse(code)
+        print(cm.exception)
+        print(self.messages)
