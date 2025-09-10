@@ -6,14 +6,15 @@ statements = []
 messages = []
 try:
     with Library(logger=lambda t, msg: messages.append((t, msg))) as library:
-            parse_string(library, ":- #sum { X: p(X): q(X) }.", statements.append)
+        parse_string(library, ":- #sum { X: p(X): q(X) }.", statements.append)
 except Exception as e:
     print(messages)
 
 
 class FaspApp(App):
-     def main(self, clingo_control, files) -> None:
+    def main(self, clingo_control, files) -> None:
         return None
+
 
 messages = []
 try:

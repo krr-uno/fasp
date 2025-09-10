@@ -326,15 +326,11 @@ class TestParseTerm(unittest.TestCase):
         code = "q(X), r(X). p(a)"
         with self.assertRaises(ValueError) as cm:
             util_ast.parse_body(self.lib, code)
-        self.assertEqual(
-            str(cm.exception), f"Error parsing body, found {code}"
-        )
+        self.assertEqual(str(cm.exception), f"Error parsing body, found {code}")
         code = "#sum { X: p(X): q(X) }"
         with self.assertRaises(ValueError) as cm:
             util_ast.parse_body(self.lib, code)
-        self.assertEqual(
-            str(cm.exception), f"Error parsing body, found {code}"
-        )
+        self.assertEqual(str(cm.exception), f"Error parsing body, found {code}")
         self.assertEqual(len(self.messages), 1)
         # body, pc, lt = util_ast.parse_body(self.lib, code)
         # self.assertEqual(", ".join(map(str, body)), "q(X), r(X)")
