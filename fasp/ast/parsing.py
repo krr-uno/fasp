@@ -10,7 +10,9 @@ from .syntax_checking import SymbolSignature
 
 
 def parse_files(
-    library: Library, files: Sequence[str], prefix: str = "F",
+    library: Library,
+    files: Sequence[str],
+    prefix: str = "F",
 ) -> tuple[set[SymbolSignature], ast.Program]:
     """
     Parse the programs in the given files and return an abstract syntax tree for

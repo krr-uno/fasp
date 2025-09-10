@@ -326,7 +326,9 @@ class SyntacticCheckVisitor:
 
 
 def create_literal(
-    library: Library, atom: TermAST, sign: ast.Sign = ast.Sign.NoSign,
+    library: Library,
+    atom: TermAST,
+    sign: ast.Sign = ast.Sign.NoSign,
 ) -> LiteralAST:
     if hasattr(atom, "location"):
         location = atom.location
@@ -356,7 +358,9 @@ def create_literal(
 
 
 def create_body_literal(
-    library: Library, atom: TermAST, sign: ast.Sign = ast.Sign.NoSign,
+    library: Library,
+    atom: TermAST,
+    sign: ast.Sign = ast.Sign.NoSign,
 ) -> BodySimpleLiteral:
     """
     Create a body literal from a term AST.
@@ -408,7 +412,8 @@ def function_arguments(
 
 
 def function_arguments_ast(
-    library: Library, node: ast.TermFunction | ast.TermSymbolic,
+    library: Library,
+    node: ast.TermFunction | ast.TermSymbolic,
 ) -> tuple[str, Sequence[TermAST]]:
     name, arguments = function_arguments(node)
     if arguments and isinstance(arguments[0], TermAST):
