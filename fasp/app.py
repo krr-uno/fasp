@@ -24,12 +24,7 @@ class FaspApp(App):
 
     def main(self, clingo_control: ClingoControl, files: Sequence[str]) -> None:
         prefix = "F"
-        control = Control(
-            self._library,
-            self._clingo_options,
-            prefix,
-            clingo_control,
-        )
+        control = Control(self._library, self._clingo_options, prefix, clingo_control,)
         try:
             control.parse_files(files)
         except ParsingException as e:

@@ -69,9 +69,7 @@ class Model:
             or not symbol.name.startswith(self.prefix)
         ]
 
-    def function_symbols(
-        self,
-    ) -> Sequence[FunctionSymbol]:
+    def function_symbols(self,) -> Sequence[FunctionSymbol]:
         return [
             FunctionSymbol.from_symbol(symbol)
             for symbol in self.clingo_model.symbols(atoms=True)

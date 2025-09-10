@@ -10,7 +10,6 @@ from .ast.parsing import parse_files
 
 
 class Control:
-
     def __init__(
         self,
         library: clingo.core.Library,
@@ -31,11 +30,7 @@ class Control:
         file
             The path of the file to load.
         """
-        _, program = parse_files(
-            self.library,
-            files,
-            self.prefix,
-        )
+        _, program = parse_files(self.library, files, self.prefix,)
         self.clingo_control.join(program)
 
     def ground(

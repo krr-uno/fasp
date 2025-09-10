@@ -1,6 +1,6 @@
 from functools import singledispatchmethod
 from itertools import chain
-from typing import AbstractSet, Any, Iterable, cast
+from typing import AbstractSet, Any, Iterable, List, Set, cast
 
 from clingo import ast
 from clingo.core import Library, Location, Position
@@ -19,10 +19,12 @@ from fasp.ast.syntax_checking import (
 )
 from fasp.util.ast import (
     AST,
+    ArgumentAST,
     BodyLiteralAST,
     FreshVariableGenerator,
     LiteralAST,
     StatementAST,
+    TermAST,
     collect_variables,
     create_body_literal,
     create_literal,
@@ -141,8 +143,7 @@ def _functional_constraint(
     args1tuple = ast.ArgumentTuple(library, args1)
     args2tuple = ast.ArgumentTuple(library, args2)
     lit1 = create_body_literal(
-        library,
-        ast.TermFunction(library, location, name, [args1tuple]),
+        library, ast.TermFunction(library, location, name, [args1tuple]),
     )
     lit2 = create_literal(
         library, ast.TermFunction(library, location, name, [args2tuple])
@@ -157,9 +158,7 @@ def _functional_constraint(
             ast.Relation.Greater,
         ),
         ast.AggregateFunction.Count,
-        [
-            ast.BodyAggregateElement(library, location, [return_variable], [lit2]),
-        ],
+        [ast.BodyAggregateElement(library, location, [return_variable], [lit2]),],
         None,
     )
     head = ast.HeadSimpleLiteral(
@@ -273,34 +272,41 @@ class HeadAggregateToBodyRewriteTransformer:
             return st
 
         # Detect whether the aggregate is on the left or right
-        left_guard: ast.LeftGuard | None = head.left
-        right_guard: ast.RightGuard | None = head.right
+        left_guard = head.left  # ast.LeftGuard | None
+        right_guard = head.right  # ast.RightGuard | None
 
         # Reject aggregates on the right like #sum{...} = f(X)"
+        if right_guard is not None:
+            self._error(
+                head.location,
+                "Head aggregate cannot appear on the right-hand side of the assignment",
+                type(head),
+            )
+            return st
+
         if left_guard is None:
             # Shouldn't happen for a well-formed head aggregate
             self._error(
                 head.location,
-                f"Missing the left-hand side of the assignment: {str(head)}",
-                head,
-            )
-            return st
-
-        if right_guard is not None:
-            self._error(
-                head.location,
-                f"Wrong assignment syntax: {str(head)}",
-                head,
+                "Head aggregate is missing left guard of the assignment",
+                type(head),
             )
             return st
 
         # The comparison must be equality
         if left_guard.relation != ast.Relation.Equal:
             # Suggesting the correct form in error message
-            corrected_guard = left_guard.update(
-                self.library, relation=ast.Relation.Equal
+            corrected_guard = ast.LeftGuard(
+                self.library, left_guard.term, ast.Relation.Equal
             )
-            corrected_head = head.update(self.library, left=corrected_guard)
+            corrected_head = ast.HeadAggregate(
+                self.library,
+                head.location,
+                corrected_guard,
+                head.function,
+                head.elements,
+                right_guard,
+            )
             self._error(
                 head.location,
                 f'aggregates with comparisons cannot not be used in the head, found "{str(head)}", assignments are of the form "{str(corrected_head)}"',
@@ -309,17 +315,38 @@ class HeadAggregateToBodyRewriteTransformer:
             return st
 
         lhs = left_guard.term
-
-        if not isinstance(lhs, ast.TermFunction) and not (
-            isinstance(lhs, ast.TermSymbolic) and lhs.symbol.type == SymbolType.Function
-        ):
+        # QUERY: Should all the types [except(TermSymbolic with SymbolType Number and String)] under util.ast.TermAST be allowed?
+        if isinstance(lhs, ast.TermFunction):
+            pass
+        elif isinstance(lhs, ast.TermSymbolic):
+            if lhs.symbol.type == SymbolType.Function:
+                pass
+            else:
+                self._error(
+                    head.location,
+                    f"The left-hand side of an assignment must be a function term, "
+                    f"found {type(lhs)} with symbol {lhs.symbol.type}",
+                    type(head),
+                )
+                return st
+        else:
             self._error(
                 head.location,
                 f"The left-hand side of an assignment must be a function term, "
-                f"found {lhs}",
-                head,
+                f"found {type(lhs)}",
+                type(head),
             )
             return st
+
+        # if isinstance(lhs, ast.TermSymbolic):
+        #     if lhs.symbol.type in (SymbolType.Number, SymbolType.String):
+        #         self._error(
+        #             head.location,
+        #             f"The left-hand side of an assignment must be a function term, "
+        #             f"found {type(lhs)} with symbol {lhs.symbol.type}",
+        #             type(head),
+        #         )
+        #         return st
 
         # Collect used variables in this rule to generate a fresh W
         used = collect_variables([st])
@@ -333,9 +360,7 @@ class HeadAggregateToBodyRewriteTransformer:
             head.location,
             ast.Sign.NoSign,
             f_term,
-            [
-                ast.RightGuard(self.library, ast.Relation.Equal, W),
-            ],
+            [ast.RightGuard(self.library, ast.Relation.Equal, W),],
         )
         new_head = ast.HeadSimpleLiteral(self.library, new_head_lit)
 
@@ -351,10 +376,7 @@ class HeadAggregateToBodyRewriteTransformer:
 
             body_elems.append(
                 ast.BodyAggregateElement(
-                    self.library,
-                    el.location,
-                    list(el.tuple),
-                    conditions,
+                    self.library, el.location, list(el.tuple), conditions,
                 )
             )
 
@@ -376,9 +398,127 @@ class HeadAggregateToBodyRewriteTransformer:
         return ast.StatementRule(self.library, st.location, new_head, new_body)
 
     def _error(
-        self, location: Location, message: str, information: Any | None = None
+        self, location: Location, message: str, information: type | None = None
     ) -> None:
         """
         Record a syntactic error at the given location with a structured message.
         """
         self.errors.append(SyntacticError(location, message, information))
+
+
+class UnnestFunctions:
+    """
+    Recursively unnest evaluable functions in Clingo 6 AST.
+    Fills `unnested_functions` with LiteralComparison objects of the form:
+        original_term = FUNx
+    """
+
+    def __init__(
+        self,
+        lib: Library,
+        evaluable_functions: Set[SymbolSignature],
+        used_variable_names: Set[str],
+    ):
+        self.lib = lib
+        self.evaluable_functions = evaluable_functions
+        self.var_gen = FreshVariableGenerator(used_variable_names)
+        self.unnested_functions: List[ast.LiteralComparison] = []
+
+    def _is_evaluable(self, name: str, arity: int) -> bool:
+        return SymbolSignature(name, arity) in self.evaluable_functions
+
+    # ----------------- Term node handlers -----------------
+    @singledispatchmethod
+    def _unnest_term(self, term: ArgumentAST) -> ArgumentAST:
+        # fallback: return as-is
+        return term
+
+    # @_unnest_term.register
+    # def _(self, term: ast.TermVariable) -> ArgumentAST:
+    #     return term
+
+    @_unnest_term.register
+    def _(self, term: ast.TermSymbolic) -> ArgumentAST:
+        # Zero arity evaluable funcitons
+        if term.symbol.type == SymbolType.Function and self._is_evaluable(
+            term.symbol.name, 0
+        ):
+            fresh = self.var_gen.fresh_variable(self.lib, term.location, "FUN")
+            comp = ast.LiteralComparison(
+                self.lib,
+                term.location,
+                ast.Sign.NoSign,
+                term,
+                [ast.RightGuard(self.lib, ast.Relation.Equal, fresh)],
+            )
+            self.unnested_functions.append(comp)
+            return fresh
+        return term
+
+    @_unnest_term.register
+    def _(self, term: ast.TermFunction) -> ArgumentAST:
+        new_pool = [
+            ast.ArgumentTuple(
+                self.lib, tuple(self._unnest_term(a) for a in tup.arguments)
+            )
+            for tup in term.pool
+        ]
+        new_func = term.update(self.lib, pool=new_pool)
+        if self._is_evaluable(term.name, sum(len(t.arguments) for t in new_pool)):
+            fresh = self.var_gen.fresh_variable(self.lib, term.location, "FUN")
+            comp = ast.LiteralComparison(
+                self.lib,
+                term.location,
+                ast.Sign.NoSign,
+                new_func,
+                [ast.RightGuard(self.lib, ast.Relation.Equal, fresh)],
+            )
+            self.unnested_functions.append(comp)
+            return fresh
+        return new_func
+
+    @_unnest_term.register
+    def _(self, term: ast.TermTuple) -> ArgumentAST:
+        new_pool = []
+        for elem in term.pool:
+            if isinstance(elem, ast.ArgumentTuple):
+                new_pool.append(
+                    ast.ArgumentTuple(
+                        self.lib, tuple(self._unnest_term(a) for a in elem.arguments)
+                    )
+                )
+            else:
+                new_pool.append(ast.ArgumentTuple(self.lib, (self._unnest_term(elem),)))
+        return term.update(self.lib, pool=new_pool)
+
+    @_unnest_term.register
+    def _(self, term: ast.TermAbsolute) -> ArgumentAST:
+        new_pool = [self._unnest_term(t) for t in term.pool]
+        return term.update(self.lib, pool=new_pool)
+
+    @_unnest_term.register
+    def _(self, term: ast.TermUnaryOperation) -> ArgumentAST:
+        return term.update(self.lib, right=self._unnest_term(term.right))
+
+    @_unnest_term.register
+    def _(self, term: ast.TermBinaryOperation) -> ArgumentAST:
+        return term.update(
+            self.lib,
+            left=self._unnest_term(term.left),
+            right=self._unnest_term(term.right),
+        )
+
+    # ----------------- Generic transformer -----------------
+    def _unnest(self, node: AST) -> AST:
+        if isinstance(node, ArgumentAST):
+            return self._unnest_term(node)
+        return node.transform(self.lib, self._unnest) or node
+
+    # ----------------- Statement transformer -----------------
+    def transform_statement(self, st: StatementAST) -> StatementAST:
+        return cast(StatementAST, self._unnest(st))
+
+    def transform_statements(
+        self, statements: List[StatementAST]
+    ) -> List[StatementAST]:
+        return [self.transform_statement(st) for st in statements]
