@@ -406,7 +406,7 @@ class HeadAggregateToBodyRewriteTransformer:
         self.errors.append(SyntacticError(location, message, information))
 
 
-class UnnestFunctions:
+class UnnestFunctionsTransformer:
     """
     Recursively unnest evaluable functions in Clingo 6 AST.
     Fills `unnested_functions` with LiteralComparison objects of the form:
@@ -515,10 +515,10 @@ class UnnestFunctions:
         return node.transform(self.lib, self._unnest) or node
 
     # ----------------- Statement transformer -----------------
-    def transform_statement(self, st: StatementAST) -> StatementAST:
+    def transform_rule(self, st: StatementAST) -> StatementAST:
         return cast(StatementAST, self._unnest(st))
 
-    def transform_statements(
-        self, statements: List[StatementAST]
-    ) -> List[StatementAST]:
-        return [self.transform_statement(st) for st in statements]
+    # def transform_statements(
+    #     self, statements: List[StatementAST]
+    # ) -> List[StatementAST]:
+    #     return [self.transform_statement(st) for st in statements]

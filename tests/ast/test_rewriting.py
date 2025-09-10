@@ -449,10 +449,37 @@ class TestUnnestFunctions(unittest.TestCase):
     def test_unnest_example(self):
 
         program = textwrap.dedent("""\
-            #program base.
-            f(g(h(a,b),c),d) :- p(X).
+            p(g(h(a,b),c),d(X)) :- q(X).
+            q(X) :- g(1,a) = X.
         """).strip()
 
+        evaluable_functions = {
+            SymbolSignature("g", 2),
+            SymbolSignature("h", 2),
+            SymbolSignature("a", 0),
+        }
+
+        statements = self.parse_program(program)
+        rules = statements[1:]  # skip #program directive
+        for rule in rules: # pass each rule separately
+            new_stmts, unnested = self.transform([rule], evaluable_functions)
+            self.assertEqual(len(new_stmts), 1) 
+            new_head = str(new_stmts[1].head).replace(" ", "")
+            self.assertIn("p(FUN3,d(X))", new_head)
+
+        # Check the LiteralComparisons
+        comparisons = set(str(c).replace(" ", "") for c in unnested)
+        self.assertEqual(comparisons, {"a=FUN4", "h(FUN,b)=FUN2", "g(FUN2,c)=FUN5"})
+
+        
+
+
+        # expected_program = textwrap.dedent("""\
+        #     #program base.
+        #     p(FUN1,d(X)) :- q(X), g(FUN2,c)=FUN1, h(FUN3,b)=FUN2, a=FUN3.
+        #     q(X) :- g(1,FUN1) = X, a = FUN1.
+        # """).strip()
+        # expected_rules = [ r1 for r in expected_program.splitlines() if (r1:=r.strip()) ]
 
         # program = textwrap.dedent("""\
         #     #program base.
@@ -464,17 +491,12 @@ class TestUnnestFunctions(unittest.TestCase):
         # evaluable_functions = get_evaluable_functions(statements)
 
         # Parse the program to get the AST
-        statements = self.parse_program(program)
 
         # Suppose evaluable functions: f/2, g/2, h/2, a/0
-        evaluable_functions = {
-            SymbolSignature("g", 2),
-            SymbolSignature("h", 2),
-            SymbolSignature("a", 0),
-        }
+
 
         # print("Evaluable functions:", evaluable_functions)
-        new_stmts, unnested = self.transform(program, evaluable_functions)
+        
 
         # Check the resulting rule head contains FUN3 instead of nested functions
         # for stmt in new_stmts:
@@ -483,15 +505,7 @@ class TestUnnestFunctions(unittest.TestCase):
         # for unn in unnested:
         #     print(str(unn))
 
-        new_head = str(new_stmts[-1].head).replace(" ", "") if isinstance(new_stmts[-1], ast.StatementRule) else ""
-        self.assertIn("f(FUN3,d)", new_head)
 
-        # Check the LiteralComparisons
-        comparisons = [str(c).replace(" ", "") for c in unnested]
-        self.assertIn("a=FUN", comparisons[0])
-        self.assertIn("h(FUN,b)=FUN2", comparisons[1])
-        self.assertIn("g(FUN2,c)=FUN3", comparisons[2])
-        self.assertEqual(len(comparisons), 3)
 
     def test_non_evaluable_symbolic_and_function(self):
         program = "q(a,b)."
