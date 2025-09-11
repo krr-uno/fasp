@@ -43,10 +43,15 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             new_stmts, unnested = self.transform(rule, evaluable_functions)
             new_head = str(new_stmts.head).replace(" ", "")
             self.assertIn("p(FUN3,d(X))", new_head)
-
-        # Check the LiteralComparisons
-        comparisons = set(str(c).replace(" ", "") for c in unnested)
-        self.assertEqual(comparisons, {"a=FUN", "h(FUN,b)=FUN2", "g(FUN2,c)=FUN3"})
+            # print("hi")
+            # Check the resulting rule head contains FUN3 instead of nested functions
+            # print(str(new_stmts))
+            # print(unnested)
+            # for unn in unnested:
+            #     print(str(unn))
+            # Check the LiteralComparisons
+            comparisons = set(str(c).replace(" ", "") for c in unnested)
+            self.assertEqual(comparisons, {"a=FUN", "h(FUN,b)=FUN2", "g(FUN2,c)=FUN3"})
 
         
 
@@ -75,12 +80,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         # print("Evaluable functions:", evaluable_functions)
         
 
-        # Check the resulting rule head contains FUN3 instead of nested functions
-        # for stmt in new_stmts:
-        #     print(str(stmt))
-        # print(unnested)
-        # for unn in unnested:
-        #     print(str(unn))
+        
 
 
 

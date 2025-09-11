@@ -210,7 +210,7 @@ class TestNormalizeStatements(unittest.TestCase):
         """Test that head aggregates trigger a ParsingException when invalid."""
 
         # Program with an invalid head aggregate (on the right)
-        program = "#sum{ X : p(X) } = f(Y) :- q(Y)."
+        program = "f(Y) = #sum{ X : p(X) } = f(Y) :- q(Y)."
 
         statements = []
         ast.parse_string(self.lib, program, statements.append)
@@ -222,6 +222,7 @@ class TestNormalizeStatements(unittest.TestCase):
         exc = cm.exception
         # Check error with a message about right-hand aggregate
         self.assertEqual(len(exc.errors), 1)
-        self.assertIn(
-            "Head aggregate cannot appear on the right-hand side of the assignment", exc.errors[0].message
+        self.assertEqual(
+            "Wrong assignment syntax: f(Y) = #sum { X: p(X) } = f(Y)",
+            exc.errors[0].message,
         )
