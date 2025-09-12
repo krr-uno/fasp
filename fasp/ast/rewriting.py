@@ -11,7 +11,7 @@ from fasp.ast.protecting import (
     protect_comparisons,
     restore_comparisons,
 )
-from fasp.ast.rewritting_aggregates import (
+from fasp.ast.rewriting_aggregates import (
     HeadAggregateToBodyRewriteTransformer,
 )
 from fasp.ast.syntax_checking import (
