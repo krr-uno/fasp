@@ -197,16 +197,18 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
             rewriter.errors[0].message,
         )
 
-    def test_valid_max_min(self):
+    def test_other_functions(self):
         program = """\
         f(X) = #max{ Y : p(Y) } :- b(X).
         f(X) = #min{ Y : q(Y) } :- b(X).
+        f(X) = #sum+{ Y : q(Y) } :- b(X).
         """
         expected = textwrap.dedent(
             """\
             #program base.
             f(X)=W :- b(X); W = #max { Y: p(Y) }.
             f(X)=W :- b(X); W = #min { Y: q(Y) }.
+            f(X)=W :- b(X); W = #sum+ { Y: q(Y) }.
         """
         ).strip()
         self.assertRewriteEqual(program, expected)

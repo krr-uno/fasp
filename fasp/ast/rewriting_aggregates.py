@@ -29,13 +29,6 @@ class HeadAggregateToBodyRewriteTransformer:
       - the aggregate appears on the right-hand side (#agg{...} = f(X))
     """
 
-    _SUPPORTED_FUNS = {
-        ast.AggregateFunction.Sum,
-        ast.AggregateFunction.Count,
-        ast.AggregateFunction.Max,
-        ast.AggregateFunction.Min,
-    }
-
     def __init__(self, library: Library) -> None:
         self.library = library
         self.errors: list[SyntacticError] = []
