@@ -34,8 +34,6 @@ class UnnestFunctionsTransformer:
         self.var_gen = FreshVariableGenerator(used_variable_names)
         self.unnested_functions: List[ast.LiteralComparison] = []
 
-    # ----------------- helpers -----------------
-
     def _is_evaluable(self, name: str, arity: int) -> bool:
         return SymbolSignature(name, arity) in self.evaluable_functions
 
@@ -48,16 +46,14 @@ class UnnestFunctionsTransformer:
             [ast.RightGuard(self.lib, ast.Relation.Equal, cast(TermAST, right))],
         )
 
-    # ----------------- dispatch core -----------------
-
     @singledispatchmethod
     def _unnest(self, node: AST, outer: bool = False) -> AST:
         """Default: recurse if possible, else return as-is."""
-        if hasattr(node, "transform"):
-            return node.transform(
+        # if hasattr(node, "transform"):
+        return node.transform(
                 self.lib, lambda c: self._unnest(c, outer=False)
             ) or node
-        return node
+        # return node
 
     @_unnest.register
     def _(self, node: ast.TermFunction, outer: bool = False) -> AST:
@@ -89,15 +85,49 @@ class UnnestFunctionsTransformer:
                 return fresh
         return node
 
-    # ----------------- entrypoints -----------------
-
     def transform_rule(self, st: StatementAST) -> StatementAST:
         """Transform a single rule statement."""
         return cast(StatementAST, self._unnest(st, outer=True))
+    
+    def rewrite_rule_with_unnested(self, st: StatementAST) -> tuple[StatementAST, List[ast.LiteralComparison]]:
+        """
+        Transform a single rule and return (rewritten_rule_with_unnested_in_body, unnested_comparisons).
 
-    # def transform_rules(self, rules: List[StatementAST]) -> List[StatementAST]:
-    #     """Transform a list of rule statements."""
-    #     return [self.transform_rule(st) for st in rules]
+        - resets self.unnested_functions before processing the rule
+        - runs the existing transform_rule
+        - if the result is a StatementRule, appends the collected unnested comparisons
+          (wrapped as BodySimpleLiteral) to the rule body via .update(...)
+        - returns the final StatementRule and the list of collected LiteralComparison objects
+        """
+        # clear previous state
+        self.unnested_functions = []
+
+        new_st = self.transform_rule(st)
+
+        # if it's a rule statement, append the collected comparisons to the body
+        if isinstance(new_st, ast.StatementRule):
+            # existing body (sequence) -> list
+            existing_body = list(new_st.body)
+            # wrap each LiteralComparison as a BodySimpleLiteral
+            extra_body = [ast.BodySimpleLiteral(self.lib, comp) for comp in self.unnested_functions]
+            new_body = existing_body + extra_body
+            # produce a new StatementRule with the extended body
+            new_rule = new_st.update(self.lib, body=new_body)
+            return new_rule, list(self.unnested_functions)
+
+        # not a rule (no body to extend)
+        return new_st, list(self.unnested_functions)
+
+    def rewrite_rules_with_unnested(self, rules: List[StatementAST]) -> List[tuple[StatementAST, List[ast.LiteralComparison]]]:
+        """
+        Transform a list of rules and return a list of tuples (rewritten_rule, unnested_comparisons).
+        Use this when you want to rewrite an entire program (rule-by-rule).
+        """
+        out: List[tuple[StatementAST, List[ast.LiteralComparison]]] = []
+        for r in rules:
+            out.append(self.rewrite_rule_with_unnested(r))
+        return out
+
 
 # class UnnestFunctionsTransformer:
 #     """
