@@ -1,7 +1,9 @@
+from typing import Any
+
 from clingo import ast
 from clingo.core import Library, Location
 from clingo.symbol import SymbolType
-from typing import  Any
+
 from fasp.ast.syntax_checking import (
     SyntacticError,
 )
@@ -12,6 +14,7 @@ from fasp.util.ast import (
     StatementAST,
     collect_variables,
 )
+
 
 class HeadAggregateToBodyRewriteTransformer:
     """
