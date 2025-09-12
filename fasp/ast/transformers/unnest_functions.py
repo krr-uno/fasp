@@ -66,7 +66,7 @@ class UnnestFunctionsTransformer:
         new_func = node.update(self.lib, pool=tuple(new_pool))
 
         # Unnest if evaluable
-        if self._is_evaluable(node.name, len(new_pool[0].arguments)):
+        if not outer and self._is_evaluable(node.name, len(new_pool[0].arguments)):
             fresh: TermAST = self.var_gen.fresh_variable(self.lib, node.location, "FUN")
             comp = self._make_comparison(node.location, cast(TermAST, new_func), fresh)
             self.unnested_functions.append(comp)
@@ -78,13 +78,13 @@ class UnnestFunctionsTransformer:
         if node.symbol.type == SymbolType.Function:
             name = str(node.symbol.name)
             arity = len(node.symbol.arguments)
-            if self._is_evaluable(name, arity):
+            if not outer and self._is_evaluable(name, arity):
                 fresh = self.var_gen.fresh_variable(self.lib, node.location, "FUN")
                 comp = self._make_comparison(node.location, node, fresh)
                 self.unnested_functions.append(comp)
                 return fresh
         return node
-
+    
     def transform_rule(self, st: StatementAST) -> StatementAST:
         """Transform a single rule statement."""
         return cast(StatementAST, self._unnest(st, outer=True))
@@ -101,6 +101,8 @@ class UnnestFunctionsTransformer:
         """
         # clear previous state
         self.unnested_functions = []
+
+        self.var_gen = FreshVariableGenerator(set())
 
         new_st = self.transform_rule(st)
 

@@ -55,7 +55,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
 
         # expected sets:
         expected_set_first_rule = {"a=FUN", "h(FUN,b)=FUN2", "g(FUN2,c)=FUN3"}
-        # expected_set_second_rule = {"a=FUN"}  # second rule should not unnest outer g(1,a) but 'a' is an argument and should be unnested
+        expected_set_second_rule = {"a=FUN"}  # second rule should not unnest outer g(1,a) but 'a' is an argument and should be unnested
 
         # Assertions: both expected sets should appear among per-rule unnested sets
         self.assertIn(expected_set_first_rule, unnested_sets)
@@ -65,7 +65,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         self.assertIn("p(FUN3,d(X)) :- q(X); a=FUN; h(FUN,b)=FUN2; g(FUN2,c)=FUN3.", new_program)
 
 
-
+        print("Rewritten program:\n", new_program)
         # expected_program = textwrap.dedent("""\
         #     #program base.
         #     p(FUN1,d(X)) :- q(X), g(FUN2,c)=FUN1, h(FUN3,b)=FUN2, a=FUN3.
