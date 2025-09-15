@@ -1,4 +1,3 @@
-from email import message
 import sys
 from typing import Sequence
 
@@ -77,7 +76,12 @@ def fasp_main(
         options = []
     app = FaspApp(library, options)
     options.append("--outf=3")
-    return clingo_main(library, options, app, raise_errors)
+    try:
+        return clingo_main(library, options, app)
+    except Exception as e:
+        if raise_errors:
+            raise e
+        sys.stderr.write(f"*** ERROR: (fasp): {e}\n")
 
 
 def main(options: Sequence[str] = ()) -> int:
