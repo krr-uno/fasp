@@ -2,7 +2,6 @@ from typing import Any
 
 from clingo import ast
 from clingo.core import Library, Location
-from clingo.symbol import SymbolType
 
 from fasp.util.ast import (
     BodyLiteralAST,
@@ -11,6 +10,7 @@ from fasp.util.ast import (
     StatementAST,
     SyntacticError,
     collect_variables,
+    is_function,
 )
 
 
@@ -38,13 +38,29 @@ class HeadAggregateToBodyRewriteTransformer:
             out.append(self._rewrite_statement(st))
         return out
 
+    def _aggregate_element_head_to_body(
+        self, head_element: ast.HeadAggregateElement
+    ) -> ast.BodyAggregateElement:
+        conditions: list[LiteralAST] = []
+        if head_element.literal is not None:
+            conditions.append(head_element.literal)
+        conditions.extend(list(head_element.condition))
+        return ast.BodyAggregateElement(
+            self.library,
+            head_element.location,
+            list(head_element.tuple),
+            conditions,
+        )
+
     def _rewrite_statement(self, st: StatementAST) -> StatementAST:
-        if not isinstance(st, ast.StatementRule):
+        if (
+            not isinstance(st, ast.StatementRule)
+            or not st.head
+            or not isinstance(st.head, ast.HeadAggregate)
+        ):
             return st
 
-        head = st.head
-        if not isinstance(head, ast.HeadAggregate):
-            return st
+        head: ast.HeadAggregate = st.head
 
         # Detect whether the aggregate is on the left or right
         left_guard: ast.LeftGuard | None = head.left
@@ -84,9 +100,7 @@ class HeadAggregateToBodyRewriteTransformer:
 
         lhs = left_guard.term
 
-        if not isinstance(lhs, ast.TermFunction) and not (
-            isinstance(lhs, ast.TermSymbolic) and lhs.symbol.type == SymbolType.Function
-        ):
+        if not is_function(lhs):
             self._error(
                 head.location,
                 f"The left-hand side of an assignment must be a function term, "
@@ -96,48 +110,35 @@ class HeadAggregateToBodyRewriteTransformer:
             return st
 
         # Collect used variables in this rule to generate a fresh W
-        used = collect_variables([st])
-        gen = FreshVariableGenerator(used)
-        W = gen.fresh_variable(self.library, head.location, "W")
+        used_variables = collect_variables([st])
+        fresh_variable_generator = FreshVariableGenerator(used_variables)
+        fresh_variable = fresh_variable_generator.fresh_variable(
+            self.library, head.location, "W"
+        )
 
         # Build the new head: f(Args) = W
-        f_term = left_guard.term  # ast.TermFunction
         new_head_lit = ast.LiteralComparison(
             self.library,
             head.location,
             ast.Sign.NoSign,
-            f_term,
+            left_guard.term,
             [
-                ast.RightGuard(self.library, ast.Relation.Equal, W),
+                ast.RightGuard(self.library, ast.Relation.Equal, fresh_variable),
             ],
         )
         new_head = ast.HeadSimpleLiteral(self.library, new_head_lit)
 
         # Convert head-aggregate elements to body-aggregate elements unchanged
-        body_elems: list[ast.BodyAggregateElement] = []
-
-        for el in head.elements:
-            conditions: list[LiteralAST] = []
-            if el.literal is not None:
-                conditions.append(el.literal)
-            conditions.extend(list(el.condition))
-            # el: ast.HeadAggregateElement
-
-            body_elems.append(
-                ast.BodyAggregateElement(
-                    self.library,
-                    el.location,
-                    list(el.tuple),
-                    conditions,
-                )
-            )
+        body_elems: list[ast.BodyAggregateElement] = [
+            self._aggregate_element_head_to_body(el) for el in head.elements
+        ]
 
         # Build body aggregate W = #agg{ ... } (as a BodyAggregate with LeftGuard(W, Equal))
         body_agg = ast.BodyAggregate(
             self.library,
             head.location,
             ast.Sign.NoSign,
-            ast.LeftGuard(self.library, W, ast.Relation.Equal),
+            ast.LeftGuard(self.library, fresh_variable, ast.Relation.Equal),
             head.function,
             body_elems,
             None,
@@ -147,7 +148,7 @@ class HeadAggregateToBodyRewriteTransformer:
         new_body: list[BodyLiteralAST] = list(st.body) + [body_agg]
 
         # Return the rewritten rule.
-        return ast.StatementRule(self.library, st.location, new_head, new_body)
+        return st.update(self.library, head=new_head, body=new_body)
 
     def _error(
         self, location: Location, message: str, information: Any | None = None
