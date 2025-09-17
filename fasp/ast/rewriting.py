@@ -17,7 +17,6 @@ from fasp.ast.rewriting_aggregates import (
 from fasp.ast.syntax_checking import (
     ParsingException,
     SymbolSignature,
-    SyntacticError,
     get_evaluable_functions,
 )
 from fasp.util.ast import (

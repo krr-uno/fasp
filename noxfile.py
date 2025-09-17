@@ -74,5 +74,5 @@ def lint(session):
 def typecheck(session):
     # session.install("mypy")
     session.run(
-        "mypy", "--allow-redefinition-new", "--local-partial-types", "-p", PROJECT_NAME
+        "mypy", "--allow-redefinition-new", "--local-partial-types", "--strict", "-p", PROJECT_NAME
     )

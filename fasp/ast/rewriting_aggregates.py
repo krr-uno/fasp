@@ -4,14 +4,12 @@ from clingo import ast
 from clingo.core import Library, Location
 from clingo.symbol import SymbolType
 
-from fasp.ast.syntax_checking import (
-    SyntacticError,
-)
 from fasp.util.ast import (
     BodyLiteralAST,
     FreshVariableGenerator,
     LiteralAST,
     StatementAST,
+    SyntacticError,
     collect_variables,
 )
 

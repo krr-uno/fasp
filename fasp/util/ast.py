@@ -60,6 +60,7 @@ from clingo.ast import (
     StatementWeakConstraint,
     TermAbsolute,
     TermBinaryOperation,
+    TermFormatString,
     TermFunction,
     TermSymbolic,
     TermTuple,
@@ -111,6 +112,7 @@ TermAST = (
     | TermBinaryOperation
     | TermTuple
     | TermFunction
+    | TermFormatString
 )
 ArgumentAST = TermAST | Projection
 LiteralAST = LiteralBoolean | LiteralComparison | LiteralSymbolic
@@ -432,7 +434,7 @@ class VariableCollector:
         used_vars = collector.collect(statements)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.used: Set[str] = set()
 
     def collect(self, statements: Iterable[ast.StatementRule]) -> Set[str]:
