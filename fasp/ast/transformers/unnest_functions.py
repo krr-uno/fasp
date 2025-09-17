@@ -52,12 +52,27 @@ class UnnestFunctionsTransformer:
     @singledispatchmethod
     def _unnest(self, node: AST, outer: bool = False) -> AST:
         """Default: recurse if possible, else return as-is."""
+        print(f"Unnesting node type: {type(node)}")
         # if hasattr(node, "transform"):
         return node.transform(self.lib, lambda c: self._unnest(c, outer)) or node
         # return node
 
     @_unnest.register
+    def _(self, node: ast.LiteralComparison, outer: bool = False) -> AST:
+        new_left = cast(TermAST, self._unnest(node.left, outer=True)) # True if not = and len(node.right) == 1
+        new_right = [
+            ast.RightGuard(
+                self.lib,
+                rg.relation,
+                cast(TermAST, self._unnest(rg.term, outer=True)),
+            )
+            for rg in node.right
+        ]
+        return node.update(self.lib, left=new_left, right=new_right)
+
+    @_unnest.register
     def _(self, node: ast.TermFunction, outer: bool = False) -> AST:
+        print(f"Unnesting node type: {type(node)}")
         new_pool = []
         for tup in node.pool:
             new_args: List[TermAST] = [

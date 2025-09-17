@@ -154,7 +154,7 @@ class TestUnnestedRuleRewriteTransformer(unittest.TestCase):
 
         expected_program = textwrap.dedent("""\
             #program base.
-            p(X) :- f(a)<FUN; g(b)=FUN. 
+            p(X) :- FUN1<FUN2; g(a)=FUN1; g(b)=FUN2.
         """).strip()
 
         evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("g", 1)}
@@ -173,3 +173,19 @@ class TestUnnestedRuleRewriteTransformer(unittest.TestCase):
         new_program, _ = self.construct_new_program(rewritten)
 
         self.assertIn("#const n=10. [default]", new_program)
+
+
+    def test_normalize_aggregate(self):
+        program = "p(X) :- f(a)<g(b), #sum{ f(X) : p(f(X)) } = 0."
+
+        expected_program = textwrap.dedent("""\
+            #program base.
+            p(X) :- f(a)<FUN; g(b)=FUN. 
+        """).strip()
+
+        evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("g", 1)}
+        rewritten = self.apply_transform(program, evaluable_functions)
+        new_program, _ = self.construct_new_program(rewritten)
+        
+        # both evaluable: introduces FUN and <
+        self.assertEqual(new_program, expected_program)
