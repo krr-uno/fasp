@@ -61,6 +61,13 @@ class TestUnnestedRuleRewriteTransformer(unittest.TestCase):
             g(X,Y) = Z :- true.
         """).strip()
 
+        expected_program = textwrap.dedent("""\
+            #program base.
+            p(FUN3,d(X)) :- q(X); a=FUN; h(FUN,b)=FUN2; g(FUN2,c)=FUN3.
+            q(X) :- g(1,FUN)=X; a=FUN.
+            g(X,Y)=Z :- true.
+        """).strip()
+
         evaluable_functions = {
             SymbolSignature("g", 2),
             SymbolSignature("h", 2),
@@ -70,7 +77,6 @@ class TestUnnestedRuleRewriteTransformer(unittest.TestCase):
         rewritten = self.apply_transform(program, evaluable_functions)
         new_program, unnested_sets = self.construct_new_program(rewritten)
 
-        # check that there are 3 rules rewritten
         self.assertEqual(len(rewritten), 3)
 
         # check that unnested comparisons contain expected auxiliaries
@@ -79,51 +85,91 @@ class TestUnnestedRuleRewriteTransformer(unittest.TestCase):
 
         self.assertIn(expected_set_first_rule, unnested_sets)
         self.assertIn(expected_set_second_rule, unnested_sets)
+        self.assertIn(set(), unnested_sets)  # third rule has no unnested
 
-        # the pretty-printer may produce "," instead of ";"
-        self.assertIn("p(FUN3,d(X)) :- q(X)", new_program)
-        self.assertIn("q(X) :- g(1,FUN)=X", new_program)
-        self.assertIn("g(X,Y)=Z :- true", new_program)
+        self.assertEqual(new_program, expected_program)
     
     def test_normalize_lhs_evaluable_rhs_nonevaluable(self):
         program = "p(X) :- f(a)=b."
+
+        expected_program = textwrap.dedent("""\
+            #program base.
+            p(X) :- f(a)=b.
+        """).strip()
+
         evaluable_functions = {SymbolSignature("f", 1)}
         rewritten = self.apply_transform(program, evaluable_functions)
         new_program, _ = self.construct_new_program(rewritten)
-        # f(a) on LHS, b non-evaluable → no rewrite
-        self.assertIn("f(a)=b", new_program)
+        # f(a) on LHS, b non-evaluable: no rewrite
+        print(new_program)
+        self.assertEqual(new_program, expected_program)
 
     def test_normalize_lhs_evaluable_rhs_evaluable(self):
         program = "p(X) :- f(a) = g(b). "
+
+        expeccted_program = textwrap.dedent("""\
+            #program base.
+            p(X) :- f(a)=FUN; g(b)=FUN.
+        """).strip()
+
         evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("g", 1)}
         rewritten = self.apply_transform(program, evaluable_functions)
         new_program, unnested_sets = self.construct_new_program(rewritten)
 
-        # f(a) is on LHS, b non-evaluable → should stay LHS
-        self.assertIn("p(X) :- f(a)=FUN; g(b)=FUN.", new_program)
+        self.assertEqual(new_program, expeccted_program)
 
     
     def test_normalize_lhs_nonevaluable_rhs_evaluable(self):
         program = "p(X) :- a=f(b)."
+
+        expected_program = textwrap.dedent("""\
+            #program base.
+            p(X) :- f(b)=a.
+        """).strip()
+
         evaluable_functions = {SymbolSignature("f", 1)}
         rewritten = self.apply_transform(program, evaluable_functions)
         new_program, _ = self.construct_new_program(rewritten)
-        # RHS evaluable → flip sides
-        self.assertIn("p(X) :- f(b)=a", new_program)
 
-    # def test_normalize_not_equal_operator(self):
-    #     program = "p(X) :- f(a)!=g(b)."
-    #     evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("g", 1)}
-    #     rewritten = self.apply_transform(program, evaluable_functions)
-    #     new_program, _ = self.construct_new_program(rewritten)
-    #     # both evaluable → introduces FUN and !=
-    #     self.assertIn("p(X) :- f(a)=FUN; g(b)!=FUN", new_program)
+        # RHS evaluable: flip sides
+        self.assertEqual(new_program, expected_program)
+
+    def test_normalize_not_equal_operator(self):
+        program = "p(X) :- f(a)!=g(b)."
+
+        expected_program = textwrap.dedent("""\
+            #program base.
+            p(X) :- f(a)!=FUN; g(b)=FUN.
+        """).strip()
+
+        evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("g", 1)}
+        rewritten = self.apply_transform(program, evaluable_functions)
+        new_program, _ = self.construct_new_program(rewritten)
+
+        # both evaluable: introduces FUN and !=
+        self.assertEqual(new_program, expected_program)
     
-    # def test_normalize_less_than_operator(self):
-    #     program = "p(X) :- f(a)<g(b)."
-    #     evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("g", 1)}
-    #     rewritten = self.apply_transform(program, evaluable_functions)
-    #     new_program, _ = self.construct_new_program(rewritten)
-    #     # both evaluable → introduces FUN and <
-    #     self.assertIn("p(X) :- f(a)=FUN; g(b)<FUN", new_program)
-    
+    def test_normalize_less_than_operator(self):
+        program = "p(X) :- f(a)<g(b)."
+
+        expected_program = textwrap.dedent("""\
+            #program base.
+            p(X) :- f(a)<FUN; g(b)=FUN. 
+        """).strip()
+
+        evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("g", 1)}
+        rewritten = self.apply_transform(program, evaluable_functions)
+        new_program, _ = self.construct_new_program(rewritten)
+        
+        # both evaluable: introduces FUN and <
+        self.assertEqual(new_program, expected_program)
+
+    def test_non_rule_statement_rewrite(self):
+        program = "#const n=10. [default]"
+
+        # #const produces a StatementDefinition, not a StatementRule
+        evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("g", 1)}
+        rewritten = self.apply_transform(program, evaluable_functions)
+        new_program, _ = self.construct_new_program(rewritten)
+
+        self.assertIn("#const n=10. [default]", new_program)

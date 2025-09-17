@@ -46,9 +46,9 @@ class UnnestedRuleRewriteTransformer:
         """
         # non-rule statements: just run unnest & return extras (keeps behaviour)
         if not isinstance(st, ast.StatementRule):
-            used_vars: set[str] = set()  # pragma: no cover
-            new_st, unnested, fvg = self._unnest(st, used_vars)  # pragma: no cover
-            return new_st, unnested  # pragma: no cover
+            used_vars: set[str] = set() 
+            new_st, unnested, fvg = self._unnest(st, used_vars) 
+            return new_st, unnested 
 
         # collect used variables in the rule
         used_vars = collect_variables([st])
@@ -99,7 +99,7 @@ class UnnestedRuleRewriteTransformer:
             new_rule = st.update(self.lib, body=new_body)
             return new_rule, extra_literals
 
-        return st, extra_literals  # pragma: no cover
+        return st, extra_literals # pragma: no cover # unreachable in current pipeline (non-rules are handled earlier)
 
     # --------------------------
     # Normalization
@@ -150,9 +150,6 @@ class UnnestedRuleRewriteTransformer:
         - If RHS is evaluable but LHS not -> flip sides so evaluable stays RHS
         - Otherwise leave unchanged
         """
-        # if no right chain, nothing to do
-        if not comp.right:
-            return comp, []  # pragma: no cover #NOTE: NEED TO CHECK
 
         lhs = comp.left
         rhs_guard = comp.right[0]  # only handle single right-guard chain here
