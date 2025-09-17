@@ -6,7 +6,6 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number, Symbol, SymbolType
 
-from fasp import symbol
 from fasp.util.ast import (
     AST,
     AST_T,

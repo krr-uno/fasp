@@ -21,11 +21,7 @@ from fasp.ast.syntax_checking import (
 )
 from fasp.util.ast import (
     AST,
-    BodyLiteralAST,
-    FreshVariableGenerator,
-    LiteralAST,
     StatementAST,
-    collect_variables,
     create_body_literal,
     create_literal,
     function_arguments,
