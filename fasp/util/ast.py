@@ -60,6 +60,7 @@ from clingo.ast import (
     StatementWeakConstraint,
     TermAbsolute,
     TermBinaryOperation,
+    TermFormatString,
     TermFunction,
     TermSymbolic,
     TermTuple,
@@ -111,6 +112,7 @@ TermAST = (
     | TermBinaryOperation
     | TermTuple
     | TermFunction
+    | TermFormatString
 )
 ArgumentAST = TermAST | Projection
 LiteralAST = LiteralBoolean | LiteralComparison | LiteralSymbolic

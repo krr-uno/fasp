@@ -60,3 +60,31 @@ class TestControl(unittest.TestCase):
         self.assertEqual(
             err.splitlines()[1].strip(), "*** ERROR: (fasp): parsing failed"
         )
+    # Adapt to new clingo version change in app.fasp_main 
+    def test_unexpected_exception_paths(self):
+        import fasp.app as app
+
+        def fake_clingo_main(library, options, fasp_app):
+            raise RuntimeError("simulated failure")
+
+        original_clingo_main = app.clingo_main
+        app.clingo_main = fake_clingo_main
+        try:
+            # Case 1: raise_errors = False
+            # handled with stderr + exit code
+            err_io = io.StringIO()
+            with contextlib.redirect_stderr(err_io):
+                exit_code = app.main([])
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("*** ERROR: (fasp): simulated failure", err_io.getvalue())
+
+            # Case 2: raise_errors = True
+            # exception re-raised
+            with self.assertRaises(RuntimeError):
+                app.fasp_main(app.Library(), options=[], raise_errors=True)
+
+        finally:
+            app.clingo_main = original_clingo_main
+
+
