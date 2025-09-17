@@ -46,9 +46,9 @@ class UnnestedRuleRewriteTransformer:
         """
         # non-rule statements: just run unnest & return extras (keeps behaviour)
         if not isinstance(st, ast.StatementRule):
-            used_vars: set[str] = set() 
-            new_st, unnested, fvg = self._unnest(st, used_vars) 
-            return new_st, unnested 
+            used_vars: set[str] = set()
+            new_st, unnested, fvg = self._unnest(st, used_vars)
+            return new_st, unnested
 
         # collect used variables in the rule
         used_vars = collect_variables([st])
@@ -99,7 +99,10 @@ class UnnestedRuleRewriteTransformer:
             new_rule = st.update(self.lib, body=new_body)
             return new_rule, extra_literals
 
-        return st, extra_literals # pragma: no cover # unreachable in current pipeline (non-rules are handled earlier)
+        return (
+            st,
+            extra_literals,
+        )  # pragma: no cover # unreachable in current pipeline (non-rules are handled earlier)
 
     # --------------------------
     # Normalization
