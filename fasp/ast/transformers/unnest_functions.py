@@ -56,6 +56,7 @@ class UnnestFunctionsTransformer:
         return node.transform(self.lib, lambda c: self._unnest(c, outer)) or node
         # return node
 
+    # Normalize compariosns to have evaluable functions on the left side of equality only
     @_unnest.register
     def _(self, node: ast.LiteralComparison, outer: bool = True) -> AST:
 
@@ -74,6 +75,15 @@ class UnnestFunctionsTransformer:
             for rg in node.right
         ]
         return node.update(self.lib, left=new_left, right=new_right)
+
+    # Need to pass outer=False to make sure TermFunctions and TermSymbolic functions in aggregates are unnested
+    @_unnest.register
+    def _(self, node: ast.HeadAggregateElement, outer: bool = False) -> AST:
+        return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
+
+    @_unnest.register
+    def _(self, node: ast.BodyAggregateElement, outer: bool = False) -> AST:
+        return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
 
     @_unnest.register
     def _(self, node: ast.TermFunction, outer: bool = False) -> AST:

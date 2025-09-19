@@ -333,21 +333,24 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         self.assertIn({"a=FUN", "f(FUN)=FUN2", "f(b)=FUN3"}, unnested_sets)
 
 
-    # def test_aggregate(self):
-    #     program = textwrap.dedent("""
-    #         :- #sum { f(X): p(f(X)) } = 0.
-    #     """).strip()
+    def test_aggregate(self):
+        program = textwrap.dedent("""
+            :- #sum { a(X): p(f(X))} = 0.
+            #sum { a(X): p(f(X))} = 0 :- p.
+        """).strip()
 
-    #     expected_program = textwrap.dedent("""
-    #         #program base.
-    #         :- #sum { FUN: p(FUN) } = 0.
-    #     """).strip()
+        expected_program = textwrap.dedent("""
+            #program base.
+            :- #sum { FUN: p(FUN2) } = 0.
+            #sum { FUN: p(FUN2) } = 0 :- p.
+        """).strip()
         
-    #     evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("a", 0)}
+        evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("a", 1)}
 
-    #     rewritten = self.apply_transform(program, evaluable_functions)
-    #     new_program, unnested_sets = self.construct_new_program(rewritten)
+        rewritten = self.apply_transform(program, evaluable_functions)
+        new_program, unnested_sets = self.construct_new_program(rewritten)
 
-    #     self.assertEqual(new_program, expected_program)
-    #     self.assertEqual(len(unnested_sets), 1)
-    #     self.assertIn({"f(X)=FUN"}, unnested_sets)
+        print(unnested_sets)
+        self.assertEqual(new_program, expected_program)
+        self.assertEqual(len(unnested_sets), 2)
+        self.assertIn({"f(X)=FUN2","a(X)=FUN"}, unnested_sets)
