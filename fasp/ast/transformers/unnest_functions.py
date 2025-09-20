@@ -76,10 +76,10 @@ class UnnestFunctionsTransformer:
         ]
         return node.update(self.lib, left=new_left, right=new_right)
 
-    # Need to pass outer=False to make sure TermFunctions and TermSymbolic functions in aggregates are unnested
-    @_unnest.register
-    def _(self, node: ast.HeadAggregateElement, outer: bool = False) -> AST:
-        return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
+    # Need to pass outer=False to make sure TermFunctions and TermSymbolic functions in body aggregates are unnested
+    # @_unnest.register
+    # def _(self, node: ast.HeadAggregateElement, outer: bool = False) -> AST:
+    #     return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
 
     @_unnest.register
     def _(self, node: ast.BodyAggregateElement, outer: bool = False) -> AST:

@@ -332,6 +332,56 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         self.assertEqual(len(unnested_sets), 1)
         self.assertIn({"a=FUN", "f(FUN)=FUN2", "f(b)=FUN3"}, unnested_sets)
 
+    def test_comparison2(self):
+        program = textwrap.dedent("""
+            :- f(a) = f(b).
+            :- f(b) < g(x).
+            :- f(c) = a.
+            :- f(c) != d(c).
+            :- f(c) < a.
+            :- #sum{p(x) : f(x)< y(x)} = 1.
+            :- #count{p(x) : f(z) = y(x)} = 0.
+        """).strip()
+
+        expected_program = textwrap.dedent("""
+            #program base.
+            :- f(FUN)=FUN2.
+            :- FUN<g(x).
+            :- f(c)=FUN.
+            :- FUN!=d(c).
+            :- FUN<FUN2.
+            :- #sum { p(x): FUN<y(x) } = 1.
+            :- #count { p(x): FUN=y(x) } = 0.
+        """).strip()
+        
+        evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("a", 0)}
+
+        rewritten = self.apply_transform(program, evaluable_functions)
+        new_program, unnested_sets = self.construct_new_program(rewritten)
+
+        self.assertEqual(new_program, expected_program)
+        self.assertEqual(len(unnested_sets), 7)
+        # :- f(a) = f(b).  => :- f(FUN)=FUN2.
+        self.assertIn({"a=FUN", "f(b)=FUN2"}, unnested_sets)
+
+        # :- f(b) < g(x).  => :- FUN<g(x).
+        self.assertIn({"f(b)=FUN"}, unnested_sets)
+
+        # :- f(c) = a.  => :- f(c)=FUN.
+        self.assertIn({"a=FUN"}, unnested_sets)
+
+        # :- f(c) != d(c).  => :- FUN!=d(c).
+        self.assertIn({"f(c)=FUN"}, unnested_sets)
+
+        # :- f(c) < a.  => :- FUN<FUN2.
+        self.assertIn({"a=FUN2", "f(c)=FUN"}, unnested_sets)
+
+        # :- #sum{p(x) : f(x)< y(x)} = 1.  => :- #sum { p(x): FUN<y(x) } = 1.
+        self.assertIn({"f(x)=FUN"}, unnested_sets)
+
+        # :- #count{p(x) : f(z) = y(x)} = 0.  => :- #count { p(x): FUN=y(x) } = 0.
+        self.assertIn({"f(z)=FUN"}, unnested_sets)
+
 
     def test_aggregate(self):
         program = textwrap.dedent("""
@@ -342,7 +392,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         expected_program = textwrap.dedent("""
             #program base.
             :- #sum { FUN: p(FUN2) } = 0.
-            #sum { FUN: p(FUN2) } = 0 :- p.
+            #sum { a(X): p(FUN) } = 0 :- p.
         """).strip()
         
         evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("a", 1)}
@@ -353,4 +403,9 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         print(unnested_sets)
         self.assertEqual(new_program, expected_program)
         self.assertEqual(len(unnested_sets), 2)
+
+        # :- #sum { a(X): p(f(X))} = 0.  => :- #sum { FUN: p(FUN2) } = 0.
         self.assertIn({"f(X)=FUN2","a(X)=FUN"}, unnested_sets)
+
+        # #sum { a(X): p(f(X))} = 0 :- p.  => #sum { a(X): p(FUN) } = 0 :- p.
+        self.assertIn({"f(X)=FUN"}, unnested_sets)
