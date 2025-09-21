@@ -6,8 +6,18 @@ from clingo.core import Library, Location
 from fasp.util.ast import TermAST, LiteralAST
 
 
+class AssignmentAST:
+
+    def visit(self, visitor: Any, *args, **kwargs) -> None:
+        visitor(self, *args, **kwargs)
+
+    def transform(
+        self, library: Library, transformer: Any, *args, **kwargs
+    ) -> Self:
+        return transformer(self, *args, **kwargs) or self
+
 @dataclass
-class HeadSimpleAssignment:
+class HeadSimpleAssignment(AssignmentAST):
     library: Library
     location: Location
     assigned_function: ast.TermFunction
@@ -15,22 +25,6 @@ class HeadSimpleAssignment:
 
     def __str__(self):
         return f"{str(self.assigned_function)} := {str(self.value)}"
-
-    def visit(self, visitor: Any, *args, **kwargs) -> ast.StatementRule:
-        visitor(self, *args, **kwargs)
-
-    def transform(
-        self, library: Library, transformer: Any, *args, **kwargs
-    ) -> ast.StatementRule:
-        new_assigned_function = transformer(self.assigned_function, *args, **kwargs)
-        new_value = transformer(self.value, *args, **kwargs)
-        if not new_assigned_function and not new_value:
-            return self
-        new_assigned_function = new_assigned_function or self.assigned_function
-        new_value = new_value or self.value
-        return HeadSimpleAssignment(
-            library, self.location, new_assigned_function, new_value
-        )
 
 
 AGGREGATE_FUNCTION_TO_STR = {
@@ -42,7 +36,7 @@ AGGREGATE_FUNCTION_TO_STR = {
 
 
 @dataclass
-class HeadAggregateAssignment:
+class HeadAggregateAssignment(AssignmentAST):
     library: Library
     location: Location
     assigned_function: ast.TermFunction
@@ -54,7 +48,7 @@ class HeadAggregateAssignment:
 
 
 @dataclass
-class HeadChoiceAssignment:
+class HeadChoiceAssignment(AssignmentAST):
     library: Library
     location: Location
     assigned_function: ast.TermFunction
@@ -70,7 +64,7 @@ HeadAssignment = HeadSimpleAssignment | HeadAggregateAssignment
 
 
 @dataclass
-class AssignmentRule:
+class AssignmentRule(AssignmentAST):
     library: Library
     location: Location
     head: HeadAssignment
@@ -82,23 +76,3 @@ class AssignmentRule:
         body = "; ".join(map(str, self.body))
         return f"{str(self.head)} :- {body}."
 
-    def visit(self, visitor: Any, *args, **kwargs) -> None:
-        visitor(self, *args, **kwargs)
-
-    def transform(self, library: Library, transformer: Any, *args, **kwargs) -> Self:
-        new_head = transformer(self.head, *args, **kwargs)
-        new_body = []
-        new_lit_in_body = False
-        for lit in self.body:
-            new_lit = transformer(lit, *args, **kwargs)
-            if new_lit is not None:
-                new_body.append(new_lit)
-                new_lit_in_body = True
-            else:
-                new_body.append(lit)
-        if not new_head and not new_lit_in_body:
-            return self
-        new_head = new_head or self.head
-        if not new_lit_in_body:
-            new_body = self.body
-        return AssignmentRule(library, self.location, new_head, new_body)
