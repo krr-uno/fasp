@@ -480,3 +480,19 @@ class FreshVariableGenerator:
                 return ast.TermVariable(lib, location, candidate, False)
 
         assert False, "This will never happen, but makes mypy happy"  # pragma: no cover
+
+
+def parse_string(library: Library, code: str) -> list[StatementAST]:
+    """
+    Parse a string into a list of AST statements.
+
+    Args:
+        library (Library): The library to use for parsing.
+        code (str): The code string to parse.
+
+    Returns:
+        list[StatementAST]: The list of parsed AST statements.
+    """
+    parsed = []
+    ast.parse_string(library, code, lambda stmt: parsed.append(stmt))
+    return parsed
