@@ -6,7 +6,7 @@ from clingo.core import Library
 from fasp.util.ast import StatementAST
 
 from . import rewriting
-from .syntax_checking import SymbolSignature
+from .rewriting_assigments import SymbolSignature
 
 from .tree_sitter.parser import parse_files
 

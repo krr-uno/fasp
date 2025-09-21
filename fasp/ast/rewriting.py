@@ -6,7 +6,7 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number
 
-from fasp.ast import HeadSimpleAssignment
+from fasp.ast import AssignmentRule, HeadSimpleAssignment
 from fasp.ast.protecting import (
     COMPARISON_NAME,
     protect_comparisons,
@@ -15,7 +15,7 @@ from fasp.ast.protecting import (
 from fasp.ast.rewriting_aggregates import (
     HeadAggregateToBodyRewriteTransformer,
 )
-from fasp.ast.syntax_checking import (
+from fasp.ast.rewriting_assigments import (
     ParsingException,
     SymbolSignature,
     get_evaluable_functions,
@@ -103,9 +103,9 @@ class NormalForm2PredicateTransformer:
                 [ast.ArgumentTuple(self.library, [*arguments, node.right[0].term])],
             ),
         )
-    
-    @_dispatch.register
-    def _(self, node: HeadSimpleAssignment, *_args: Any, **_kwars: Any) -> AST | None:
+
+    @singledispatchmethod
+    def _rewrite_head(self, node: HeadSimpleAssignment, *_args: Any, **_kwars: Any) -> ast.LiteralSymbolic:
         """
         Visit a HeadSimpleAssignment node and transform it if it is an evaluable function.
         """
@@ -113,17 +113,29 @@ class NormalForm2PredicateTransformer:
         if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
             return None
 
-        return ast.LiteralSymbolic(
+        return ast.HeadSimpleLiteral(
             self.library,
-            node.location,
-            ast.Sign.NoSign,
-            ast.TermFunction(
+            ast.LiteralSymbolic(
                 self.library,
-                node.assigned_function.location,
-                f"{self.prefix}{name}",
-                [ast.ArgumentTuple(self.library, [*arguments, node.value])],
+                node.location,
+                ast.Sign.NoSign,
+                ast.TermFunction(
+                    self.library,
+                    node.assigned_function.location,
+                    f"{self.prefix}{name}",
+                    [ast.ArgumentTuple(self.library, [*arguments, node.value])],
+                ),
             ),
         )
+
+    @_dispatch.register
+    def _(self, node: AssignmentRule, *_args: Any, **_kwars: Any) -> AST | None:
+        """
+        Visit an AssignmentRule node and transform it
+        """
+        head = self._rewrite_head(node.head)
+        body = [self._dispatch(stmt) for stmt in node.body]
+        return ast.StatementRule(self.library, node.location, head, body)
 
     def rewrite(self, node: StatementAST, *args: Any, **kwargs: Any) -> StatementAST:
         result = self._dispatch(node, *args, **kwargs) or node
