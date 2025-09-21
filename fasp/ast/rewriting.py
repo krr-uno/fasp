@@ -105,7 +105,9 @@ class NormalForm2PredicateTransformer:
         )
 
     @singledispatchmethod
-    def _rewrite_head(self, node: HeadSimpleAssignment, *_args: Any, **_kwars: Any) -> ast.LiteralSymbolic:
+    def _rewrite_head(
+        self, node: HeadSimpleAssignment, *_args: Any, **_kwars: Any
+    ) -> ast.LiteralSymbolic:
         """
         Visit a HeadSimpleAssignment node and transform it if it is an evaluable function.
         """

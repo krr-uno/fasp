@@ -137,12 +137,12 @@ class TestSyntacticChecker(unittest.TestCase):
 #         self.lib = Library()
 
 #     def assertEqualNormalization(self, program, expected=None):
-#         statements = []
+#         statements = parse_string(self.lib, program)
 
-#         def callback(statement):
-#             statements.append(statement)
+#         # def callback(statement):
+#         #     statements.append(statement)
 
-#         ast.parse_string(self.lib, program, callback)
+#         # ast.parse_string(self.lib, program, callback)
 #         program_l = [str(stmt).strip() for stmt in statements]
 
 #         result = restore_comparisons(
@@ -167,12 +167,12 @@ class TestSyntacticChecker(unittest.TestCase):
 #             a :- b.
 #             b :- not c.
 #             c :- c.
-#             f = X :- X=1; g=h.
-#             f=X :- X=1; not g=h.
-#             f2(X) = Y :- p(X,Y).
-#             f3(X) = a :- p(X).
-#             f4(X) = 5 :- p(X).
-#             f3(X) = a(b,5) :- p(X).
+#             f := X :- X=1; g=h.
+#             f := X :- X=1; not g=h.
+#             f2(X) := Y :- p(X,Y).
+#             f3(X) := a :- p(X).
+#             f4(X) := 5 :- p(X).
+#             f3(X) := a(b,5) :- p(X).
 #         """
 #         self.assertEqualNormalization(program)
 

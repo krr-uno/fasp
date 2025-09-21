@@ -15,10 +15,8 @@ class HeadSimpleAssignment:
 
     def __str__(self):
         return f"{str(self.assigned_function)} := {str(self.value)}"
-    
-    def visit(
-        self, visitor: Any, *args, **kwargs
-    ) -> ast.StatementRule:
+
+    def visit(self, visitor: Any, *args, **kwargs) -> ast.StatementRule:
         visitor(self, *args, **kwargs)
 
     def transform(
@@ -30,9 +28,9 @@ class HeadSimpleAssignment:
             return self
         new_assigned_function = new_assigned_function or self.assigned_function
         new_value = new_value or self.value
-        return HeadSimpleAssignment(library, self.location, new_assigned_function, new_value)
-
-
+        return HeadSimpleAssignment(
+            library, self.location, new_assigned_function, new_value
+        )
 
 
 AGGREGATE_FUNCTION_TO_STR = {
@@ -71,7 +69,6 @@ class HeadChoiceAssignment:
 HeadAssignment = HeadSimpleAssignment | HeadAggregateAssignment
 
 
-
 @dataclass
 class AssignmentRule:
     library: Library
@@ -85,15 +82,10 @@ class AssignmentRule:
         body = "; ".join(map(str, self.body))
         return f"{str(self.head)} :- {body}."
 
-    def visit(
-        self, visitor: Any, *args, **kwargs
-    ) -> None:
+    def visit(self, visitor: Any, *args, **kwargs) -> None:
         visitor(self, *args, **kwargs)
 
-
-    def transform(
-        self, library: Library, transformer: Any, *args, **kwargs
-    ) -> Self:
+    def transform(self, library: Library, transformer: Any, *args, **kwargs) -> Self:
         new_head = transformer(self.head, *args, **kwargs)
         new_body = []
         new_lit_in_body = False
