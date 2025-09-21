@@ -9,6 +9,7 @@ from fasp.ast.rewriting_aggregates import (
     HeadAggregateToBodyRewriteTransformer,
 )
 
+from fasp.ast.tree_sitter.parser import parse_string
 
 class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
     """
@@ -19,8 +20,8 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         self.lib = Library()
 
     def parse_program(self, program: str):
-        stmts = []
-        ast.parse_string(self.lib, program, stmts.append)
+        stmts = parse_string(self.lib, program)
+        # ast.parse_string(self.lib, program, stmts.append)
         return stmts
 
     def rewrite(self, program: str):

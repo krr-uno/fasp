@@ -8,7 +8,7 @@ from fasp.util.ast import StatementAST
 from . import rewriting
 from .rewriting_assigments import SymbolSignature
 
-from .tree_sitter.parser import parse_files
+from .tree_sitter import parser
 
 
 def parse_files(
@@ -29,7 +29,5 @@ def parse_files(
     files
         List of file names.
     """
-    # statements: list[StatementAST] = []
-    # ast.parse_files(library, files, statements.append)
-    statements = parse_files(library, files)
+    statements = parser.parse_files(library, files)
     return rewriting.functional2asp(library, statements, prefix)

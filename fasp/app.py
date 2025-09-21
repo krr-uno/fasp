@@ -6,7 +6,7 @@ from clingo.control import Control as ClingoControl
 from clingo.core import Library
 
 from fasp.__version__ import __version__
-from fasp.ast.syntax_checking import ParsingException
+from fasp.ast.rewriting_assigments import ParsingException
 from fasp.control import Control
 
 
