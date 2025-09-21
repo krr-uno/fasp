@@ -6,7 +6,7 @@ from clingo.core import Library, Location
 from fasp.util.ast import TermAST, LiteralAST
 
 
-class AssignmentAST:
+class _AssignmentAST:
 
     def visit(self, visitor: Any, *args, **kwargs) -> None:
         visitor(self, *args, **kwargs)
@@ -17,7 +17,7 @@ class AssignmentAST:
         return transformer(self, *args, **kwargs) or self
 
 @dataclass
-class HeadSimpleAssignment(AssignmentAST):
+class HeadSimpleAssignment(_AssignmentAST):
     library: Library
     location: Location
     assigned_function: ast.TermFunction
@@ -36,7 +36,7 @@ AGGREGATE_FUNCTION_TO_STR = {
 
 
 @dataclass
-class HeadAggregateAssignment(AssignmentAST):
+class HeadAggregateAssignment(_AssignmentAST):
     library: Library
     location: Location
     assigned_function: ast.TermFunction
@@ -48,7 +48,7 @@ class HeadAggregateAssignment(AssignmentAST):
 
 
 @dataclass
-class HeadChoiceAssignment(AssignmentAST):
+class HeadChoiceAssignment(_AssignmentAST):
     library: Library
     location: Location
     assigned_function: ast.TermFunction
@@ -64,7 +64,7 @@ HeadAssignment = HeadSimpleAssignment | HeadAggregateAssignment
 
 
 @dataclass
-class AssignmentRule(AssignmentAST):
+class AssignmentRule(_AssignmentAST):
     library: Library
     location: Location
     head: HeadAssignment
