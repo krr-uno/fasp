@@ -7,7 +7,7 @@ from attr import has
 from clingo import ast
 from clingo.core import Location, Position, Library
 
-from fasp.ast import AssignmentRule, HeadSimpleAssignment
+from fasp.ast import AssignmentRule, HeadAggregateAssignment, HeadSimpleAssignment
 from fasp.util.ast import AST, SyntacticCheckVisitor, SyntacticError, TermAST
 from fasp.ast.tree_sitter import parser
 from fasp.util.ast import parse_string
@@ -178,6 +178,34 @@ class TestParseAssignment(unittest.TestCase):
                 """
         ))
         self.assertASTEqual(clingo_rules, expected_clingo[1:])
+
+
+    def test_tree_parse_assignment_aggregate(self):
+        code = textwrap.dedent(
+            """\
+            a := #sum{X: p(X); Y,X: q(X,Y), not r(X)} :- b.
+            """
+        )
+        rules = self.parser.parse(code)
+        self.assertEqual(len(rules), 1)
+        rule = rules[0]
+        self.assertEqual(str(rule), "a := #sum{X: p(X); Y,X: q(X,Y), not r(X)} :- b.")
+        self.assertIsInstance(rule, AssignmentRule)
+        self.assertEqual(str(rule.head), "a := #sum{X: p(X); Y,X: q(X,Y), not r(X)}")
+        self.assertIsInstance(rule.head, HeadAggregateAssignment)
+        self.assertEqual(str(rule.head.assigned_function), "a")
+        self.assertIsInstance(rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic)
+        self.assertEqual(rule.head.aggregate_function, ast.AggregateFunction.Sum)
+        self.assertIsInstance(rule.head.elements, Sequence)
+        self.assertEqual(len(rule.head.elements), 2)
+        self.assertEqual(str(rule.head.elements[0]), "X: p(X)")
+        self.assertIsInstance(rule.head.elements[0], ast.BodyAggregateElement)
+        self.assertEqual(str(rule.head.elements[1]), "Y,X: q(X,Y), not r(X)")
+        self.assertIsInstance(rule.head.elements[1], ast.BodyAggregateElement)
+        self.assertEqual(len(rule.body), 1)
+        self.assertEqual(str(rule.body[0]), "b")
+        self.assertIsInstance(rule.body[0], ast.BodySimpleLiteral)
+    
     # def test_tree_parse(self):
     #     code = textwrap.dedent(
     #         """\

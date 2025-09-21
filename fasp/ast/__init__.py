@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from clingo import ast
 from clingo.core import Library, Location
@@ -30,7 +30,7 @@ class HeadAggregateAssignment:
     location: Location
     assigned_function: ast.TermFunction
     aggregate_function: ast.AggregateFunction
-    elements: Iterable[ast.BodyAggregateElement]
+    elements: Sequence[ast.BodyAggregateElement]
 
     def __str__(self):
         return f"{str(self.assigned_function)} := {AGGREGATE_FUNCTION_TO_STR[self.aggregate_function]}{{{'; '.join(map(str, self.elements))}}}"
@@ -41,7 +41,7 @@ class HeadChoiceAssignment:
     library: Library
     location: Location
     assigned_function: ast.TermFunction
-    elements: Iterable[ast.BodyAggregateElement]
+    elements: Sequence[ast.BodyAggregateElement]
 
     def __str__(self):
         return (
