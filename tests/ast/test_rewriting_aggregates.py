@@ -10,8 +10,6 @@ from fasp.ast.rewriting_aggregates import (
 )
 
 
-
-
 class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
     """
     Unit tests for the HeadAggregateToBodyRewriteTransformer.

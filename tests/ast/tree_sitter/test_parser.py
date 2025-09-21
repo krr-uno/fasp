@@ -55,10 +55,14 @@ class TestParseAssignment(unittest.TestCase):
                 continue
             if isinstance(attr1, Iterable):
                 for a1, a2 in zip(attr1, attr2):
-                    self._dispatch(a1, a2, whole1, whole2, check_location, parents1, parents2)
+                    self._dispatch(
+                        a1, a2, whole1, whole2, check_location, parents1, parents2
+                    )
             else:
                 # print(f"Dispatching {child}: {attr1} vs {attr2}")
-                self._dispatch(attr1, attr2, whole1, whole2, check_location, parents1, parents2)
+                self._dispatch(
+                    attr1, attr2, whole1, whole2, check_location, parents1, parents2
+                )
         # self.assertEqual(str(ast1), str(ast2), f"String mismatch in {str(whole1)} vs {str(whole2)}:\n {str(ast1)} != {str(ast2)}")
         self.assertEqual(
             ast1,
@@ -77,10 +81,14 @@ class TestParseAssignment(unittest.TestCase):
     def assertASTEqual(self, ast1, ast2, check_location=True):
         if isinstance(ast1, Sequence):
             self.assertIsInstance(ast2, Sequence)
-            self.assertEqual(len(ast1), len(ast2), f"Length mismatch: {list(map(str, ast1))} != {list(map(str, ast2))}")
+            self.assertEqual(
+                len(ast1),
+                len(ast2),
+                f"Length mismatch: {list(map(str, ast1))} != {list(map(str, ast2))}",
+            )
             for a1, a2 in zip(ast1, ast2):
                 self._dispatch(a1, a2, a1, a2, check_location)
-            return 
+            return
         self._dispatch(ast1, ast2, ast1, ast2)
         self.assertEqual(ast1, ast2)
 
@@ -103,7 +111,9 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(str(rule.head), "a := 1")
         self.assertIsInstance(rule.head, HeadSimpleAssignment)
         self.assertEqual(str(rule.head.assigned_function), "a")
-        self.assertIsInstance(rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic)
+        self.assertIsInstance(
+            rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic
+        )
         self.assertEqual(str(rule.head.value), "1")
         self.assertIsInstance(rule.head.value, ast.TermFunction | ast.TermSymbolic)
 
@@ -122,7 +132,9 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(str(rule.head), "a := 1")
         self.assertIsInstance(rule.head, HeadSimpleAssignment)
         self.assertEqual(str(rule.head.assigned_function), "a")
-        self.assertIsInstance(rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic)
+        self.assertIsInstance(
+            rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic
+        )
         self.assertEqual(str(rule.head.value), "1")
         self.assertIsInstance(rule.head.value, ast.TermFunction | ast.TermSymbolic)
         rule = rules[1]
@@ -131,7 +143,9 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(str(rule.head), "b(X) := a+X")
         self.assertIsInstance(rule.head, HeadSimpleAssignment)
         self.assertEqual(str(rule.head.assigned_function), "b(X)")
-        self.assertIsInstance(rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic)
+        self.assertIsInstance(
+            rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic
+        )
         self.assertEqual(str(rule.head.value), "a+X")
         self.assertIsInstance(rule.head.value, ast.TermBinaryOperation)
 
@@ -152,7 +166,9 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(str(rule.head), "a := 1")
         self.assertIsInstance(rule.head, HeadSimpleAssignment)
         self.assertEqual(str(rule.head.assigned_function), "a")
-        self.assertIsInstance(rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic)
+        self.assertIsInstance(
+            rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic
+        )
         self.assertEqual(str(rule.head.value), "1")
         self.assertIsInstance(rule.head.value, ast.TermFunction | ast.TermSymbolic)
         rule = self.parser.parse(code)[3]
@@ -161,7 +177,9 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(str(rule.head), "b(X) := a+X")
         self.assertIsInstance(rule.head, HeadSimpleAssignment)
         self.assertEqual(str(rule.head.assigned_function), "b(X)")
-        self.assertIsInstance(rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic)
+        self.assertIsInstance(
+            rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic
+        )
         self.assertEqual(str(rule.head.value), "a+X")
         self.assertIsInstance(rule.head.value, ast.TermBinaryOperation)
         clingo_rules = [rules[0], rules[2], rules[4]]
@@ -176,9 +194,9 @@ class TestParseAssignment(unittest.TestCase):
 
                 t(1).
                 """
-        ))
+            ),
+        )
         self.assertASTEqual(clingo_rules, expected_clingo[1:])
-
 
     def test_tree_parse_assignment_aggregate(self):
         code = textwrap.dedent(
@@ -194,7 +212,9 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(str(rule.head), "a := #sum{X: p(X); Y,X: q(X,Y), not r(X)}")
         self.assertIsInstance(rule.head, HeadAggregateAssignment)
         self.assertEqual(str(rule.head.assigned_function), "a")
-        self.assertIsInstance(rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic)
+        self.assertIsInstance(
+            rule.head.assigned_function, ast.TermFunction | ast.TermSymbolic
+        )
         self.assertEqual(rule.head.aggregate_function, ast.AggregateFunction.Sum)
         self.assertIsInstance(rule.head.elements, Sequence)
         self.assertEqual(len(rule.head.elements), 2)
@@ -205,7 +225,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(len(rule.body), 1)
         self.assertEqual(str(rule.body[0]), "b")
         self.assertIsInstance(rule.body[0], ast.BodySimpleLiteral)
-    
+
     # def test_tree_parse(self):
     #     code = textwrap.dedent(
     #         """\
@@ -214,38 +234,38 @@ class TestParseAssignment(unittest.TestCase):
     #         """
     #     )
 
-        # code = bytes(code, "utf8")
-        # tree = self.parser._tree_parse(code)
-        # self.maxDiff = None
-        # self.assertEqual(
-        #     format_ts_tree(tree, code).strip(),
-        #     textwrap.dedent(
-        #         """\
-        #         └── source_file
-        #             ├── statement
-        #             │   └── assignment_rule
-        #             │       ├── simple_assignment
-        #             │       │   ├── term
-        #             │       │   │   └── function
-        #             │       │   │       └── name: identifier = a
-        #             │       │   ├── := = :=
-        #             │       │   └── term
-        #             │       │       └── number = 1
-        #             │       ├── :- = :-
-        #             │       └── body
-        #             │           ├── body_literal
-        #             │           │   └── symbolic_atom
-        #             │           │       └── name: identifier = b
-        #             │           └── . = .
-        #             └── statement
-        #                 └── rule
-        #                     ├── head
-        #                     │   └── literal
-        #                     │       └── symbolic_atom
-        #                     │           └── name: identifier = b
-        #                     └── . = ."""
-        #     ).strip(),
-        # )
+    # code = bytes(code, "utf8")
+    # tree = self.parser._tree_parse(code)
+    # self.maxDiff = None
+    # self.assertEqual(
+    #     format_ts_tree(tree, code).strip(),
+    #     textwrap.dedent(
+    #         """\
+    #         └── source_file
+    #             ├── statement
+    #             │   └── assignment_rule
+    #             │       ├── simple_assignment
+    #             │       │   ├── term
+    #             │       │   │   └── function
+    #             │       │   │       └── name: identifier = a
+    #             │       │   ├── := = :=
+    #             │       │   └── term
+    #             │       │       └── number = 1
+    #             │       ├── :- = :-
+    #             │       └── body
+    #             │           ├── body_literal
+    #             │           │   └── symbolic_atom
+    #             │           │       └── name: identifier = b
+    #             │           └── . = .
+    #             └── statement
+    #                 └── rule
+    #                     ├── head
+    #                     │   └── literal
+    #                     │       └── symbolic_atom
+    #                     │           └── name: identifier = b
+    #                     └── . = ."""
+    #     ).strip(),
+    # )
 
     # def test_tree_parse_assignments(self):
     #     code = textwrap.dedent(

@@ -6,6 +6,7 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number
 
+from fasp.ast import HeadSimpleAssignment
 from fasp.ast.protecting import (
     COMPARISON_NAME,
     protect_comparisons,
@@ -100,6 +101,27 @@ class NormalForm2PredicateTransformer:
                 node.left.location,
                 f"{self.prefix}{name}",
                 [ast.ArgumentTuple(self.library, [*arguments, node.right[0].term])],
+            ),
+        )
+    
+    @_dispatch.register
+    def _(self, node: HeadSimpleAssignment, *_args: Any, **_kwars: Any) -> AST | None:
+        """
+        Visit a HeadSimpleAssignment node and transform it if it is an evaluable function.
+        """
+        name, arguments = function_arguments_ast(self.library, node.assigned_function)
+        if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
+            return None
+
+        return ast.LiteralSymbolic(
+            self.library,
+            node.location,
+            ast.Sign.NoSign,
+            ast.TermFunction(
+                self.library,
+                node.assigned_function.location,
+                f"{self.prefix}{name}",
+                [ast.ArgumentTuple(self.library, [*arguments, node.value])],
             ),
         )
 

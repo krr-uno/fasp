@@ -2,6 +2,7 @@ import ctypes
 import importlib
 
 
+import sys
 from typing import Iterable, Optional, Sequence
 
 from click import Path
@@ -23,10 +24,11 @@ from fasp.ast import (
     HeadChoiceAssignment,
     HeadSimpleAssignment,
 )
-from fasp.util.ast import AST, TermAST, parse_string
+from fasp.util.ast import AST, TermAST, parse_string as clingo_parse_string
 from fasp.util.tree_sitter import format_ts_tree
 
 TREE_SITTER_LANG = "tree_sitter_fasp"
+
 
 def _load_ts_language(
     module: Optional[str], so_path: Optional[Path] = None
@@ -222,7 +224,7 @@ class TreeSitterParser:
                 src_array[i] = ord(b" ")
         src_bytes = bytes(src_array)
         src2 = src_bytes.decode("utf-8")
-        statements = parse_string(self.library, src2)
+        statements = clingo_parse_string(self.library, src2)
         return _ast_merge(assigment_rules, statements[1:])
 
     def _parse_assignment_rule(self, node: Node) -> AST:
@@ -328,43 +330,42 @@ class TreeSitterParser:
 
     # def _process_error(self, node: Node, is_missing: bool = False):
     #     pass
-        # error = first_valid_leaf(node)
-        # state = error.parse_state if error.is_named else error.next_parse_state
-        # print("ERROR NODE", node, error, error.is_named)
-        
-        # error_after = f"around '{error.text.decode("utf-8")}'"
-        # lookahead = set(self.language.lookahead_iterator(state).names())
-        # lookahead.discard("line_comment")
-        # lookahead.discard("block_comment")
-        # print(set(self.language.lookahead_iterator(error.parse_state).names()))
-        # print(set(self.language.lookahead_iterator(error.next_parse_state).names()))
-        # if "." in lookahead and "," in lookahead:
-        #     expected = ", expected '.' or ','"
-        # elif "." in lookahead:
-        #     expected = ", expected '.'"
-        # elif ":-" in lookahead:
-        #     expected = ", expected ':-'"
-        # elif "term" in lookahead:
-        #     expected = ", expected term"
-        # elif "," in lookahead:
-        #     expected = ", expected ','"
-        # elif "}" in lookahead:
-        #     expected = ", expected '}'"
-        # elif "(" in lookahead:
-        #     expected = ", expected '('"
-        # elif ")" in lookahead:
-        #     expected = ", expected ')'"
-        # elif ":=" in lookahead:
-        #     expected = ", expected ':='"
+    # error = first_valid_leaf(node)
+    # state = error.parse_state if error.is_named else error.next_parse_state
+    # print("ERROR NODE", node, error, error.is_named)
 
-        # elif len(lookahead) == 1:
-        #     expected = f", expected '{list(lookahead)[0]}'"
-        # else:
-        #     expected = ""
-        # self.errors.append(
-        #         f"<string>:{error.start_point[0]+1}:{error.start_point[1]+1}-{error.end_point[1]+1}: error {error_after}{expected}"
-        #     )
-            
+    # error_after = f"around '{error.text.decode("utf-8")}'"
+    # lookahead = set(self.language.lookahead_iterator(state).names())
+    # lookahead.discard("line_comment")
+    # lookahead.discard("block_comment")
+    # print(set(self.language.lookahead_iterator(error.parse_state).names()))
+    # print(set(self.language.lookahead_iterator(error.next_parse_state).names()))
+    # if "." in lookahead and "," in lookahead:
+    #     expected = ", expected '.' or ','"
+    # elif "." in lookahead:
+    #     expected = ", expected '.'"
+    # elif ":-" in lookahead:
+    #     expected = ", expected ':-'"
+    # elif "term" in lookahead:
+    #     expected = ", expected term"
+    # elif "," in lookahead:
+    #     expected = ", expected ','"
+    # elif "}" in lookahead:
+    #     expected = ", expected '}'"
+    # elif "(" in lookahead:
+    #     expected = ", expected '('"
+    # elif ")" in lookahead:
+    #     expected = ", expected ')'"
+    # elif ":=" in lookahead:
+    #     expected = ", expected ':='"
+
+    # elif len(lookahead) == 1:
+    #     expected = f", expected '{list(lookahead)[0]}'"
+    # else:
+    #     expected = ""
+    # self.errors.append(
+    #         f"<string>:{error.start_point[0]+1}:{error.start_point[1]+1}-{error.end_point[1]+1}: error {error_after}{expected}"
+    #     )
 
     # def _check_syntax_errors(self, tree: Tree, src: bytes):
     #     # print(format_ts_tree(tree.root_node))
@@ -411,3 +412,55 @@ class TreeSitterParser:
 # t = TreeSitterParser()
 # tree = t.parse("a := 1 :- b.")
 # print(tree.root_node)
+
+
+def parse_string(library: Library, src: str) -> Iterable[AST]:
+    """
+    Parse the programs in the given files and return an abstract syntax tree for
+    each statement via a callback.
+
+    The function follows clingo's handling of files on the command line. Filename
+    `"-"` is treated as stdin and if an empty list is given, then the parser will
+    read from stdin.
+
+    Parameters
+    ----------
+    files
+        List of file names.
+    """
+    parser = TreeSitterParser(library)
+    asts = clingo_parse_string(library, "#program base.")
+    asts.extend(parser.parse(src))
+    if parser.errors:
+        raise SystemExit("\n".join(parser.errors))
+    return asts
+
+
+def parse_files(library: Library, files: Sequence[str] = None) -> Iterable[AST]:
+    """
+    Parse the programs in the given files and return an abstract syntax tree for
+    each statement via a callback.
+
+    The function follows clingo's handling of files on the command line. Filename
+    `"-"` is treated as stdin and if an empty list is given, then the parser will
+    read from stdin.
+
+    Parameters
+    ----------
+    files
+        List of file names.
+    """
+    if not files:
+        files = ["-"]
+    parser = TreeSitterParser(library)
+    asts = []
+    for file in files:
+        if file == "-":
+            src = sys.stdin.read()
+        else:
+            with open(file, "r", encoding="utf-8") as f:
+                src = f.read()
+        asts.extend(parser.parse(src))
+    if parser.errors:
+        raise SystemExit("\n".join(parser.errors))
+    return asts

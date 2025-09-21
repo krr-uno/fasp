@@ -4,6 +4,7 @@ from typing import Any, Iterable
 
 from clingo import ast
 
+from fasp.ast import AssignmentRule, HeadSimpleAssignment
 from fasp.ast.protecting import COMPARISON_NAME
 from fasp.util.ast import AST, SyntacticError, function_arguments, is_function
 
@@ -61,7 +62,7 @@ class EvaluableFunctionCollector:
         }
 
     @singledispatchmethod
-    def collect(self, node: AST, *args: Any, **kwargs: Any) -> None:
+    def collect(self, node: Any, *args: Any, **kwargs: Any) -> None:
         """
         Visit the given AST node and check for invalid AST types.
 
@@ -74,7 +75,7 @@ class EvaluableFunctionCollector:
             node.visit(self.collect, args, kwargs)
 
     @collect.register
-    def _(self, node: ast.StatementRule, *args: Any, **kwargs: Any) -> None:
+    def _(self, node: ast.StatementRule | AssignmentRule, *args: Any, **kwargs: Any) -> None:
         """
         Visit a Rule node and collect function symbols from the head.
         """
@@ -110,6 +111,15 @@ class EvaluableFunctionCollector:
         name, arguments = function_arguments(node.left)
         self.function_symbols.add(SymbolSignature(name, len(arguments)))
 
+    
+    @collect.register
+    def _(self, node: HeadSimpleAssignment, *_args: Any, **_kwargs: Any) -> None:
+        """
+        Visit a Comparison node (assignment) and record the function name and arity.
+        """
+        name, arguments = function_arguments(node.assigned_function)
+        self.function_symbols.add(SymbolSignature(name, len(arguments)))
+
 
 class ParsingException(Exception):
     """
@@ -142,8 +152,7 @@ def get_evaluable_functions(program: Iterable[AST]) -> set[SymbolSignature]:
     """
     collector = EvaluableFunctionCollector()
     for statement in program:
-        if isinstance(statement, ast.StatementRule):
-            collector.collect(statement)
+        collector.collect(statement)
     if collector.errors:
         raise ParsingException(collector.errors)
     return collector.function_symbols
