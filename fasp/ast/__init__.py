@@ -3,7 +3,10 @@ from dataclasses import dataclass
 from typing import Any, Self
 from clingo import ast
 from clingo.core import Library, Location
-from fasp.util.ast import TermAST, LiteralAST
+from fasp import util
+from fasp.util import ast as util_ast
+
+
 
 
 class _AssignmentAST:
@@ -21,7 +24,7 @@ class HeadSimpleAssignment(_AssignmentAST):
     library: Library
     location: Location
     assigned_function: ast.TermFunction
-    value: TermAST
+    value: util_ast.TermAST
 
     def __str__(self):
         return f"{str(self.assigned_function)} := {str(self.value)}"
@@ -68,7 +71,7 @@ class AssignmentRule(_AssignmentAST):
     library: Library
     location: Location
     head: HeadAssignment
-    body: Sequence[LiteralAST]
+    body: Sequence[util_ast.LiteralAST]
 
     def __str__(self):
         if not self.body:
@@ -76,3 +79,6 @@ class AssignmentRule(_AssignmentAST):
         body = "; ".join(map(str, self.body))
         return f"{str(self.head)} :- {body}."
 
+
+StatementAST = util_ast.StatementAST | AssignmentRule
+AST = util_ast.AST | AssignmentRule | HeadAssignment
