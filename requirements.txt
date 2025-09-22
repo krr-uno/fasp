@@ -1,1 +1,2 @@
-tree-sitter
+tree-sitter==0.25.1
+git+https://github.com/krr-uno/tree-sitter-fasp.git#egg=tree-sitter-fasp
