@@ -9,6 +9,7 @@ conda install -c potassco/label/dev-20 -c conda-forge clingo
 git clone https://github.com/krr-uno/fasp.git
 cd fasp
 git pull
+pip install -r requirements.txt
 pip install -e .
 fasp examples/family.lp
 ```
