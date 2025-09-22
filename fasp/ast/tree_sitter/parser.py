@@ -1,22 +1,19 @@
 import ctypes
 import importlib
-
-
 import sys
 from typing import Iterable, Optional, Sequence
 
 from click import Path
+from clingo import ast
+from clingo.core import Library, Location, Position
 from tree_sitter import (
     Language,
     Node,
+    Parser,
     Query,
     QueryCursor,
     Tree,
-    Parser,
 )
-
-from clingo import ast
-from clingo.core import Library, Location, Position
 
 from fasp.ast import (
     AssignmentRule,
@@ -24,7 +21,8 @@ from fasp.ast import (
     HeadChoiceAssignment,
     HeadSimpleAssignment,
 )
-from fasp.util.ast import AST, TermAST, parse_string as clingo_parse_string
+from fasp.util.ast import AST, TermAST
+from fasp.util.ast import parse_string as clingo_parse_string
 
 TREE_SITTER_LANG = "tree_sitter_fasp"
 

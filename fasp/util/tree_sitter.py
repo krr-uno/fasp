@@ -1,5 +1,6 @@
 from typing import Optional, Union
-from tree_sitter import Tree, Node
+
+from tree_sitter import Node, Tree
 
 
 def format_ts_tree(

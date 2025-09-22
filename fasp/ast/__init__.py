@@ -1,12 +1,12 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Self
+
 from clingo import ast
 from clingo.core import Library, Location
+
 from fasp import util
 from fasp.util import ast as util_ast
-
-
 
 
 class _AssignmentAST:
@@ -14,10 +14,9 @@ class _AssignmentAST:
     def visit(self, visitor: Any, *args, **kwargs) -> None:
         visitor(self, *args, **kwargs)
 
-    def transform(
-        self, library: Library, transformer: Any, *args, **kwargs
-    ) -> Self:
+    def transform(self, library: Library, transformer: Any, *args, **kwargs) -> Self:
         return transformer(self, *args, **kwargs) or self
+
 
 @dataclass
 class HeadSimpleAssignment(_AssignmentAST):
