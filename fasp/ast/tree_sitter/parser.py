@@ -201,7 +201,7 @@ class TreeSitterParser:
 
     def __init__(self, library: Library):
         self.library = library
-        self.language = _load_ts_language("tree_sitter_clingo")
+        self.language = _load_ts_language(TREE_SITTER_LANG)
         self.parser = Parser(self.language)
         self.query_errors = Query(self.language, "(ERROR) @error-node")
         self.query_missing = Query(self.language, "(MISSING) @missing-node")
