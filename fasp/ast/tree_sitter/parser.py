@@ -25,7 +25,6 @@ from fasp.ast import (
     HeadSimpleAssignment,
 )
 from fasp.util.ast import AST, TermAST, parse_string as clingo_parse_string
-from fasp.util.tree_sitter import format_ts_tree
 
 TREE_SITTER_LANG = "tree_sitter_fasp"
 

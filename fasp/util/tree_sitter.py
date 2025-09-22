@@ -1,4 +1,4 @@
-from typing import Optional, Union, Iterable
+from typing import Optional, Union
 from tree_sitter import Tree, Node
 
 

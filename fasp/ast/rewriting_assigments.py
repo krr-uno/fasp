@@ -3,11 +3,9 @@ from functools import singledispatchmethod
 from typing import Any, Iterable
 
 from clingo import ast
-from clingo.core import Library
 
 from fasp.ast import AssignmentRule, HeadSimpleAssignment
-from fasp.ast.protecting import COMPARISON_NAME
-from fasp.util.ast import AST, SyntacticError, function_arguments, is_function
+from fasp.util.ast import AST, SyntacticError, function_arguments
 
 # INVALID_ASTTYPES = {}
 

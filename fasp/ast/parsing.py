@@ -3,7 +3,6 @@ from typing import Sequence
 from clingo import ast
 from clingo.core import Library
 
-from fasp.util.ast import StatementAST
 
 from . import rewriting
 from .rewriting_assigments import SymbolSignature
