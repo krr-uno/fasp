@@ -27,7 +27,7 @@ class HeadSimpleAssignment(_AssignmentAST):
         return f"{str(self.assigned_function)} := {str(self.value)}"
 
 
-AGGREGATE_FUNCTION_TO_STR = {
+_AGGREGATE_FUNCTION_TO_STR = {
     ast.AggregateFunction.Sum: "#sum",
     ast.AggregateFunction.Count: "#count",
     ast.AggregateFunction.Min: "#min",
@@ -44,7 +44,7 @@ class HeadAggregateAssignment(_AssignmentAST):
     elements: Sequence[ast.BodyAggregateElement]
 
     def __str__(self):
-        return f"{str(self.assigned_function)} := {AGGREGATE_FUNCTION_TO_STR[self.aggregate_function]}{{{'; '.join(map(str, self.elements))}}}"
+        return f"{str(self.assigned_function)} := {_AGGREGATE_FUNCTION_TO_STR[self.aggregate_function]}{{{'; '.join(map(str, self.elements))}}}"
 
 
 @dataclass
