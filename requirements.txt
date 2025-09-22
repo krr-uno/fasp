@@ -1,1 +1,1 @@
-clingo
+tree-sitter
