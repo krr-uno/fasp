@@ -5,11 +5,8 @@ from fasp.ast import AssignmentRule, HeadAggregateAssignment, HeadSimpleAssignme
 from fasp.util.ast import (
     BodyLiteralAST,
     FreshVariableGenerator,
-    LiteralAST,
     StatementAST,
-    SyntacticError,
     collect_variables,
-    is_function,
 )
 
 # class HeadAggregateToBodyRewriteTransformer:

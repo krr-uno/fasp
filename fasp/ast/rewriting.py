@@ -16,7 +16,6 @@ from fasp.ast.rewriting_aggregates import (
     normalize_assignment_aggregates,
 )
 from fasp.ast.rewriting_assigments import (
-    ParsingException,
     SymbolSignature,
     get_evaluable_functions,
 )

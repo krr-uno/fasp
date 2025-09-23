@@ -6,7 +6,6 @@ from typing import Any, Self
 from clingo import ast
 from clingo.core import Library, Location
 
-from fasp import util
 from fasp.util import ast as util_ast
 
 

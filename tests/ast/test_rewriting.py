@@ -8,10 +8,12 @@ from fasp.ast.protecting import protect_comparisons, restore_comparisons
 from fasp.ast.tree_sitter.parser import parse_string
 from fasp.util.ast import AST
 
+from fasp.ast.rewriting_assigments import ParsingException
+
 from fasp.ast.rewriting import (
     _functional2asp,
     normalize_ast,
-    ParsingException,
+    
     normalize_assignment_aggregates,
 )
 
