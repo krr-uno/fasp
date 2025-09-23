@@ -38,13 +38,15 @@ def test(session):
         "tests/util/test_ast.py",
         "-v",
     )
-    # session.run(
-    #     "coverage",
-    #     "report",
-    #     "--sort=cover",
-    #     "--fail-under=100",
-    #     "-m",
-    # )
+    coverage_omit = ["tests/*"]
+    session.run(
+        "coverage",
+        "report",
+        "--sort=cover",
+        "--fail-under=100",
+        "-m",
+        f"--omit={','.join(coverage_omit)}",
+    )
 
 
 @nox.session(python=False)

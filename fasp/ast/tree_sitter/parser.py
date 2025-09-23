@@ -29,7 +29,7 @@ TREE_SITTER_LANG = "tree_sitter_fasp"
 
 
 def _load_ts_language(
-    module: Optional[str], so_path: Optional[Path] = None
+    module: Optional[str], so_path: Optional[Path] = None  # pragma: no cover
 ) -> Language:
     if module:
         m = importlib.import_module(module)  # e.g., tree_sitter_clingo
@@ -218,7 +218,13 @@ class TreeSitterParser:
         """
         src_bytes = bytes(src, "utf8")
         nodes = self._tree_parse_assignments(src_bytes)
-        assigment_rules = [self._parse_assignment_rule(n) for n in nodes]
+        assigment_rules = []
+        parsing_errors = []
+        for node in nodes:
+            try:
+                assigment_rules.append(self._parse_assignment_rule(node))
+            except ParsingException  as e:
+                parsing_errors.extend(e.errors)
         src_array = bytearray(src_bytes)
         for node in nodes:
             for i in range(node.start_byte, node.end_byte):
@@ -226,6 +232,8 @@ class TreeSitterParser:
         src_bytes = bytes(src_array)
         src2 = src_bytes.decode("utf-8")
         statements = clingo_parse_string(self.library, src2)
+        if parsing_errors:
+            raise ParsingException(parsing_errors)
         return _ast_merge(assigment_rules, statements[1:])
 
     def _parse_assignment_rule(self, node: Node) -> AST:
@@ -261,7 +269,7 @@ class TreeSitterParser:
                 [
                     SyntacticError(
                         assigned_function.location,
-                        f"Unexpected {str(assigned_function)} on the right-hand of assignment",
+                        f"Unexpected '{str(assigned_function)}' on the right-hand of assignment",
                         assigned_function,
                     )
                 ]

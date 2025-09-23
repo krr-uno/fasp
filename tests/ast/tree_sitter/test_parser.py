@@ -6,6 +6,7 @@ from clingo import ast
 from clingo.core import Library
 
 from fasp.ast import AssignmentRule, HeadSimpleAssignment
+from fasp.ast.rewriting_assigments import ParsingException
 from fasp.util.ast import AST
 from fasp.ast.tree_sitter import parser
 from fasp.util.ast import parse_string
@@ -193,6 +194,18 @@ class TestParseAssignment(unittest.TestCase):
             ),
         )
         self.assertASTEqual(clingo_rules, expected_clingo[1:])
+
+    def test_tree_parse_error_assigned_is_not_function(self):
+        code = textwrap.dedent(
+            """\
+            "a" := 1 :- b.
+            1 := 1 :- b.
+            (a,b) := 1 :- b.
+            """
+        )
+        with self.assertRaises(ParsingException) as cm:
+            _ = self.parser.parse(code)
+        self.assertEqual(len(cm.exception.errors), 3)
 
     # def test_tree_parse_assignment_aggregate(self):
     #     code = textwrap.dedent(
