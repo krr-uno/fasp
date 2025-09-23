@@ -6,7 +6,7 @@ from clingo.core import Library
 
 from fasp.ast.syntax_checking import SymbolSignature
 from fasp.ast.transformers.unnest_functions import UnnestFunctionsTransformer
-from fasp.util.ast import AST, collect_comparisons, collect_variables
+from fasp.util.ast import AST, collect_variables
 
 
 class RuleRewriteTransformer:
@@ -32,28 +32,30 @@ class RuleRewriteTransformer:
         transformed_rule = cast(ast.StatementRule, transformed_rule)
 
         # Rewrite head
-        new_head_node = self._rewrite(transformed_rule.head)
-        new_head = new_head_node
+        new_head = self._rewrite(transformed_rule.head)
 
         # Rewrite body and, while doing so, track which comparisons are already present
         new_body: List[
             Union[ast.BodySimpleLiteral, ast.BodyConditionalLiteral, ast.BodyAggregate]
         ] = []
 
-        present_in_body = collect_comparisons(None)  # start empty set
+        # present_in_body = collect_comparisons(None)  # start empty set
 
         for lit in transformed_rule.body:
             rewritten = self._rewrite(lit)
             items: List = rewritten if isinstance(rewritten, list) else [rewritten]
             for it in items:
                 new_body.append(it)
-                present_in_body.update(collect_comparisons(it))
+                # present_in_body.update(collect_comparisons(it))
 
-        head_comps = self._comparisons_for_node(new_head_node)
+        head_comps = sorted(self._comparisons_for_node(new_head), key=str)
         for comp in head_comps:
-            if comp not in present_in_body:
-                new_body.append(ast.BodySimpleLiteral(self.lib, comp))
-                present_in_body.add(comp)
+            # if comp not in present_in_body:
+            new_body.append(ast.BodySimpleLiteral(self.lib, comp))
+            # present_in_body.add(comp)
+
+        # NOTE: Body can be sorted to ensure same order for tests
+        # new_body = sorted(new_body, key=str)
 
         return ast.StatementRule(
             self.lib, transformed_rule.location, new_head, new_body
@@ -87,8 +89,22 @@ class RuleRewriteTransformer:
 
         # Negative literal (sign=Single): conditional literal
         if hasattr(new_lit, "sign") and new_lit.sign == ast.Sign.Single and comps:
+            # Build #false head literal
+            false_head = ast.LiteralBoolean(
+                self.lib,
+                new_lit.location,
+                ast.Sign.NoSign,  # no sign on #false
+                False,  # value = false
+            )
+
+            # Make positive version of the negated literal (drop the "not")
+            positive_lit = new_lit.update(self.lib, sign=ast.Sign.NoSign)
+
             return ast.BodyConditionalLiteral(
-                self.lib, new_lit.location, new_lit, tuple(comps)
+                self.lib,
+                new_lit.location,
+                false_head,
+                (positive_lit, *comps),
             )
         else:
             result: List[ast.BodySimpleLiteral] = [
