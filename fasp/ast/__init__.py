@@ -23,6 +23,19 @@ class HeadSimpleAssignment(_AssignmentAST):
     def __str__(self):
         return f"{str(self.assigned_function)} := {str(self.value)}"
 
+    def transform(
+        self, library: Library, transformer: Any, *args, **kwargs
+    ) -> ast.StatementRule:
+        new_assigned_function = transformer(self.assigned_function, *args, **kwargs)
+        new_value = transformer(self.value, *args, **kwargs)
+        if not new_assigned_function and not new_value:
+            return self
+        new_assigned_function = new_assigned_function or self.assigned_function
+        new_value = new_value or self.value
+        return HeadSimpleAssignment(
+            library, self.location, new_assigned_function, new_value
+        )
+
 
 _AGGREGATE_FUNCTION_TO_STR = {
     ast.AggregateFunction.Sum: "#sum",
@@ -72,6 +85,24 @@ class AssignmentRule(_AssignmentAST):
             return f"{str(self.head)}."
         body = "; ".join(map(str, self.body))
         return f"{str(self.head)} :- {body}."
+
+    def transform(self, library: Library, transformer: Any, *args, **kwargs) -> Self:
+        new_head = transformer(self.head, *args, **kwargs)
+        new_body = []
+        new_lit_in_body = False
+        for lit in self.body:
+            new_lit = transformer(lit, *args, **kwargs)
+            if new_lit is not None:
+                new_body.append(new_lit)
+                new_lit_in_body = True
+            else:
+                new_body.append(lit)
+        if not new_head and not new_lit_in_body:
+            return self
+        new_head = new_head or self.head
+        if not new_lit_in_body:
+            new_body = self.body
+        return AssignmentRule(library, self.location, new_head, new_body)
 
 
 StatementAST = util_ast.StatementAST | AssignmentRule

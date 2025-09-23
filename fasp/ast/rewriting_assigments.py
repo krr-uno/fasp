@@ -110,9 +110,11 @@ class ParsingException(Exception):
     def __str__(self) -> str:
         return f"ParsingException: {self.errors}"  # pragma: no cover
 
+
 def _get_evaluable_functions_rule(rule: AssignmentRule) -> set[SymbolSignature]:
     name, arguments = function_arguments(rule.head.assigned_function)
     return {SymbolSignature(name, len(arguments))}
+
 
 def get_evaluable_functions(program: Iterable[AST]) -> set[SymbolSignature]:
     """
