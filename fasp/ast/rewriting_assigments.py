@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Iterable
+from functools import singledispatch
+from typing import Any, Iterable
 
 from fasp.ast import AssignmentRule, HeadSimpleAssignment
 from fasp.util.ast import AST, SyntacticError, function_arguments
@@ -43,7 +44,13 @@ class ParsingException(Exception):
         return f"ParsingException: {self.errors}"  # pragma: no cover
 
 
-def _get_evaluable_functions_head(head: HeadSimpleAssignment) -> set[SymbolSignature]:
+@singledispatch
+def _get_evaluable_functions_head(_: Any) -> set[SymbolSignature]:
+    assert False, f"Unsupported type: {_.__class__}"  # pragma: no cover
+
+
+@_get_evaluable_functions_head.register
+def _(head: HeadSimpleAssignment) -> set[SymbolSignature]:
     name, arguments = function_arguments(head.assigned_function)
     return {SymbolSignature(name, len(arguments))}
 
