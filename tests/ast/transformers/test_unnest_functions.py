@@ -341,6 +341,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             :- f(c) < a.
             :- #sum{p(x) : f(x)< y(x)} = 1.
             :- #count{p(x) : f(z) = y(x)} = 0.
+            p(f(1),b) :- q(a,b), not not r(h(1)).
         """).strip()
 
         expected_program = textwrap.dedent("""
@@ -352,15 +353,16 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             :- FUN<FUN2.
             :- #sum { p(x): FUN<y(x) } = 1.
             :- #count { p(x): FUN=y(x) } = 0.
+            p(FUN,b) :- q(FUN2,b); not not r(FUN3).
         """).strip()
         
-        evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("a", 0)}
+        evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("a", 0), SymbolSignature("h", 1)}
 
         rewritten = self.apply_transform(program, evaluable_functions)
         new_program, unnested_sets = self.construct_new_program(rewritten)
 
         self.assertEqual(new_program, expected_program)
-        self.assertEqual(len(unnested_sets), 7)
+        self.assertEqual(len(unnested_sets), 8)
         # :- f(a) = f(b).  => :- f(FUN)=FUN2.
         self.assertIn({"a=FUN", "f(b)=FUN2"}, unnested_sets)
 
@@ -382,6 +384,8 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         # :- #count{p(x) : f(z) = y(x)} = 0.  => :- #count { p(x): FUN=y(x) } = 0.
         self.assertIn({"f(z)=FUN"}, unnested_sets)
 
+        # p(f(1),b) :- q(a,b), not not r(h(1)).  => p(FUN,b) :- q(FUN2,b); not not r(FUN3).
+        self.assertIn({"f(1)=FUN", "a=FUN2", "h(1)=FUN3"}, unnested_sets)
 
     def test_aggregate(self):
         program = textwrap.dedent("""

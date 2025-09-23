@@ -34,6 +34,8 @@ class UnnestFunctionsTransformer:
         # Checks if same function with same args has already been unnested
         # Also checks for same TermSymbolic in the rule.
         self._cache: dict[tuple, TermAST] = {}
+        # Map from variable name to the corresponding comparisons for lookup during rewrite
+        self._var_to_comp: dict[str, ast.LiteralComparison] = {}
 
     def _is_evaluable(self, name: str, arity: int) -> bool:
         return SymbolSignature(name, arity) in self.evaluable_functions
@@ -106,6 +108,9 @@ class UnnestFunctionsTransformer:
             self._cache[key] = fresh
             comp = self._make_comparison(node.location, cast(TermAST, new_func), fresh)
             self.unnested_functions.append(comp)
+
+            self._var_to_comp[cast(ast.TermFunction, fresh).name] = comp
+
             return fresh
         return new_func
 
@@ -124,6 +129,7 @@ class UnnestFunctionsTransformer:
                 self._cache[key] = fresh
                 comp = self._make_comparison(node.location, node, fresh)
                 self.unnested_functions.append(comp)
+                self._var_to_comp[fresh.name] = comp
                 return fresh
         return node
 

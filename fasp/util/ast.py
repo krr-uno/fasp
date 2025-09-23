@@ -10,6 +10,7 @@ from typing import (
     TypeIs,
     TypeVar,
     cast,
+    Union,
 )
 
 from clingo import ast
@@ -481,3 +482,36 @@ class FreshVariableGenerator:
                 return ast.TermVariable(lib, location, candidate, False)
 
         assert False, "This will never happen, but makes mypy happy"  # pragma: no cover
+
+class ComparisonCollector:
+    """
+    Collect all LiteralComparison nodes from an AST or iterable of ASTs.
+    """
+
+    def __init__(self):
+        self.comparisons: Set[ast.LiteralComparison] = set()
+
+    def collect(
+        self, nodes: Union[Any, Iterable[Any]]
+    ) -> Set[ast.LiteralComparison]:
+        if isinstance(nodes, (list, tuple, set)):
+            for node in nodes:
+                self._collect(node) #pragma: no cover
+        else:
+            self._collect(nodes)
+        return self.comparisons
+
+    def _collect(self, node: Any) -> None:
+        if isinstance(node, ast.LiteralComparison):
+            self.comparisons.add(node)
+        # recurse into children
+        node.visit(self._collect)
+
+def collect_comparisons(
+    node: AST, 
+) -> Set[ast.LiteralComparison]:
+    """Collect all LiteralComparison nodes from an AST into the provided set."""
+    collector = ComparisonCollector()
+    out: Set[ast.LiteralComparison] = set()
+    comps = collector.collect(node)
+    return comps
