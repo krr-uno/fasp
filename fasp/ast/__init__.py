@@ -10,12 +10,7 @@ from fasp.util import ast as util_ast
 
 
 class _AssignmentAST:
-
-    def visit(self, visitor: Any, *args, **kwargs) -> None:
-        visitor(self, *args, **kwargs)
-
-    def transform(self, library: Library, transformer: Any, *args, **kwargs) -> Self:
-        return transformer(self, *args, **kwargs) or self
+    pass
 
 
 @dataclass

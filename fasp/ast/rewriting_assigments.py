@@ -110,6 +110,9 @@ class ParsingException(Exception):
     def __str__(self) -> str:
         return f"ParsingException: {self.errors}"  # pragma: no cover
 
+def _get_evaluable_functions_rule(rule: AssignmentRule) -> set[SymbolSignature]:
+    name, arguments = function_arguments(rule.head.assigned_function)
+    return {SymbolSignature(name, len(arguments))}
 
 def get_evaluable_functions(program: Iterable[AST]) -> set[SymbolSignature]:
     """
@@ -121,9 +124,8 @@ def get_evaluable_functions(program: Iterable[AST]) -> set[SymbolSignature]:
     Returns:
         set[FunctionSymbol]: A set of FunctionSymbol instances representing the functions found.
     """
-    collector = AssignmentTransformer()
+    get_evaluable_functions = set()
     for statement in program:
-        collector.collect(statement)
-    if collector.errors:
-        raise ParsingException(collector.errors)
-    return collector.function_symbols
+        if isinstance(statement, AssignmentRule):
+            get_evaluable_functions |= _get_evaluable_functions_rule(statement)
+    return get_evaluable_functions
