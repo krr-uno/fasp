@@ -229,11 +229,7 @@ def _functional2asp(
     Returns:
         Iterable[ast.AST]: The transformed program.
     """
-    ha_rewriter = HeadAggregateToBodyRewriteTransformer(library)
-    statements = ha_rewriter.rewrite_statements(statements)
-    if ha_rewriter.errors:
-        raise ParsingException(ha_rewriter.errors)
-
+    statements = normalize_assignment_aggregates(library, statements)
     evaluable_functions = get_evaluable_functions(statements)
     transformer = NormalForm2PredicateTransformer(library, evaluable_functions, prefix)
     return (

@@ -11,10 +11,9 @@ from fasp.util import ast as util_ast
 
 
 class _AssignmentAST:
-    
+
     @abstractmethod
-    def to_dict(self) -> dict[str, Any]:
-        ...
+    def to_dict(self) -> dict[str, Any]: ...
 
     def update(self, library: Library, **kwargs) -> Self:
         d = self.to_dict()
@@ -35,9 +34,9 @@ class HeadSimpleAssignment(_AssignmentAST):
 
     def to_dict(self):
         return {
-            "location" : self.location,
-            "assigned_function" : self.assigned_function,
-            "elements" : self.elements
+            "location": self.location,
+            "assigned_function": self.assigned_function,
+            "elements": self.elements,
         }
 
     def transform(
@@ -75,10 +74,10 @@ class HeadAggregateAssignment(_AssignmentAST):
 
     def to_dict(self):
         return {
-            "location" : self.location,
-            "assigned_function" : self.assigned_function,
-            "aggregate_function" : self.aggregate_function,
-            "elements" : self.elements
+            "location": self.location,
+            "assigned_function": self.assigned_function,
+            "aggregate_function": self.aggregate_function,
+            "elements": self.elements,
         }
 
     def visit(self, visitor: Any, *args, **kwargs) -> None:
@@ -98,12 +97,12 @@ class HeadChoiceAssignment(_AssignmentAST):
         return (
             f"{str(self.assigned_function)} in {{{'; '.join(map(str, self.elements))}}}"
         )
-    
+
     def to_dict(self):
         return {
-            "location" : self.location,
-            "assigned_function" : self.assigned_function,
-            "elements" : self.elements
+            "location": self.location,
+            "assigned_function": self.assigned_function,
+            "elements": self.elements,
         }
 
 
@@ -122,12 +121,12 @@ class AssignmentRule(_AssignmentAST):
             return f"{str(self.head)}."
         body = "; ".join(map(str, self.body))
         return f"{str(self.head)} :- {body}."
-    
+
     def to_dict(self):
         return {
-            "location" : self.location,
-            "head" : self.head.to_dict(),
-            "body" : self.body,
+            "location": self.location,
+            "head": self.head.to_dict(),
+            "body": self.body,
         }
 
     def visit(self, visitor: Any, *args, **kwargs) -> None:

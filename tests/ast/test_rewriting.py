@@ -12,7 +12,7 @@ from fasp.ast.rewriting import (
     _functional2asp,
     normalize_ast,
     ParsingException,
-    HeadAggregateToBodyRewriteTransformer,
+    normalize_assignment_aggregates,
 )
 
 # def normalize_statements(

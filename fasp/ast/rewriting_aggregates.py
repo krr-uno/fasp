@@ -1,7 +1,5 @@
-from typing import Any
-
 from clingo import ast
-from clingo.core import Library, Location
+from clingo.core import Library
 
 from fasp.ast import AssignmentRule, HeadAggregateAssignment, HeadSimpleAssignment
 from fasp.util.ast import (
@@ -13,7 +11,6 @@ from fasp.util.ast import (
     collect_variables,
     is_function,
 )
-
 
 # class HeadAggregateToBodyRewriteTransformer:
 #     """

@@ -206,7 +206,9 @@ class TreeSitterParser:
         self.query_errors = Query(self.language, "(ERROR) @error-node")
         self.query_missing = Query(self.language, "(MISSING) @missing-node")
         self.query_assignment_rule = Query(self.language, "(assignment_rule) @match")
-        self.query_body_aggregate_elements = Query(self.language, "(body_aggregate_elements) @match")
+        self.query_body_aggregate_elements = Query(
+            self.language, "(body_aggregate_elements) @match"
+        )
         self.errors = []
 
     def parse(self, src: str) -> AST:
@@ -249,7 +251,9 @@ class TreeSitterParser:
 
     def _preparse_assignment(self, node: Node) -> tuple[TermAST, str]:
         unparsed_function = node.children[0].text.decode("utf-8")
-        unparsed_value = "".join(map(lambda x: x.text.decode("utf-8"), node.children[2:]))
+        unparsed_value = "".join(
+            map(lambda x: x.text.decode("utf-8"), node.children[2:])
+        )
         assigned_function = ast.parse_term(self.library, unparsed_function)
         assert is_function(assigned_function)
         return assigned_function, unparsed_value
@@ -325,7 +329,9 @@ class TreeSitterParser:
         """
         tree = self._tree_parse(src)
         # self._check_syntax_errors(tree, src)
-        return TreeSitterParser._find_with_query(tree.root_node, self.query_assignment_rule)
+        return TreeSitterParser._find_with_query(
+            tree.root_node, self.query_assignment_rule
+        )
 
     # def _process_error(self, node: Node, is_missing: bool = False):
     #     pass
