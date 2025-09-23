@@ -1,20 +1,14 @@
 import textwrap
 import unittest
 
-from clingo import ast
-from clingo.core import Library, Location, Position
+from clingo.core import Library
 from clingo.ast import RewriteContext
-from fasp.ast.protecting import protect_comparisons, restore_comparisons
 from fasp.ast.tree_sitter.parser import parse_string
 from fasp.util.ast import AST
 
-from fasp.ast.rewriting_assigments import ParsingException
 
 from fasp.ast.rewriting import (
     _functional2asp,
-    normalize_ast,
-    
-    normalize_assignment_aggregates,
 )
 
 # def normalize_statements(

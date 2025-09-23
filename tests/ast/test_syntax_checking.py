@@ -1,10 +1,8 @@
-from ast import parse
 import unittest
 
-from clingo import ast
 from clingo.core import Library
 
-from fasp.ast.rewriting_assigments import get_evaluable_functions, ParsingException
+from fasp.ast.rewriting_assigments import get_evaluable_functions
 from fasp.ast.tree_sitter.parser import parse_string
 
 

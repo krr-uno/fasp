@@ -5,7 +5,6 @@ import unittest
 
 from clingo.core import Library
 
-from fasp.ast.rewriting_assigments import ParsingException
 from fasp.control import Control
 from fasp.solve import Model
 

@@ -1,18 +1,14 @@
-from calendar import c
 import textwrap
 from typing import Any, Iterable, Sequence
 import unittest
 
-from attr import has
 from clingo import ast
-from clingo.core import Location, Position, Library
+from clingo.core import Library
 
-from fasp.ast import AssignmentRule, HeadAggregateAssignment, HeadSimpleAssignment
-from fasp.util.ast import AST, SyntacticCheckVisitor, SyntacticError, TermAST
+from fasp.ast import AssignmentRule, HeadSimpleAssignment
+from fasp.util.ast import AST
 from fasp.ast.tree_sitter import parser
 from fasp.util.ast import parse_string
-from fasp.util.tree_sitter import format_ts_tree
-from tests import clingo
 
 
 class TestParseAssignment(unittest.TestCase):

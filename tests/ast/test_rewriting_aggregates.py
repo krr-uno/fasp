@@ -1,9 +1,7 @@
 import textwrap
 import unittest
 
-from clingo import ast
 from clingo.core import Library
-from fasp.util.ast import AST
 
 from fasp.ast.rewriting_aggregates import (
     normalize_assignment_aggregates,
