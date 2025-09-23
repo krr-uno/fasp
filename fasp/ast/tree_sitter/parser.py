@@ -21,7 +21,8 @@ from fasp.ast import (
     HeadChoiceAssignment,
     HeadSimpleAssignment,
 )
-from fasp.util.ast import AST, TermAST, is_function
+from fasp.ast.rewriting_assigments import ParsingException
+from fasp.util.ast import AST, SyntacticError, TermAST, is_function
 from fasp.util.ast import parse_string as clingo_parse_string
 
 TREE_SITTER_LANG = "tree_sitter_fasp"
@@ -255,7 +256,16 @@ class TreeSitterParser:
             map(lambda x: x.text.decode("utf-8"), node.children[2:])
         )
         assigned_function = ast.parse_term(self.library, unparsed_function)
-        assert is_function(assigned_function)
+        if not is_function(assigned_function):
+            raise ParsingException(
+                [
+                    SyntacticError(
+                        assigned_function.location,
+                        f"Unexpected {str(assigned_function)} on the right-hand of assignment",
+                        assigned_function,
+                    )
+                ]
+            )
         return assigned_function, unparsed_value
 
     def _parse_simple_assignment(self, node: Node) -> AST:
