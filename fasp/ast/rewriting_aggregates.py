@@ -3,6 +3,7 @@ from typing import Any
 from clingo import ast
 from clingo.core import Library, Location
 
+from fasp.ast import AssignmentRule, HeadAggregateAssignment, HeadSimpleAssignment
 from fasp.util.ast import (
     BodyLiteralAST,
     FreshVariableGenerator,
@@ -157,3 +158,40 @@ class HeadAggregateToBodyRewriteTransformer:
         Record a syntactic error at the given location with a structured message.
         """
         self.errors.append(SyntacticError(location, message, information))
+
+
+def normalize_assignment_aggregates(
+    library: Library, stm: StatementAST
+) -> StatementAST:
+    if not isinstance(stm, AssignmentRule) or not isinstance(
+        head := stm.head, HeadAggregateAssignment
+    ):
+        return stm
+    used_variables = collect_variables([stm])
+    fresh_variable_generator = FreshVariableGenerator(used_variables)
+    fresh_variable = fresh_variable_generator.fresh_variable(
+        library, head.location, "W"
+    )
+    new_head = HeadSimpleAssignment(
+        library,
+        head.location,
+        head.assigned_function,
+        fresh_variable,
+    )
+
+    # Build body aggregate W = #agg{ ... } (as a BodyAggregate with LeftGuard(W, Equal))
+    body_agg = ast.BodyAggregate(
+        library,
+        head.location,
+        ast.Sign.NoSign,
+        ast.LeftGuard(library, fresh_variable, ast.Relation.Equal),
+        head.aggregate_function,
+        head.elements,
+        None,
+    )
+
+    # Preserve the original body and append the equality-to-aggregate literal.
+    new_body: list[BodyLiteralAST] = list(stm.body) + [body_agg]
+
+    # Return the rewritten rule.
+    return stm.update(library, head=new_head, body=new_body)
