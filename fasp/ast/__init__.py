@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Self
@@ -10,7 +11,16 @@ from fasp.util import ast as util_ast
 
 
 class _AssignmentAST:
-    pass
+    
+    @abstractmethod
+    def to_dict(self) -> dict[str, Any]:
+        ...
+
+    def update(self, library: Library, **kwargs) -> Self:
+        d = self.to_dict()
+        d.update(kwargs)
+        d["library"] = library
+        return self.__class__(**d)
 
 
 @dataclass
@@ -22,6 +32,13 @@ class HeadSimpleAssignment(_AssignmentAST):
 
     def __str__(self):
         return f"{str(self.assigned_function)} := {str(self.value)}"
+
+    def to_dict(self):
+        return {
+            "location" : self.location,
+            "assigned_function" : self.assigned_function,
+            "elements" : self.elements
+        }
 
     def transform(
         self, library: Library, transformer: Any, *args, **kwargs
@@ -56,6 +73,19 @@ class HeadAggregateAssignment(_AssignmentAST):
     def __str__(self):
         return f"{str(self.assigned_function)} := {_AGGREGATE_FUNCTION_TO_STR[self.aggregate_function]}{{{'; '.join(map(str, self.elements))}}}"
 
+    def to_dict(self):
+        return {
+            "location" : self.location,
+            "assigned_function" : self.assigned_function,
+            "aggregate_function" : self.aggregate_function,
+            "elements" : self.elements
+        }
+
+    def visit(self, visitor: Any, *args, **kwargs) -> None:
+        visitor(self.assigned_function, *args, **kwargs)
+        for elem in self.elements:
+            visitor(elem, *args, **kwargs)
+
 
 @dataclass
 class HeadChoiceAssignment(_AssignmentAST):
@@ -68,6 +98,13 @@ class HeadChoiceAssignment(_AssignmentAST):
         return (
             f"{str(self.assigned_function)} in {{{'; '.join(map(str, self.elements))}}}"
         )
+    
+    def to_dict(self):
+        return {
+            "location" : self.location,
+            "assigned_function" : self.assigned_function,
+            "elements" : self.elements
+        }
 
 
 HeadAssignment = HeadSimpleAssignment | HeadAggregateAssignment
@@ -85,6 +122,18 @@ class AssignmentRule(_AssignmentAST):
             return f"{str(self.head)}."
         body = "; ".join(map(str, self.body))
         return f"{str(self.head)} :- {body}."
+    
+    def to_dict(self):
+        return {
+            "location" : self.location,
+            "head" : self.head.to_dict(),
+            "body" : self.body,
+        }
+
+    def visit(self, visitor: Any, *args, **kwargs) -> None:
+        visitor(self.head, *args, **kwargs)
+        for lit in self.body:
+            visitor(lit, *args, **kwargs)
 
     def transform(self, library: Library, transformer: Any, *args, **kwargs) -> Self:
         new_head = transformer(self.head, *args, **kwargs)

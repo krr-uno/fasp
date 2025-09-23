@@ -13,7 +13,7 @@ from fasp.ast.protecting import (
     restore_comparisons,
 )
 from fasp.ast.rewriting_aggregates import (
-    HeadAggregateToBodyRewriteTransformer,
+    normalize_assignment_aggregates,
 )
 from fasp.ast.rewriting_assigments import (
     ParsingException,
