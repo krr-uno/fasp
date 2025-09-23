@@ -40,7 +40,7 @@ class RuleRewriteTransformer:
             Union[ast.BodySimpleLiteral, ast.BodyConditionalLiteral, ast.BodyAggregate]
         ] = []
 
-        present_in_body = collect_comparisons([])  # start empty set
+        present_in_body = collect_comparisons(None)  # start empty set
 
         for lit in transformed_rule.body:
             rewritten = self._rewrite(lit)
@@ -105,7 +105,7 @@ class RuleRewriteTransformer:
         for c in node.condition:
             rewritten = self._rewrite(c)
             if isinstance(rewritten, list):
-                new_condition.extend(rewritten) #pragma: no cover
+                new_condition.extend(rewritten)  # pragma: no cover
             else:
                 new_condition.append(rewritten)
 

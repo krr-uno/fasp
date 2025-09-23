@@ -9,8 +9,8 @@ from typing import (
     Set,
     TypeIs,
     TypeVar,
-    cast,
     Union,
+    cast,
 )
 
 from clingo import ast
@@ -483,6 +483,7 @@ class FreshVariableGenerator:
 
         assert False, "This will never happen, but makes mypy happy"  # pragma: no cover
 
+
 class ComparisonCollector:
     """
     Collect all LiteralComparison nodes from an AST or iterable of ASTs.
@@ -491,14 +492,8 @@ class ComparisonCollector:
     def __init__(self):
         self.comparisons: Set[ast.LiteralComparison] = set()
 
-    def collect(
-        self, nodes: Union[Any, Iterable[Any]]
-    ) -> Set[ast.LiteralComparison]:
-        if isinstance(nodes, (list, tuple, set)):
-            for node in nodes:
-                self._collect(node) #pragma: no cover
-        else:
-            self._collect(nodes)
+    def collect(self, nodes: Union[Any, Iterable[Any]]) -> Set[ast.LiteralComparison]:
+        self._collect(nodes)
         return self.comparisons
 
     def _collect(self, node: Any) -> None:
@@ -507,10 +502,13 @@ class ComparisonCollector:
         # recurse into children
         node.visit(self._collect)
 
+
 def collect_comparisons(
-    node: AST, 
+    node: AST | None,
 ) -> Set[ast.LiteralComparison]:
     """Collect all LiteralComparison nodes from an AST into the provided set."""
+    if node is None:
+        return set()
     collector = ComparisonCollector()
     out: Set[ast.LiteralComparison] = set()
     comps = collector.collect(node)
