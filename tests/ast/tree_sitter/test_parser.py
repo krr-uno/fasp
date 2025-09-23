@@ -201,6 +201,9 @@ class TestParseAssignment(unittest.TestCase):
             "a" := 1 :- b.
             1 := 1 :- b.
             (a,b) := 1 :- b.
+            "a" := #sum{X: p(X)} :- b.
+            1 := #sum{X: p(X)} :- b.
+            (a,b) := #sum{X: p(X)} :- b.
             """
         )
         with self.assertRaises(ParsingException) as cm:
