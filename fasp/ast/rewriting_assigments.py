@@ -1,8 +1,5 @@
 from dataclasses import dataclass
-from functools import singledispatchmethod
-from typing import Any, Iterable
-
-from clingo import ast
+from typing import Iterable
 
 from fasp.ast import AssignmentRule, HeadSimpleAssignment
 from fasp.util.ast import AST, SyntacticError, function_arguments
@@ -27,71 +24,6 @@ class SymbolSignature:
         return f"{self.name}/{self.arity}"
 
 
-class AssignmentTransformer:
-    """
-    Visitor to collect function symbols from the AST.
-    """
-
-    def __init__(self, prefix: str = "F", rewrite: bool = True) -> None:
-        self.prefix = prefix
-        self.rewrite = rewrite
-        self.errors: list[SyntacticError] = []
-        self.function_symbols: set[SymbolSignature] = set()
-        self._UNCOLLECTABLE = {  # pylint: disable=invalid-name
-            ast.LiteralBoolean,
-            ast.LiteralSymbolic,
-            ast.HeadTheoryAtom,
-            ast.StatementTheory,
-            ast.StatementOptimize,
-            ast.StatementWeakConstraint,
-            ast.StatementShow,
-            ast.StatementShowNothing,
-            ast.StatementShowSignature,
-            ast.StatementProject,
-            ast.StatementProjectSignature,
-            ast.StatementDefined,
-            ast.StatementExternal,
-            ast.StatementEdge,
-            ast.StatementHeuristic,
-            ast.StatementScript,
-            ast.StatementInclude,
-            ast.StatementProgram,
-            ast.StatementParts,
-            ast.StatementConst,
-            ast.StatementComment,
-        }
-
-    @singledispatchmethod
-    def collect(self, node: Any, *args: Any, **kwargs: Any) -> None:
-        """
-        Visit the given AST node and check for invalid AST types.
-
-        Parameters
-        ----------
-        node : AST
-            The AST node to visit.
-        """
-        if type(node) not in self._UNCOLLECTABLE:
-            node.visit(self.collect, args, kwargs)
-
-    @collect.register
-    def _(
-        self, node: ast.StatementRule | AssignmentRule, *args: Any, **kwargs: Any
-    ) -> None:
-        """
-        Visit a Rule node and collect function symbols from the head.
-        """
-        node.head.visit(self.collect, *args, **kwargs)
-
-    @collect.register
-    def _(self, node: HeadSimpleAssignment, *_args: Any, **_kwargs: Any) -> None:
-        """
-        Visit a Comparison node (assignment) and record the function name and arity.
-        """
-        name, arguments = function_arguments(node.assigned_function)
-        self.function_symbols.add(SymbolSignature(name, len(arguments)))
-
-
 class ParsingException(Exception):
     """
     Exception raised for errors in the parsing process.
@@ -111,8 +43,8 @@ class ParsingException(Exception):
         return f"ParsingException: {self.errors}"  # pragma: no cover
 
 
-def _get_evaluable_functions_rule(rule: AssignmentRule) -> set[SymbolSignature]:
-    name, arguments = function_arguments(rule.head.assigned_function)
+def _get_evaluable_functions_head(head: HeadSimpleAssignment) -> set[SymbolSignature]:
+    name, arguments = function_arguments(head.assigned_function)
     return {SymbolSignature(name, len(arguments))}
 
 
@@ -129,5 +61,5 @@ def get_evaluable_functions(program: Iterable[AST]) -> set[SymbolSignature]:
     get_evaluable_functions = set()
     for statement in program:
         if isinstance(statement, AssignmentRule):
-            get_evaluable_functions |= _get_evaluable_functions_rule(statement)
+            get_evaluable_functions |= _get_evaluable_functions_head(statement.head)
     return get_evaluable_functions
