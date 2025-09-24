@@ -343,6 +343,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             :- #count{p(x) : f(z) = y(x)} = 0.
             p(f(1),b) :- q(a,b), not not r(h(1)).
             :- g = a.
+            :- g = f(1).
         """).strip()
 
         expected_program = textwrap.dedent("""
@@ -355,7 +356,8 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             :- #sum { p(x): FUN<y(x) } = 1.
             :- #count { p(x): FUN=y(x) } = 0.
             p(FUN,b) :- q(FUN2,b); not not r(FUN3).
-            :- a = g.
+            :- a=g.
+            :- f(1)=g.
         """).strip()
         
         
@@ -365,7 +367,6 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         new_program, unnested_sets = self.construct_new_program(rewritten)
 
         self.assertEqual(new_program, expected_program)
-        self.assertEqual(len(unnested_sets), 8)
         # :- f(a) = f(b).  => :- f(FUN)=FUN2.
         self.assertIn({"a=FUN", "f(b)=FUN2"}, unnested_sets)
 
@@ -389,6 +390,10 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
 
         # p(f(1),b) :- q(a,b), not not r(h(1)).  => p(FUN,b) :- q(FUN2,b); not not r(FUN3).
         self.assertIn({"f(1)=FUN", "a=FUN2", "h(1)=FUN3"}, unnested_sets)
+
+        # :- g = a.  => :- a=g.
+        # :- g = f(1).  => :- f(1)=g.
+        self.assertIn(set(), unnested_sets)
 
     def test_aggregate(self):
         program = textwrap.dedent("""

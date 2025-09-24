@@ -40,6 +40,16 @@ class UnnestFunctionsTransformer:
     def _is_evaluable(self, name: str, arity: int) -> bool:
         return SymbolSignature(name, arity) in self.evaluable_functions
 
+    def _is_evaluable_term(self, term: TermAST) -> bool:
+        if isinstance(term, ast.TermFunction):
+            return self._is_evaluable(term.name, len(term.pool[0].arguments))
+        if (
+            isinstance(term, ast.TermSymbolic)
+            and term.symbol.type == SymbolType.Function
+        ):
+            return self._is_evaluable(str(term.symbol.name), len(term.symbol.arguments))
+        return False
+
     def _make_comparison(
         self, loc, left: TermAST, right: TermAST
     ) -> ast.LiteralComparison:
@@ -65,6 +75,22 @@ class UnnestFunctionsTransformer:
         if len(node.right) == 1 and node.right[0].relation != ast.Relation.Equal:
             outer = False
 
+        # Special case: equality with evaluable only on right-hand side
+        if len(node.right) == 1 and node.right[0].relation == ast.Relation.Equal:
+            left_eval = self._is_evaluable_term(node.left)
+            right_eval = self._is_evaluable_term(node.right[0].term)
+
+            if not left_eval and right_eval:
+                # Flip sides instead of unnesting into a fresh var
+                new_left = cast(TermAST, self._unnest(node.right[0].term, outer))
+                new_right = [
+                    ast.RightGuard(
+                        self.lib,
+                        ast.Relation.Equal,
+                        cast(TermAST, self._unnest(node.left, outer=False)),
+                    )
+                ]
+                return node.update(self.lib, left=new_left, right=new_right)
         new_left = cast(
             TermAST, self._unnest(node.left, outer)
         )  # False if not = and len(node.right) == 1

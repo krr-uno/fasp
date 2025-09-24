@@ -77,11 +77,6 @@ class RuleRewriteTransformer:
         """Fallback: recurse transform if available, else return node."""
         return node.transform(self.lib, lambda c: self._rewrite(c)) or node
 
-    # @_rewrite.register
-    # def _(self, node: ast.HeadSimpleLiteral):
-    #     new_lit = self._rewrite(node.literal)
-    #     return node.update(self.lib, literal=new_lit)
-
     @_rewrite.register
     def _(self, node: ast.BodySimpleLiteral):
         new_lit = self._rewrite(node.literal)
@@ -136,8 +131,3 @@ class RuleRewriteTransformer:
 
         new_condition.extend(comps)
         return node.update(self.lib, condition=tuple(new_condition))
-
-    # @_rewrite.register
-    # def _(self, node: ast.BodyAggregate):
-    #     new_elements = [self._rewrite(e) for e in node.elements]
-    #     return node.update(self.lib, elements=tuple(new_elements))
