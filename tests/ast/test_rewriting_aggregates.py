@@ -9,6 +9,7 @@ from fasp.ast.rewriting_aggregates import (
 
 from fasp.ast.tree_sitter.parser import parse_string
 
+
 class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
     """
     Unit tests for the HeadAggregateToBodyRewriteTransformer.
@@ -60,7 +61,6 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         ).strip()
         self.assertRewriteEqual(program, expected)
 
-
     def test_valid_left_term_no_error_symbolic_function(self):
         program = """\
             a = #sum{ Y : p(Y,Z) } :- b(X,Z).
@@ -81,7 +81,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
     #         "The left-hand side of an assignment must be a function term",
     #         errors[0].message,
     #     )
-        # 'The left-hand side of an assignment must be a function term, found "as"'
+    # 'The left-hand side of an assignment must be a function term, found "as"'
 
     # def test_invalid_left_term_error_number(self):
     #     program = """\

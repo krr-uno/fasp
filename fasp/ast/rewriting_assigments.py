@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from functools import singledispatch
 from typing import Any, Iterable
 
-from fasp.ast import AssignmentRule, HeadSimpleAssignment, FASP_AST
+from fasp.ast import FASP_AST, AssignmentRule, HeadSimpleAssignment
 from fasp.util.ast import SyntacticError, function_arguments
 
 # INVALID_ASTTYPES = {}
@@ -25,7 +25,7 @@ class SymbolSignature:
         return f"{self.name}/{self.arity}"
 
 
-class ParsingException(Exception): #pragma: no cover
+class ParsingException(Exception):  # pragma: no cover
     """
     Exception raised for errors in the parsing process.
 

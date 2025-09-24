@@ -1,5 +1,5 @@
 # mypy: ignore-errors
-
+# pragma: no cover
 import ctypes
 import importlib
 import sys
@@ -19,10 +19,10 @@ from tree_sitter import (
 
 from fasp.ast import (
     AssignmentRule,
+    FASP_Statement,
     HeadAggregateAssignment,
     HeadChoiceAssignment,
     HeadSimpleAssignment,
-    FASP_Statement,
 )
 from fasp.ast.rewriting_assigments import ParsingException
 from fasp.util.ast import AST, SyntacticError, TermAST, is_function
@@ -255,7 +255,6 @@ class TreeSitterParser:
             body = []
 
         return AssignmentRule(
-            self.library,
             self._location_from_node(node),
             head,
             body,
@@ -273,7 +272,6 @@ class TreeSitterParser:
         assigned_function, unparsed_value = self._preparse_assignment(node)
         value = ast.parse_term(self.library, unparsed_value)
         return HeadSimpleAssignment(
-            self.library,
             self._location_from_node(node),
             assigned_function,
             value,
@@ -283,7 +281,6 @@ class TreeSitterParser:
         assigned_function, unparsed_aggregate = self._preparse_assignment(node)
         aggregate = self._clingo_parse_body_aggregate(unparsed_aggregate)
         return HeadAggregateAssignment(
-            self.library,
             self._location_from_node(node),
             assigned_function,
             aggregate.function,
@@ -452,7 +449,9 @@ def parse_string(library: Library, src: str) -> Iterable[AST]:
     return asts
 
 
-def parse_files(library: Library, files: Sequence[str] = None) -> Iterable[FASP_Statement]:
+def parse_files(
+    library: Library, files: Sequence[str] = None
+) -> Iterable[FASP_Statement]:
     """
     Parse the programs in the given files and return an abstract syntax tree for
     each statement via a callback.

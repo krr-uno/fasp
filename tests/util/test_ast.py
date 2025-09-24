@@ -4,6 +4,7 @@ from clingo import ast
 from clingo.core import Location, Position, Library
 
 from fasp.util.ast import SyntacticCheckVisitor, SyntacticError
+from fasp.ast.collect_variables import collect_variables, VariableCollector
 from fasp.util import ast as util_ast
 
 
@@ -112,15 +113,15 @@ class TestVariableManager(unittest.TestCase):
 
     def test_collect_vars_from_program(self):
         stmts = self.parse_program("p(X,Y). q(Z).")
-        used = util_ast.collect_variables(stmts)
+        used = collect_variables(stmts)
         self.assertEqual(used, {"X", "Y", "Z"})
 
     def test_collect_vars_isolated_instances(self):
         stmts1 = self.parse_program("p(X).")
         stmts2 = self.parse_program("q(Y).")
 
-        c1 = util_ast.VariableCollector()
-        c2 = util_ast.VariableCollector()
+        c1 = VariableCollector()
+        c2 = VariableCollector()
 
         used1 = c1.collect(stmts1)
         used2 = c2.collect(stmts2)
@@ -148,7 +149,7 @@ class TestVariableManager(unittest.TestCase):
         """
 
         stmts = self.parse_program(program)
-        used = util_ast.collect_variables(stmts)
+        used = collect_variables(stmts)
 
         # All variables across the program should be collected
         expected = {
@@ -210,7 +211,7 @@ class TestVariableManager(unittest.TestCase):
     def test_pipeline_basic_program(self):
         """Collector should feed into generator with proper fresh variables."""
         stmts = self.parse_program("p(X,Y). q(Z).")
-        used = util_ast.collect_variables(stmts)
+        used = collect_variables(stmts)
         self.assertEqual(used, {"X", "Y", "Z"})
 
         gen = util_ast.FreshVariableGenerator(used)
@@ -225,7 +226,7 @@ class TestVariableManager(unittest.TestCase):
     def test_pipeline_multiple_rules(self):
         """Variables across multiple rules should all be collected and respected."""
         stmts = self.parse_program("p(A). q(B,C). r(D,E,F).")
-        used = util_ast.collect_variables(stmts)
+        used = collect_variables(stmts)
         self.assertEqual(used, {"A", "B", "C", "D", "E", "F"})
 
         gen = util_ast.FreshVariableGenerator(used)

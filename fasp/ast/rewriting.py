@@ -1,16 +1,20 @@
 from functools import singledispatchmethod
 from itertools import chain
-from typing import AbstractSet, Any, Iterable, TypeVar, cast
+from typing import AbstractSet, Any, Iterable, cast
 
 from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number
 
-from fasp.ast import AssignmentRule, HeadSimpleAssignment, FASP_AST_T
-from fasp.ast.protecting import (
+from fasp.ast import (
+    FASP_AST,
+    FASP_AST_T,
+    AssignmentRule,
+    FASP_Statement,
+    HeadSimpleAssignment,
+)
+from fasp.ast.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
-    # protect_comparisons,
-    # restore_comparisons,
 )
 from fasp.ast.rewriting_aggregates import (
     normalize_assignment_aggregates,
@@ -19,22 +23,15 @@ from fasp.ast.rewriting_assigments import (
     SymbolSignature,
     get_evaluable_functions,
 )
-
-from fasp.ast import (
-    FASP_AST,
-    FASP_Statement,
-)
-
 from fasp.util.ast import (
     BodyLiteralAST,
+    StatementAST,
     create_body_literal,
     create_literal,
     function_arguments,
     function_arguments_ast,
     is_function,
-    StatementAST,
 )
-
 
 # def normalize_ast(
 #     library: Library, statements: Iterable[FASP_Statement]
@@ -47,6 +44,7 @@ from fasp.util.ast import (
 #             for stmt in protect_comparisons(library, statements)
 #         ),
 #     )
+
 
 class NormalForm2PredicateTransformer:
     """

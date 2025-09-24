@@ -1,12 +1,16 @@
 from clingo import ast
 from clingo.core import Library
 
-from fasp.ast import AssignmentRule, HeadAggregateAssignment, HeadSimpleAssignment
-from fasp.ast import FASP_Statement
+from fasp.ast import (
+    AssignmentRule,
+    FASP_Statement,
+    HeadAggregateAssignment,
+    HeadSimpleAssignment,
+)
+from fasp.ast.collect_variables import collect_variables
 from fasp.util.ast import (
     BodyLiteralAST,
     FreshVariableGenerator,
-    collect_variables,
 )
 
 # class HeadAggregateToBodyRewriteTransformer:
@@ -167,7 +171,6 @@ def normalize_assignment_aggregates(
         library, head.location, "W"
     )
     new_head = HeadSimpleAssignment(
-        library,
         head.location,
         head.assigned_function,
         fresh_variable,
@@ -188,4 +191,4 @@ def normalize_assignment_aggregates(
     new_body: list[BodyLiteralAST] = list(stm.body) + [body_agg]
 
     # Return the rewritten rule.
-    return stm.update(library, head=new_head, body=new_body)
+    return stm.update(head=new_head, body=new_body)

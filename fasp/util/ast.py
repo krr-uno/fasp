@@ -2,7 +2,6 @@ import sys
 from typing import (
     AbstractSet,
     Any,
-    Iterable,
     NamedTuple,
     Optional,
     Sequence,
@@ -82,7 +81,6 @@ from clingo.ast import (
 from clingo.core import Library, Location, Position
 from clingo.symbol import Symbol, SymbolType
 
-
 StatementAST = (
     StatementRule
     | StatementTheory
@@ -118,7 +116,13 @@ TermAST = (
 ArgumentAST = TermAST | Projection
 LiteralAST = LiteralBoolean | LiteralComparison | LiteralSymbolic
 
-BodyLiteralAST = BodySimpleLiteral | BodyAggregate | BodySetAggregate | BodyTheoryAtom | BodyConditionalLiteral
+BodyLiteralAST = (
+    BodySimpleLiteral
+    | BodyAggregate
+    | BodySetAggregate
+    | BodyTheoryAtom
+    | BodyConditionalLiteral
+)
 
 AST = (
     StatementAST
@@ -225,8 +229,6 @@ AST_T = TypeVar(
 )
 
 FunctionLikeAST = TermFunction | TermSymbolic | TermTuple | Symbol
-
-
 
 
 class SyntacticError(NamedTuple):
@@ -416,9 +418,6 @@ def function_arguments_ast(
     return name, [
         ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
     ]
-
-
-
 
 
 class FreshVariableGenerator:

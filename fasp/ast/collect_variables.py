@@ -1,11 +1,12 @@
 from typing import (
     Iterable,
-    )
+)
 
 from clingo import ast
 
-
 from fasp.ast import FASP_AST, FASP_Statement
+
+
 class VariableCollector:
     """
     Class to collect variables from a list of AST statements.
