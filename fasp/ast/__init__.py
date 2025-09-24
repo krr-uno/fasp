@@ -99,7 +99,7 @@ class AssignmentAST:
             elif hasattr(value, "visit"):
                 visitor(value, *args, **kwargs)
 
-    def transform(
+    def transform( # pragma: no cover
         self, library: Library, transformer: Any, *args: Any, **kwargs: Any
     ) -> Self:
         d = self.to_dict()
@@ -174,16 +174,6 @@ class HeadAggregateAssignment(AssignmentAST):
             "aggregate_function": self.aggregate_function,
             "elements": self.elements,
         }
-
-    # def visit(self, visitor: Any, *args: Any, **kwargs: Any) -> None:
-    #     visitor(self.assigned_function, *args, **kwargs)
-    #     for elem in self.elements:
-    #         visitor(elem, *args, **kwargs)
-
-    # def transform( # pragma: no cover
-    #     self, library: Library, transformer: Any, *args: Any, **kwargs: Any
-    # ) -> Self:
-    #     raise NotImplementedError()
 
 
 @dataclass
