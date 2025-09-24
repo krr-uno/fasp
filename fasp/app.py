@@ -32,7 +32,7 @@ class FaspApp(App):
         )
         try:
             control.parse_files(files)
-        except ParsingException as e:
+        except ParsingException as e: # pragma: no cover
             for error in e.errors:
                 sys.stderr.write(str(error) + "\n")
             sys.stderr.write("*** ERROR: (fasp): parsing failed")

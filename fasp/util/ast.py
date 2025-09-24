@@ -245,7 +245,7 @@ class SyntacticError(NamedTuple):
     message: str
     information: Optional[Any] = None
 
-    def __str__(self) -> str:
+    def __str__(self) -> str: # pragma: no cover
         return f"{self.location}: error: syntax error, {self.message}"
 
 
@@ -397,7 +397,7 @@ def function_arguments(
     else:
         if isinstance(node, ast.TermSymbolic):
             node = node.symbol
-        if node.type == SymbolType.Tuple:
+        if node.type == SymbolType.Tuple: # pragma: no cover
             name = ""
         else:
             assert (

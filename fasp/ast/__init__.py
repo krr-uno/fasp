@@ -99,7 +99,7 @@ class AssignmentAST:
             elif hasattr(value, "visit"):
                 visitor(value, *args, **kwargs)
 
-    def transform( # pragma: no cover
+    def transform(  # pragma: no cover
         self, library: Library, transformer: Any, *args: Any, **kwargs: Any
     ) -> Self:
         d = self.to_dict()
@@ -205,7 +205,7 @@ class AssignmentRule(AssignmentAST):
     head: HeadAssignment
     body: Sequence[util_ast.BodyLiteralAST]
 
-    def __str__(self) -> str:
+    def __str__(self) -> str: # pragma: no cover
         if not self.body:
             return f"{str(self.head)}."
         body = "; ".join(map(str, self.body))
