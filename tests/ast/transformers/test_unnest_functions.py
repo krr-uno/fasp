@@ -342,6 +342,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             :- #sum{p(x) : f(x)< y(x)} = 1.
             :- #count{p(x) : f(z) = y(x)} = 0.
             p(f(1),b) :- q(a,b), not not r(h(1)).
+            :- g = a.
         """).strip()
 
         expected_program = textwrap.dedent("""
@@ -354,7 +355,9 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             :- #sum { p(x): FUN<y(x) } = 1.
             :- #count { p(x): FUN=y(x) } = 0.
             p(FUN,b) :- q(FUN2,b); not not r(FUN3).
+            :- a = g.
         """).strip()
+        
         
         evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("a", 0), SymbolSignature("h", 1)}
 

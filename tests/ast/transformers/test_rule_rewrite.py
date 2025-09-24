@@ -45,7 +45,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         expected_program = textwrap.dedent("""
             #program base.
             p(FUN,a) :- q(FUN2,b); g(1)=FUN2; not not r(FUN3); h(1)=FUN3; f(1)=FUN.
-        """).strip()
+        """).strip() # Question, should h(1)=FUN3 be not not h(1)=FUN3
 
         evaluable = {
             SymbolSignature("f", 1), 
