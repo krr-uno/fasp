@@ -88,6 +88,11 @@ class UnnestFunctionsTransformer:
         return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
 
     @_unnest.register
+    def _(self, node: ast.BodyAggregate, outer: bool = False) -> AST:
+        # Visit left guard, elements, and right guard with outer=False
+        return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
+
+    @_unnest.register
     def _(self, node: ast.TermFunction, outer: bool = False) -> AST:
         new_pool = []
         for tup in node.pool:

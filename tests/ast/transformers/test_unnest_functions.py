@@ -413,27 +413,27 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         # #sum { a(X): p(f(X))} = 0 :- p.  => #sum { a(X): p(FUN) } = 0 :- p.
         self.assertIn({"f(X)=FUN"}, unnested_sets)
 
-    # def test_aggregate2(self):
-    #     program = textwrap.dedent("""
-    #         f(X) = 1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.
-    #     """).strip()
+    def test_aggregate2(self):
+        program = textwrap.dedent("""
+            f(X) = 1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.
+        """).strip()
 
-    #     expected_program = textwrap.dedent("""
-    #         #program base.
-    #         f(X)=1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.
-    #     """).strip()
+        expected_program = textwrap.dedent("""
+            #program base.
+            f(X)=1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.
+        """).strip()
         
-    #     evaluable_functions = {
-    #         SymbolSignature("f", 1), 
-    #         SymbolSignature("a", 1), 
-    #         SymbolSignature("g", 1), 
-    #         SymbolSignature("h", 1)}
+        evaluable_functions = {
+            SymbolSignature("f", 1), 
+            SymbolSignature("a", 1), 
+            SymbolSignature("g", 1), 
+            SymbolSignature("h", 1)}
 
-    #     rewritten = self.apply_transform(program, evaluable_functions)
-    #     new_program, unnested_sets = self.construct_new_program(rewritten)
+        rewritten = self.apply_transform(program, evaluable_functions)
+        new_program, unnested_sets = self.construct_new_program(rewritten)
 
-    #     self.assertEqual(new_program, expected_program)
-    #     self.assertEqual(len(unnested_sets), 1)
+        self.assertEqual(new_program, expected_program)
+        self.assertEqual(len(unnested_sets), 1)
 
-    #     # f(X) = 1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.  => f(X)=1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.
-    #     self.assertIn({"H(1)=fun", "f(Y)=FU2", "g(Y)=FUN3"}, unnested_sets)
+        # f(X) = 1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.  => f(X)=1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.
+        self.assertIn({"h(1)=FUN", "f(Y)=FUN2", "g(Y)=FUN3"}, unnested_sets)
