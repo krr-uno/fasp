@@ -2,10 +2,10 @@ from clingo import ast
 from clingo.core import Library
 
 from fasp.ast import AssignmentRule, HeadAggregateAssignment, HeadSimpleAssignment
+from fasp.ast import FASP_Statement
 from fasp.util.ast import (
     BodyLiteralAST,
     FreshVariableGenerator,
-    StatementAST,
     collect_variables,
 )
 
@@ -155,8 +155,8 @@ from fasp.util.ast import (
 
 
 def normalize_assignment_aggregates(
-    library: Library, stm: StatementAST
-) -> StatementAST:
+    library: Library, stm: FASP_Statement
+) -> FASP_Statement:
     if not isinstance(stm, AssignmentRule) or not isinstance(
         head := stm.head, HeadAggregateAssignment
     ):

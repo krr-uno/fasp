@@ -275,23 +275,23 @@ class _ComparisonRestorationTransformer:
     ) -> ast.LiteralBoolean | ast.LiteralComparison:
         return node
 
-    def rewrite(self, node: StatementAST) -> StatementAST:
-        if not isinstance(node, ast.StatementRule):
-            return node
-        return node.transform(self.library, self.dispatch) or node
+    # def rewrite(self, node: StatementAST) -> StatementAST:
+    #     if not isinstance(node, ast.StatementRule):
+    #         return node
+    #     return node.transform(self.library, self.dispatch) or node
 
 
-def restore_comparisons(
-    library: Library, statements: Iterable[StatementAST]
-) -> Iterable[StatementAST]:
-    """
-    Protect comparisons in a Clingo AST.
+# def restore_comparisons(
+#     library: Library, statements: Iterable[StatementAST]
+# ) -> Iterable[StatementAST]:
+#     """
+#     Protect comparisons in a Clingo AST.
 
-    Args:
-        statements (Iterable[AST]): The AST statements to protect.
+#     Args:
+#         statements (Iterable[AST]): The AST statements to protect.
 
-    Returns:
-        Iterable[AST]: The protected AST statements.
-    """
-    transformer = _ComparisonRestorationTransformer(library)
-    return (transformer.rewrite(statement) for statement in statements)
+#     Returns:
+#         Iterable[AST]: The protected AST statements.
+#     """
+#     transformer = _ComparisonRestorationTransformer(library)
+#     return (transformer.rewrite(statement) for statement in statements)

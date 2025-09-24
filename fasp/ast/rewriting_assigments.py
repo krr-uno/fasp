@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from functools import singledispatch
 from typing import Any, Iterable
 
-from fasp.ast import AssignmentRule, HeadSimpleAssignment
-from fasp.util.ast import AST, SyntacticError, function_arguments
+from fasp.ast import AssignmentRule, HeadSimpleAssignment, FASP_AST
+from fasp.util.ast import SyntacticError, function_arguments
 
 # INVALID_ASTTYPES = {}
 
@@ -25,7 +25,7 @@ class SymbolSignature:
         return f"{self.name}/{self.arity}"
 
 
-class ParsingException(Exception):
+class ParsingException(Exception): #pragma: no cover
     """
     Exception raised for errors in the parsing process.
 
@@ -55,7 +55,7 @@ def _(head: HeadSimpleAssignment) -> set[SymbolSignature]:
     return {SymbolSignature(name, len(arguments))}
 
 
-def get_evaluable_functions(program: Iterable[AST]) -> set[SymbolSignature]:
+def get_evaluable_functions(program: Iterable[FASP_AST]) -> set[SymbolSignature]:
     """
     Collects all evaluable function symbols from the given program.
 

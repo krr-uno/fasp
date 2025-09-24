@@ -82,6 +82,8 @@ from clingo.ast import (
 from clingo.core import Library, Location, Position
 from clingo.symbol import Symbol, SymbolType
 
+from fasp.ast import FASP_AST, FASP_Statement
+
 StatementAST = (
     StatementRule
     | StatementTheory
@@ -117,17 +119,15 @@ TermAST = (
 ArgumentAST = TermAST | Projection
 LiteralAST = LiteralBoolean | LiteralComparison | LiteralSymbolic
 
+BodyLiteralAST = BodySimpleLiteral | BodyAggregate | BodySetAggregate | BodyTheoryAtom | BodyConditionalLiteral
+
 AST = (
     StatementAST
     | TermAST
     | LiteralAST
     | ArgumentTuple
-    | BodyAggregate
+    | BodyLiteralAST
     | BodyAggregateElement
-    | BodyConditionalLiteral
-    | BodySetAggregate
-    | BodySimpleLiteral
-    | BodyTheoryAtom
     | Edge
     | HeadAggregate
     | HeadAggregateElement
@@ -227,13 +227,7 @@ AST_T = TypeVar(
 
 FunctionLikeAST = TermFunction | TermSymbolic | TermTuple | Symbol
 
-BodyLiteralAST = (
-    BodySimpleLiteral
-    | BodyConditionalLiteral
-    | BodyAggregate
-    | BodySetAggregate
-    | BodyTheoryAtom
-)
+
 
 
 class SyntacticError(NamedTuple):
@@ -437,19 +431,19 @@ class VariableCollector:
     def __init__(self) -> None:
         self.used: Set[str] = set()
 
-    def collect(self, statements: Iterable[ast.StatementRule]) -> Set[str]:
+    def collect(self, statements: Iterable[FASP_Statement]) -> Set[str]:
         for stmt in statements:
             self._collect_vars(stmt)
         return self.used
 
-    def _collect_vars(self, node: AST) -> None:
+    def _collect_vars(self, node: FASP_AST) -> None:
         if isinstance(node, ast.TermVariable):
             self.used.add(node.name)
             return
         node.visit(self._collect_vars)
 
 
-def collect_variables(statements: Iterable[ast.StatementRule]) -> Set[str]:
+def collect_variables(statements: Iterable[FASP_Statement]) -> Set[str]:
     collector = VariableCollector()
     return collector.collect(statements)
 

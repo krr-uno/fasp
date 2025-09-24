@@ -1,16 +1,16 @@
 from functools import singledispatchmethod
 from itertools import chain
-from typing import AbstractSet, Any, Iterable, cast
+from typing import AbstractSet, Any, Iterable, TypeVar, cast
 
 from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number
 
-from fasp.ast import AssignmentRule, HeadSimpleAssignment
+from fasp.ast import AssignmentRule, HeadSimpleAssignment, FASP_AST_T
 from fasp.ast.protecting import (
     COMPARISON_NAME,
-    protect_comparisons,
-    restore_comparisons,
+    # protect_comparisons,
+    # restore_comparisons,
 )
 from fasp.ast.rewriting_aggregates import (
     normalize_assignment_aggregates,
@@ -19,29 +19,34 @@ from fasp.ast.rewriting_assigments import (
     SymbolSignature,
     get_evaluable_functions,
 )
+
+from fasp.ast import (
+    FASP_AST,
+    FASP_Statement,
+)
+
 from fasp.util.ast import (
-    AST,
-    StatementAST,
+    BodyLiteralAST,
     create_body_literal,
     create_literal,
     function_arguments,
     function_arguments_ast,
     is_function,
+    StatementAST,
 )
 
 
-def normalize_ast(
-    library: Library, statements: Iterable[StatementAST]
-) -> Iterable[StatementAST]:
-    rewrite_context = ast.RewriteContext(library)
-    return restore_comparisons(
-        library,
-        chain.from_iterable(
-            ast.rewrite_statement(rewrite_context, stmt)
-            for stmt in protect_comparisons(library, statements)
-        ),
-    )
-
+# def normalize_ast(
+#     library: Library, statements: Iterable[FASP_Statement]
+# ) -> Iterable[FASP_Statement]:
+#     rewrite_context = ast.RewriteContext(library)
+#     return restore_comparisons(
+#         library,
+#         chain.from_iterable(
+#             ast.rewrite_statement(rewrite_context, stmt)
+#             for stmt in protect_comparisons(library, statements)
+#         ),
+#     )
 
 class NormalForm2PredicateTransformer:
     """
@@ -64,55 +69,54 @@ class NormalForm2PredicateTransformer:
         self.comparison_name = comparison_name
 
     @singledispatchmethod
-    def _dispatch(self, node: AST) -> AST | None:
+    def _dispatch(self, node: FASP_AST_T) -> FASP_AST_T | None:
         return node.transform(self.library, self.rewrite)
 
-    @_dispatch.register
-    def _(self, node: ast.LiteralComparison, *_args: Any, **_kwars: Any) -> AST | None:
-        """
-        Visit a Comparison node and transform it if it is an evaluable function.
-        """
-        assert len(node.right) >= 1, "Comparison must have at least one guard."
-        if (
-            not is_function(node.left)
-            or len(node.right) != 1
-            or node.right[0].relation != ast.Relation.Equal
-        ):
-            return None
-        # assert type(node.left) in {ast.}
-        name, arguments = function_arguments_ast(self.library, node.left)
-        if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
-            return None
-        if __debug__:
-            if is_function(node.right[0].term):
-                name2, arguments2 = function_arguments(node.right[0].term)
-                signature = SymbolSignature(name2, len(arguments2))
-                assert (
-                    signature not in self.evaluable_functions
-                ), "Guard term must not be an evaluable function."
+    # @_dispatch.register
+    # def _(self, node: ast.LiteralComparison, *_args: Any, **_kwars: Any) -> ast.LiteralSymbolic | None:
+    #     """
+    #     Visit a Comparison node and transform it if it is an evaluable function.
+    #     """
+    #     assert len(node.right) >= 1, "Comparison must have at least one guard."
+    #     if (
+    #         not is_function(node.left)
+    #         or len(node.right) != 1
+    #         or node.right[0].relation != ast.Relation.Equal
+    #     ):
+    #         return None
+    #     # assert type(node.left) in {ast.}
+    #     name, arguments = function_arguments_ast(self.library, node.left)
+    #     if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
+    #         return None
+    #     if __debug__: # pragma: no cover
+    #         if is_function(node.right[0].term):
+    #             name2, arguments2 = function_arguments(node.right[0].term)
+    #             signature = SymbolSignature(name2, len(arguments2))
+    #             assert (
+    #                 signature not in self.evaluable_functions
+    #             ), "Guard term must not be an evaluable function."
 
-        return ast.LiteralSymbolic(
-            self.library,
-            node.location,
-            ast.Sign.NoSign,
-            ast.TermFunction(
-                self.library,
-                node.left.location,
-                f"{self.prefix}{name}",
-                [ast.ArgumentTuple(self.library, [*arguments, node.right[0].term])],
-            ),
-        )
+    #     return ast.LiteralSymbolic(
+    #         self.library,
+    #         node.location,
+    #         ast.Sign.NoSign,
+    #         ast.TermFunction(
+    #             self.library,
+    #             node.left.location,
+    #             f"{self.prefix}{name}",
+    #             [ast.ArgumentTuple(self.library, [*arguments, node.right[0].term])],
+    #         ),
+    #     )
 
     @singledispatchmethod
     def _rewrite_head(
         self, node: HeadSimpleAssignment, *_args: Any, **_kwars: Any
-    ) -> ast.LiteralSymbolic:
+    ) -> ast.HeadSimpleLiteral:
         """
         Visit a HeadSimpleAssignment node and transform it if it is an evaluable function.
         """
         name, arguments = function_arguments_ast(self.library, node.assigned_function)
-        if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
-            return None
+        assert SymbolSignature(name, len(arguments)) in self.evaluable_functions
 
         return ast.HeadSimpleLiteral(
             self.library,
@@ -130,15 +134,15 @@ class NormalForm2PredicateTransformer:
         )
 
     @_dispatch.register
-    def _(self, node: AssignmentRule, *_args: Any, **_kwars: Any) -> AST | None:
+    def _(self, node: AssignmentRule, *_args: Any, **_kwars: Any) -> ast.StatementRule:
         """
         Visit an AssignmentRule node and transform it
         """
         head = self._rewrite_head(node.head)
-        body = [self._dispatch(stmt) for stmt in node.body]
+        body = [cast(BodyLiteralAST, self._dispatch(stmt)) for stmt in node.body]
         return ast.StatementRule(self.library, node.location, head, body)
 
-    def rewrite(self, node: StatementAST, *args: Any, **kwargs: Any) -> StatementAST:
+    def rewrite(self, node: FASP_Statement, *args: Any, **kwargs: Any) -> StatementAST:
         result = self._dispatch(node, *args, **kwargs) or node
         return cast(StatementAST, result)
 
@@ -217,7 +221,7 @@ def functional_constraints(
 
 
 def _functional2asp(
-    library: Library, statements: list[StatementAST], prefix: str = "F"
+    library: Library, statements: Iterable[FASP_Statement], prefix: str = "F"
 ) -> tuple[set[SymbolSignature], list[StatementAST]]:
     """
     Transform a program in functional normal form into a regular program.
@@ -228,14 +232,14 @@ def _functional2asp(
     Returns:
         Iterable[ast.AST]: The transformed program.
     """
-    statements = normalize_assignment_aggregates(library, statements)
+    statements = [normalize_assignment_aggregates(library, stm) for stm in statements]
     evaluable_functions = get_evaluable_functions(statements)
     transformer = NormalForm2PredicateTransformer(library, evaluable_functions, prefix)
     return (
         evaluable_functions,
         list(
             chain(
-                (transformer.rewrite(statement) for statement in statements),
+                (transformer.rewrite(stm) for stm in statements),
                 functional_constraints(library, evaluable_functions, prefix),
             )
         ),
@@ -243,7 +247,7 @@ def _functional2asp(
 
 
 def functional2asp(
-    library: Library, statements: list[StatementAST], prefix: str = "F"
+    library: Library, statements: Iterable[FASP_Statement], prefix: str = "F"
 ) -> tuple[set[SymbolSignature], ast.Program]:
     """
     Transform a program in functional normal form into a regular program.

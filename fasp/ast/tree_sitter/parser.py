@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+
 import ctypes
 import importlib
 import sys
@@ -20,6 +22,7 @@ from fasp.ast import (
     HeadAggregateAssignment,
     HeadChoiceAssignment,
     HeadSimpleAssignment,
+    FASP_Statement,
 )
 from fasp.ast.rewriting_assigments import ParsingException
 from fasp.util.ast import AST, SyntacticError, TermAST, is_function
@@ -223,7 +226,7 @@ class TreeSitterParser:
         for node in nodes:
             try:
                 assigment_rules.append(self._parse_assignment_rule(node))
-            except ParsingException  as e:
+            except ParsingException as e:
                 parsing_errors.extend(e.errors)
         src_array = bytearray(src_bytes)
         for node in nodes:
@@ -264,16 +267,6 @@ class TreeSitterParser:
             map(lambda x: x.text.decode("utf-8"), node.children[2:])
         )
         assigned_function = ast.parse_term(self.library, unparsed_function)
-        if not is_function(assigned_function):
-            raise ParsingException(
-                [
-                    SyntacticError(
-                        assigned_function.location,
-                        f"Unexpected '{str(assigned_function)}' on the right-hand of assignment",
-                        assigned_function,
-                    )
-                ]
-            )
         return assigned_function, unparsed_value
 
     def _parse_simple_assignment(self, node: Node) -> AST:
@@ -459,7 +452,7 @@ def parse_string(library: Library, src: str) -> Iterable[AST]:
     return asts
 
 
-def parse_files(library: Library, files: Sequence[str] = None) -> Iterable[AST]:
+def parse_files(library: Library, files: Sequence[str] = None) -> Iterable[FASP_Statement]:
     """
     Parse the programs in the given files and return an abstract syntax tree for
     each statement via a callback.

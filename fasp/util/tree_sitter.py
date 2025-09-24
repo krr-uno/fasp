@@ -87,7 +87,7 @@ def format_ts_tree(
 
     def walk(
         n: Node, prefix: str = "", is_last: bool = True, fld: Optional[str] = None
-    ):
+    ) -> None:
         # branch glyphs
         branch = "└── " if is_last else "├── "
         # inline field name (if any)
