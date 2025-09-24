@@ -5,7 +5,6 @@ from typing import (
     NamedTuple,
     Optional,
     Sequence,
-    Set,
     TypeIs,
     TypeVar,
     cast,
@@ -245,7 +244,7 @@ class SyntacticError(NamedTuple):
     message: str
     information: Optional[Any] = None
 
-    def __str__(self) -> str: # pragma: no cover
+    def __str__(self) -> str:  # pragma: no cover
         return f"{self.location}: error: syntax error, {self.message}"
 
 
@@ -397,7 +396,7 @@ def function_arguments(
     else:
         if isinstance(node, ast.TermSymbolic):
             node = node.symbol
-        if node.type == SymbolType.Tuple: # pragma: no cover
+        if node.type == SymbolType.Tuple:  # pragma: no cover
             name = ""
         else:
             assert (
@@ -429,8 +428,8 @@ class FreshVariableGenerator:
         v1 = gen.fresh_variable(lib, loc, "X")
     """
 
-    def __init__(self, used: Set[str] | None = None):
-        self.used: Set[str] = set(used) if used else set()
+    def __init__(self, used: set[str] | None = None):
+        self.used: set[str] = set(used) if used else set()
 
     def fresh_variable(
         self, lib: Library, location: Location, name: str = "V"

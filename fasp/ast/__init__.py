@@ -205,7 +205,7 @@ class AssignmentRule(AssignmentAST):
     head: HeadAssignment
     body: Sequence[util_ast.BodyLiteralAST]
 
-    def __str__(self) -> str: # pragma: no cover
+    def __str__(self) -> str:  # pragma: no cover
         if not self.body:
             return f"{str(self.head)}."
         body = "; ".join(map(str, self.body))

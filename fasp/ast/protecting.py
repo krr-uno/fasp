@@ -177,7 +177,7 @@ class RightGuard:
         Returns:
             ast.RightGuard: The AST representation of the right guard.
         """
-        if isinstance(self.term, Symbol): # pragma: no cover
+        if isinstance(self.term, Symbol):  # pragma: no cover
             term = ast.TermSymbolic(library, location, self.term)
         else:
             term = self.term
@@ -238,11 +238,11 @@ def restore_comparison(
     atom = literal.atom
     assert is_function(atom)
     function_name, arguments = function_arguments(atom)
-    if function_name != comparison_name: # pragma: no cover
+    if function_name != comparison_name:  # pragma: no cover
         return literal
     sign, left, right = restore_comparison_arguments(arguments)
     ast_right = [r.to_ast(library, literal.location) for r in right]
-    if isinstance(left, Symbol): # pragma: no cover
+    if isinstance(left, Symbol):  # pragma: no cover
         left = ast.TermSymbolic(library, literal.location, left)
     assert not isinstance(
         left, ast.Projection
@@ -260,11 +260,11 @@ class _ComparisonRestorationTransformer:
         self.protect_comparison = ComparisonProtector(library)
 
     @singledispatchmethod
-    def dispatch(self, node: AST) -> AST: # pragma: no cover
+    def dispatch(self, node: AST) -> AST:  # pragma: no cover
         return node.transform(self.library, self.dispatch) or node
 
     @dispatch.register
-    def _( # pragma: no cover
+    def _(  # pragma: no cover
         self, node: ast.LiteralSymbolic
     ) -> ast.LiteralSymbolic | ast.LiteralComparison:
         return restore_comparison(self.library, node)

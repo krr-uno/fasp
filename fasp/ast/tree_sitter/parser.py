@@ -24,7 +24,7 @@ from fasp.ast import (
     HeadChoiceAssignment,
     HeadSimpleAssignment,
 )
-from fasp.ast.rewriting_assigments import ParsingException
+from fasp.ast.rewriting.collectors import ParsingException
 from fasp.util.ast import AST, SyntacticError, TermAST, is_function
 from fasp.util.ast import parse_string as clingo_parse_string
 

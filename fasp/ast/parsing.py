@@ -4,7 +4,7 @@ from clingo import ast
 from clingo.core import Library
 
 from . import rewriting
-from .rewriting_assigments import SymbolSignature
+from .rewriting.collectors import SymbolSignature
 from .tree_sitter import parser
 
 

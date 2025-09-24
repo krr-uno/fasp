@@ -6,7 +6,7 @@ from clingo.control import Control as ClingoControl
 from clingo.core import Library
 
 from fasp.__version__ import __version__
-from fasp.ast.rewriting_assigments import ParsingException
+from fasp.ast.rewriting.collectors import ParsingException
 from fasp.control import Control
 
 
@@ -32,7 +32,7 @@ class FaspApp(App):
         )
         try:
             control.parse_files(files)
-        except ParsingException as e: # pragma: no cover
+        except ParsingException as e:  # pragma: no cover
             for error in e.errors:
                 sys.stderr.write(str(error) + "\n")
             sys.stderr.write("*** ERROR: (fasp): parsing failed")
