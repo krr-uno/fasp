@@ -82,7 +82,6 @@ from clingo.ast import (
 from clingo.core import Library, Location, Position
 from clingo.symbol import Symbol, SymbolType
 
-from fasp.ast import FASP_AST, FASP_Statement
 
 StatementAST = (
     StatementRule
@@ -419,33 +418,7 @@ def function_arguments_ast(
     ]
 
 
-class VariableCollector:
-    """
-    Class to collect variables from a list of AST statements.
 
-    Usage:
-        collector = VariableCollector()
-        used_vars = collector.collect(statements)
-    """
-
-    def __init__(self) -> None:
-        self.used: Set[str] = set()
-
-    def collect(self, statements: Iterable[FASP_Statement]) -> Set[str]:
-        for stmt in statements:
-            self._collect_vars(stmt)
-        return self.used
-
-    def _collect_vars(self, node: FASP_AST) -> None:
-        if isinstance(node, ast.TermVariable):
-            self.used.add(node.name)
-            return
-        node.visit(self._collect_vars)
-
-
-def collect_variables(statements: Iterable[FASP_Statement]) -> Set[str]:
-    collector = VariableCollector()
-    return collector.collect(statements)
 
 
 class FreshVariableGenerator:
