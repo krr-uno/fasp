@@ -113,8 +113,6 @@ class TestVariableManager(unittest.TestCase):
 
     # VariableCollector tests
 
-    
-
     # FreshVariableGenerator tests
 
     def test_fresh_variable_simple_and_numbered(self):

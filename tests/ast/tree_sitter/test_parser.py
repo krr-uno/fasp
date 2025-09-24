@@ -6,7 +6,7 @@ from clingo import ast
 from clingo.core import Library
 
 from fasp.ast import AssignmentRule, HeadSimpleAssignment
-from fasp.ast.rewriting_assigments import ParsingException
+# from fasp.ast.rewriting.assigments import ParsingException
 from fasp.util.ast import AST
 from fasp.ast.tree_sitter import parser
 from fasp.util.ast import parse_string
@@ -194,6 +194,51 @@ class TestParseAssignment(unittest.TestCase):
             ),
         )
         self.assertASTEqual(clingo_rules, expected_clingo[1:])
+
+    def assertEqualParse(self, code: str):
+        rules = self.parser.parse(code)
+        for rule in rules[1:]:
+            self.assertIsInstance(rule, AssignmentRule | ast.StatementRule)
+        lines = [sl for l in code.strip().splitlines() if (sl := l.strip())]
+        self.assertEqual(list(map(str, rules)), lines)
+
+    def test_parse_merge(self):
+        self.assertEqualParse(
+            textwrap.dedent(
+                """\
+                a := 1 :- b.
+                a := 2 :- b.
+                b.
+                c.
+                """
+            )
+        )
+        self.assertEqualParse(
+            textwrap.dedent(
+                """\
+                b.
+                c.
+                a := 1 :- b.
+                a := 2 :- b.
+                """
+            )
+        )
+
+    def test_parse_error_clingo(self):
+        code = textwrap.dedent(
+            """\
+            a :- b.
+            d
+            d.
+            d
+            e :- f.
+            """
+        )
+        with self.assertRaises(RuntimeError) as cm:
+            _ = self.parser.parse(code)
+        print(cm.exception)
+        print(self.parser.errors)
+        print(self.messages)
 
     # def test_tree_parse_error_assigned_is_not_function(self):
     #     code = textwrap.dedent(

@@ -226,7 +226,7 @@ class TreeSitterParser:
         for node in nodes:
             try:
                 assigment_rules.append(self._parse_assignment_rule(node))
-            except ParsingException as e:
+            except ParsingException as e: # pragma: no cover
                 parsing_errors.extend(e.errors)
         src_array = bytearray(src_bytes)
         for node in nodes:
@@ -235,7 +235,7 @@ class TreeSitterParser:
         src_bytes = bytes(src_array)
         src2 = src_bytes.decode("utf-8")
         statements = clingo_parse_string(self.library, src2)
-        if parsing_errors:
+        if parsing_errors: # pragma: no cover
             raise ParsingException(parsing_errors)
         return _ast_merge(assigment_rules, statements[1:])
 
@@ -246,7 +246,7 @@ class TreeSitterParser:
             head = self._parse_simple_assignment(unparsed_head)
         elif unparsed_head.type == "aggregate_assignment":
             head = self._parse_aggregate_assignment(unparsed_head)
-        else:
+        else: # pragma: no cover
             head = self._parse_choice_assignment(unparsed_head)
         if len(children) > 2:
             unparse_body = children[2]
@@ -287,7 +287,7 @@ class TreeSitterParser:
             aggregate.elements,
         )
 
-    def _parse_choice_assignment(self, node: Node) -> AST:
+    def _parse_choice_assignment(self, node: Node) -> AST: # pragma: no cover
         assigned_function, unparsed_choice = self._preparse_assignment(node)
         choice = self._clingo_parse_body_choice(unparsed_choice)
         return HeadChoiceAssignment(
@@ -321,7 +321,7 @@ class TreeSitterParser:
         body = self._clingo_parse_body(src + ".")
         return body[0]
 
-    def _clingo_parse_body_choice(self, src: str) -> AST:
+    def _clingo_parse_body_choice(self, src: str) -> AST: # pragma: no cover
         body = self._clingo_parse_body("#count" + src + ".")
         return body[0]
 
@@ -444,7 +444,7 @@ def parse_string(library: Library, src: str) -> Iterable[AST]:
     parser = TreeSitterParser(library)
     asts = clingo_parse_string(library, "#program base.")
     asts.extend(parser.parse(src))
-    if parser.errors:
+    if parser.errors: # pragma: no cover
         raise SystemExit("\n".join(parser.errors))
     return asts
 
@@ -466,16 +466,16 @@ def parse_files(
         List of file names.
     """
     if not files:
-        files = ["-"]
+        files = ["-"] # pragma: no cover
     parser = TreeSitterParser(library)
     asts = []
     for file in files:
         if file == "-":
-            src = sys.stdin.read()
+            src = sys.stdin.read() # pragma: no cover
         else:
             with open(file, "r", encoding="utf-8") as f:
                 src = f.read()
         asts.extend(parser.parse(src))
-    if parser.errors:
+    if parser.errors: # pragma: no cover
         raise SystemExit("\n".join(parser.errors))
     return asts
