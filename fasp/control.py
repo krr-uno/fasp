@@ -4,6 +4,7 @@ from typing import Any, Callable, Iterable, Optional, Sequence, Tuple
 import clingo
 from clingo.symbol import Symbol
 
+from fasp.core import FaspLibrary
 from fasp.solve import Model
 
 from .ast.parsing import parse_files
@@ -13,13 +14,13 @@ class Control:
 
     def __init__(
         self,
-        library: clingo.core.Library,
+        library: FaspLibrary,
         options: Sequence[str] = (),
         prefix: str = "F",
         clingo_control: Optional[clingo.control.Control] = None,
     ):
         self.library = library
-        self.clingo_control = clingo_control or clingo.control.Control(library, options)
+        self.clingo_control = clingo_control or clingo.control.Control(library.library, options)
         self.prefix = prefix
 
     def parse_files(self, files: Sequence[str]) -> None:

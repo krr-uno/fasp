@@ -3,13 +3,15 @@ from typing import Sequence
 from clingo import ast
 from clingo.core import Library
 
+from fasp.core import FaspLibrary
+
 from . import rewriting
 from .rewriting.collectors import SymbolSignature
 from .tree_sitter import parser
 
 
 def parse_files(
-    library: Library,
+    library: FaspLibrary,
     files: Sequence[str],
     prefix: str = "F",
 ) -> tuple[set[SymbolSignature], ast.Program]:
@@ -27,4 +29,4 @@ def parse_files(
         List of file names.
     """
     statements = parser.parse_files(library, files)
-    return rewriting.functional2asp(library, statements, prefix)
+    return rewriting.functional2asp(library.library, statements, prefix)

@@ -26,6 +26,7 @@ from fasp.ast import (
     HeadSimpleAssignment,
 )
 from fasp.ast.rewriting.collectors import ParsingException
+from fasp.core import FaspLibrary
 from fasp.util.ast import AST, SyntacticError, TermAST, is_function
 from fasp.util.ast import parse_string as clingo_parse_string
 
@@ -212,7 +213,7 @@ class TreeSitterParser:
     A simple wrapper around the Tree-sitter parser.
     """
 
-    def __init__(self, library: Library):
+    def __init__(self, library: FaspLibrary):
         self.library = library
         self.errors = []
 
@@ -235,7 +236,7 @@ class TreeSitterParser:
                 src_array[i] = ord(b" ")
         src_bytes = bytes(src_array)
         src2 = src_bytes.decode("utf-8")
-        statements = clingo_parse_string(self.library, src2)
+        statements = clingo_parse_string(self.library.library, src2)
         if parsing_errors:  # pragma: no cover
             raise ParsingException(parsing_errors)
         return _ast_merge(assigment_rules, statements[1:])
@@ -266,12 +267,12 @@ class TreeSitterParser:
         unparsed_value = "".join(
             map(lambda x: x.text.decode("utf-8"), node.children[2:])
         )
-        assigned_function = ast.parse_term(self.library, unparsed_function)
+        assigned_function = ast.parse_term(self.library.library, unparsed_function)
         return assigned_function, unparsed_value
 
     def _parse_simple_assignment(self, node: Node) -> AST:
         assigned_function, unparsed_value = self._preparse_assignment(node)
-        value = ast.parse_term(self.library, unparsed_value)
+        value = ast.parse_term(self.library.library, unparsed_value)
         return HeadSimpleAssignment(
             self._location_from_node(node),
             assigned_function,
@@ -292,7 +293,7 @@ class TreeSitterParser:
         assigned_function, unparsed_choice = self._preparse_assignment(node)
         choice = self._clingo_parse_body_choice(unparsed_choice)
         return HeadChoiceAssignment(
-            self.library,
+            self.library.library,
             self._location_from_node(node),
             assigned_function,
             choice.elements,
@@ -301,13 +302,13 @@ class TreeSitterParser:
     def _location_from_node(self, node: Node) -> Location:
         return Location(
             Position(
-                self.library,
+                self.library.library,
                 "<string>",
                 node.start_point.row + 1,
                 node.start_point.column + 1,
             ),
             Position(
-                self.library,
+                self.library.library,
                 "<string>",
                 node.end_point.row + 1,
                 node.end_point.column + 1,
@@ -315,7 +316,7 @@ class TreeSitterParser:
         )
 
     def _clingo_parse_body(self, src: str) -> AST:
-        statement = ast.parse_statement(self.library, f":- {src}")
+        statement = ast.parse_statement(self.library.library, f":- {src}")
         return statement.body
 
     def _clingo_parse_body_aggregate(self, src: str) -> AST:
@@ -428,7 +429,7 @@ class TreeSitterParser:
 # print(tree.root_node)
 
 
-def parse_string(library: Library, src: str) -> Iterable[AST]:
+def parse_string(library: FaspLibrary, src: str) -> Iterable[AST]:
     """
     Parse the programs in the given files and return an abstract syntax tree for
     each statement via a callback.
@@ -443,7 +444,7 @@ def parse_string(library: Library, src: str) -> Iterable[AST]:
         List of file names.
     """
     parser = TreeSitterParser(library)
-    asts = clingo_parse_string(library, "#program base.")
+    asts = clingo_parse_string(library.library, "#program base.")
     asts.extend(parser.parse(src))
     if parser.errors:  # pragma: no cover
         raise SystemExit("\n".join(parser.errors))
@@ -451,7 +452,7 @@ def parse_string(library: Library, src: str) -> Iterable[AST]:
 
 
 def parse_files(
-    library: Library, files: Sequence[str] = None
+    library: FaspLibrary, files: Sequence[str] = None
 ) -> Iterable[FASP_Statement]:
     """
     Parse the programs in the given files and return an abstract syntax tree for

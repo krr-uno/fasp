@@ -7,6 +7,7 @@ from clingo.core import Library
 
 from fasp.ast import AssignmentRule, HeadSimpleAssignment
 # from fasp.ast.rewriting.assigments import ParsingException
+from fasp.core import FaspLibrary
 from fasp.util.ast import AST
 from fasp.ast.tree_sitter import parser
 from fasp.util.ast import parse_string
@@ -91,7 +92,7 @@ class TestParseAssignment(unittest.TestCase):
 
     def setUp(self):
         self.messages = []
-        self.lib = Library(logger=lambda t, msg: self.messages.append((t, msg)))
+        self.lib = FaspLibrary(logger=lambda t, msg: self.messages.append((t, msg)))
         self.parser = parser.TreeSitterParser(self.lib)
 
     def test_tree_parse_simple_assignment(self):
@@ -182,7 +183,7 @@ class TestParseAssignment(unittest.TestCase):
         clingo_rules = [rules[0], rules[2], rules[4]]
         self.assertTrue(all(isinstance(r, ast.StatementRule) for r in clingo_rules))
         expected_clingo = parse_string(
-            self.lib,
+            self.lib.library,
             textwrap.dedent(
                 """\
                 p(X) :- q(X).

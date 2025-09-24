@@ -8,10 +8,11 @@ from clingo.core import Library
 from fasp.__version__ import __version__
 from fasp.ast.rewriting.collectors import ParsingException
 from fasp.control import Control
+from fasp.core import FaspLibrary
 
 
 class FaspApp(App):
-    def __init__(self, library: Library, clingo_options: Sequence[str]) -> None:
+    def __init__(self, library: FaspLibrary, clingo_options: Sequence[str]) -> None:
         super().__init__("fasp", __version__)
         self._order = Flag()
         self._library = library
@@ -41,7 +42,7 @@ class FaspApp(App):
 
 
 def fasp_main(
-    library: Library, options: list[str] | None = None, raise_errors: bool = False
+    library: FaspLibrary, options: list[str] | None = None, raise_errors: bool = False
 ) -> int:
     """
     Main function for the fasp application.
@@ -60,7 +61,7 @@ def fasp_main(
     app = FaspApp(library, options)
     options.append("--outf=3")
     try:
-        return clingo_main(library, options, app)
+        return clingo_main(library.library, options, app)
     except Exception:  # pragma: no cover
         if raise_errors:
             raise
@@ -68,6 +69,6 @@ def fasp_main(
 
 
 def main(options: Sequence[str] = ()) -> int:
-    with Library() as library:
+    with FaspLibrary() as library:
         return fasp_main(library, list(options))
     return 1  # pragma: no cover
