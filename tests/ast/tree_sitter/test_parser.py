@@ -195,6 +195,46 @@ class TestParseAssignment(unittest.TestCase):
         )
         self.assertASTEqual(clingo_rules, expected_clingo[1:])
 
+
+    # def test_parse_locations(self):
+    #     code = textwrap.dedent(
+    #         """\
+    #         a := 1 :- b11; b12.
+    #         b(X) := a+X :- b21(X); b22(X).  c := 3.
+    #         """
+    #     )
+    #     rules = self.parser.parse(code)
+    #     self.assertEqual(len(rules), 3)
+    #     rule = rules[0]
+    #     self.assertEqual(rule.location.begin.line, 1)
+    #     self.assertEqual(rule.location.begin.column, 1)
+    #     self.assertEqual(rule.location.end.line, 1)
+    #     self.assertEqual(rule.location.end.column, 20)
+    #     self.assertEqual(rule.head.location.begin.line, 1)
+    #     self.assertEqual(rule.head.location.begin.column, 1)
+    #     self.assertEqual(rule.head.location.end.line, 1)
+    #     self.assertEqual(rule.head.location.end.column, 7)
+    #     print(list(map(str, rules)))
+    #     rule = rules[1]
+    #     self.assertEqual(rule.location.begin.line, 2)
+    #     self.assertEqual(rule.location.begin.column, 1)
+    #     self.assertEqual(rule.location.end.line, 2)
+    #     self.assertEqual(rule.location.end.column,  31)
+    #     self.assertEqual(rule.head.location.begin.line, 2)
+    #     self.assertEqual(rule.head.location.begin.column, 1)
+    #     self.assertEqual(rule.head.location.end.line, 2)
+        # self.assertEqual(rule.head.location.end.column,  twelve)
+        # for i, body_literal in enumerate(rule.body):
+        #     self.assertEqual(body_literal.location.begin.line, 2)
+        #     if i == 0:
+        #         self.assertEqual(body_literal.location.begin.column,  sixteen)
+        #         self.assertEqual(body_literal.location.end.column,  twenty-two)
+        #     else:
+        #         self.assertEqual(body_literal.location.begin.column,  twenty-four)
+        #         self.assertEqual(body_literal.location.end.column,  thirty-two)
+        #     self.assertEqual(body_literal.location.end.line, 2)
+
+
     def assertEqualParse(self, code: str):
         rules = self.parser.parse(code)
         for rule in rules[1:]:

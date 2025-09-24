@@ -3,6 +3,7 @@
 import ctypes
 import importlib
 import sys
+from argparse import PARSER
 from typing import Iterable, Optional, Sequence
 
 from click import Path
@@ -198,6 +199,14 @@ def _ast_merge(asts1: Iterable[AST], asts2: Iterable[AST]) -> Iterable[AST]:
 #     return previous_valid_node(parent) if parent is not None else None
 
 
+LANGUAGE = _load_ts_language(TREE_SITTER_LANG)
+PARSER = Parser(LANGUAGE)
+QUERY_ERRORS = Query(LANGUAGE, "(ERROR) @error-node")
+QUERY_MISSING = Query(LANGUAGE, "(MISSING) @missing-node")
+QUERY_ASSIGMENT_RULE = Query(LANGUAGE, "(assignment_rule) @match")
+QUERY_BODY_AGGREGATE_ELEMENTS = Query(LANGUAGE, "(body_aggregate_elements) @match")
+
+
 class TreeSitterParser:
     """
     A simple wrapper around the Tree-sitter parser.
@@ -205,14 +214,6 @@ class TreeSitterParser:
 
     def __init__(self, library: Library):
         self.library = library
-        self.language = _load_ts_language(TREE_SITTER_LANG)
-        self.parser = Parser(self.language)
-        self.query_errors = Query(self.language, "(ERROR) @error-node")
-        self.query_missing = Query(self.language, "(MISSING) @missing-node")
-        self.query_assignment_rule = Query(self.language, "(assignment_rule) @match")
-        self.query_body_aggregate_elements = Query(
-            self.language, "(body_aggregate_elements) @match"
-        )
         self.errors = []
 
     def parse(self, src: str) -> AST:
@@ -226,7 +227,7 @@ class TreeSitterParser:
         for node in nodes:
             try:
                 assigment_rules.append(self._parse_assignment_rule(node))
-            except ParsingException as e: # pragma: no cover
+            except ParsingException as e:  # pragma: no cover
                 parsing_errors.extend(e.errors)
         src_array = bytearray(src_bytes)
         for node in nodes:
@@ -235,7 +236,7 @@ class TreeSitterParser:
         src_bytes = bytes(src_array)
         src2 = src_bytes.decode("utf-8")
         statements = clingo_parse_string(self.library, src2)
-        if parsing_errors: # pragma: no cover
+        if parsing_errors:  # pragma: no cover
             raise ParsingException(parsing_errors)
         return _ast_merge(assigment_rules, statements[1:])
 
@@ -246,7 +247,7 @@ class TreeSitterParser:
             head = self._parse_simple_assignment(unparsed_head)
         elif unparsed_head.type == "aggregate_assignment":
             head = self._parse_aggregate_assignment(unparsed_head)
-        else: # pragma: no cover
+        else:  # pragma: no cover
             head = self._parse_choice_assignment(unparsed_head)
         if len(children) > 2:
             unparse_body = children[2]
@@ -287,7 +288,7 @@ class TreeSitterParser:
             aggregate.elements,
         )
 
-    def _parse_choice_assignment(self, node: Node) -> AST: # pragma: no cover
+    def _parse_choice_assignment(self, node: Node) -> AST:  # pragma: no cover
         assigned_function, unparsed_choice = self._preparse_assignment(node)
         choice = self._clingo_parse_body_choice(unparsed_choice)
         return HeadChoiceAssignment(
@@ -321,7 +322,7 @@ class TreeSitterParser:
         body = self._clingo_parse_body(src + ".")
         return body[0]
 
-    def _clingo_parse_body_choice(self, src: str) -> AST: # pragma: no cover
+    def _clingo_parse_body_choice(self, src: str) -> AST:  # pragma: no cover
         body = self._clingo_parse_body("#count" + src + ".")
         return body[0]
 
@@ -329,7 +330,7 @@ class TreeSitterParser:
         """
         Parse source code into a Tree-sitter parse tree.
         """
-        return self.parser.parse(src)
+        return PARSER.parse(src)
 
     def _tree_parse_assignments(self, src: bytes) -> list[Node]:
         """
@@ -338,8 +339,8 @@ class TreeSitterParser:
         tree = self._tree_parse(src)
         # self._check_syntax_errors(tree, src)
         return TreeSitterParser._find_with_query(
-            tree.root_node, self.query_assignment_rule
-        )
+            tree.root_node, QUERY_ASSIGMENT_RULE
+        )  # this is not deterministic
 
     # def _process_error(self, node: Node, is_missing: bool = False):
     #     pass
@@ -444,7 +445,7 @@ def parse_string(library: Library, src: str) -> Iterable[AST]:
     parser = TreeSitterParser(library)
     asts = clingo_parse_string(library, "#program base.")
     asts.extend(parser.parse(src))
-    if parser.errors: # pragma: no cover
+    if parser.errors:  # pragma: no cover
         raise SystemExit("\n".join(parser.errors))
     return asts
 
@@ -466,16 +467,16 @@ def parse_files(
         List of file names.
     """
     if not files:
-        files = ["-"] # pragma: no cover
+        files = ["-"]  # pragma: no cover
     parser = TreeSitterParser(library)
     asts = []
     for file in files:
         if file == "-":
-            src = sys.stdin.read() # pragma: no cover
+            src = sys.stdin.read()  # pragma: no cover
         else:
             with open(file, "r", encoding="utf-8") as f:
                 src = f.read()
         asts.extend(parser.parse(src))
-    if parser.errors: # pragma: no cover
+    if parser.errors:  # pragma: no cover
         raise SystemExit("\n".join(parser.errors))
     return asts
