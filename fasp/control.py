@@ -4,8 +4,8 @@ from typing import Any, Callable, Iterable, Optional, Sequence, Tuple
 import clingo
 from clingo.symbol import Symbol
 
-from fasp.util.ast import ELibrary
 from fasp.solve import Model
+from fasp.util.ast import ELibrary
 
 from .ast.parsing import parse_files
 

@@ -90,7 +90,6 @@ def lint(session):
     if session.python:
         session.install("pylint")
     session.run("pylint", PROJECT_NAME)
-    pass
 
 
 @nox.session(python=PYTHON_VERSIONS)

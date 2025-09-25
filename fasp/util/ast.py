@@ -491,7 +491,7 @@ class ELibrary:
         return self.library.__exit__(exc_type, exc_value, traceback)
 
 
-class ParsingError(Exception):
+class ParsingException(Exception):
     """
     Exception raised when parsing fails.
     """
@@ -551,7 +551,7 @@ def parse_string(library: ELibrary, code: str) -> list[StatementAST]:
     except RuntimeError as e:
         if str(e) != "parsing failed":  # pragma: no cover
             raise e
-        raise ParsingError(
+        raise ParsingException(
             [_process_error(library.library, error) for error in library.error_messages]
         )
     finally:

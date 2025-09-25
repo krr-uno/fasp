@@ -3,11 +3,11 @@ from typing import Any, Iterable, Sequence
 import unittest
 
 from clingo import ast
-from clingo.core import Library
 
 from fasp.ast import AssignmentRule, HeadSimpleAssignment
 
 # from fasp.ast.rewriting.assigments import ParsingException
+from fasp.util.ast import ParsingException
 from fasp.util.ast import ELibrary
 from fasp.util.ast import AST
 from fasp.ast.tree_sitter import parser
@@ -197,43 +197,44 @@ class TestParseAssignment(unittest.TestCase):
         )
         self.assertASTEqual(clingo_rules, expected_clingo[1:])
 
-    # def test_parse_locations(self):
-    #     code = textwrap.dedent(
-    #         """\
-    #         a := 1 :- b11; b12.
-    #         b(X) := a+X :- b21(X); b22(X).  c := 3.
-    #         """
-    #     )
-    #     rules = self.parser.parse(code)
-    #     self.assertEqual(len(rules), 3)
-    #     rule = rules[0]
-    #     self.assertEqual(rule.location.begin.line, 1)
-    #     self.assertEqual(rule.location.begin.column, 1)
-    #     self.assertEqual(rule.location.end.line, 1)
-    #     self.assertEqual(rule.location.end.column, 20)
-    #     self.assertEqual(rule.head.location.begin.line, 1)
-    #     self.assertEqual(rule.head.location.begin.column, 1)
-    #     self.assertEqual(rule.head.location.end.line, 1)
-    #     self.assertEqual(rule.head.location.end.column, 7)
-    #     print(list(map(str, rules)))
-    #     rule = rules[1]
-    #     self.assertEqual(rule.location.begin.line, 2)
-    #     self.assertEqual(rule.location.begin.column, 1)
-    #     self.assertEqual(rule.location.end.line, 2)
-    #     self.assertEqual(rule.location.end.column,  31)
-    #     self.assertEqual(rule.head.location.begin.line, 2)
-    #     self.assertEqual(rule.head.location.begin.column, 1)
-    #     self.assertEqual(rule.head.location.end.line, 2)
-    # self.assertEqual(rule.head.location.end.column,  twelve)
-    # for i, body_literal in enumerate(rule.body):
-    #     self.assertEqual(body_literal.location.begin.line, 2)
-    #     if i == 0:
-    #         self.assertEqual(body_literal.location.begin.column,  sixteen)
-    #         self.assertEqual(body_literal.location.end.column,  twenty-two)
-    #     else:
-    #         self.assertEqual(body_literal.location.begin.column,  twenty-four)
-    #         self.assertEqual(body_literal.location.end.column,  thirty-two)
-    #     self.assertEqual(body_literal.location.end.line, 2)
+    def test_parse_locations(self):
+        code = textwrap.dedent(
+            """\
+            a := 1 :- b11; b12.
+            b(X) := a+X :- b21(X); b22(X).  c := 3.
+            """
+        )
+        rules = self.parser.parse(code)
+        self.assertEqual(len(rules), 3)
+        rule = rules[0]
+        self.assertEqual(rule.location.begin.line, 1)
+        self.assertEqual(rule.location.begin.column, 1)
+        self.assertEqual(rule.location.end.line, 1)
+        self.assertEqual(rule.location.end.column, 20)
+        self.assertEqual(rule.head.location.begin.line, 1)
+        self.assertEqual(rule.head.location.begin.column, 1)
+        self.assertEqual(rule.head.location.end.line, 1)
+        self.assertEqual(rule.head.location.end.column, 7)
+        
+        rule = rules[1]
+        self.assertEqual(rule.location.begin.line, 2)
+        self.assertEqual(rule.location.begin.column, 1)
+        self.assertEqual(rule.location.end.line, 2)
+        self.assertEqual(rule.location.end.column,  31)
+        self.assertEqual(rule.head.location.begin.line, 2)
+        self.assertEqual(rule.head.location.begin.column, 1)
+        self.assertEqual(rule.head.location.end.line, 2)
+        self.assertEqual(rule.head.location.end.column, 12)
+    
+        rule = rules[2]
+        self.assertEqual(rule.location.begin.line, 2)
+        self.assertEqual(rule.location.begin.column, 33)
+        self.assertEqual(rule.location.end.line, 2)
+        self.assertEqual(rule.location.end.column,  40)
+        self.assertEqual(rule.head.location.begin.line, 2)
+        self.assertEqual(rule.head.location.begin.column, 33)
+        self.assertEqual(rule.head.location.end.line, 2)
+        self.assertEqual(rule.head.location.end.column, 39)
 
     def assertEqualParse(self, code: str):
         rules = self.parser.parse(code)
@@ -264,21 +265,52 @@ class TestParseAssignment(unittest.TestCase):
             )
         )
 
-    # def test_parse_error_clingo(self):
-    #     code = textwrap.dedent(
-    #         """\
-    #         a :- b.
-    #         d
-    #         d.
-    #         d
-    #         e :- f.
-    #         """
-    #     )
-    #     with self.assertRaises(ParsingError) as cm:
-    #         _ = self.parser.parse(code)
-    #     print(cm.exception)
-    #     print(self.parser.errors)
-    #     print(self.messages)
+    def test_parse_error_clingo(self):
+        code = textwrap.dedent(
+            """\
+            a :- b.
+            d
+            d.
+            d
+            e :- f.
+            """
+        )
+        with self.assertRaises(ParsingException) as cm:
+            _ = self.parser.parse(code)
+        errors = cm.exception.errors
+        self.assertEqual(len(errors), 2)
+        self.assertEqual(len(self.lib.error_messages), 0)
+        self.assertEqual(errors[0].location.begin.line, 3)
+        self.assertEqual(errors[1].location.begin.line, 5)
+
+    def test_parse_error_assignment_number(self):
+        code = textwrap.dedent(
+            """\
+            1 := 2.
+            """
+        )
+        with self.assertRaises(ParsingException) as cm:
+            _ = self.parser.parse(code)
+        errors = cm.exception.errors
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(len(self.lib.error_messages), 0)
+        self.assertEqual(errors[0].location.begin.line, 1)
+
+    def test_parse_error_assignment(self):
+        code = textwrap.dedent(
+            """\
+            a := 2 :- b 
+            c.
+            """
+        )
+        with self.assertRaises(ParsingException) as cm:
+            rules = self.parser.parse(code)
+            print(rules)
+        errors = cm.exception.errors
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(len(self.lib.error_messages), 0)
+        self.assertEqual(errors[0].location.begin.line, 1)
+        self.assertEqual(errors[0].message, "a := 2 :- b  c.")
 
     # def test_tree_parse_error_assigned_is_not_function(self):
     #     code = textwrap.dedent(

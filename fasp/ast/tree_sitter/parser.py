@@ -14,7 +14,6 @@ from tree_sitter import (
     Node,
     Parser,
     Query,
-    QueryCursor,
     Tree,
 )
 
@@ -25,9 +24,13 @@ from fasp.ast import (
     HeadChoiceAssignment,
     HeadSimpleAssignment,
 )
-from fasp.ast.rewriting.collectors import ParsingException
-from fasp.util.ast import ELibrary
-from fasp.util.ast import AST, SyntacticError, TermAST, is_function
+from fasp.util.ast import (
+    AST,
+    ELibrary,
+    ParsingException,
+    SyntacticError,
+    TermAST,
+)
 from fasp.util.ast import parse_string as clingo_parse_string
 
 TREE_SITTER_LANG = "tree_sitter_fasp"
@@ -222,7 +225,7 @@ class TreeSitterParser:
         Parse source code into an AST.
         """
         src_bytes = bytes(src, "utf8")
-        nodes = self._tree_parse_assignments(src_bytes)
+        nodes = self._tree_parse_get_assignment_rules(src_bytes)
         assigment_rules = []
         parsing_errors = []
         for node in nodes:
@@ -242,25 +245,42 @@ class TreeSitterParser:
         return _ast_merge(assigment_rules, statements[1:])
 
     def _parse_assignment_rule(self, node: Node) -> AST:
-        children = node.children
-        unparsed_head = children[0]
+        self._check_errors(node)
+        unparsed_head = node.child_by_field_name("head")
         if unparsed_head.type == "simple_assignment":
             head = self._parse_simple_assignment(unparsed_head)
         elif unparsed_head.type == "aggregate_assignment":
             head = self._parse_aggregate_assignment(unparsed_head)
         else:  # pragma: no cover
             head = self._parse_choice_assignment(unparsed_head)
-        if len(children) > 2:
-            unparse_body = children[2]
-            body = self._clingo_parse_body(unparse_body.text.decode("utf8"))
+        unparsed_body = node.child_by_field_name("body")
+        if unparsed_body:
+            body = self._clingo_parse_body(unparsed_body.text.decode("utf8"))
         else:
             body = []
-
         return AssignmentRule(
             self._location_from_node(node),
             head,
             body,
         )
+
+    def _check_errors(self, node: Node) -> None:
+        if node.has_error:
+            start = Position(
+                self.library.library,
+                "<string>",
+                node.start_point.row + 1,
+                node.start_point.column + 1,
+            )
+            end = Position(
+                self.library.library,
+                "<string>",
+                node.end_point.row + 1,
+                node.end_point.column + 1,
+            )
+            location = Location(start, end)
+            message = f"{node.text.decode('utf-8').replace('\n', ' ').strip()}"
+            raise ParsingException([SyntacticError(location, message, None)])
 
     def _preparse_assignment(self, node: Node) -> tuple[TermAST, str]:
         unparsed_function = node.children[0].text.decode("utf-8")
@@ -316,15 +336,15 @@ class TreeSitterParser:
         )
 
     def _clingo_parse_body(self, src: str) -> AST:
-        statement = ast.parse_statement(self.library.library, f":- {src}")
+        statement = ast.parse_statement(self.library.library, f":- {src}.")
         return statement.body
 
     def _clingo_parse_body_aggregate(self, src: str) -> AST:
-        body = self._clingo_parse_body(src + ".")
+        body = self._clingo_parse_body(src)
         return body[0]
 
     def _clingo_parse_body_choice(self, src: str) -> AST:  # pragma: no cover
-        body = self._clingo_parse_body("#count" + src + ".")
+        body = self._clingo_parse_body("#count" + src)
         return body[0]
 
     def _tree_parse(self, src: bytes) -> Tree:
@@ -333,15 +353,19 @@ class TreeSitterParser:
         """
         return PARSER.parse(src)
 
-    def _tree_parse_assignments(self, src: bytes) -> list[Node]:
+    def _tree_parse_get_assignment_rules(self, src: bytes) -> list[Node]:
         """
         Return all assignment_rule nodes in the parse tree.
         """
         tree = self._tree_parse(src)
+        return [
+            node for node in tree.root_node.children if node.type == "assignment_rule"
+        ]
+
         # self._check_syntax_errors(tree, src)
-        return TreeSitterParser._find_with_query(
-            tree.root_node, QUERY_ASSIGMENT_RULE
-        )  # this is not deterministic
+        # return TreeSitterParser._find_with_query(
+        #     tree.root_node, QUERY_ASSIGMENT_RULE
+        # )  # this is not deterministic
 
     # def _process_error(self, node: Node, is_missing: bool = False):
     #     pass
@@ -410,18 +434,18 @@ class TreeSitterParser:
     #     #     next_node = next_valid_leaf(miss, skip_missing=True, skip_extra=True)
     #     #     print("MISS", miss, previous_node, next_node)
 
-    @staticmethod
-    def _find_with_query(root: Node, query: Query, match: str = "match") -> list[Node]:
-        """
-        Return nodes of a given type using a simple query like '(<type>) @match'.
-        """
-        cursor = QueryCursor(query)
-        results = []
-        for capture_name, nodes in cursor.captures(root).items():
-            # print(match, capture_name, nodes)
-            if capture_name == match:
-                results.extend(nodes)
-        return results
+    # @staticmethod
+    # def _find_with_query(root: Node, query: Query, match: str = "match") -> list[Node]:
+    #     """
+    #     Return nodes of a given type using a simple query like '(<type>) @match'.
+    #     """
+    #     cursor = QueryCursor(query)
+    #     results = []
+    #     for capture_name, nodes in cursor.captures(root).items():
+    #         # print(match, capture_name, nodes)
+    #         if capture_name == match:
+    #             results.extend(nodes)
+    #     return results
 
 
 # t = TreeSitterParser()
@@ -446,8 +470,6 @@ def parse_string(library: ELibrary, src: str) -> Iterable[AST]:
     parser = TreeSitterParser(library)
     asts = clingo_parse_string(library, "#program base.")
     asts.extend(parser.parse(src))
-    if parser.errors:  # pragma: no cover
-        raise SystemExit("\n".join(parser.errors))
     return asts
 
 
@@ -478,6 +500,4 @@ def parse_files(
             with open(file, "r", encoding="utf-8") as f:
                 src = f.read()
         asts.extend(parser.parse(src))
-    if parser.errors:  # pragma: no cover
-        raise SystemExit("\n".join(parser.errors))
     return asts

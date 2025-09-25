@@ -4,7 +4,7 @@ from typing import Any, Iterable
 
 from clingo import ast
 
-from fasp.ast import FASP_AST, AssignmentRule, FASP_Statement, HeadSimpleAssignment
+from fasp.ast import FASP_AST, AssignmentRule, HeadSimpleAssignment
 from fasp.util.ast import SyntacticError, function_arguments
 
 

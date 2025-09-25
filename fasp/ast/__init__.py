@@ -3,7 +3,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Self, TypeVar
 
-from attr import has
 from clingo import ast
 from clingo.ast import (
     ArgumentTuple,

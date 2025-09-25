@@ -1,12 +1,11 @@
 from itertools import chain
-from re import S
 import unittest
 
 from clingo import ast
 from clingo.core import Location, Position, Library
 
-from fasp.util.ast import ELibrary, ParsingError, SyntacticCheckVisitor, SyntacticError
-from fasp.ast.rewriting.collectors import collect_variables, VariableCollector
+from fasp.util.ast import ELibrary, ParsingException, SyntacticCheckVisitor, SyntacticError
+from fasp.ast.rewriting.collectors import collect_variables
 from fasp.util import ast as util_ast
 
 
@@ -199,13 +198,13 @@ class TestParseString(unittest.TestCase):
         """
         )
 
-    def assertParsingError(self, program, expected_errors):
-        with self.assertRaises(ParsingError) as cm:
+    def assertParsingException(self, program, expected_errors):
+        with self.assertRaises(ParsingException) as cm:
             util_ast.parse_string(self.lib, program)
         self.assertEqual(cm.exception.errors, expected_errors)
 
     def test_parse_string_errors(self):
-        self.assertParsingError(
+        self.assertParsingException(
             """\
             a :- b.
             c
@@ -223,7 +222,7 @@ class TestParseString(unittest.TestCase):
             ],
         )
 
-        self.assertParsingError(
+        self.assertParsingException(
             """\
             a :- b.
             c d.
@@ -240,7 +239,7 @@ class TestParseString(unittest.TestCase):
             ],
         )
 
-        self.assertParsingError(
+        self.assertParsingException(
             """\
             a :- b.
             c d.

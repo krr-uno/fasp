@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Iterable
 import unittest
 
-from clingo.core import Library
 
 from fasp.control import Control
 from fasp.util.ast import ELibrary

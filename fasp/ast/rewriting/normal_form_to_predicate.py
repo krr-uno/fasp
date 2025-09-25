@@ -1,5 +1,4 @@
 from functools import singledispatchmethod
-from itertools import chain
 from typing import AbstractSet, Any, Iterable, cast
 
 from clingo import ast
@@ -7,7 +6,6 @@ from clingo.core import Library, Location, Position
 from clingo.symbol import Number
 
 from fasp.ast import (
-    FASP_AST,
     FASP_AST_T,
     AssignmentRule,
     FASP_Statement,
@@ -16,21 +14,15 @@ from fasp.ast import (
 from fasp.ast.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
 )
-from fasp.ast.rewriting.aggregates import (
-    normalize_assignment_aggregates,
-)
 from fasp.ast.rewriting.collectors import (
     SymbolSignature,
-    collect_evaluable_functions,
 )
 from fasp.util.ast import (
     BodyLiteralAST,
     StatementAST,
     create_body_literal,
     create_literal,
-    function_arguments,
     function_arguments_ast,
-    is_function,
 )
 
 

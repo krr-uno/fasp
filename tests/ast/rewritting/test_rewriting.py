@@ -1,7 +1,6 @@
 import textwrap
 import unittest
 
-from clingo.core import Library
 from clingo.ast import RewriteContext
 from fasp.ast.tree_sitter.parser import parse_string
 from fasp.util.ast import ELibrary

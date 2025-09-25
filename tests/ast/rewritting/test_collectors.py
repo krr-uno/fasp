@@ -1,6 +1,5 @@
 import unittest
 
-from clingo.core import Library
 
 from fasp.ast.rewriting.collectors import collect_evaluable_functions, collect_variables
 from fasp.ast.tree_sitter.parser import parse_string
