@@ -338,7 +338,61 @@ class TreeSitterParser:
             node for node in tree.root_node.children if node.type == "assignment_rule"
         ]
 
-        # self._check_syntax_errors(tree, src)
+        
+
+
+def parse_string(library: ELibrary, src: str) -> Iterable[AST]:
+    """
+    Parse the programs in the given files and return an abstract syntax tree for
+    each statement via a callback.
+
+    The function follows clingo's handling of files on the command line. Filename
+    `"-"` is treated as stdin and if an empty list is given, then the parser will
+    read from stdin.
+
+    Parameters
+    ----------
+    files
+        List of file names.
+    """
+    parser = TreeSitterParser(library)
+    asts = clingo_parse_string(library, "#program base.")
+    asts.extend(parser.parse(src))
+    return asts
+
+
+def parse_files(
+    library: ELibrary, files: Sequence[str] = None
+) -> Iterable[FASP_Statement]:
+    """
+    Parse the programs in the given files and return an abstract syntax tree for
+    each statement via a callback.
+
+    The function follows clingo's handling of files on the command line. Filename
+    `"-"` is treated as stdin and if an empty list is given, then the parser will
+    read from stdin.
+
+    Parameters
+    ----------
+    files
+        List of file names.
+    """
+    if not files:
+        files = ["-"]  # pragma: no cover
+    parser = TreeSitterParser(library)
+    asts = []
+    for file in files:
+        if file == "-":
+            src = sys.stdin.read()  # pragma: no cover
+        else:
+            with open(file, "r", encoding="utf-8") as f:
+                src = f.read()
+        asts.extend(parser.parse(src))
+    return asts
+
+
+
+# self._check_syntax_errors(tree, src)
         # return TreeSitterParser._find_with_query(
         #     tree.root_node, QUERY_ASSIGMENT_RULE
         # )  # this is not deterministic
@@ -427,53 +481,3 @@ class TreeSitterParser:
 # t = TreeSitterParser()
 # tree = t.parse("a := 1 :- b.")
 # print(tree.root_node)
-
-
-def parse_string(library: ELibrary, src: str) -> Iterable[AST]:
-    """
-    Parse the programs in the given files and return an abstract syntax tree for
-    each statement via a callback.
-
-    The function follows clingo's handling of files on the command line. Filename
-    `"-"` is treated as stdin and if an empty list is given, then the parser will
-    read from stdin.
-
-    Parameters
-    ----------
-    files
-        List of file names.
-    """
-    parser = TreeSitterParser(library)
-    asts = clingo_parse_string(library, "#program base.")
-    asts.extend(parser.parse(src))
-    return asts
-
-
-def parse_files(
-    library: ELibrary, files: Sequence[str] = None
-) -> Iterable[FASP_Statement]:
-    """
-    Parse the programs in the given files and return an abstract syntax tree for
-    each statement via a callback.
-
-    The function follows clingo's handling of files on the command line. Filename
-    `"-"` is treated as stdin and if an empty list is given, then the parser will
-    read from stdin.
-
-    Parameters
-    ----------
-    files
-        List of file names.
-    """
-    if not files:
-        files = ["-"]  # pragma: no cover
-    parser = TreeSitterParser(library)
-    asts = []
-    for file in files:
-        if file == "-":
-            src = sys.stdin.read()  # pragma: no cover
-        else:
-            with open(file, "r", encoding="utf-8") as f:
-                src = f.read()
-        asts.extend(parser.parse(src))
-    return asts
