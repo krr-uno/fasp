@@ -4,7 +4,7 @@ from clingo.core import Library
 
 from fasp.ast.rewriting.collectors import collect_evaluable_functions, collect_variables
 from fasp.ast.tree_sitter.parser import parse_string
-from fasp.core import FaspLibrary
+from fasp.util.ast import ELibrary
 
 
 class TestGetEvaluableFunctions(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestGetEvaluableFunctions(unittest.TestCase):
     """
 
     def setUp(self):
-        self.lib = FaspLibrary()
+        self.lib = ELibrary()
 
     def assertEqualFunctions(self, program, expected_functions):
         """
@@ -46,7 +46,7 @@ class TestGetEvaluableFunctions(unittest.TestCase):
 class TestGetVariables(unittest.TestCase):
 
     def setUp(self):
-        self.lib = FaspLibrary()
+        self.lib = ELibrary()
 
     def assertEqualVariables(self, program, expected_variables):
         """

@@ -8,7 +8,7 @@ from typing import Iterable, Optional, Sequence
 
 from click import Path
 from clingo import ast
-from clingo.core import Library, Location, Position
+from clingo.core import Location, Position
 from tree_sitter import (
     Language,
     Node,
@@ -26,7 +26,7 @@ from fasp.ast import (
     HeadSimpleAssignment,
 )
 from fasp.ast.rewriting.collectors import ParsingException
-from fasp.core import FaspLibrary
+from fasp.util.ast import ELibrary
 from fasp.util.ast import AST, SyntacticError, TermAST, is_function
 from fasp.util.ast import parse_string as clingo_parse_string
 
@@ -213,7 +213,7 @@ class TreeSitterParser:
     A simple wrapper around the Tree-sitter parser.
     """
 
-    def __init__(self, library: FaspLibrary):
+    def __init__(self, library: ELibrary):
         self.library = library
         self.errors = []
 
@@ -236,7 +236,7 @@ class TreeSitterParser:
                 src_array[i] = ord(b" ")
         src_bytes = bytes(src_array)
         src2 = src_bytes.decode("utf-8")
-        statements = clingo_parse_string(self.library.library, src2)
+        statements = clingo_parse_string(self.library, src2)
         if parsing_errors:  # pragma: no cover
             raise ParsingException(parsing_errors)
         return _ast_merge(assigment_rules, statements[1:])
@@ -429,7 +429,7 @@ class TreeSitterParser:
 # print(tree.root_node)
 
 
-def parse_string(library: FaspLibrary, src: str) -> Iterable[AST]:
+def parse_string(library: ELibrary, src: str) -> Iterable[AST]:
     """
     Parse the programs in the given files and return an abstract syntax tree for
     each statement via a callback.
@@ -444,7 +444,7 @@ def parse_string(library: FaspLibrary, src: str) -> Iterable[AST]:
         List of file names.
     """
     parser = TreeSitterParser(library)
-    asts = clingo_parse_string(library.library, "#program base.")
+    asts = clingo_parse_string(library, "#program base.")
     asts.extend(parser.parse(src))
     if parser.errors:  # pragma: no cover
         raise SystemExit("\n".join(parser.errors))
@@ -452,7 +452,7 @@ def parse_string(library: FaspLibrary, src: str) -> Iterable[AST]:
 
 
 def parse_files(
-    library: FaspLibrary, files: Sequence[str] = None
+    library: ELibrary, files: Sequence[str] = None
 ) -> Iterable[FASP_Statement]:
     """
     Parse the programs in the given files and return an abstract syntax tree for

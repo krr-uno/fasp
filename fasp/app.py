@@ -3,16 +3,15 @@ from typing import Sequence
 
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.control import Control as ClingoControl
-from clingo.core import Library
 
 from fasp.__version__ import __version__
 from fasp.ast.rewriting.collectors import ParsingException
 from fasp.control import Control
-from fasp.core import FaspLibrary
+from fasp.util.ast import ELibrary
 
 
 class FaspApp(App):
-    def __init__(self, library: FaspLibrary, clingo_options: Sequence[str]) -> None:
+    def __init__(self, library: ELibrary, clingo_options: Sequence[str]) -> None:
         super().__init__("fasp", __version__)
         self._order = Flag()
         self._library = library
@@ -42,7 +41,7 @@ class FaspApp(App):
 
 
 def fasp_main(
-    library: FaspLibrary, options: list[str] | None = None, raise_errors: bool = False
+    library: ELibrary, options: list[str] | None = None, raise_errors: bool = False
 ) -> int:
     """
     Main function for the fasp application.
@@ -69,6 +68,6 @@ def fasp_main(
 
 
 def main(options: Sequence[str] = ()) -> int:
-    with FaspLibrary() as library:
+    with ELibrary() as library:
         return fasp_main(library, list(options))
     return 1  # pragma: no cover

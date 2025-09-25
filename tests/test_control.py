@@ -6,7 +6,7 @@ import unittest
 from clingo.core import Library
 
 from fasp.control import Control
-from fasp.core import FaspLibrary
+from fasp.util.ast import ELibrary
 from fasp.solve import Model
 
 from .examples import EXAMPLES
@@ -17,7 +17,7 @@ TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 class TestControl(unittest.TestCase):
 
     def setUp(self):
-        self.library = FaspLibrary()
+        self.library = ELibrary()
 
     def get_models(self, files: PathLike) -> Iterable[Model]:
         control = Control(self.library, ["0"])

@@ -5,7 +5,7 @@ import unittest
 from clingo import ast
 from clingo.core import Location, Position, Library
 
-from fasp.util.ast import SyntacticCheckVisitor, SyntacticError
+from fasp.util.ast import ELibrary, ParsingError, SyntacticCheckVisitor, SyntacticError
 from fasp.ast.rewriting.collectors import collect_variables, VariableCollector
 from fasp.util import ast as util_ast
 
@@ -171,3 +171,98 @@ class TestVariableManager(unittest.TestCase):
         self.assertEqual(v1.name, "A2")
         self.assertEqual(v2.name, "C2")
         self.assertEqual(v3.name, "G")
+
+
+class TestParseString(unittest.TestCase):
+    """Tests for util_ast.parse_string."""
+
+    def setUp(self):
+        self.lib = ELibrary()
+
+    def assertCorrectParsing(self, program):
+        statements = util_ast.parse_string(self.lib, program)
+        statements = statements[1:]
+        lines = program.strip().splitlines()
+        lines = [sl for line in lines if (sl := line.strip())]
+        self.assertEqual(list(map(str, statements)), lines)
+        for stmt in statements:
+            self.assertIsInstance(stmt, ast.StatementRule)
+
+    def test_parse_string_correct(self):
+        self.assertCorrectParsing(
+            """
+            a :- b.
+            b :- not c.
+            c :- c.
+            f=1 :- g=h.
+            f=1 :- not g=h.
+        """
+        )
+
+    def assertParsingError(self, program, expected_errors):
+        with self.assertRaises(ParsingError) as cm:
+            util_ast.parse_string(self.lib, program)
+        self.assertEqual(cm.exception.errors, expected_errors)
+
+    def test_parse_string_errors(self):
+        self.assertParsingError(
+            """\
+            a :- b.
+            c
+            d.
+            """,
+            [
+                SyntacticError(
+                    location=Location(
+                        Position(self.lib.library, "string", 3, 13),
+                        Position(self.lib.library, "string", 3, 14),
+                    ),
+                    message="expected one of ':-' '.' but got <identifier>",
+                    information=None,
+                )
+            ],
+        )
+
+        self.assertParsingError(
+            """\
+            a :- b.
+            c d.
+            """,
+            [
+                SyntacticError(
+                    location=Location(
+                        Position(self.lib.library, "string", 2, 15),
+                        Position(self.lib.library, "string", 2, 16),
+                    ),
+                    message="expected one of ':-' '.' but got <identifier>",
+                    information=None,
+                )
+            ],
+        )
+
+        self.assertParsingError(
+            """\
+            a :- b.
+            c d.
+            e
+            f.
+            """,
+            [
+                SyntacticError(
+                    location=Location(
+                        Position(self.lib.library, "string", 2, 15),
+                        Position(self.lib.library, "string", 2, 16),
+                    ),
+                    message="expected one of ':-' '.' but got <identifier>",
+                    information=None,
+                ),
+                SyntacticError(
+                    location=Location(
+                        Position(self.lib.library, "string", 4, 13),
+                        Position(self.lib.library, "string", 4, 14),
+                    ),
+                    message="expected one of ':-' '.' but got <identifier>",
+                    information=None,
+                )
+            ],
+        )

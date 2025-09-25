@@ -6,8 +6,9 @@ from clingo import ast
 from clingo.core import Library
 
 from fasp.ast import AssignmentRule, HeadSimpleAssignment
+
 # from fasp.ast.rewriting.assigments import ParsingException
-from fasp.core import FaspLibrary
+from fasp.util.ast import ELibrary
 from fasp.util.ast import AST
 from fasp.ast.tree_sitter import parser
 from fasp.util.ast import parse_string
@@ -92,7 +93,7 @@ class TestParseAssignment(unittest.TestCase):
 
     def setUp(self):
         self.messages = []
-        self.lib = FaspLibrary(logger=lambda t, msg: self.messages.append((t, msg)))
+        self.lib = ELibrary(logger=lambda t, msg: self.messages.append((t, msg)))
         self.parser = parser.TreeSitterParser(self.lib)
 
     def test_tree_parse_simple_assignment(self):
@@ -183,7 +184,7 @@ class TestParseAssignment(unittest.TestCase):
         clingo_rules = [rules[0], rules[2], rules[4]]
         self.assertTrue(all(isinstance(r, ast.StatementRule) for r in clingo_rules))
         expected_clingo = parse_string(
-            self.lib.library,
+            self.lib,
             textwrap.dedent(
                 """\
                 p(X) :- q(X).
@@ -195,7 +196,6 @@ class TestParseAssignment(unittest.TestCase):
             ),
         )
         self.assertASTEqual(clingo_rules, expected_clingo[1:])
-
 
     # def test_parse_locations(self):
     #     code = textwrap.dedent(
@@ -224,17 +224,16 @@ class TestParseAssignment(unittest.TestCase):
     #     self.assertEqual(rule.head.location.begin.line, 2)
     #     self.assertEqual(rule.head.location.begin.column, 1)
     #     self.assertEqual(rule.head.location.end.line, 2)
-        # self.assertEqual(rule.head.location.end.column,  twelve)
-        # for i, body_literal in enumerate(rule.body):
-        #     self.assertEqual(body_literal.location.begin.line, 2)
-        #     if i == 0:
-        #         self.assertEqual(body_literal.location.begin.column,  sixteen)
-        #         self.assertEqual(body_literal.location.end.column,  twenty-two)
-        #     else:
-        #         self.assertEqual(body_literal.location.begin.column,  twenty-four)
-        #         self.assertEqual(body_literal.location.end.column,  thirty-two)
-        #     self.assertEqual(body_literal.location.end.line, 2)
-
+    # self.assertEqual(rule.head.location.end.column,  twelve)
+    # for i, body_literal in enumerate(rule.body):
+    #     self.assertEqual(body_literal.location.begin.line, 2)
+    #     if i == 0:
+    #         self.assertEqual(body_literal.location.begin.column,  sixteen)
+    #         self.assertEqual(body_literal.location.end.column,  twenty-two)
+    #     else:
+    #         self.assertEqual(body_literal.location.begin.column,  twenty-four)
+    #         self.assertEqual(body_literal.location.end.column,  thirty-two)
+    #     self.assertEqual(body_literal.location.end.line, 2)
 
     def assertEqualParse(self, code: str):
         rules = self.parser.parse(code)
@@ -265,21 +264,21 @@ class TestParseAssignment(unittest.TestCase):
             )
         )
 
-    def test_parse_error_clingo(self):
-        code = textwrap.dedent(
-            """\
-            a :- b.
-            d
-            d.
-            d
-            e :- f.
-            """
-        )
-        with self.assertRaises(RuntimeError) as cm:
-            _ = self.parser.parse(code)
-        print(cm.exception)
-        print(self.parser.errors)
-        print(self.messages)
+    # def test_parse_error_clingo(self):
+    #     code = textwrap.dedent(
+    #         """\
+    #         a :- b.
+    #         d
+    #         d.
+    #         d
+    #         e :- f.
+    #         """
+    #     )
+    #     with self.assertRaises(ParsingError) as cm:
+    #         _ = self.parser.parse(code)
+    #     print(cm.exception)
+    #     print(self.parser.errors)
+    #     print(self.messages)
 
     # def test_tree_parse_error_assigned_is_not_function(self):
     #     code = textwrap.dedent(

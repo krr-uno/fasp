@@ -8,7 +8,7 @@ from fasp.ast.rewriting.aggregates import (
 )
 
 from fasp.ast.tree_sitter.parser import parse_string
-from fasp.core import FaspLibrary
+from fasp.util.ast import ELibrary
 
 
 class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
     """
 
     def setUp(self):
-        self.lib = FaspLibrary()
+        self.lib = ELibrary()
 
     def parse_program(self, program: str):
         stmts = parse_string(self.lib, program)
@@ -26,7 +26,9 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
 
     def rewrite(self, program: str):
         stmts = self.parse_program(program)
-        out = [normalize_assignment_aggregates(self.lib.library, stmt) for stmt in stmts]
+        out = [
+            normalize_assignment_aggregates(self.lib.library, stmt) for stmt in stmts
+        ]
         return [str(stmt).strip() for stmt in out], []
 
     def assertRewriteEqual(self, program: str, expected: str):

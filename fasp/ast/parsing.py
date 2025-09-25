@@ -1,9 +1,8 @@
 from typing import Sequence
 
 from clingo import ast
-from clingo.core import Library
 
-from fasp.core import FaspLibrary
+from fasp.util.ast import ELibrary
 
 from . import rewriting
 from .rewriting.collectors import SymbolSignature
@@ -11,7 +10,7 @@ from .tree_sitter import parser
 
 
 def parse_files(
-    library: FaspLibrary,
+    library: ELibrary,
     files: Sequence[str],
     prefix: str = "F",
 ) -> tuple[set[SymbolSignature], ast.Program]:

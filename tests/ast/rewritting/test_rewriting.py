@@ -4,7 +4,7 @@ import unittest
 from clingo.core import Library
 from clingo.ast import RewriteContext
 from fasp.ast.tree_sitter.parser import parse_string
-from fasp.core import FaspLibrary
+from fasp.util.ast import ELibrary
 from fasp.util.ast import AST
 
 
@@ -40,7 +40,7 @@ class TestSyntacticChecker(unittest.TestCase):
         """
         Set up the test case with a library instance.
         """
-        self.lib = FaspLibrary()
+        self.lib = ELibrary()
         self.rewrite_context = RewriteContext(self.lib.library)
 
     def assertEqualRewrite(self, program, expected):

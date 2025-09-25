@@ -1,3 +1,4 @@
+import re
 import sys
 from typing import (
     AbstractSet,
@@ -447,7 +448,84 @@ class FreshVariableGenerator:
         assert False, "This will never happen, but makes mypy happy"  # pragma: no cover
 
 
-def parse_string(library: Library, code: str) -> list[StatementAST]:
+import typing
+
+from clingo.core import Library, LogLevel, MessageType
+
+
+class ELibrary:
+
+    def __init__(
+        self,
+        shared: bool = True,
+        slotted: bool = True,
+        log_level: LogLevel = LogLevel.Info,
+        logger: typing.Callable[[MessageType, str], None] | None = None,
+        message_limit: int = 25,
+    ) -> None:
+        self.error_messages: list[tuple[MessageType, str]] = []
+        self.shared = shared
+        self.slotted = slotted
+        self.log_level = log_level
+        self.logger = logger
+        self.message_limit = message_limit
+        self.library = Library(
+            shared,
+            slotted,
+            log_level,
+            self.logger_function,
+            message_limit,
+        )
+
+    def logger_function(self, msg_type: MessageType, message: str) -> None:
+        if self.logger is not None:  # pragma: no cover
+            self.logger(msg_type, message)
+        self.error_messages.append((msg_type, message))
+
+    def __enter__(self) -> typing.Self:
+        return self
+
+    def __exit__(
+        self, exc_type: typing.Any, exc_value: typing.Any, traceback: typing.Any
+    ) -> bool:
+        return self.library.__exit__(exc_type, exc_value, traceback)
+
+
+class ParsingError(Exception):
+    """
+    Exception raised when parsing fails.
+    """
+
+    def __init__(self, errors: list[SyntacticError]) -> None:
+        self.errors = errors
+        messages = "\n".join(str(error) for error in errors)
+        super().__init__(f"Parsing failed with {len(errors)} error(s):\n{messages}")
+
+
+_PARSING_ERROR_RE = r"<(.*?)>:(\d+):(\d+)-(\d+): error: (.*)"
+_PARSING_ERROR_PATTERN = re.compile(_PARSING_ERROR_RE)
+
+
+def _process_error(
+    library: Library, message: tuple[MessageType, str]
+) -> SyntacticError:
+    match = _PARSING_ERROR_PATTERN.match(message[1])
+    if not match:  # pragma: no cover
+        position = Position(library, "<unknown>", 0, 0)
+        location = Location(position, position)
+        msg = message[1]
+    else:
+        file, line, col_start, col_end, msg = match.groups()
+        start = Position(library, file, int(line), int(col_start))
+        end = Position(library, file, int(line), int(col_end))
+        location = Location(start, end)
+    return SyntacticError(
+        location,
+        msg,
+    )
+
+
+def parse_string(library: ELibrary, code: str) -> list[StatementAST]:
     """
     Parse a string into a list of AST statements.
 
@@ -457,7 +535,25 @@ def parse_string(library: Library, code: str) -> list[StatementAST]:
 
     Returns:
         list[StatementAST]: The list of parsed AST statements.
+
+    Raises:
+        Raises ParsingError if parsing fails.
     """
     parsed = []
-    ast.parse_string(library, code, lambda stmt: parsed.append(stmt))
+    # The error messages are stored to restore them after parsing
+    # The library is set to have no error messages during parsing
+    # This avoids mixing errors from previous operations with parsing errors
+    # This errors will be returned in the ParsingError if parsing fails
+    saved_errors = library.error_messages
+    library.error_messages = []
+    try:
+        ast.parse_string(library.library, code, lambda stmt: parsed.append(stmt))
+    except RuntimeError as e:
+        if str(e) != "parsing failed":  # pragma: no cover
+            raise e
+        raise ParsingError(
+            [_process_error(library.library, error) for error in library.error_messages]
+        )
+    finally:
+        library.error_messages = saved_errors
     return parsed
