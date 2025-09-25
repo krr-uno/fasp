@@ -1,11 +1,10 @@
 # mypy: ignore-errors
 # pragma: no cover
-import ctypes
-import importlib
 import sys
 from argparse import PARSER
-from typing import Iterable, Optional, Sequence
+from typing import Iterable, Sequence
 
+import tree_sitter_fasp
 from click import Path
 from clingo import ast
 from clingo.core import Location, Position
@@ -32,29 +31,6 @@ from fasp.util.ast import (
     TermAST,
 )
 from fasp.util.ast import parse_string as clingo_parse_string
-
-TREE_SITTER_LANG = "tree_sitter_fasp"
-
-
-def _load_ts_language(
-    module: Optional[str], so_path: Optional[Path] = None  # pragma: no cover
-) -> Language:
-    if module:
-        m = importlib.import_module(module)  # e.g., tree_sitter_clingo
-        cap = m.language()
-        return cap if isinstance(cap, Language) else Language(cap)
-    if so_path:
-        lib = ctypes.CDLL(str(so_path))
-        if not hasattr(lib, "TREE_SITTER_LANG"):
-            raise RuntimeError(f"{so_path} does not export {TREE_SITTER_LANG}")
-        lib.tree_sitter_fasp.restype = ctypes.c_void_p
-        ptr = lib.tree_sitter_fasp()
-        if not ptr:
-            raise RuntimeError(f"{TREE_SITTER_LANG}() returned NULL")
-        return Language(ptr)
-    raise SystemExit(
-        f"Provide --module {TREE_SITTER_LANG} OR --so ./parser.(so|dylib|dll)"
-    )
 
 
 def _ast_merge(asts1: Iterable[AST], asts2: Iterable[AST]) -> Iterable[AST]:
@@ -203,7 +179,7 @@ def _ast_merge(asts1: Iterable[AST], asts2: Iterable[AST]) -> Iterable[AST]:
 #     return previous_valid_node(parent) if parent is not None else None
 
 
-LANGUAGE = _load_ts_language(TREE_SITTER_LANG)
+LANGUAGE = Language(tree_sitter_fasp.language())
 PARSER = Parser(LANGUAGE)
 QUERY_ERRORS = Query(LANGUAGE, "(ERROR) @error-node")
 QUERY_MISSING = Query(LANGUAGE, "(MISSING) @missing-node")
@@ -231,7 +207,7 @@ class TreeSitterParser:
         for node in nodes:
             try:
                 assigment_rules.append(self._parse_assignment_rule(node))
-            except ParsingException as e:  # pragma: no cover
+            except ParsingException as e:
                 parsing_errors.extend(e.errors)
         src_array = bytearray(src_bytes)
         for node in nodes:
@@ -240,7 +216,7 @@ class TreeSitterParser:
         src_bytes = bytes(src_array)
         src2 = src_bytes.decode("utf-8")
         statements = clingo_parse_string(self.library, src2)
-        if parsing_errors:  # pragma: no cover
+        if parsing_errors:
             raise ParsingException(parsing_errors)
         return _ast_merge(assigment_rules, statements[1:])
 
