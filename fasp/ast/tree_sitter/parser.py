@@ -339,8 +339,6 @@ class TreeSitterParser:
         ]
 
         
-
-
 def parse_string(library: ELibrary, src: str) -> Iterable[AST]:
     """
     Parse the programs in the given files and return an abstract syntax tree for
