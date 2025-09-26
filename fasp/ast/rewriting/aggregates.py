@@ -7,7 +7,7 @@ from fasp.ast import (
     HeadAggregateAssignment,
     HeadSimpleAssignment,
 )
-from fasp.ast.rewriting.collectors import collect_variables
+from fasp.ast.collectors import collect_variables
 from fasp.util.ast import (
     BodyLiteralAST,
     FreshVariableGenerator,

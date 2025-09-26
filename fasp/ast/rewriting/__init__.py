@@ -7,15 +7,15 @@ from clingo.core import Library
 from fasp.ast import (
     FASP_Statement,
 )
+from fasp.ast.collectors import (
+    SymbolSignature,
+    collect_evaluable_functions,
+)
 from fasp.ast.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
 )
 from fasp.ast.rewriting.aggregates import (
     normalize_assignment_aggregates,
-)
-from fasp.ast.rewriting.collectors import (
-    SymbolSignature,
-    collect_evaluable_functions,
 )
 from fasp.ast.rewriting.normal_form_to_predicate import (
     NormalForm2PredicateTransformer,

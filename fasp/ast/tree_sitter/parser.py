@@ -338,7 +338,7 @@ class TreeSitterParser:
             node for node in tree.root_node.children if node.type == "assignment_rule"
         ]
 
-        
+
 def parse_string(library: ELibrary, src: str) -> Iterable[AST]:
     """
     Parse the programs in the given files and return an abstract syntax tree for
@@ -389,91 +389,90 @@ def parse_files(
     return asts
 
 
-
 # self._check_syntax_errors(tree, src)
-        # return TreeSitterParser._find_with_query(
-        #     tree.root_node, QUERY_ASSIGMENT_RULE
-        # )  # this is not deterministic
+# return TreeSitterParser._find_with_query(
+#     tree.root_node, QUERY_ASSIGMENT_RULE
+# )  # this is not deterministic
 
-    # def _process_error(self, node: Node, is_missing: bool = False):
-    #     pass
-    # error = first_valid_leaf(node)
-    # state = error.parse_state if error.is_named else error.next_parse_state
-    # print("ERROR NODE", node, error, error.is_named)
+# def _process_error(self, node: Node, is_missing: bool = False):
+#     pass
+# error = first_valid_leaf(node)
+# state = error.parse_state if error.is_named else error.next_parse_state
+# print("ERROR NODE", node, error, error.is_named)
 
-    # error_after = f"around '{error.text.decode("utf-8")}'"
-    # lookahead = set(self.language.lookahead_iterator(state).names())
-    # lookahead.discard("line_comment")
-    # lookahead.discard("block_comment")
-    # print(set(self.language.lookahead_iterator(error.parse_state).names()))
-    # print(set(self.language.lookahead_iterator(error.next_parse_state).names()))
-    # if "." in lookahead and "," in lookahead:
-    #     expected = ", expected '.' or ','"
-    # elif "." in lookahead:
-    #     expected = ", expected '.'"
-    # elif ":-" in lookahead:
-    #     expected = ", expected ':-'"
-    # elif "term" in lookahead:
-    #     expected = ", expected term"
-    # elif "," in lookahead:
-    #     expected = ", expected ','"
-    # elif "}" in lookahead:
-    #     expected = ", expected '}'"
-    # elif "(" in lookahead:
-    #     expected = ", expected '('"
-    # elif ")" in lookahead:
-    #     expected = ", expected ')'"
-    # elif ":=" in lookahead:
-    #     expected = ", expected ':='"
+# error_after = f"around '{error.text.decode("utf-8")}'"
+# lookahead = set(self.language.lookahead_iterator(state).names())
+# lookahead.discard("line_comment")
+# lookahead.discard("block_comment")
+# print(set(self.language.lookahead_iterator(error.parse_state).names()))
+# print(set(self.language.lookahead_iterator(error.next_parse_state).names()))
+# if "." in lookahead and "," in lookahead:
+#     expected = ", expected '.' or ','"
+# elif "." in lookahead:
+#     expected = ", expected '.'"
+# elif ":-" in lookahead:
+#     expected = ", expected ':-'"
+# elif "term" in lookahead:
+#     expected = ", expected term"
+# elif "," in lookahead:
+#     expected = ", expected ','"
+# elif "}" in lookahead:
+#     expected = ", expected '}'"
+# elif "(" in lookahead:
+#     expected = ", expected '('"
+# elif ")" in lookahead:
+#     expected = ", expected ')'"
+# elif ":=" in lookahead:
+#     expected = ", expected ':='"
 
-    # elif len(lookahead) == 1:
-    #     expected = f", expected '{list(lookahead)[0]}'"
-    # else:
-    #     expected = ""
-    # self.errors.append(
-    #         f"<string>:{error.start_point[0]+1}:{error.start_point[1]+1}-{error.end_point[1]+1}: error {error_after}{expected}"
-    #     )
+# elif len(lookahead) == 1:
+#     expected = f", expected '{list(lookahead)[0]}'"
+# else:
+#     expected = ""
+# self.errors.append(
+#         f"<string>:{error.start_point[0]+1}:{error.start_point[1]+1}-{error.end_point[1]+1}: error {error_after}{expected}"
+#     )
 
-    # def _check_syntax_errors(self, tree: Tree, src: bytes):
-    #     # print(format_ts_tree(tree.root_node))
-    #     errors = TreeSitterParser._find_with_query(
-    #         tree, self.query_errors, "error-node"
-    #     )
-    #     # print("ERRORS", errors)
-    #     for error in errors:
-    #         self._process_error(error)
-    #     # missing = TreeSitterParser._find_with_query(tree, self.query_missing, "missing-node")
+# def _check_syntax_errors(self, tree: Tree, src: bytes):
+#     # print(format_ts_tree(tree.root_node))
+#     errors = TreeSitterParser._find_with_query(
+#         tree, self.query_errors, "error-node"
+#     )
+#     # print("ERRORS", errors)
+#     for error in errors:
+#         self._process_error(error)
+#     # missing = TreeSitterParser._find_with_query(tree, self.query_missing, "missing-node")
 
-    #     missing = []
+#     missing = []
 
-    #     def traverse_tree(node: Node):
-    #         for n in node.children:
-    #             if n.is_missing:
-    #                 missing.append(n)
-    #             traverse_tree(n)
+#     def traverse_tree(node: Node):
+#         for n in node.children:
+#             if n.is_missing:
+#                 missing.append(n)
+#             traverse_tree(n)
 
-    #     traverse_tree(tree.root_node)
+#     traverse_tree(tree.root_node)
 
-    #     # print("MISSING", missing)
-    #     # for miss in missing:
-    #     #     previous_node = previous_valid_leaf(
-    #     #         miss, skip_missing=True, skip_extra=False
-    #     #     )
-    #     #     next_node = next_valid_leaf(miss, skip_missing=True, skip_extra=True)
-    #     #     print("MISS", miss, previous_node, next_node)
+#     # print("MISSING", missing)
+#     # for miss in missing:
+#     #     previous_node = previous_valid_leaf(
+#     #         miss, skip_missing=True, skip_extra=False
+#     #     )
+#     #     next_node = next_valid_leaf(miss, skip_missing=True, skip_extra=True)
+#     #     print("MISS", miss, previous_node, next_node)
 
-    # @staticmethod
-    # def _find_with_query(root: Node, query: Query, match: str = "match") -> list[Node]:
-    #     """
-    #     Return nodes of a given type using a simple query like '(<type>) @match'.
-    #     """
-    #     cursor = QueryCursor(query)
-    #     results = []
-    #     for capture_name, nodes in cursor.captures(root).items():
-    #         # print(match, capture_name, nodes)
-    #         if capture_name == match:
-    #             results.extend(nodes)
-    #     return results
+# @staticmethod
+# def _find_with_query(root: Node, query: Query, match: str = "match") -> list[Node]:
+#     """
+#     Return nodes of a given type using a simple query like '(<type>) @match'.
+#     """
+#     cursor = QueryCursor(query)
+#     results = []
+#     for capture_name, nodes in cursor.captures(root).items():
+#         # print(match, capture_name, nodes)
+#         if capture_name == match:
+#             results.extend(nodes)
+#     return results
 
 
 # t = TreeSitterParser()

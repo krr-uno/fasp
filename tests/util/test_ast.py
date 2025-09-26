@@ -5,7 +5,7 @@ from clingo import ast
 from clingo.core import Location, Position, Library
 
 from fasp.util.ast import ELibrary, ParsingException, SyntacticCheckVisitor, SyntacticError
-from fasp.ast.rewriting.collectors import collect_variables
+from fasp.ast.collectors import collect_variables
 from fasp.util import ast as util_ast
 
 

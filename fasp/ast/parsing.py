@@ -5,7 +5,7 @@ from clingo import ast
 from fasp.util.ast import ELibrary
 
 from . import rewriting
-from .rewriting.collectors import SymbolSignature
+from .collectors import SymbolSignature
 from .tree_sitter import parser
 
 

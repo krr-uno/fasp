@@ -11,11 +11,11 @@ from fasp.ast import (
     FASP_Statement,
     HeadSimpleAssignment,
 )
+from fasp.ast.collectors import (
+    SymbolSignature,
+)
 from fasp.ast.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
-)
-from fasp.ast.rewriting.collectors import (
-    SymbolSignature,
 )
 from fasp.util.ast import (
     BodyLiteralAST,
