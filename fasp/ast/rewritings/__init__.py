@@ -14,10 +14,10 @@ from fasp.ast.collectors import (
 from fasp.ast.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
 )
-from fasp.ast.rewriting.aggregates import (
+from fasp.ast.rewritings.aggregates import (
     normalize_assignment_aggregates,
 )
-from fasp.ast.rewriting.normal_form_to_predicate import (
+from fasp.ast.rewritings.normal_form_to_predicate import (
     NormalForm2PredicateTransformer,
     functional_constraints,
 )

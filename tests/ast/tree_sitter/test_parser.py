@@ -6,7 +6,7 @@ from clingo import ast
 
 from fasp.ast import AssignmentRule, HeadSimpleAssignment
 
-# from fasp.ast.rewriting.assigments import ParsingException
+# from fasp.ast.rewrittings.assigments import ParsingException
 from fasp.util.ast import ParsingException
 from fasp.util.ast import ELibrary
 from fasp.util.ast import AST

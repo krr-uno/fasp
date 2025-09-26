@@ -7,7 +7,7 @@ from fasp.util.ast import ELibrary
 from fasp.util.ast import AST
 
 
-from fasp.ast.rewriting import (
+from fasp.ast.rewritings import (
     _functional2asp,
 )
 

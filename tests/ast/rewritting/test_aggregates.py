@@ -2,7 +2,7 @@ import textwrap
 import unittest
 
 
-from fasp.ast.rewriting.aggregates import (
+from fasp.ast.rewritings.aggregates import (
     normalize_assignment_aggregates,
 )
 

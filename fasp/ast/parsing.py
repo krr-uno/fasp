@@ -4,7 +4,7 @@ from clingo import ast
 
 from fasp.util.ast import ELibrary
 
-from . import rewriting
+from . import rewritings
 from .collectors import SymbolSignature
 from .tree_sitter import parser
 
@@ -28,4 +28,4 @@ def parse_files(
         List of file names.
     """
     statements = parser.parse_files(library, files)
-    return rewriting.functional2asp(library.library, statements, prefix)
+    return rewritings.functional2asp(library.library, statements, prefix)
