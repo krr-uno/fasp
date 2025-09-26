@@ -265,6 +265,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqualParse('{ a := 1 } <= 2 :- b.')
         self.assertEqualParse('1 <= { a := 1 } <= 3 :- b.')
         self.assertEqualParse('1{ a := 1 }3 :- b.', '1 <= { a := 1 } <= 3 :- b.')
+        self.assertEqualParse('1 { a := 1: p, q; b(X) := f(X): r, not s } 5 :- c(X).', '1 <= { a := 1: p, q; b(X) := f(X): r, not s } <= 5 :- c(X).')
 
     def test_parse_merge(self):
         self.assertEqualParse(
