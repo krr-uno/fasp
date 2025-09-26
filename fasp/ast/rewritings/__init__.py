@@ -17,7 +17,7 @@ from fasp.ast.protecting import (  # protect_comparisons,; restore_comparisons,
 from fasp.ast.rewritings.aggregates import (
     normalize_assignment_aggregates,
 )
-from fasp.ast.rewritings.normal_form_to_predicate import (
+from fasp.ast.to_asp import (
     NormalForm2PredicateTransformer,
     functional_constraints,
 )
