@@ -4,7 +4,12 @@ import unittest
 from clingo import ast
 from clingo.core import Location, Position, Library
 
-from fasp.util.ast import ELibrary, ParsingException, SyntacticCheckVisitor, SyntacticError
+from fasp.util.ast import (
+    ELibrary,
+    ParsingException,
+    SyntacticCheckVisitor,
+    SyntacticError,
+)
 from fasp.ast.collectors import collect_variables
 from fasp.util import ast as util_ast
 
@@ -262,6 +267,6 @@ class TestParseString(unittest.TestCase):
                     ),
                     message="expected one of ':-' '.' but got <identifier>",
                     information=None,
-                )
+                ),
             ],
         )

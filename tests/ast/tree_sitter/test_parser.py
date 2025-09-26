@@ -215,22 +215,22 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(rule.head.location.begin.column, 1)
         self.assertEqual(rule.head.location.end.line, 1)
         self.assertEqual(rule.head.location.end.column, 7)
-        
+
         rule = rules[1]
         self.assertEqual(rule.location.begin.line, 2)
         self.assertEqual(rule.location.begin.column, 1)
         self.assertEqual(rule.location.end.line, 2)
-        self.assertEqual(rule.location.end.column,  31)
+        self.assertEqual(rule.location.end.column, 31)
         self.assertEqual(rule.head.location.begin.line, 2)
         self.assertEqual(rule.head.location.begin.column, 1)
         self.assertEqual(rule.head.location.end.line, 2)
         self.assertEqual(rule.head.location.end.column, 12)
-    
+
         rule = rules[2]
         self.assertEqual(rule.location.begin.line, 2)
         self.assertEqual(rule.location.begin.column, 33)
         self.assertEqual(rule.location.end.line, 2)
-        self.assertEqual(rule.location.end.column,  40)
+        self.assertEqual(rule.location.end.column, 40)
         self.assertEqual(rule.head.location.begin.line, 2)
         self.assertEqual(rule.head.location.begin.column, 33)
         self.assertEqual(rule.head.location.end.line, 2)
@@ -256,16 +256,19 @@ class TestParseAssignment(unittest.TestCase):
         )
 
     def test_assignment_choice(self):
-        self.assertEqualParse('{ a := 1 } :- b.')
-        self.assertEqualParse('{ a := 1; b := 2 } :- c.')
-        self.assertEqualParse('{ a := 1: p, q } :- c.')
-        self.assertEqualParse('{ a := 1: p, q; b(X) := f(X): r, not s } :- c(X).')
-        self.assertEqualParse('{ a := 1: p, q; p(X): r, not s } :- c(X).')
-        self.assertEqualParse('1 <= { a := 1 } :- b.')
-        self.assertEqualParse('{ a := 1 } <= 2 :- b.')
-        self.assertEqualParse('1 <= { a := 1 } <= 3 :- b.')
-        self.assertEqualParse('1{ a := 1 }3 :- b.', '1 <= { a := 1 } <= 3 :- b.')
-        self.assertEqualParse('1 { a := 1: p, q; b(X) := f(X): r, not s } 5 :- c(X).', '1 <= { a := 1: p, q; b(X) := f(X): r, not s } <= 5 :- c(X).')
+        self.assertEqualParse("{ a := 1 } :- b.")
+        self.assertEqualParse("{ a := 1; b := 2 } :- c.")
+        self.assertEqualParse("{ a := 1: p, q } :- c.")
+        self.assertEqualParse("{ a := 1: p, q; b(X) := f(X): r, not s } :- c(X).")
+        self.assertEqualParse("{ a := 1: p, q; p(X): r, not s } :- c(X).")
+        self.assertEqualParse("1 <= { a := 1 } :- b.")
+        self.assertEqualParse("{ a := 1 } <= 2 :- b.")
+        self.assertEqualParse("1 <= { a := 1 } <= 3 :- b.")
+        self.assertEqualParse("1{ a := 1 }3 :- b.", "1 <= { a := 1 } <= 3 :- b.")
+        self.assertEqualParse(
+            "1 { a := 1: p, q; b(X) := f(X): r, not s } 5 :- c(X).",
+            "1 <= { a := 1: p, q; b(X) := f(X): r, not s } <= 5 :- c(X).",
+        )
 
     def test_parse_merge(self):
         self.assertEqualParse(
@@ -288,8 +291,6 @@ class TestParseAssignment(unittest.TestCase):
                 """
             )
         )
-
-
 
     def test_parse_error_clingo(self):
         code = textwrap.dedent(
