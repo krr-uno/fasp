@@ -236,12 +236,35 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(rule.head.location.end.line, 2)
         self.assertEqual(rule.head.location.end.column, 39)
 
-    def assertEqualParse(self, code: str):
+    def assertEqualParse(self, code: str, expected: str | None = None):
+        if not expected:
+            expected = code
         rules = self.parser.parse(code)
         for rule in rules[1:]:
             self.assertIsInstance(rule, AssignmentRule | ast.StatementRule)
-        lines = [sl for l in code.strip().splitlines() if (sl := l.strip())]
+        lines = [sl for l in expected.strip().splitlines() if (sl := l.strip())]
         self.assertEqual(list(map(str, rules)), lines)
+
+    def test_assignment_aggregate(self):
+        self.assertEqualParse(
+            textwrap.dedent(
+                """\
+                a := #sum{X: p(X); Y,X: q(X,Y)} :- b.
+                f(Y) := #count{X: p(X)} :- b(Y).
+                """
+            )
+        )
+
+    def test_assignment_choice(self):
+        self.assertEqualParse('{ a := 1 } :- b.')
+        self.assertEqualParse('{ a := 1; b := 2 } :- c.')
+        self.assertEqualParse('{ a := 1: p, q } :- c.')
+        self.assertEqualParse('{ a := 1: p, q; b(X) := f(X): r, not s } :- c(X).')
+        self.assertEqualParse('{ a := 1: p, q; p(X): r, not s } :- c(X).')
+        self.assertEqualParse('1 <= { a := 1 } :- b.')
+        self.assertEqualParse('{ a := 1 } <= 2 :- b.')
+        self.assertEqualParse('1 <= { a := 1 } <= 3 :- b.')
+        self.assertEqualParse('1{ a := 1 }3 :- b.', '1 <= { a := 1 } <= 3 :- b.')
 
     def test_parse_merge(self):
         self.assertEqualParse(
@@ -264,6 +287,8 @@ class TestParseAssignment(unittest.TestCase):
                 """
             )
         )
+
+
 
     def test_parse_error_clingo(self):
         code = textwrap.dedent(

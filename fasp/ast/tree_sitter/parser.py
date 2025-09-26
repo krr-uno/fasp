@@ -17,10 +17,11 @@ from tree_sitter import (
 )
 
 from fasp.ast import (
+    AssignmentAggregateElement,
     AssignmentRule,
+    ChoiceAssignment,
     FASP_Statement,
     HeadAggregateAssignment,
-    HeadChoiceAssignment,
     HeadSimpleAssignment,
 )
 from fasp.util.ast import (
@@ -227,7 +228,7 @@ class TreeSitterParser:
             head = self._parse_simple_assignment(unparsed_head)
         elif unparsed_head.type == "aggregate_assignment":
             head = self._parse_aggregate_assignment(unparsed_head)
-        else:  # pragma: no cover
+        else:
             head = self._parse_choice_assignment(unparsed_head)
         unparsed_body = node.child_by_field_name("body")
         if unparsed_body:
@@ -266,7 +267,7 @@ class TreeSitterParser:
         assigned_function = ast.parse_term(self.library.library, unparsed_function)
         return assigned_function, unparsed_value
 
-    def _parse_simple_assignment(self, node: Node) -> AST:
+    def _parse_simple_assignment(self, node: Node) -> HeadSimpleAssignment:
         assigned_function, unparsed_value = self._preparse_assignment(node)
         value = ast.parse_term(self.library.library, unparsed_value)
         return HeadSimpleAssignment(
@@ -275,7 +276,7 @@ class TreeSitterParser:
             value,
         )
 
-    def _parse_aggregate_assignment(self, node: Node) -> AST:
+    def _parse_aggregate_assignment(self, node: Node) -> HeadAggregateAssignment:
         assigned_function, unparsed_aggregate = self._preparse_assignment(node)
         aggregate = self._clingo_parse_body_aggregate(unparsed_aggregate)
         return HeadAggregateAssignment(
@@ -285,14 +286,53 @@ class TreeSitterParser:
             aggregate.elements,
         )
 
-    def _parse_choice_assignment(self, node: Node) -> AST:  # pragma: no cover
-        assigned_function, unparsed_choice = self._preparse_assignment(node)
-        choice = self._clingo_parse_body_choice(unparsed_choice)
-        return HeadChoiceAssignment(
-            self.library.library,
+    def _parse_choice_assignment_element(
+        self, node: Node
+    ) -> AssignmentAggregateElement:
+        unparsed_assignment = node.child_by_field_name("assignment")
+        unparsed_condition = node.children_by_field_name("condition")
+        if len(unparsed_condition) > 1:
+            unparsed_condition = unparsed_condition[1]
+        assignment = self._parse_simple_assignment(unparsed_assignment)
+        if not unparsed_condition:
+            condition = []
+        else:
+            condition = self._clingo_parse_choice_condition(
+                unparsed_condition.text.decode("utf-8")
+            )
+        return AssignmentAggregateElement(
             self._location_from_node(node),
-            assigned_function,
-            choice.elements,
+            assignment,
+            condition,
+        )
+
+    def _parse_choice_assignment(self, node: Node) -> ChoiceAssignment:
+        elements = []
+        for unparsed_element in node.child_by_field_name("elements").children:
+            if not unparsed_element.is_named:
+                continue
+            if unparsed_element.type == "choice_assignment_element":
+                element = self._parse_choice_assignment_element(unparsed_element)
+            else:
+                element = self._clingo_parse_choice_elements(
+                    unparsed_element.text.decode("utf-8")
+                )[0]
+            elements.append(element)
+        unparsed_left = node.child_by_field_name("left")
+        if unparsed_left:
+            left = self._clingo_parse_left_guard(unparsed_left.text.decode("utf-8"))
+        else:
+            left = None
+        unparsed_right = node.child_by_field_name("right")
+        if unparsed_right:
+            right = self._clingo_parse_right_guard(unparsed_right.text.decode("utf-8"))
+        else:
+            right = None
+        return ChoiceAssignment(
+            self._location_from_node(node),
+            elements,
+            left,
+            right,
         )
 
     def _location_from_node(self, node: Node) -> Location:
@@ -311,6 +351,14 @@ class TreeSitterParser:
             ),
         )
 
+    def _clingo_parse_left_guard(self, src: str) -> AST:
+        choice = self._clingo_parse_choice(f"{src}{{a}}")
+        return choice.left
+
+    def _clingo_parse_right_guard(self, src: str) -> AST:
+        choice = self._clingo_parse_choice(f"{{a}}{src}")
+        return choice.right
+
     def _clingo_parse_body(self, src: str) -> AST:
         statement = ast.parse_statement(self.library.library, f":- {src}.")
         return statement.body
@@ -319,9 +367,17 @@ class TreeSitterParser:
         body = self._clingo_parse_body(src)
         return body[0]
 
-    def _clingo_parse_body_choice(self, src: str) -> AST:  # pragma: no cover
-        body = self._clingo_parse_body("#count" + src)
-        return body[0]
+    def _clingo_parse_choice(self, src: str) -> AST:
+        rule = ast.parse_statement(self.library.library, f"{src}.")
+        return rule.head
+
+    def _clingo_parse_choice_elements(self, src: str) -> AST:
+        choice = self._clingo_parse_choice(f"{{{src}}}")
+        return choice.elements
+
+    def _clingo_parse_choice_condition(self, src: str) -> AST:
+        elements = self._clingo_parse_choice_elements(f" p: {src}")
+        return elements[0].condition
 
     def _tree_parse(self, src: bytes) -> Tree:
         """

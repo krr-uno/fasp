@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
+from turtle import left, right
 from typing import Any, Self, TypeVar
 
 from clingo import ast
@@ -156,6 +157,26 @@ _AGGREGATE_FUNCTION_TO_STR = {
 
 
 @dataclass
+class AssignmentAggregateElement(AssignmentAST):
+    location: Location
+    assignment: HeadSimpleAssignment
+    condition: Sequence[util_ast.LiteralAST]
+
+    def __str__(self) -> str:
+        if self.condition:
+            return f"{str(self.assignment)}: {', '.join(map(str, self.condition))}"
+        return f"{str(self.assignment)}"
+
+    def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        return {
+            "type": "AssignmentAggregateElement",
+            "location": self.location,
+            "assignment": self.assignment,
+            "condition": self.condition,
+        }
+
+
+@dataclass
 class HeadAggregateAssignment(AssignmentAST):
     location: Location
     assigned_function: ast.TermFunction
@@ -176,15 +197,16 @@ class HeadAggregateAssignment(AssignmentAST):
 
 
 @dataclass
-class HeadChoiceAssignment(AssignmentAST):
+class ChoiceAssignment(AssignmentAST):
     location: Location
-    assigned_function: ast.TermFunction
-    elements: Sequence[ast.BodyAggregateElement]
+    elements: Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
+    left_guard: LeftGuard | None = None
+    right_guard: RightGuard | None = None
 
     def __str__(self) -> str:  # pragma: no cover
-        return (
-            f"{str(self.assigned_function)} in {{{'; '.join(map(str, self.elements))}}}"
-        )
+        left = str(self.left_guard) if self.left_guard else ""
+        right = str(self.right_guard) if self.right_guard else ""
+        return f"{left}{{ {'; '.join(map(str, self.elements))} }}{right}"
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
         return {
