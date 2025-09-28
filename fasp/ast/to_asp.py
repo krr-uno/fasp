@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import AbstractSet, Any, Iterable, cast
+from typing import AbstractSet, Iterable, cast
 
 from clingo import ast
 from clingo.core import Library, Location, Position
@@ -91,9 +91,7 @@ class NormalForm2PredicateTransformer:
     #     )
 
     @singledispatchmethod
-    def _rewrite_head(
-        self, node: HeadSimpleAssignment, *_args: Any, **_kwars: Any
-    ) -> ast.HeadSimpleLiteral:
+    def _rewrite_head(self, node: HeadSimpleAssignment) -> ast.HeadSimpleLiteral:
         """
         Visit a HeadSimpleAssignment node and transform it if it is an evaluable function.
         """
@@ -117,20 +115,15 @@ class NormalForm2PredicateTransformer:
             ),
         )
 
-    def _rewrite_body_literal(self, node: BodyLiteralAST) -> BodyLiteralAST | None:
+    @singledispatchmethod
+    def _dispach(self, node: FASP_AST_T) -> FASP_AST_T | None:
         """
         Visit a BodyLiteralAST node and transform it if it is an evaluable function.
         """
-        if isinstance(node, ast.BodySimpleLiteral) and isinstance(
-            node.literal, ast.LiteralComparison
-        ):
-            if (literal := self._rewrite_comparison(node.literal)) is not None:
-                return ast.BodySimpleLiteral(self.library, literal)
-        return None
+        return node.transform(self.library, self._dispach)
 
-    def _rewrite_comparison(
-        self, node: ast.LiteralComparison
-    ) -> ast.LiteralSymbolic | None:
+    @_dispach.register
+    def _(self, node: ast.LiteralComparison) -> ast.LiteralSymbolic | None:
         assert len(node.right) >= 1, "Comparison must have at least one guard."
         if (
             not is_function(node.left)
@@ -153,11 +146,7 @@ class NormalForm2PredicateTransformer:
             ),
         )
 
-    @singledispatchmethod
-    def _rewrite_statement(self, node: FASP_Statement) -> FASP_Statement | None:
-        return node
-
-    @_rewrite_statement.register
+    @_dispach.register
     def _(self, node: AssignmentRule | ast.StatementRule) -> ast.StatementRule:
         """
         Visit an AssignmentRule node and transform it
@@ -170,7 +159,7 @@ class NormalForm2PredicateTransformer:
             head = node.head
         body = []
         for lit in node.body:
-            if (rewritten := self._rewrite_body_literal(lit)) is not None:
+            if (rewritten := self._dispach(lit)) is not None:
                 body.append(rewritten)
                 new_rule = True
             else:
@@ -180,7 +169,7 @@ class NormalForm2PredicateTransformer:
         return node
 
     def rewrite(self, node: FASP_Statement) -> StatementAST:
-        result = self._rewrite_statement(node)
+        result = self._dispach(node) or node
         return cast(StatementAST, result)
 
 
