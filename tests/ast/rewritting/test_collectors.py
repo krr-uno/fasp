@@ -31,7 +31,7 @@ class TestGetEvaluableFunctions(unittest.TestCase):
     def test_get_evaluable_functions(self):
         """Test syntax checking with a correct program snippet."""
         program = """
-            #program actions.
+            #program base.
             a :- b.
             b :- not c.
             c :- c.
@@ -40,6 +40,14 @@ class TestGetEvaluableFunctions(unittest.TestCase):
             f2(X) := 1 :- p(X).
         """
         self.assertEqualFunctions(program, ["f/0", "f2/1"])
+
+    def test_fib(self):
+        """Test syntax checking with a correct program snippet."""
+        program = """
+            #program base.
+            fibo(X) := F1+F2 :- number(X),X>1, fibo(X-1) = F1, fibo(X-2) = F2.
+        """
+        self.assertEqualFunctions(program, ["fibo/1"])
 
 
 class TestGetVariables(unittest.TestCase):
