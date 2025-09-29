@@ -6,7 +6,7 @@ from clingo.core import Library
 
 from fasp.ast.syntax_checking import SymbolSignature
 from fasp.ast.transformers.unnest_functions import UnnestFunctionsTransformer
-from fasp.util.ast import AST, collect_variables
+from fasp.util.ast import AST, collect_variables, collect_variables_list
 
 
 class RuleRewriteTransformer:
@@ -62,11 +62,11 @@ class RuleRewriteTransformer:
         )
 
     def _comparisons_for_node(
-        self, node: ast.StatementRule
+        self, node: ast.StatementRule | AST
     ) -> List[ast.LiteralComparison]:
         """Collect unnested comparisons relevant for variables in this node."""
-        vars_in_node = collect_variables([node])
-        comps = []
+        vars_in_node = collect_variables_list([node])
+        comps: List[ast.LiteralComparison] = []
         for v in vars_in_node:
             if v in self.unnest_transformer._var_to_comp:
                 comps.append(self.unnest_transformer._var_to_comp[v])
@@ -120,14 +120,28 @@ class RuleRewriteTransformer:
             else:
                 new_condition.append(rewritten)
 
-        # Collect comparisons from variables in this element
-        comps: List[ast.LiteralComparison] = []
-        for cond in new_condition:
-            comps.extend(self._comparisons_for_node(cond))
+        new_comps: List[ast.LiteralComparison] = self._comparisons_for_node(node)
 
-        for comp in self.unnest_transformer.unnested_functions:
-            if comp not in comps:
-                comps.append(comp)
-
-        new_condition.extend(comps)
+        new_condition.extend(new_comps)
         return node.update(self.lib, condition=tuple(new_condition))
+
+    @_rewrite.register
+    def _(self, node: ast.BodyAggregate):
+
+        # Collect guard comps separately
+        guard_comps: List[ast.LiteralComparison] = []
+        if node.left:
+            left_comps = self._comparisons_for_node(node.left)
+            guard_comps.extend(left_comps)
+
+        if node.right:
+            right_comps = self._comparisons_for_node(node.right)
+            guard_comps.extend(right_comps)
+
+        # Recurse into the aggregate to handle elements
+        new_node = node.transform(self.lib, lambda c: self._rewrite(c)) or node
+        # Return both the rewritten aggregate and new guard comps as separate body literals
+        result: List[Union[ast.BodyAggregate, ast.BodySimpleLiteral]] = [new_node]
+        for comp in guard_comps:
+            result.append(ast.BodySimpleLiteral(self.lib, comp))
+        return result

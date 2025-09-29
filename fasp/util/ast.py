@@ -3,6 +3,7 @@ from typing import (
     AbstractSet,
     Any,
     Iterable,
+    List,
     NamedTuple,
     Optional,
     Sequence,
@@ -483,32 +484,30 @@ class FreshVariableGenerator:
         assert False, "This will never happen, but makes mypy happy"  # pragma: no cover
 
 
-# class ComparisonCollector:
-#     """
-#     Collect all LiteralComparison nodes from an AST or iterable of ASTs.
-#     """
+class VariableCollectorList:
+    """
+    Class to collect variables from a list of AST statements.
 
-#     def __init__(self):
-#         self.comparisons: Set[ast.LiteralComparison] = set()
+    Usage:
+        collector = VariableCollector()
+        used_vars = collector.collect(statements)
+    """
 
-#     def collect(self, nodes: Union[Any, Iterable[Any]]) -> Set[ast.LiteralComparison]:
-#         self._collect(nodes)
-#         return self.comparisons
+    def __init__(self):
+        self.used: List[str] = []
 
-#     def _collect(self, node: Any) -> None:
-#         if isinstance(node, ast.LiteralComparison):
-#             self.comparisons.add(node)
-#         # recurse into children
-#         node.visit(self._collect)
+    def collect(self, statements: Iterable[AST]) -> List[str]:
+        for stmt in statements:
+            self._collect_vars(stmt)
+        return self.used
+
+    def _collect_vars(self, node: AST) -> None:
+        if isinstance(node, ast.TermVariable):
+            self.used.append(node.name)
+            return
+        node.visit(self._collect_vars)
 
 
-# def collect_comparisons(
-#     node: AST | None,
-# ) -> Set[ast.LiteralComparison]:
-#     """Collect all LiteralComparison nodes from an AST into the provided set."""
-#     if node is None:
-#         return set()
-#     collector = ComparisonCollector()
-#     out: Set[ast.LiteralComparison] = set()
-#     comps = collector.collect(node)
-#     return comps
+def collect_variables_list(statements: Iterable[AST]) -> List[str]:
+    collector = VariableCollectorList()
+    return collector.collect(statements)

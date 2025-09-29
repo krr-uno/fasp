@@ -122,7 +122,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         """).strip()
         expected_program = textwrap.dedent("""
             #program base.
-            f(X) :- W = #sum { FUN: p(FUN2), q(X), g(Y)=FUN2, f(Y)=FUN }.
+            f(X) :- W = #sum { FUN: p(FUN2), q(X), f(Y)=FUN, g(Y)=FUN2 }.
         """).strip()
 
         evaluable = {SymbolSignature("f", 1), SymbolSignature("g", 1)}
@@ -165,7 +165,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         """).strip()
         expected_program = textwrap.dedent("""
             #program base.
-            f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X), g(Y)=FUN2, f(Y)=FUN }.
+            f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }.
         """).strip()
 
         evaluable = {SymbolSignature("f", 1), SymbolSignature("g", 1)}
@@ -225,7 +225,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
 
         expected_program = textwrap.dedent("""
             #program base.
-            f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X), g(Y)=FUN2, f(Y)=FUN }.
+            f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }.
         """).strip()
 
         evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("g", 1), SymbolSignature("h", 1)}
@@ -234,3 +234,23 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         # Duplicates in body are expected now
         self.assertEqual(new_program, expected_program)
         self.assertEqual(unnested_sets, [{'f(Y)=FUN', 'g(Y)=FUN2'}])
+
+    def test_aggregates_2(self):
+        """Ensure head comparisons are added to the body even if already present."""
+        program = textwrap.dedent("""
+            f(X) = 1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.
+            
+        """).strip()
+
+        expected_program = textwrap.dedent("""
+            #program base.
+            f(X)=1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X), f(Y)=FUN2, g(Y)=FUN3 }; h(1)=FUN.
+        """).strip()
+
+        evaluable_functions = {SymbolSignature("f", 1), SymbolSignature("g", 1), SymbolSignature("h", 1)}
+        new_program, unnested_sets = apply_rule_rewrite(self.lib, program, evaluable_functions)
+
+        # Duplicates in body are expected now
+        self.assertEqual(new_program, expected_program)
+        self.assertEqual(unnested_sets, [{'f(Y)=FUN2', 'g(Y)=FUN3', 'h(1)=FUN'}])
+
