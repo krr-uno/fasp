@@ -145,7 +145,6 @@ class NormalForm2PredicateTransformer:
                 [ast.ArgumentTuple(self.library, [*arguments, node.right[0].term])],
             ),
         )
-    
 
     @_dispach.register
     def _(self, node: AssignmentRule | ast.StatementRule) -> ast.StatementRule:
