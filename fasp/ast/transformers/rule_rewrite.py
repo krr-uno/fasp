@@ -112,13 +112,26 @@ class RuleRewriteTransformer:
     @_rewrite.register
     def _(self, node: ast.BodyAggregateElement):
         # Rewrite each condition atom
-        new_condition = []
+        new_condition: List[
+            ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
+        ] = []
         for c in node.condition:
             rewritten = self._rewrite(c)
-            if isinstance(rewritten, list):
+            # Negative Literals are not allowed in aggregate
+            # It is a LiteralSymbolic (like `not q(X)`)
+            if isinstance(rewritten, ast.LiteralSymbolic):
+                if rewritten.sign == ast.Sign.Single:
+                    raise RuntimeError(
+                        f"Negative literals in aggregate conditions are not supported "
+                        f"(at {rewritten.location})."
+                    )
+                new_condition.append(rewritten)
+
+            # Note: Needed if above error branch is removed in future updates
+            elif isinstance(rewritten, list):  # pragma: no cover
                 new_condition.extend(rewritten)  # pragma: no cover
             else:
-                new_condition.append(rewritten)
+                new_condition.append(rewritten)  # pragma: no cover
 
         new_comps: List[ast.LiteralComparison] = self._comparisons_for_node(node)
 

@@ -239,7 +239,6 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         """Ensure head comparisons are added to the body even if already present."""
         program = textwrap.dedent("""
             f(X) = 1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.
-            
         """).strip()
 
         expected_program = textwrap.dedent("""
@@ -254,3 +253,17 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqual(new_program, expected_program)
         self.assertEqual(unnested_sets, [{'f(Y)=FUN2', 'g(Y)=FUN3', 'h(1)=FUN'}])
 
+    def test_negative_literal_in_aggregate_condition_raises(self):
+        program = textwrap.dedent("""
+            p :- #sum { X : not q(X) } = 1.
+        """).strip()
+
+        evaluable = {SymbolSignature("q", 1)}
+
+        with self.assertRaises(RuntimeError) as cm:
+            apply_rule_rewrite(self.lib, program, evaluable)
+
+        self.assertIn(
+            "Negative literals in aggregate conditions are not supported",
+            str(cm.exception)
+        )
