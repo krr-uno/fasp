@@ -2,7 +2,7 @@ import textwrap
 import unittest
 
 from clingo.ast import RewriteContext
-from fasp.ast.tree_sitter.parser import parse_string
+from fasp.ast.parsing.parser import parse_string
 from fasp.util.ast import ELibrary
 from fasp.util.ast import AST
 

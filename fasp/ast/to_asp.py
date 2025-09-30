@@ -5,7 +5,7 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number
 
-from fasp.ast import (
+from fasp.ast._nodes import (
     FASP_AST_T,
     AssignmentRule,
     FASP_Statement,

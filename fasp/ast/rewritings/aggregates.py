@@ -1,7 +1,7 @@
 from clingo import ast
 from clingo.core import Library
 
-from fasp.ast import (
+from fasp.ast._nodes import (
     AssignmentRule,
     FASP_Statement,
     HeadAggregateAssignment,

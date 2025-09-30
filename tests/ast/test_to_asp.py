@@ -5,7 +5,7 @@ import unittest
 from fasp.util.ast import ELibrary
 
 from fasp.ast.collectors import SymbolSignature
-from fasp.ast.tree_sitter.parser import parse_string
+from fasp.ast.parsing.parser import parse_string
 from fasp.ast.to_asp import NormalForm2PredicateTransformer
 
 

@@ -10,7 +10,7 @@ from fasp.ast import AssignmentRule, HeadSimpleAssignment
 from fasp.util.ast import ParsingException
 from fasp.util.ast import ELibrary
 from fasp.util.ast import AST
-from fasp.ast.tree_sitter import parser
+from fasp.ast.parsing import parser
 from fasp.util.ast import parse_string
 
 

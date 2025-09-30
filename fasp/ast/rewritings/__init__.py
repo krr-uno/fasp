@@ -4,7 +4,7 @@ from typing import Iterable
 from clingo import ast
 from clingo.core import Library
 
-from fasp.ast import (
+from fasp.ast._nodes import (
     FASP_Statement,
 )
 from fasp.ast.collectors import (

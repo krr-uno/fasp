@@ -1,5 +1,6 @@
 import re
 import sys
+import typing
 from typing import (
     AbstractSet,
     Any,
@@ -78,7 +79,7 @@ from clingo.ast import (
     TheoryTermVariable,
     UnparsedElement,
 )
-from clingo.core import Library, Location, Position
+from clingo.core import Library, Location, LogLevel, MessageType, Position
 from clingo.symbol import Symbol, SymbolType
 
 StatementAST = (
@@ -448,15 +449,11 @@ class FreshVariableGenerator:
         assert False, "This will never happen, but makes mypy happy"  # pragma: no cover
 
 
-import typing
-
-from clingo.core import Library, LogLevel, MessageType
-
-
 class ELibrary:
 
     def __init__(
         self,
+        *,
         shared: bool = True,
         slotted: bool = True,
         log_level: LogLevel = LogLevel.Info,
