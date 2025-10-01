@@ -147,10 +147,13 @@ class TestRuleRewriteTransformer(unittest.TestCase):
                 "p :- #sum { X : not q(X) } = 1."
             )
 
-        # TODO: Need to modify transformer to only raise error when negative literal has evaluable function
-        # Currently it raises error for all negative literals in aggregate condition.
         self.assertIn(
-            "Negative literals in aggregate conditions are not supported",
-            # Evaluable functions in negative literals in aggregate conditions are currently not supported
+            "Evaluable functions in negative literals in aggregate conditions are currently not supported",
             str(cm.exception)
+        )
+    def test_non_evaluable_negative_literal_allowed_aggregate(self):
+        self.assertEqualRewrite(
+            {"f/1"},
+            "a :- #sum { q(f(1)): not r(1) }.",
+            "a :- #sum { q(FUN): not r(1), f(1)=FUN }."
         )

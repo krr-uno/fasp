@@ -6,7 +6,7 @@ from clingo.core import Library
 
 from fasp.ast.syntax_checking import SymbolSignature
 from fasp.ast.transformers.unnest_functions import UnnestFunctionsTransformer
-from fasp.util.ast import AST, collect_variables, collect_variables_list
+from fasp.util.ast import AST, TermAST, collect_variables, collect_variables_list
 
 
 class RuleRewriteTransformer:
@@ -120,11 +120,16 @@ class RuleRewriteTransformer:
             # Negative Literals are not allowed in aggregate
             # It is a LiteralSymbolic (like `not q(X)`)
             if isinstance(rewritten, ast.LiteralSymbolic):
+                # negative literal (sign == Single)
                 if rewritten.sign == ast.Sign.Single:
-                    raise RuntimeError(
-                        f"Negative literals in aggregate conditions are not supported "
-                        f"(at {rewritten.location})."
-                    )
+                    if isinstance(rewritten.atom, ast.TermVariable):
+                        # Check if this var was introduced by unnesting an evaluable function
+                        if rewritten.atom.name in self.unnest_transformer._var_to_comp:
+                            raise RuntimeError(
+                                "Evaluable functions in negative literals in aggregate "
+                                "conditions are currently not supported "
+                                f"(at {rewritten.location})."
+                            )
                 new_condition.append(rewritten)
 
             # Note: Needed if above error branch is removed in future updates
