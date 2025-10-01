@@ -18,11 +18,9 @@ from fasp.ast.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
 )
 from fasp.util.ast import (
-    BodyLiteralAST,
     StatementAST,
     create_body_literal,
     create_literal,
-    function_arguments,
     function_arguments_ast,
     is_function,
 )

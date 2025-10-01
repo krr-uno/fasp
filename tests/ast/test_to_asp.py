@@ -1,5 +1,3 @@
-from math import exp
-from re import S
 import unittest
 
 from fasp.util.ast import ELibrary

@@ -20,6 +20,21 @@ from ._nodes import (
 from .collectors import SymbolSignature
 from .parsing import parser
 
+_ALL__ = [
+    "FASP_AST",
+    "FASP_AST_T",
+    "AssignmentAggregateElement",
+    "AssignmentAST",
+    "AssignmentRule",
+    "ChoiceAssignment",
+    "FASP_Statement",
+    "HeadAggregateAssignment",
+    "HeadAssignment",
+    "HeadSimpleAssignment",
+    "SymbolSignature",
+    "parse_files",
+]
+
 
 def parse_files(
     library: ELibrary,
