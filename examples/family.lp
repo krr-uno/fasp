@@ -1,7 +1,7 @@
-father(cain)=adam.
-father(abel)=adam.
-mother(cain)=eve.
-mother(abel)=eve.
+father(cain):=adam.
+father(abel):=adam.
+mother(cain):=eve.
+mother(abel):=eve.
 
 % person(father(X)).
 % person(mother(X)).
@@ -16,4 +16,4 @@ female(Y) :- mother(_)=Y.
 
 orphan(X) :- person(X), not father(X)=_, not mother(X)=_.
 
-n_orphan = #count{X : orphan(X)}.
+n_orphan := #count{X : orphan(X)}.
