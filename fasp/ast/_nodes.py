@@ -156,26 +156,6 @@ _AGGREGATE_FUNCTION_TO_STR = {
 
 
 @dataclass
-class AssignmentAggregateElement(AssignmentAST):
-    location: Location
-    assignment: HeadSimpleAssignment
-    condition: Sequence[util_ast.LiteralAST]
-
-    def __str__(self) -> str:
-        if self.condition:
-            return f"{str(self.assignment)}: {', '.join(map(str, self.condition))}"
-        return f"{str(self.assignment)}"
-
-    def to_dict(self) -> dict[str, Any]:  # pragma: no cover
-        return {
-            "type": "AssignmentAggregateElement",
-            "location": self.location,
-            "assignment": self.assignment,
-            "condition": self.condition,
-        }
-
-
-@dataclass
 class HeadAggregateAssignment(AssignmentAST):
     location: Location
     assigned_function: ast.TermFunction
@@ -192,6 +172,26 @@ class HeadAggregateAssignment(AssignmentAST):
             "assigned_function": self.assigned_function,
             "aggregate_function": self.aggregate_function,
             "elements": self.elements,
+        }
+
+
+@dataclass
+class AssignmentAggregateElement(AssignmentAST):
+    location: Location
+    assignment: HeadSimpleAssignment
+    condition: Sequence[util_ast.LiteralAST]
+
+    def __str__(self) -> str:
+        if self.condition:
+            return f"{str(self.assignment)}: {', '.join(map(str, self.condition))}"
+        return f"{str(self.assignment)}"
+
+    def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        return {
+            "type": "AssignmentAggregateElement",
+            "location": self.location,
+            "assignment": self.assignment,
+            "condition": self.condition,
         }
 
 
