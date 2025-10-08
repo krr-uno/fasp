@@ -76,17 +76,68 @@ from fasp.util import ast as util_ast
 
 
 class AssignmentAST:
+    """
+    Abstract base class for all assignment-related (:=) AST nodes in FASP.
+
+    This class defines the common interface and traversal utilities:
+    - to_dict() must be implemented by all subclasses to return
+      a serializable mapping of their fields.
+    - update(**kwargs)
+    - visit(visitor, *args, **kwargs)
+    - transform(library, transformer, *args, **kwargs)
+
+    Notes
+    -----
+    - These methods are implemented to match the interface of clingo.ast nodes.
+    """
 
     @abstractmethod
-    def to_dict(self) -> dict[str, Any]: ...
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Return a serializable dictionary representation of this node.
+
+        Notes
+        -----
+        Subclasses must ensure that the keys returned match their dataclass
+        constructor parameters. Typically includes a "type" field for
+        debugging or serialization.
+        """
+        ...
 
     def update(self, **kwargs: Any) -> Self:
+        """
+        Create a new instance with some fields replaced.
+
+        Parameters
+        ----------
+        **kwargs : Any
+            Field overrides to apply.
+
+        Returns
+        -------
+        Self
+            A new instance of the same class with updated fields.
+        """
         d = self.to_dict()
         d.update(kwargs)
         d.pop("type", None)
         return self.__class__(**d)
 
     def visit(self, visitor: Any, *args: Any, **kwargs: Any) -> None:
+        """
+        Traverse child nodes and apply a visitor function.
+        Parameters
+        ----------
+        visitor : callable
+            The visitor function to apply to child nodes.
+        *args, **kwargs
+            Extra arguments passed through to the visitor.
+
+        Notes
+        -----
+        The visitor is invoked for each child AST node that implements
+        visit. Fields like location and type are ignored.
+        """
         d = self.to_dict()
         for key, value in d.items():
             if key in {"location", "type"}:
@@ -101,6 +152,28 @@ class AssignmentAST:
     def transform(  # pragma: no cover
         self, library: Library, transformer: Any, *args: Any, **kwargs: Any
     ) -> Self:
+        """
+        Recursively transform child nodes and return a new instance.
+
+        Parameters
+        ----------
+        library : Library
+            A library object passed to the transformer.
+        transformer : callable
+            The transformer that needs to be applied on the AST node.
+        *args, **kwargs
+            Extra arguments passed through to the transformer.
+
+        Returns
+        -------
+        Self
+            A new instance with transformed child nodes.
+
+        Notes
+        -----
+        If the transformer returns None for a child, that child is left
+        unchanged. Otherwise, the child is replaced with the returned node.
+        """
         d = self.to_dict()
         for key, value in d.items():
             if key in {"location", "type"}:
@@ -118,6 +191,19 @@ class AssignmentAST:
 
 @dataclass
 class HeadSimpleAssignment(AssignmentAST):
+    """
+    A simple assignment head of the form ``f(args) := value``.
+
+    Parameters
+    ----------
+    location : Location
+        Source code location of this assignment.
+    assigned_function : ast.TermFunction
+        The function symbol being assigned, e.g. ``f(args)``.
+    value : TermAST (Defined in util_ast)
+        The right-hand side term of the assignment.
+    """
+
     location: Location
     assigned_function: ast.TermFunction
     value: util_ast.TermAST
@@ -157,6 +243,21 @@ _AGGREGATE_FUNCTION_TO_STR = {
 
 @dataclass
 class HeadAggregateAssignment(AssignmentAST):
+    """
+    An assignment head of the form ``f(args) := #agg{ ... }``.
+
+    Parameters
+    ----------
+    location : Location
+        Source code location.
+    assigned_function : ast.TermFunction
+        The function symbol on the left-hand side.
+    aggregate_function : ast.AggregateFunction
+         The aggregate operator (``#sum``, ``#count``, ``#min``, ``#max``).
+    elements : Sequence[ast.BodyAggregateElement]
+        Elements of the aggregate body.
+    """
+
     location: Location
     assigned_function: ast.TermFunction
     aggregate_function: ast.AggregateFunction
@@ -177,6 +278,28 @@ class HeadAggregateAssignment(AssignmentAST):
 
 @dataclass
 class AssignmentAggregateElement(AssignmentAST):
+    """
+    A single assignment element with an optional condition,
+    used inside a choice assignment.
+
+    This node wraps a `HeadSimpleAssignment` and associates it with
+    zero or more literals that act as a condition.
+
+    Example:
+        { f(X) := 1 : p(X); f(X) := 2 : q(X) }.
+    In this example, `f(X) := value : condition` becomes an
+    AssignmentAggregateElement.
+
+    Parameters
+    ----------
+    location : Location
+        Source code location.
+    assignment : HeadSimpleAssignment
+        The assignment part of the element (e.g., `f(X) := 1`).
+    condition : Sequence[util_ast.LiteralAST]
+        Optional literals serving as conditions (e.g., `p(X)`).
+    """
+
     location: Location
     assignment: HeadSimpleAssignment
     condition: Sequence[util_ast.LiteralAST]
@@ -197,6 +320,32 @@ class AssignmentAggregateElement(AssignmentAST):
 
 @dataclass
 class ChoiceAssignment(AssignmentAST):
+    """
+    A choice-style assignment with optional guards.
+
+    Syntax form:
+        [left_guard] { element1; element2; ... } [right_guard]
+
+    Each element can be either:
+    - `AssignmentAggregateElement`: a simple assignment with an optional condition,
+      e.g., `f(X) := 1 : p(X)`.
+    - `ast.SetAggregateElement`: a standard clingo set aggregate element.
+    
+    Example:
+        1 { f(X) := 1 : p(X); f(X) := 2 : q(X) } 3.
+
+    Parameters
+    ----------
+    location : Location
+        Source code location.
+    elements : Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
+        Elements inside the choice braces.
+    left_guard : LeftGuard, optional
+        An optional left guard.
+    right_guard : RightGuard, optional
+        An optional right guard.
+    """
+
     location: Location
     elements: Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
     left_guard: LeftGuard | None = None
@@ -207,12 +356,18 @@ class ChoiceAssignment(AssignmentAST):
         right = str(self.right_guard) if self.right_guard else ""
         return f"{left}{{ {'; '.join(map(str, self.elements))} }}{right}"
 
+    # Note: Implementation seemed to be incomplete since this class does not have assigned_function
+    # but to_dict referred to it and guard fields were missing.
+
+    # Attempt to fix to_dict implementation
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
         return {
             "type": "HeadChoiceAssignment",
             "location": self.location,
-            "assigned_function": self.assigned_function,
+            # "assigned_function": self.assigned_function,
             "elements": self.elements,
+            "left_guard": self.left_guard,
+            "right_guard": self.right_guard,
         }
 
 
@@ -221,6 +376,24 @@ HeadAssignment = HeadSimpleAssignment | HeadAggregateAssignment
 
 @dataclass
 class AssignmentRule(AssignmentAST):
+    """
+    A full rule with an assignment in its head. Analogous to
+    ast.StatementRule but with an assignment (:=) in the head.
+
+    Syntax forms:
+    - `head.` (a fact with no body)
+    - `head :- body.` (a rule with a non-empty body)
+
+    Parameters
+    ----------
+    location : Location
+        Source code location.
+    head : HeadAssignment
+        The assignment head (simple or aggregate).
+    body : Sequence[util_ast.BodyLiteralAST]
+        The rule body literals.
+    """
+
     location: Location
     head: HeadAssignment
     body: Sequence[util_ast.BodyLiteralAST]
