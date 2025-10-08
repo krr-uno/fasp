@@ -330,7 +330,7 @@ class ChoiceAssignment(AssignmentAST):
     - `AssignmentAggregateElement`: a simple assignment with an optional condition,
       e.g., `f(X) := 1 : p(X)`.
     - `ast.SetAggregateElement`: a standard clingo set aggregate element.
-    
+
     Example:
         1 { f(X) := 1 : p(X); f(X) := 2 : q(X) } 3.
 
