@@ -229,10 +229,17 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
         self.assertEqualUnnesting(
-            ":- #sum{ p(x) : f(x)< y(x) } = 1.",
+            "#sum{ f(x) : h(x)< y(x) } = 1.",
             evaluable_functions,
-            ":- #sum { p(x): FUN<y(x) } = 1.",
-            [{"f(x)=FUN"}],
+            "#sum { f(x): FUN<y(x) } = 1.",
+            [{"h(x)=FUN"}],
+        )
+
+        self.assertEqualUnnesting(
+            ":- #sum{ f(x) : h(x)< y(x) } = 1.",
+            evaluable_functions,
+            ":- #sum { FUN: FUN2<y(x) } = 1.",
+            [{"f(x)=FUN", "h(x)=FUN2"}],
         )
 
         self.assertEqualUnnesting(
@@ -319,4 +326,13 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             ["f/1","a/0"],
             "1 <= { f(X) := 1: p(FUN); f(X) := 2: q(X) } <= 3.",
             [{"a=FUN"}]
+        )
+
+    
+    def test_assignment_with_aggregate(self):
+        self.assertEqualUnnesting(
+            "score(X) := #sum{ f(Y) : p(Y), q(X) }.",
+            ["f/1","p/1"],
+            "score(X) := #sum{f(Y): FUN, q(X)}.",
+            [{"p(Y)=FUN"}],
         )

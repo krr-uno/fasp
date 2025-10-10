@@ -9,6 +9,7 @@ from fasp.ast._nodes import (
     FASP_AST,
     AssignmentAST,
     FASP_Statement,
+    HeadAggregateAssignment,
 )
 from fasp.ast.collectors import SymbolSignature
 from fasp.util.ast import (
@@ -71,9 +72,9 @@ class UnnestFunctionsTransformer:
     @singledispatchmethod
     def _unnest(self, node: FASP_AST, outer: bool = False) -> FASP_AST:
         """Default: recurse if possible, else return as-is."""
-        # if hasattr(node, "transform"):
-        return node.transform(self.lib, lambda c: self._unnest(c, outer)) or node
-        # return node
+        if hasattr(node, "transform"):
+            return node.transform(self.lib, lambda c: self._unnest(c, outer)) or node
+        return node
 
     @_unnest.register
     def _(self, node: AssignmentAST, outer: bool = False) -> AssignmentAST:
@@ -119,7 +120,9 @@ class UnnestFunctionsTransformer:
 
     # Need to pass outer=False to make sure TermFunctions and TermSymbolic functions in body aggregates are unnested
     # @_unnest.register
-    # def _(self, node: ast.HeadAggregateElement, outer: bool = False) -> AST: # Should this be FASP_AST?
+    # def _(
+    #     self, node: ast.HeadAggregateElement, outer: bool = False
+    # ) -> AST:  # Should this be FASP_AST?
     #     return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
 
     @_unnest.register
@@ -127,6 +130,44 @@ class UnnestFunctionsTransformer:
         self, node: ast.BodyAggregateElement, outer: bool = False
     ) -> AST:  # Should this be FASP_AST?
         return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
+
+    # NOTE: For test `test_assignment_with_aggregate` in tests\ast\rewriting\test_unnesting.py
+    @_unnest.register
+    def _(self, node: HeadAggregateAssignment, outer: bool = False) -> FASP_AST:
+        """
+        Handle head aggregates like:
+            score(X) := #sum{ f(Y) : p(Y), q(X) }.
+        We keep f(Y) (the term before ':') with outer=True
+        and traverse conditions (after ':') with outer=False.
+        """
+        # Unnest the assigned function
+        new_assigned = cast(
+            ast.TermFunction, self._unnest(node.assigned_function, outer=True)
+        )
+
+        # aggregate_function is an enum, remains unchanged in unnest because it lacks "transform"
+        new_agg_func = self._unnest(node.aggregate_function, outer=True)
+
+        # Rebuild elements
+        new_elements = []
+        for elem in node.elements:
+            # The first tuple is visited with outer=True
+            new_tuple = [self._unnest(t, outer=True) for t in elem.tuple]
+            # The condition literals are visited with outer=False
+            new_condition = [self._unnest(c, outer=False) for c in elem.condition]
+
+            new_elem = elem.update(
+                self.lib,
+                tuple=new_tuple,
+                condition=new_condition,
+            )
+            new_elements.append(new_elem)
+
+        return node.update(
+            assigned_function=new_assigned,
+            aggregate_function=new_agg_func,
+            elements=new_elements,
+        )
 
     @_unnest.register
     def _(
