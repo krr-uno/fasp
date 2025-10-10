@@ -265,7 +265,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
 
     def test_aggregate_split(self):
         evaluable_functions = ["f/1", "a/1"]
-
+ 
         self.assertEqualUnnesting(
             ":- #sum { a(X): p(f(X)) } = 0.",
             evaluable_functions,
@@ -288,16 +288,16 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             [{"h(1)=FUN", "f(Y)=FUN2", "g(Y)=FUN3"}],
         )
 
+    # f(X)=1 vs f(X) := 1 => SPACING
     def test_aggregate_nested_split_with_assignment(self):
         self.assertEqualUnnesting(
             "f(X) := 1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.",
             ["f/1", "a/1", "g/1", "h/1"],
             "f(X) := 1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.",
             [{"h(1)=FUN", "f(Y)=FUN2", "g(Y)=FUN3"}],
-        )
-    # f(X)=1 vs f(X) := 1
+        )    
 
-    def test_assignment_unnesting(self):
+    def test_head_simple_assignment_unnesting(self):
         self.assertEqualUnnesting(
             "x(X) := h(f(X))+g(Y).",
             ["f/1", "g/1"],
@@ -305,4 +305,18 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             [{"f(X)=FUN"}],
         )
     
-    # TODO: Need to add more tests with assignments
+    def test_choice_rule(self):
+        self.assertEqualUnnesting(
+            "1 <= { a(X): f(a(Y))}.",
+            ['a/1'],
+            "1 <= { a(X): f(FUN) }.",
+            [{"a(Y)=FUN"}]
+        )
+
+    def  test_choice_rule_with_assignment_aggregate(self):
+        self.assertEqualUnnesting(
+            "1 <= { f(X) := 1: p(a); f(X) := 2: q(X) } <= 3.",
+            ["f/1","a/0"],
+            "1 <= { f(X) := 1: p(FUN); f(X) := 2: q(X) } <= 3.",
+            [{"a=FUN"}]
+        )
