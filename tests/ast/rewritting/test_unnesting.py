@@ -15,9 +15,6 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
     def setUp(self):
         self.lib = ELibrary()
 
-    def parse_program(self, program: str):
-        return parse_string(self.lib, program)
-
     def apply_unnesting(self, program: str, evaluable_functions: list[str]):
         """
         Helper: apply unnesting and return (new_program_str, list[set[str]]).
@@ -27,7 +24,9 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             name, arity = s.split("/")
             eval_sigs.add(SymbolSignature(name, int(arity)))
 
-        stmts = self.parse_program(program)
+        stmts = parse_string(self.lib, program)
+        # Skip #program base.
+        stmts = stmts[1:]
 
         new_stmts = []
         per_rule_sets: list[set[str]] = []
@@ -41,9 +40,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
 
             unnested = set()
             for comp in transformer.unnested_functions:
-                left = str(comp.left)
-                right = str(comp.right[0].term)
-                unnested.add(f"{left}={right}")
+                unnested.add(str(comp))
             per_rule_sets.append(unnested)
 
         # remove "#program base." if present
@@ -60,15 +57,13 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
     ):
         new_program, unnested_sets = self.apply_unnesting(program, evaluable_functions)
 
+        # Compare programs
         expected_lines = [line.strip() for line in expected_program.splitlines()]
         actual_lines = [line.strip() for line in new_program.splitlines()]
         self.assertEqual(expected_lines, actual_lines)
 
-        
-        # self.assertEqual(expected_sets, unnested_sets)
-        # # Compare unnested sets
-        for exp in expected_sets:
-            self.assertIn(exp, unnested_sets)
+        # Compare unnested sets
+        self.assertEqual(expected_sets, unnested_sets)
 
 
     def test_unnest_example(self):
@@ -141,16 +136,12 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_nested_functions_chain(self):
-        program = "r(g(h(f(a))))."
-        evaluable_functions = ["f/1", "h/1", "g/1"]
-
-        new_program, unnested_sets = self.apply_unnesting(program, evaluable_functions)
-
-        self.assertIn("r(FUN", new_program)
-        flat_comps = set().union(*unnested_sets)
-        self.assertIn("f(a)=FUN", flat_comps)
-        self.assertTrue(any("h(FUN" in c for c in flat_comps))
-        self.assertTrue(any("g(" in c and "=FUN" in c for c in flat_comps))
+        self.assertEqualUnnesting(
+            "r(g(h(f(a)))).",
+            ["f/1", "h/1", "g/1"],
+            "r(FUN3).",
+            [{"f(a)=FUN","h(FUN)=FUN2","g(FUN2)=FUN3"}]
+        )
 
     def test_function_in_head_not_unnested(self):
         self.assertEqualUnnesting(
@@ -290,14 +281,21 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_aggregate_nested_split(self):
-        evaluable_functions = ["f/1", "a/1", "g/1", "h/1"]
-
         self.assertEqualUnnesting(
             "f(X) = 1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.",
-            evaluable_functions,
+            ["f/1", "a/1", "g/1", "h/1"],
             "f(X)=1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.",
             [{"h(1)=FUN", "f(Y)=FUN2", "g(Y)=FUN3"}],
         )
+
+    def test_aggregate_nested_split_with_assignment(self):
+        self.assertEqualUnnesting(
+            "f(X) := 1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.",
+            ["f/1", "a/1", "g/1", "h/1"],
+            "f(X) := 1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.",
+            [{"h(1)=FUN", "f(Y)=FUN2", "g(Y)=FUN3"}],
+        )
+    # f(X)=1 vs f(X) := 1
 
     def test_assignment_unnesting(self):
         self.assertEqualUnnesting(
