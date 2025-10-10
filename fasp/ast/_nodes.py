@@ -336,6 +336,7 @@ class ChoiceAssignment(AssignmentAST):
 
     Example:
         1 { f(X) := 1 : p(X); f(X) := 2 : q(X) } 3.
+        1 { f(X): p(x), a; f(X): b}.
 
     Parameters
     ----------
