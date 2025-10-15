@@ -16,7 +16,24 @@ from fasp.util.ast import (
     AST,
     FreshVariableGenerator,
     TermAST,
+    AST_T
 )
+
+
+def unnest_functions(
+    lib: Library,
+    node: AST_T,
+    evaluable_functions: Set[SymbolSignature],
+    variable_generator: FreshVariableGenerator,
+) -> tuple[AST_T, List[ast.LiteralComparison]]:
+    """
+    Unnest evaluable functions in a given rule and return the list of generated comparisons.
+    """
+    transformer = UnnestFunctionsTransformer(
+        lib, evaluable_functions, variable_generator
+    )
+    new_node = transformer.transform_rule(node) # error
+    return new_node, transformer.unnested_functions
 
 
 class UnnestFunctionsTransformer:
@@ -28,7 +45,8 @@ class UnnestFunctionsTransformer:
         self,
         lib: Library,
         evaluable_functions: Set[SymbolSignature],
-        used_variable_names: Set[str],
+        used_variable_names: Set[str], # variable_generator: FreshVariableGenerator,
+        # evaluable_functions_allowed_in_negated_literals: bool
     ):
         self.lib = lib
         self.evaluable_functions = evaluable_functions
@@ -72,19 +90,17 @@ class UnnestFunctionsTransformer:
     @singledispatchmethod
     def _unnest(self, node: FASP_AST, outer: bool = False) -> FASP_AST:
         """Default: recurse if possible, else return as-is."""
-        if hasattr(node, "transform"):
-            return node.transform(self.lib, lambda c: self._unnest(c, outer)) or node
-        return node
+        return node.transform(self.lib, self._unnest, outer) or node
 
     @_unnest.register
     def _(self, node: AssignmentAST, outer: bool = False) -> AssignmentAST:
-        return node.transform(self.lib, lambda lib, c: self._unnest(c, outer)) or node
+        return node.transform(self.lib, self._unnest, outer) or node
 
     # Normalize compariosns to have evaluable functions on the left side of equality only
     @_unnest.register
     def _(
         self, node: ast.LiteralComparison, outer: bool = True
-    ) -> AST:  # Should this be FASP_AST?
+    ) -> ast.LiteralComparison:  # Should this be FASP_AST?
 
         if len(node.right) == 1 and node.right[0].relation != ast.Relation.Equal:
             outer = False
@@ -158,9 +174,6 @@ class UnnestFunctionsTransformer:
             ast.TermFunction, self._unnest(node.assigned_function, outer=True)
         )
 
-        # aggregate_function is an enum, remains unchanged in unnest because it lacks "transform"
-        new_agg_func = self._unnest(node.aggregate_function, outer=True)
-
         # Rebuild elements
         new_elements = []
         for elem in node.elements:
@@ -178,7 +191,6 @@ class UnnestFunctionsTransformer:
 
         return node.update(
             assigned_function=new_assigned,
-            aggregate_function=new_agg_func,
             elements=new_elements,
         )
 

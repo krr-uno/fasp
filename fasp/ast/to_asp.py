@@ -164,6 +164,7 @@ class NormalForm2PredicateTransformer:
                 body.append(lit)
         if new_rule:
             return ast.StatementRule(self.library, node.location, head, body)
+        assert isinstance(node, ast.StatementRule)
         return node
 
     def rewrite(self, node: FASP_Statement) -> StatementAST:

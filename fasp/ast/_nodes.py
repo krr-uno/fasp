@@ -150,7 +150,7 @@ class AssignmentAST:
                 visitor(value, *args, **kwargs)
 
     def transform(  # pragma: no cover
-        self, library: Library, transformer: Any, *args: Any, **kwargs: Any
+        self, _: Library, transformer: Any, *args: Any, **kwargs: Any
     ) -> Self:
         """
         Recursively transform child nodes and return a new instance.
@@ -158,7 +158,7 @@ class AssignmentAST:
         Parameters
         ----------
         library : Library
-            A library object passed to the transformer.
+            A library object passed to the transformer. This is not used in the function, but is passed for compatibility with clingo's transform method signature.
         transformer : callable
             The transformer that needs to be applied on the AST node.
         *args, **kwargs
@@ -181,10 +181,10 @@ class AssignmentAST:
             if isinstance(value, Sequence) and not isinstance(value, str):
                 new_values = []
                 for item in value:
-                    if new_item := transformer(library, item, *args, **kwargs):
+                    if new_item := transformer(item, *args, **kwargs):
                         new_values.append(new_item)
                 d[key] = new_values
-            elif new_value := transformer(library, value, *args, **kwargs):
+            elif new_value := transformer(value, *args, **kwargs):
                 d[key] = new_value
         # Added to avoid passing 'type' to constructor
         # which was causing errors in subclasses [TypeError: HeadSimpleAssignment.__init__() got an unexpected keyword argument 'type']

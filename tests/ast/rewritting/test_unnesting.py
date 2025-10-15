@@ -231,7 +231,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "#sum{ f(x) : h(x)< y(x) } = 1.",
             ["f/1", "a/0", "h/1"],
             "#sum { f(x): FUN<y(x) } = 1.",
-            [{"h(x)=FUN"}],
+            [{"h(x)=FUN"}], # f(X) should be unnested
         )
 
         self.assertEqualUnnesting(
@@ -338,13 +338,42 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "score(X) := #sum{ f(Y) : f(p(Y)), q(X) } :- p.",
             ["f/1","p/1"],
             "score(X) := #sum{f(Y): f(FUN), q(X)} :- p.",
-            [{"p(Y)=FUN"}],
+            [{"p(Y)=FUN"}], # f(Y) should not be unnested
         )
     
     def test_negative_predicate_in_aggregate(self):
         self.assertEqualUnnesting(
-            "p :- #sum { X: q(a) } = 1.",
+            "p :- #sum { X: q(a), r(q(X)) } = 1.",
             ["q/1", "a/0"],
-            "p :- #sum { X: q(FUN) } = 1.",
-            [{"a=FUN"}]
+            "p :- #sum { X: q(FUN), r(FUN2) } = 1.",
+            [{"a=FUN", "q(X)=FUN2"}]
         )
+
+    # def test_negative_predicate_in_aggregate(self):
+    #     self.assertEqualUnnesting(
+    #         "p :- #sum { X: q(a), not r(q(X)) } = 1.",
+    #         ["q/1", "a/0"],
+    #         "p :- #sum { X: q(FUN), r(FUN2) } = 1.",
+    #         [{"a=FUN", "q(X)=FUN2"}]
+    #     )
+    #     NOT ALLOWED because not r(q(X)) has an evaluable function inside a negation in a body condition. The same applies to conditional literals "p :- q(a): not r(q(X)).",
+
+
+    # def test_negative_predicate_in_aggregate(self):
+    #     self.assertEqualUnnesting(
+    #         "p :- q(a), not r(q(X)).",
+    #         ["q/1", "a/0"],
+    #         "p :- #sum { X: q(FUN), r(FUN2) } = 1.",
+    #         [{"a=FUN", "q(X)=FUN2"}]
+    #     )
+    #     THIS IS ALLOWED because not r(q(X)) is not inside the aggregate or conditional literal
+
+
+    def test_negative_predicate_in_aggregate(self):
+        self.assertEqualUnnesting(
+            "p :- #sum { X: q(a) } = b; q(c).",
+            ["a/0", "b/0", "c/0"],
+            "p :- #sum { X: q(FUN) } = FUN2; q(FUN3).",
+            [{"a=FUN", "b=FUN2", "c=FUN3"}]
+        )
+        # "p :- #sum { X: q(FUN), a=FUN } = FUN2; q(FUN3); b=FUN2; c=FUN3.

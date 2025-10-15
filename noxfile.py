@@ -4,8 +4,8 @@ PYTHON_VERSIONS = False
 # if "GITHUB_ACTIONS" in os.environ:
 #     PYTHON_VERSIONS = [f"3.{i}" for i in range(13, 14)]
 
-# nox.options.sessions = "typecheck", "test", "format"
-nox.options.sessions = "test", "format"
+nox.options.sessions = "typecheck", "test", "format"
+# nox.options.sessions = "test", "format"
 nox.options.default_venv_backend = None
 
 PROJECT_NAME = "fasp"
@@ -18,9 +18,9 @@ def test(session):
     if session.python:
         session.install("clingo")
         session.install("coverage")
-    tests = [
-        "tests/ast",
-    ]
+    # tests = [
+    #     "tests/ast",
+    # ]
     # session.run("coverage", "run", "-m", "unittest", "discover", "-v")
     session.run(
         "coverage",
