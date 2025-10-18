@@ -171,16 +171,16 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         self.assertEqualUnnesting(
             "s(f(a), f(a)).",
             ["f/1"],
-            "s(FUN,FUN).",
-            [{"f(a)=FUN"}],
+            "s(FUN,FUN2).",
+            [{"f(a)=FUN","f(a)=FUN2"}],
         )
 
     def test_double_occurrence_same_function_and_symbolic_function(self):
         self.assertEqualUnnesting(
             "s(f(a), f(a)).",
             ["f/1", "a/0"],
-            "s(FUN2,FUN2).",
-            [{"a=FUN", "f(FUN)=FUN2"}],
+            "s(FUN2,FUN4).",
+            [{'a=FUN', 'a=FUN3', 'f(FUN3)=FUN4', 'f(FUN)=FUN2'}],
         )
 
     def test_comparison(self):
@@ -230,8 +230,8 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         self.assertEqualUnnesting(
             "#sum{ f(x) : h(x)< y(x) } = 1.",
             ["f/1", "a/0", "h/1"],
-            "#sum { f(x): FUN<y(x) } = 1.",
-            [{"h(x)=FUN"}], # f(X) should be unnested
+            "#sum { FUN: FUN2<y(x) } = 1.",
+            [{"h(x)=FUN2", "f(x)=FUN"}], # f(x) should be unnested
         )
 
         self.assertEqualUnnesting(
@@ -280,8 +280,8 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         self.assertEqualUnnesting(
             "#sum { a(X): p(f(X)) } = 0 :- p.",
             ["f/1", "a/1","p/1"],
-            "#sum { a(X): p(FUN) } = 0 :- p.",
-            [{"f(X)=FUN"}],
+            "#sum { FUN: p(FUN2) } = 0 :- p.",
+            [{"a(X)=FUN","f(X)=FUN2"}],
         )
 
     def test_aggregate_nested_split(self):

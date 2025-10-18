@@ -12,28 +12,22 @@ from fasp.ast._nodes import (
     HeadAggregateAssignment,
 )
 from fasp.ast.collectors import SymbolSignature
-from fasp.util.ast import (
-    AST,
-    FreshVariableGenerator,
-    TermAST,
-    AST_T
-)
+from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST
 
-
-def unnest_functions(
-    lib: Library,
-    node: AST_T,
-    evaluable_functions: Set[SymbolSignature],
-    variable_generator: FreshVariableGenerator,
-) -> tuple[AST_T, List[ast.LiteralComparison]]:
-    """
-    Unnest evaluable functions in a given rule and return the list of generated comparisons.
-    """
-    transformer = UnnestFunctionsTransformer(
-        lib, evaluable_functions, variable_generator
-    )
-    new_node = transformer.transform_rule(node) # error
-    return new_node, transformer.unnested_functions
+# def unnest_functions(
+#     lib: Library,
+#     node: AST_T,
+#     evaluable_functions: Set[SymbolSignature],
+#     variable_generator: FreshVariableGenerator,
+# ) -> tuple[AST_T, List[ast.LiteralComparison]]:
+#     """
+#     Unnest evaluable functions in a given rule and return the list of generated comparisons.
+#     """
+#     transformer = UnnestFunctionsTransformer(
+#         lib, evaluable_functions, variable_generator
+#     )
+#     new_node = transformer.transform_rule(node)  # error
+#     return new_node, transformer.unnested_functions
 
 
 class UnnestFunctionsTransformer:
@@ -45,7 +39,7 @@ class UnnestFunctionsTransformer:
         self,
         lib: Library,
         evaluable_functions: Set[SymbolSignature],
-        used_variable_names: Set[str], # variable_generator: FreshVariableGenerator,
+        used_variable_names: Set[str],  # variable_generator: FreshVariableGenerator,
         # evaluable_functions_allowed_in_negated_literals: bool
     ):
         self.lib = lib
@@ -100,7 +94,7 @@ class UnnestFunctionsTransformer:
     @_unnest.register
     def _(
         self, node: ast.LiteralComparison, outer: bool = True
-    ) -> ast.LiteralComparison:  # Should this be FASP_AST?
+    ) -> ast.LiteralComparison:
 
         if len(node.right) == 1 and node.right[0].relation != ast.Relation.Equal:
             outer = False
@@ -134,15 +128,17 @@ class UnnestFunctionsTransformer:
         ]
         return node.update(self.lib, left=new_left, right=new_right)
 
-    # Need to pass outer=False to make sure TermFunctions and TermSymbolic functions in body aggregates are unnested
-    # @_unnest.register
-    # def _(
-    #     self, node: ast.HeadAggregateElement, outer: bool = False
-    # ) -> AST:  # Should this be FASP_AST?
-    #     return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
+    @_unnest.register
+    def _(
+        self, node: ast.BodyAggregate | ast.HeadAggregate, outer: bool = False
+    ) -> ast.BodyAggregate | ast.HeadAggregate:
+        # Visit left guard, elements, and right guard with outer=False
+        return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
 
     @_unnest.register
-    def _(self, node: ast.BodyAggregateElement, outer: bool = False) -> AST:
+    def _(
+        self, node: ast.BodyAggregateElement, outer: bool = False
+    ) -> ast.BodyAggregateElement:
         """
         Handle elements of body aggregates of the form:
             #sum{ a(X) : p(f(X)), q(X) }
@@ -159,9 +155,24 @@ class UnnestFunctionsTransformer:
 
         return node.update(self.lib, tuple=new_tuple, condition=new_condition)
 
+    # Need to pass outer=False to make sure TermFunctions and TermSymbolic functions in body aggregates are unnested
+    @_unnest.register
+    def _(
+        self, node: ast.HeadAggregateElement, outer: bool = False
+    ) -> ast.HeadAggregateElement:
+        # Unnest tuple terms immediately (inner context)
+        new_tuple = [self._unnest(t, outer=False) for t in node.tuple]
+        new_condition = [self._unnest(c, outer=True) for c in node.condition]
+        new_literal = self._unnest(node.literal, outer=True)
+        return node.update(
+            self.lib, literal=new_literal, tuple=new_tuple, condition=new_condition
+        )
+
     # NOTE: For test `test_assignment_with_aggregate` in tests\ast\rewriting\test_unnesting.py
     @_unnest.register
-    def _(self, node: HeadAggregateAssignment, outer: bool = False) -> FASP_AST:
+    def _(
+        self, node: HeadAggregateAssignment, outer: bool = False
+    ) -> HeadAggregateAssignment:
         """
         Handle head aggregates like:
             score(X) := #sum{ f(Y) : p(Y), q(X) }.
@@ -195,16 +206,7 @@ class UnnestFunctionsTransformer:
         )
 
     @_unnest.register
-    def _(
-        self, node: ast.BodyAggregate, outer: bool = False
-    ) -> AST:  # Should this be FASP_AST?
-        # Visit left guard, elements, and right guard with outer=False
-        return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
-
-    @_unnest.register
-    def _(
-        self, node: ast.TermFunction, outer: bool = False
-    ) -> AST:  # Should this be FASP_AST?
+    def _(self, node: ast.TermFunction, outer: bool = False) -> ast.TermFunction:
         new_pool = []
         for tup in node.pool:
             new_args: List[TermAST] = [
@@ -216,37 +218,38 @@ class UnnestFunctionsTransformer:
         # Unnest if evaluable
         if not outer and self._is_evaluable(node.name, len(new_pool[0].arguments)):
             # normalize key by node name + args stringified
-            key = (node.name, tuple(str(arg) for arg in new_pool[0].arguments))
-            if key in self._cache:
-                return self._cache[key]
+            (node.name, tuple(str(arg) for arg in new_pool[0].arguments))
+            # if key in self._cache:
+            #     print(type(self._cache[key]))
+            #     return self._cache[key]
 
             fresh: TermAST = self.var_gen.fresh_variable(self.lib, node.location, "FUN")
-            self._cache[key] = fresh
+            # self._cache[key] = fresh
             comp = self._make_comparison(node.location, cast(TermAST, new_func), fresh)
             self.unnested_functions.append(comp)
-
-            self._var_to_comp[cast(ast.TermFunction, fresh).name] = comp
+            fresh = cast(ast.TermFunction, fresh)
+            self._var_to_comp[fresh.name] = comp
 
             return fresh
         return new_func
 
     @_unnest.register
-    def _(
-        self, node: ast.TermSymbolic, outer: bool = False
-    ) -> AST:  # Should this be FASP_AST?
+    def _(self, node: ast.TermSymbolic, outer: bool = False) -> ast.TermSymbolic:
         if node.symbol.type == SymbolType.Function:
             name = str(node.symbol.name)
             arity = len(node.symbol.arguments)
             if not outer and self._is_evaluable(name, arity):
-                # normalize key by symbol name + args stringified
-                key = (name, tuple(str(arg) for arg in node.symbol.arguments))
-                if key in self._cache:
-                    return self._cache[key]
+                # # normalize key by symbol name + args stringified
+                # key = (name, tuple(str(arg) for arg in node.symbol.arguments))
+                # if key in self._cache:
+                #     return self._cache[key]
 
                 fresh = self.var_gen.fresh_variable(self.lib, node.location, "FUN")
-                self._cache[key] = fresh
+                # self._cache[key] = fresh
                 comp = self._make_comparison(node.location, node, fresh)
                 self.unnested_functions.append(comp)
+
                 self._var_to_comp[fresh.name] = comp
+                fresh = cast(ast.TermSymbolic, fresh)
                 return fresh
         return node
