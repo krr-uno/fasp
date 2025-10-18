@@ -46,10 +46,13 @@ class UnnestFunctionsTransformer:
         self.evaluable_functions = evaluable_functions
         self.var_gen = FreshVariableGenerator(used_variable_names)
         self.unnested_functions: List[ast.LiteralComparison] = []
+
         # Memoization cache to avoid duplicate unnested variables/comparisons
         # Checks if same function with same args has already been unnested
         # Also checks for same TermSymbolic in the rule.
-        self._cache: dict[tuple[str, tuple[str, ...]], TermAST] = {}
+        # self._cache: dict[tuple[str, tuple[str, ...]], TermAST] = {}
+
+        
         # Map from variable name to the corresponding comparisons for lookup during rewrite
         self._var_to_comp: dict[str, ast.LiteralComparison] = {}
 
