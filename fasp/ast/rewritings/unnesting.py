@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import List, Set, cast
+from typing import List, Set, Tuple, cast
 
 from clingo import ast
 from clingo.core import Library, Location
@@ -14,20 +14,22 @@ from fasp.ast._nodes import (
 from fasp.ast.collectors import SymbolSignature
 from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST
 
-# def unnest_functions(
-#     lib: Library,
-#     node: AST_T,
-#     evaluable_functions: Set[SymbolSignature],
-#     variable_generator: FreshVariableGenerator,
-# ) -> tuple[AST_T, List[ast.LiteralComparison]]:
-#     """
-#     Unnest evaluable functions in a given rule and return the list of generated comparisons.
-#     """
-#     transformer = UnnestFunctionsTransformer(
-#         lib, evaluable_functions, variable_generator
-#     )
-#     new_node = transformer.transform_rule(node)  # error
-#     return new_node, transformer.unnested_functions
+
+def unnest_functions(
+    lib: Library,
+    node: FASP_AST,
+    evaluable_functions: Set[SymbolSignature],
+    variable_generator: FreshVariableGenerator,
+    # Might need to pass flag boolens like outer (already used downstream) and allow_evaluable_in_negative_literal (new)
+) -> tuple[FASP_AST, List[ast.LiteralComparison]]:
+    """
+    Unnest evaluable functions in a given rule and return the list of generated comparisons.
+    """
+    transformer = UnnestFunctionsTransformer(
+        lib, evaluable_functions, variable_generator=variable_generator
+    )
+
+    return transformer.transform_node(node)
 
 
 class UnnestFunctionsTransformer:
@@ -39,12 +41,13 @@ class UnnestFunctionsTransformer:
         self,
         lib: Library,
         evaluable_functions: Set[SymbolSignature],
-        used_variable_names: Set[str],  # variable_generator: FreshVariableGenerator,
+        # used_variable_names: Set[str],
+        variable_generator: FreshVariableGenerator,
         # evaluable_functions_allowed_in_negated_literals: bool
     ):
         self.lib = lib
         self.evaluable_functions = evaluable_functions
-        self.var_gen = FreshVariableGenerator(used_variable_names)
+        self.var_gen = variable_generator
         self.unnested_functions: List[ast.LiteralComparison] = []
 
         # Memoization cache to avoid duplicate unnested variables/comparisons
@@ -52,7 +55,6 @@ class UnnestFunctionsTransformer:
         # Also checks for same TermSymbolic in the rule.
         # self._cache: dict[tuple[str, tuple[str, ...]], TermAST] = {}
 
-        
         # Map from variable name to the corresponding comparisons for lookup during rewrite
         self._var_to_comp: dict[str, ast.LiteralComparison] = {}
 
@@ -76,13 +78,32 @@ class UnnestFunctionsTransformer:
             self.lib,
             loc,
             ast.Sign.NoSign,
-            left,  # type narrowing
+            left,
             [ast.RightGuard(self.lib, ast.Relation.Equal, right)],
         )
 
-    def transform_rule(self, st: FASP_Statement) -> FASP_Statement:
-        """Transform a single rule statement."""
-        return cast(FASP_Statement, self._unnest(st, outer=True))
+    def transform_node(
+        self, node: FASP_AST, outer: bool = True
+    ) -> Tuple[FASP_AST, List[ast.LiteralComparison]]:
+        """
+        Transform one AST node and return (new_node, unnested_list).
+
+        - Resets the per-node list `self.unnested_functions` before transformation.
+        - Keeps the same FreshVariableGenerator instance so successive calls across
+          nodes in the same rule reuse the same variable namespace.
+        """
+        # Clear per-node collected unnested comparisons
+        self.unnested_functions = []
+
+        new_node = self._unnest(node, outer=outer)
+
+        # Copy the list and return
+        collected = list(self.unnested_functions)
+        return new_node, collected
+
+    # def transform_rule(self, st: FASP_Statement) -> FASP_Statement:
+    #     """Transform a single rule statement."""
+    #     return cast(FASP_Statement, self._unnest(st, outer=True))
 
     @singledispatchmethod
     def _unnest(self, node: FASP_AST, outer: bool = False) -> FASP_AST:

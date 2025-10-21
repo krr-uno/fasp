@@ -1,10 +1,9 @@
-import textwrap
 import unittest
 
 from fasp.ast.parsing.parser import parse_string
-from fasp.util.ast import ELibrary
-from fasp.ast.collectors import SymbolSignature
-from fasp.ast.rewritings.unnesting import UnnestFunctionsTransformer
+from fasp.util.ast import ELibrary, FreshVariableGenerator
+from fasp.ast.collectors import SymbolSignature, collect_variables
+from fasp.ast.rewritings.unnesting import UnnestFunctionsTransformer, unnest_functions
 
 
 class TestUnnestFunctionsTransformer(unittest.TestCase):
@@ -15,37 +14,70 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
     def setUp(self):
         self.lib = ELibrary()
 
-    def apply_unnesting(self, program: str, evaluable_functions: list[str]):
+    # def apply_unnesting(self, program: str, evaluable_functions: list[str]):
+    #     """
+    #     Helper: apply unnesting and return (new_program_str, list[set[str]]).
+    #     """
+    #     eval_sigs = set()
+    #     for s in evaluable_functions:
+    #         name, arity = s.split("/")
+    #         eval_sigs.add(SymbolSignature(name, int(arity)))
+
+    #     stmts = parse_string(self.lib, program)
+    #     # Skip #program base.
+    #     stmts = stmts[1:]
+
+    #     new_stmts = []
+    #     per_rule_sets: list[set[str]] = []
+
+    #     for stmt in stmts:
+    #         transformer = UnnestFunctionsTransformer(
+    #             self.lib.library, eval_sigs, FreshVariableGenerator(set())
+    #         )
+    #         new_stmt = transformer.transform_rule(stmt)
+    #         new_stmts.append(str(new_stmt).strip())
+
+    #         unnested = set()
+    #         for comp in transformer.unnested_functions:
+    #             unnested.add(str(comp))
+    #         per_rule_sets.append(unnested)
+
+    #     # remove "#program base." if present
+    #     program_str = "\n".join(new_stmts).replace("#program base.\n", "").replace("#program base.", "").strip()
+
+    #     return program_str, per_rule_sets
+
+    def apply_unnesting_node(self, program: str, evaluable_functions: list[str]):
         """
-        Helper: apply unnesting and return (new_program_str, list[set[str]]).
+        Apply unnesting node-by-node and return (new_program_str, list[set[str]]).
         """
-        eval_sigs = set()
-        for s in evaluable_functions:
-            name, arity = s.split("/")
-            eval_sigs.add(SymbolSignature(name, int(arity)))
+        eval_sigs = {SymbolSignature(name, int(arity)) for name, arity in
+                    (s.split("/") for s in evaluable_functions)}
 
         stmts = parse_string(self.lib, program)
-        # Skip #program base.
-        stmts = stmts[1:]
+        stmts = stmts[1:]  # Skip #program base
 
         new_stmts = []
-        per_rule_sets: list[set[str]] = []
+        per_rule_sets = []
+        used_vars: set[str] = set()
 
         for stmt in stmts:
-            transformer = UnnestFunctionsTransformer(
-                self.lib.library, eval_sigs, used_variable_names=set()
+            # NOTE: Collect used variables for each rule
+            used_vars = collect_variables(stmt)
+            variableGenerator = FreshVariableGenerator(used_vars)
+            new_stmt, comps = unnest_functions(
+                self.lib.library, stmt, eval_sigs, variableGenerator
             )
-            new_stmt = transformer.transform_rule(stmt)
+
             new_stmts.append(str(new_stmt).strip())
+            per_rule_sets.append({str(c) for c in comps})
 
-            unnested = set()
-            for comp in transformer.unnested_functions:
-                unnested.add(str(comp))
-            per_rule_sets.append(unnested)
-
-        # remove "#program base." if present
-        program_str = "\n".join(new_stmts).replace("#program base.\n", "").replace("#program base.", "").strip()
-
+        program_str = (
+            "\n".join(new_stmts)
+            .replace("#program base.\n", "")
+            .replace("#program base.", "")
+            .strip()
+        )
         return program_str, per_rule_sets
 
     def assertEqualUnnesting(
@@ -55,7 +87,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         expected_program: str,
         expected_sets: list[set[str]],
     ):
-        new_program, unnested_sets = self.apply_unnesting(program, evaluable_functions)
+        new_program, unnested_sets = self.apply_unnesting_node(program, evaluable_functions)
 
         # Compare programs
         expected_lines = [line.strip() for line in expected_program.splitlines()]
