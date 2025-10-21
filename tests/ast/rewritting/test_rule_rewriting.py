@@ -1,0 +1,175 @@
+import textwrap
+import unittest
+
+from clingo import ast
+from clingo.core import Library
+
+from fasp.ast.parsing.parser import parse_string
+from fasp.util.ast import ELibrary, FreshVariableGenerator
+from fasp.ast.collectors import SymbolSignature
+from fasp.ast.rewritings.rule_rewriting import RuleRewriteTransformer
+
+
+
+class TestRuleRewriteTransformer(unittest.TestCase):
+    def setUp(self):
+        self.lib = ELibrary()
+    def apply_rule_rewrite(self, program: str, evaluable_functions):
+        """
+        Parse program and apply RuleRewriteTransformer to each rule.
+        Returns the rewritten program as a string.
+        """
+        stmts = parse_string(self.lib, program)
+
+        # skip #program directive if present
+        rules = stmts[1:] if stmts and isinstance(stmts[0], ast.StatementProgram) else stmts
+
+        rewritten_rules = []
+        for rule in rules:
+            transformer = RuleRewriteTransformer(self.lib.library, evaluable_functions)
+            new_rule = transformer.transform_rule(rule)
+            rewritten_rules.append(str(new_rule).strip())
+
+        return "\n".join(rewritten_rules).strip()
+    def assertEqualRewrite(self, evaluable_functions: set[str], program: str, expected_program: str):
+        """
+        Helper to check that a rewrite produces exactly the expected text.
+        """
+        evaluable_functions = {SymbolSignature(name, int(arity)) for name, arity in 
+                               (f.split("/") for f in evaluable_functions)}
+        program = textwrap.dedent(program).strip()
+        expected_program = textwrap.dedent(expected_program).strip()
+
+        new_program = self.apply_rule_rewrite(program, evaluable_functions)
+        self.assertEqual(new_program, expected_program)
+
+    # Tests 
+    def test_basic_unnest(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1", "h/1"},
+            "p(f(1),a) :- q(g(1),b), not not r(h(1)).",
+            "p(FUN,a) :- q(FUN2,b); g(1)=FUN2; not not r(FUN3); h(1)=FUN3; f(1)=FUN."
+        )
+
+    def test_no_evaluable_functions(self):
+        self.assertEqualRewrite(
+            {},
+            "p(f(1),a) :- q(g(1),b), not not r(h(1)).",
+            "p(f(1),a) :- q(g(1),b); not not r(h(1))."
+        )
+
+    def test_head_function_only(self):
+        self.assertEqualRewrite(
+            {"c/0"},
+            "f(c) :- d.",
+            "f(FUN) :- d; c=FUN."
+        )
+
+    def test_double_negation_body(self):
+        self.assertEqualRewrite(
+            {"f/1"},
+            "p :- not not q(f(1)).",
+            "p :- not not q(FUN); f(1)=FUN."
+        )
+
+    def test_body_positive_literal(self):
+        self.assertEqualRewrite(
+            {"f/1"},
+            "p :- q(f(1)).",
+            "p :- q(FUN); f(1)=FUN."
+        )
+    def test_head_simple_assignment(self):
+        self.assertEqualRewrite(
+                {"f/1", "g/1"},
+                "x(X) := h(f(X))+g(Y).",
+                "x(X) := h(FUN)+g(Y) :- f(X)=FUN.",
+            )
+
+    def test_head_aggregate_assignmen(self):
+        self.assertEqualRewrite(
+                {"f/1", "p/1"},
+                "score(X) := #sum{ f(Y) : f(p(Y)), q(X) } :- p.",
+                "score(X) := #sum{f(Y): f(FUN), q(X)} :- p; p(Y)=FUN.",
+            )
+    def test_body_aggregate_element(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1"},
+            "f(X) :- W = #sum { f(Y) : p(g(Y)), q(X) }.",
+            "f(X) :- W = #sum { FUN: p(FUN2), q(X), f(Y)=FUN, g(Y)=FUN2 }."
+        )
+
+    def test_body_aggregate(self):
+        self.assertEqualRewrite(
+            {"f/1"},
+            "f(X) :- #sum { p(f(Y)), q(X) } = W.",
+            "f(X) :- #sum { p(FUN),q(X): f(Y)=FUN } = W."
+        )
+
+    # def test_negative_body_literal_creates_conditional_literal(self):
+    #     self.assertEqualRewrite(
+    #         {"f/1"},
+    #         "p :- not q(f(1)), r.",
+    #         "p :- #false: q(FUN), f(1)=FUN; r."
+    #     )
+
+    def test_body_aggregate_and_head(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1"},
+            "f(X)=W :- b(X,Z), W = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
+            "f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }."
+        )
+
+    def test_body_aggregate_element_list(self):
+        self.assertEqualRewrite(
+            {"f/1"},
+            "a :- #sum { q(f(1)),r(f(2)) }.",
+            "a :- #sum { q(FUN),r(FUN2): f(1)=FUN, f(2)=FUN2 }."
+        )
+
+    def test_body_aggregate_element_list_2(self):
+        self.assertEqualRewrite(
+            {"f/1"},
+            "a :- #sum { q(f(1)) }.",
+            "a :- #sum { q(FUN): f(1)=FUN }."
+        )
+
+    def test_head_function_rewrite_always_adds_comparison(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1"},
+            "p(f(1),g(2)) :- q.",
+            "p(FUN,FUN2) :- q; f(1)=FUN; g(2)=FUN2."
+        )
+
+    def test_aggregates(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1", "h/1"},
+            "f(X)=W :- b(X,Z), W = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
+            "f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }."
+        )
+
+    def test_aggregates_2(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1", "h/1"},
+            "f(X)=1 :- b(X,Z), h(1) = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
+            "f(X)=1 :- b(X,Z); FUN3 = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }; h(1)=FUN3."
+        )
+    # def test_head_aggregate_simple(self):
+    #     self.assertEqualRewrite(
+    #         {"f/1"},
+    #         "#sum { a(X): p(f(X)) } = 0 :- p.",
+    #         "#sum { a(X): p(FUN); f(X)=FUN } = 0 :- p."
+    #     )
+
+    # def test_head_aggregate_with_evaluable_functions(self):
+    #     self.assertEqualRewrite(
+    #         {"f/1", "g/1"},
+    #         "total(W) := #sum { f(X), g(Y) : p(X,Y) }.",
+    #         "total(W) := #sum { FUN,FUN2: p(X,Y), f(X)=FUN, g(Y)=FUN2 }."
+    #     )
+
+    # def test_head_aggregate_mixed_tuple_and_condition(self):
+    #     self.assertEqualRewrite(
+    #         {"f/1", "g/1"},
+    #         "score(S) := #sum { f(X), h(Y) : g(Y), q(Z) }.",
+    #         "score(S) := #sum { FUN,h(Y): g(Y)=FUN2, q(Z), f(X)=FUN }."
+    #     )
