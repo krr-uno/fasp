@@ -173,14 +173,14 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqualRewrite(
             {"f/1"},
             "#sum { a(X): p: p(f(X)) } = 0 :- p.",
-            "#sum { a(X): p: p(FUN), f(X)=FUN } = 0 :- p."
+            "#sum { a(X): p: p(FUN), f(X)=FUN } = 0 :- p.",
         )
 
     def test_head_aggregate_with_literal(self):
         self.assertEqualRewrite(
             {"f/1"},
             "#sum { a(X): p(f(X)): p(a) } = 0 :- p.",
-            "#sum { a(X): p(FUN): p(a), f(X)=FUN } = 0 :- p."
+            "#sum { a(X): p(FUN): p(a), f(X)=FUN } = 0 :- p.",
         )
 
     # def test_head_aggregate_with_evaluable_functions(self):

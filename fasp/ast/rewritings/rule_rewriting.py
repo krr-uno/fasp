@@ -119,24 +119,22 @@ class RuleRewriteTransformer:
         return node.update(head=new_head, body=new_body)
 
     # Aggregates
-    @_transform.register
-    def _(
-        self,
-        node: ast.BodyAggregate | ast.HeadAggregate,
-        var_gen: FreshVariableGenerator,
-    ) -> ast.BodyAggregate | ast.HeadAggregate:
+    @_transform.register(ast.BodyAggregate | ast.HeadAggregate)
+    def _[T: (
+        ast.BodyAggregate,
+        ast.HeadAggregate,
+    )](self, node: T, var_gen: FreshVariableGenerator,) -> T:
         new_elements = []
         for elem in node.elements:
             new_elem = self._transform(elem, var_gen)
             new_elements.append(new_elem)
         return node.update(self.lib, elements=new_elements)
 
-    @_transform.register
-    def _(
-        self,
-        node: ast.BodyAggregateElement | ast.HeadAggregateElement,
-        var_gen: FreshVariableGenerator,
-    ) -> ast.BodyAggregateElement | ast.HeadAggregateElement:
+    @_transform.register(ast.BodyAggregateElement | ast.HeadAggregateElement)
+    def _[T: (
+        ast.BodyAggregateElement,
+        ast.HeadAggregateElement,
+    )](self, node: T, var_gen: FreshVariableGenerator,) -> T:
 
         # Unnest tuple terms
         new_tuple = []
