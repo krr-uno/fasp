@@ -8,8 +8,8 @@ from clingo.symbol import SymbolType
 from fasp.ast._nodes import (
     FASP_AST,
     AssignmentAST,
-    FASP_Statement,
     HeadAggregateAssignment,
+    HeadSimpleAssignment,
 )
 from fasp.ast.collectors import SymbolSignature
 from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST
@@ -115,6 +115,15 @@ class UnnestFunctionsTransformer:
     def _(self, node: AssignmentAST, outer: bool = False) -> AssignmentAST:
         return node.transform(self.lib, self._unnest, outer) or node
 
+    @_unnest.register
+    def _(
+        self, node: HeadSimpleAssignment, outer: bool = False
+    ) -> HeadSimpleAssignment:
+        new_assigned = self._unnest(node.assigned_function, outer)
+        new_value = self._unnest(node.value, outer=False)
+        return node.update(self.lib, assigned_function=new_assigned, value=new_value)
+        return node.transform(self.lib, self._unnest, outer) or node
+
     # Normalize compariosns to have evaluable functions on the left side of equality only
     @_unnest.register
     def _(
@@ -162,15 +171,19 @@ class UnnestFunctionsTransformer:
 
     @_unnest.register
     def _(
-        self, node: ast.BodyAggregateElement, outer: bool = False
-    ) -> ast.BodyAggregateElement:
+        self,
+        node: ast.BodyAggregateElement | ast.HeadAggregateElement,
+        outer: bool = False,
+    ) -> ast.BodyAggregateElement | ast.HeadAggregateElement:
         """
-        Handle elements of body aggregates of the form:
+        Handle elements of aggregates of the form:
             #sum{ a(X) : p(f(X)), q(X) }
+        Also handles head aggregates
 
         The tuple (a(X)) is treated as *inner* (unnested),
         while the condition (p(f(X)), q(X)) is evaluated as *outer*
         — because predicates should not be unnested in conditions.
+        The literal in head aggregates is also treated as outer.
         """
         # Unnest tuple terms immediately (inner context)
         new_tuple = [self._unnest(t, outer=False) for t in node.tuple]
@@ -178,20 +191,25 @@ class UnnestFunctionsTransformer:
         # Traverse condition literals as outer (no unnesting of predicate calls)
         new_condition = [self._unnest(c, outer=True) for c in node.condition]
 
+        if isinstance(node, ast.HeadAggregateElement):
+            new_literal = self._unnest(node.literal, outer=True)
+            return node.update(
+                self.lib, literal=new_literal, tuple=new_tuple, condition=new_condition
+            )
         return node.update(self.lib, tuple=new_tuple, condition=new_condition)
 
     # Need to pass outer=False to make sure TermFunctions and TermSymbolic functions in body aggregates are unnested
-    @_unnest.register
-    def _(
-        self, node: ast.HeadAggregateElement, outer: bool = False
-    ) -> ast.HeadAggregateElement:
-        # Unnest tuple terms immediately (inner context)
-        new_tuple = [self._unnest(t, outer=False) for t in node.tuple]
-        new_condition = [self._unnest(c, outer=True) for c in node.condition]
-        new_literal = self._unnest(node.literal, outer=True)
-        return node.update(
-            self.lib, literal=new_literal, tuple=new_tuple, condition=new_condition
-        )
+    # @_unnest.register
+    # def _(
+    #     self, node: ast.HeadAggregateElement, outer: bool = False
+    # ) -> ast.HeadAggregateElement:
+    #     # Unnest tuple terms immediately (inner context)
+    #     new_tuple = [self._unnest(t, outer=False) for t in node.tuple]
+    #     new_condition = [self._unnest(c, outer=True) for c in node.condition]
+    #     new_literal = self._unnest(node.literal, outer=True)
+    #     return node.update(
+    #         self.lib, literal=new_literal, tuple=new_tuple, condition=new_condition
+    #     )
 
     # NOTE: For test `test_assignment_with_aggregate` in tests\ast\rewriting\test_unnesting.py
     @_unnest.register

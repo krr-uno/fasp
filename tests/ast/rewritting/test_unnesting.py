@@ -348,8 +348,8 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         self.assertEqualUnnesting(
             "x(X) := h(f(X))+g(Y).",
             ["f/1", "g/1"],
-            "x(X) := h(FUN)+g(Y).",
-            [{"f(X)=FUN"}],
+            "x(X) := h(FUN)+FUN2.",
+            [{"f(X)=FUN", "g(Y)=FUN2"}],
         )
 
     def test_choice_rule(self):

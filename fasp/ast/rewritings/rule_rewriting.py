@@ -54,11 +54,11 @@ class RuleRewriteTransformer:
             new_head, head_comps = unnest_functions(
                 self.lib, node.head, self.evaluable_functions, var_gen
             )
-        elif isinstance(node.head, ast.HeadDisjunction) or isinstance(
-            node.head, ast.HeadTheoryAtom
-        ):
-            pass
-            # Throw error if evaluable functions found in head disjunctions or theory atoms
+        # elif isinstance(node.head, ast.HeadDisjunction) or isinstance(
+        #     node.head, ast.HeadTheoryAtom
+        # ):
+        #     pass
+        #     # Throw error if evaluable functions found in head disjunctions or theory atoms
         else:
             new_head = self._transform(node.head, var_gen)
             head_comps = []
@@ -157,6 +157,22 @@ class RuleRewriteTransformer:
             )
             new_condition.append(new_c)
             local_comps.extend(comps)
+
+        if isinstance(node, ast.HeadAggregateElement):
+            new_literal, literal_comps = unnest_functions(
+                self.lib, node.literal, self.evaluable_functions, var_gen, outer=True
+            )
+            # place the literal's comparisons into the element condition
+            local_comps.extend(literal_comps)
+            # extend condition with comps coming from literal unnesting as well
+            new_condition.extend(local_comps)
+            # return an updated HeadAggregateElement
+            return node.update(
+                self.lib,
+                tuple=tuple(new_tuple),
+                literal=new_literal,
+                condition=tuple(new_condition),
+            )
 
         new_condition.extend(local_comps)
 
