@@ -176,6 +176,55 @@ class TestRuleRewriteTransformer(unittest.TestCase):
 
     # ADD TEST FOR COMPARISONS
 
+    def test_comparisons(self):
+        self.assertEqualRewrite(
+            {"f/1", "a/0", "h/1"},
+            ":- f(c) = a.",
+            ":- f(c)=FUN; a=FUN.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "a/0"},
+            ":- f(a)<f(b).",
+            ":- FUN2<FUN3; a=FUN; f(FUN)=FUN2; f(b)=FUN3.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "a/0", "h/1"},
+            ":- f(a)=f(b).",
+            ":- f(FUN)=FUN2; a=FUN; f(b)=FUN2.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "a/0", "h/1"},
+            ":- f(b)<g(x).",
+            ":- FUN<g(x); f(b)=FUN.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "a/0", "h/1"},
+            ":- f(c)!=d(c).",
+            ":- FUN!=d(c); f(c)=FUN.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "a/0", "h/1"},
+            ":- f(c) < a.",
+            ":- FUN<FUN2; f(c)=FUN; a=FUN2.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "a/0", "h/1"},
+            ":- g = a.",
+            ":- a=g.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "a/0", "h/1"},
+            ":- g = f(1).",
+            ":- f(1)=g.",
+        )
+
     def test_head_aggregate_simple(self):
         self.assertEqualRewrite(
             {"f/1"},
