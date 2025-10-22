@@ -105,12 +105,12 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "f(X) :- #sum { p(FUN),q(X): f(Y)=FUN } = W."
         )
 
-    # def test_negative_body_literal_creates_conditional_literal(self):
-    #     self.assertEqualRewrite(
-    #         {"f/1"},
-    #         "p :- not q(f(1)), r.",
-    #         "p :- #false: q(FUN), f(1)=FUN; r."
-    #     )
+    def test_negative_body_literal_creates_conditional_literal(self):
+        self.assertEqualRewrite(
+            {"f/1"},
+            "p :- not q(f(1)), r.",
+            "p :- #false: q(FUN), f(1)=FUN; r."
+        )
 
     def test_body_aggregate_and_head(self):
         self.assertEqualRewrite(

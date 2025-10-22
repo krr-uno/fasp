@@ -20,6 +20,7 @@ def unnest_functions(
     node: FASP_AST,
     evaluable_functions: Set[SymbolSignature],
     variable_generator: FreshVariableGenerator,
+    outer: bool = True,
     # Might need to pass flag boolens like outer (already used downstream) and allow_evaluable_in_negative_literal (new)
 ) -> tuple[FASP_AST, List[ast.LiteralComparison]]:
     """
@@ -29,7 +30,7 @@ def unnest_functions(
         lib, evaluable_functions, variable_generator=variable_generator
     )
 
-    return transformer.transform_node(node)
+    return transformer.transform_node(node, outer)
 
 
 class UnnestFunctionsTransformer:
