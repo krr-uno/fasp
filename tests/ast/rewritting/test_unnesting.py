@@ -51,8 +51,10 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         """
         Apply unnesting node-by-node and return (new_program_str, list[set[str]]).
         """
-        eval_sigs = {SymbolSignature(name, int(arity)) for name, arity in
-                    (s.split("/") for s in evaluable_functions)}
+        eval_sigs = {
+            SymbolSignature(name, int(arity))
+            for name, arity in (s.split("/") for s in evaluable_functions)
+        }
 
         stmts = parse_string(self.lib, program)
         stmts = stmts[1:]  # Skip #program base
@@ -87,7 +89,9 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         expected_program: str,
         expected_sets: list[set[str]],
     ):
-        new_program, unnested_sets = self.apply_unnesting_node(program, evaluable_functions)
+        new_program, unnested_sets = self.apply_unnesting_node(
+            program, evaluable_functions
+        )
 
         # Compare programs
         expected_lines = [line.strip() for line in expected_program.splitlines()]
@@ -96,7 +100,6 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
 
         # Compare unnested sets
         self.assertEqual(expected_sets, unnested_sets)
-
 
     def test_unnest_example(self):
         self.assertEqualUnnesting(
@@ -172,7 +175,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "r(g(h(f(a)))).",
             ["f/1", "h/1", "g/1"],
             "r(FUN3).",
-            [{"f(a)=FUN","h(FUN)=FUN2","g(FUN2)=FUN3"}]
+            [{"f(a)=FUN", "h(FUN)=FUN2", "g(FUN2)=FUN3"}],
         )
 
     def test_function_in_head_not_unnested(self):
@@ -204,7 +207,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "s(f(a), f(a)).",
             ["f/1"],
             "s(FUN,FUN2).",
-            [{"f(a)=FUN","f(a)=FUN2"}],
+            [{"f(a)=FUN", "f(a)=FUN2"}],
         )
 
     def test_double_occurrence_same_function_and_symbolic_function(self):
@@ -212,7 +215,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "s(f(a), f(a)).",
             ["f/1", "a/0"],
             "s(FUN2,FUN4).",
-            [{'a=FUN', 'a=FUN3', 'f(FUN3)=FUN4', 'f(FUN)=FUN2'}],
+            [{"a=FUN", "a=FUN3", "f(FUN3)=FUN4", "f(FUN)=FUN2"}],
         )
 
     def test_comparison(self):
@@ -222,7 +225,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             ":- FUN2<FUN3.",
             [{"a=FUN", "f(FUN)=FUN2", "f(b)=FUN3"}],
         )
-        
+
     def test_comparison_rules_split(self):
         self.assertEqualUnnesting(
             ":- f(a) = f(b).",
@@ -263,7 +266,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "#sum{ f(x) : h(x)< y(x) } = 1.",
             ["f/1", "a/0", "h/1"],
             "#sum { FUN: FUN2<y(x) } = 1.",
-            [{"h(x)=FUN2", "f(x)=FUN"}], # f(x) should be unnested
+            [{"h(x)=FUN2", "f(x)=FUN"}],  # f(x) should be unnested
         )
 
         self.assertEqualUnnesting(
@@ -301,19 +304,20 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             [set()],
         )
 
-    def test_aggregate_split(self): 
+    def test_aggregate_split(self):
         self.assertEqualUnnesting(
             ":- #sum { a(X): p(f(X)) } = 0.",
-            ["f/1", "a/1","p/1"],
+            ["f/1", "a/1", "p/1"],
             ":- #sum { FUN: p(FUN2) } = 0.",
             [{"a(X)=FUN", "f(X)=FUN2"}],
         )
-    def test_aggregate_split2(self): 
+
+    def test_aggregate_split2(self):
         self.assertEqualUnnesting(
             "#sum { a(X): p(f(X)) } = 0 :- p.",
-            ["f/1", "a/1","p/1"],
+            ["f/1", "a/1", "p/1"],
             "#sum { FUN: p(FUN2) } = 0 :- p.",
-            [{"a(X)=FUN","f(X)=FUN2"}],
+            [{"a(X)=FUN", "f(X)=FUN2"}],
         )
 
     def test_aggregate_nested_split(self):
@@ -338,7 +342,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             ["f/1", "a/1", "g/1", "h/1"],
             "f(X) := 1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.",
             [{"h(1)=FUN", "f(Y)=FUN2", "g(Y)=FUN3"}],
-        )    
+        )
 
     def test_head_simple_assignment_unnesting(self):
         self.assertEqualUnnesting(
@@ -347,38 +351,34 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "x(X) := h(FUN)+g(Y).",
             [{"f(X)=FUN"}],
         )
-    
+
     def test_choice_rule(self):
         self.assertEqualUnnesting(
-            "1 <= { a(X): f(a(Y))}.",
-            ['a/1'],
-            "1 <= { a(X): f(FUN) }.",
-            [{"a(Y)=FUN"}]
+            "1 <= { a(X): f(a(Y))}.", ["a/1"], "1 <= { a(X): f(FUN) }.", [{"a(Y)=FUN"}]
         )
 
-    def  test_choice_rule_with_assignment_aggregate(self):
+    def test_choice_rule_with_assignment_aggregate(self):
         self.assertEqualUnnesting(
             "1 <= { f(X) := 1: p(a); f(X) := 2: q(X) } <= 3.",
-            ["f/1","a/0"],
+            ["f/1", "a/0"],
             "1 <= { f(X) := 1: p(FUN); f(X) := 2: q(X) } <= 3.",
-            [{"a=FUN"}]
+            [{"a=FUN"}],
         )
 
-    
     def test_assignment_with_aggregate(self):
         self.assertEqualUnnesting(
             "score(X) := #sum{ f(Y) : f(p(Y)), q(X) } :- p.",
-            ["f/1","p/1"],
+            ["f/1", "p/1"],
             "score(X) := #sum{f(Y): f(FUN), q(X)} :- p.",
-            [{"p(Y)=FUN"}], # f(Y) should not be unnested
+            [{"p(Y)=FUN"}],  # f(Y) should not be unnested
         )
-    
+
     def test_negative_predicate_in_aggregate(self):
         self.assertEqualUnnesting(
             "p :- #sum { X: q(a), r(q(X)) } = 1.",
             ["q/1", "a/0"],
             "p :- #sum { X: q(FUN), r(FUN2) } = 1.",
-            [{"a=FUN", "q(X)=FUN2"}]
+            [{"a=FUN", "q(X)=FUN2"}],
         )
 
     # def test_negative_predicate_in_aggregate(self):
@@ -390,7 +390,6 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
     #     )
     #     NOT ALLOWED because not r(q(X)) has an evaluable function inside a negation in a body condition. The same applies to conditional literals "p :- q(a): not r(q(X)).",
 
-
     # def test_negative_predicate_in_aggregate(self):
     #     self.assertEqualUnnesting(
     #         "p :- q(a), not r(q(X)).",
@@ -400,12 +399,11 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
     #     )
     #     THIS IS ALLOWED because not r(q(X)) is not inside the aggregate or conditional literal
 
-
     def test_negative_predicate_in_aggregate(self):
         self.assertEqualUnnesting(
             "p :- #sum { X: q(a) } = b; q(c).",
             ["a/0", "b/0", "c/0"],
             "p :- #sum { X: q(FUN) } = FUN2; q(FUN3).",
-            [{"a=FUN", "b=FUN2", "c=FUN3"}]
+            [{"a=FUN", "b=FUN2", "c=FUN3"}],
         )
         # "p :- #sum { X: q(FUN), a=FUN } = FUN2; q(FUN3); b=FUN2; c=FUN3.

@@ -29,7 +29,7 @@ def format_ts_tree(
         src_bytes = source  # bytes or None
 
     # pick the root node
-    node: Node = obj.root_node if hasattr(obj, "root_node") else obj  # type: ignore
+    node: Node = obj.root_node if hasattr(obj, "root_node") else obj
 
     def get_children(n: Node) -> list[Node]:
         if not named_only:
@@ -39,7 +39,7 @@ def format_ts_tree(
 
     def field_name(parent: Node, idx: int) -> Optional[str]:
         try:
-            return parent.field_name_for_child(idx)  # type: ignore[attr-defined]
+            return parent.field_name_for_child(idx)
         except AttributeError:
             return None
 

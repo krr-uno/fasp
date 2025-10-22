@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import List, Set, cast
+from typing import List, Set
 
 from clingo import ast
 from clingo.core import Library
@@ -50,9 +50,18 @@ class RuleRewriteTransformer:
     def _(
         self, node: ast.StatementRule, var_gen: FreshVariableGenerator
     ) -> ast.StatementRule:
-        new_head, head_comps = unnest_functions(
-            self.lib, node.head, self.evaluable_functions, var_gen
-        )
+        if isinstance(node.head, ast.HeadSimpleLiteral):
+            new_head, head_comps = unnest_functions(
+                self.lib, node.head, self.evaluable_functions, var_gen
+            )
+        elif isinstance(node.head, ast.HeadDisjunction) or isinstance(
+            node.head, ast.HeadTheoryAtom
+        ):
+            pass
+            # Throw error if evaluable functions found in head disjunctions or theory atoms
+        else:
+            new_head = self._transform(node.head, var_gen)
+            head_comps = []
 
         new_body_literals: List[BodyLiteralAST] = []
 
@@ -68,17 +77,20 @@ class RuleRewriteTransformer:
                 and comps  # only if unnesting actually happened
             ):
                 # replace "not q(f(1))" with "#false : q(FUN), f(1)=FUN"
-                false_lit = ast.LiteralBoolean(self.lib, node.location, ast.Sign.NoSign, False)
+                false_lit = ast.LiteralBoolean(
+                    self.lib, node.location, ast.Sign.NoSign, False
+                )
                 inner_lit = new_lit.literal.update(self.lib, sign=ast.Sign.NoSign)
                 conds = [inner_lit, *comps]
-                new_conditional = ast.BodyConditionalLiteral(self.lib, node.location, false_lit, conds)
+                new_conditional = ast.BodyConditionalLiteral(
+                    self.lib, node.location, false_lit, conds
+                )
                 new_body_literals.append(new_conditional)
                 continue
             # ========================================
 
-
             # For Mypy
-            assert(isinstance(new_lit, BodyLiteralAST))
+            assert isinstance(new_lit, BodyLiteralAST)
             new_body_literals.append(new_lit)
             for comp in comps:
                 new_body_literals.append(ast.BodySimpleLiteral(self.lib, literal=comp))
@@ -109,8 +121,10 @@ class RuleRewriteTransformer:
     # Aggregates
     @_transform.register
     def _(
-        self, node: ast.BodyAggregate, var_gen: FreshVariableGenerator
-    ) -> ast.BodyAggregate:
+        self,
+        node: ast.BodyAggregate | ast.HeadAggregate,
+        var_gen: FreshVariableGenerator,
+    ) -> ast.BodyAggregate | ast.HeadAggregate:
         new_elements = []
         for elem in node.elements:
             new_elem = self._transform(elem, var_gen)
@@ -119,8 +133,10 @@ class RuleRewriteTransformer:
 
     @_transform.register
     def _(
-        self, node: ast.BodyAggregateElement, var_gen: FreshVariableGenerator
-    ) -> ast.BodyAggregateElement:
+        self,
+        node: ast.BodyAggregateElement | ast.HeadAggregateElement,
+        var_gen: FreshVariableGenerator,
+    ) -> ast.BodyAggregateElement | ast.HeadAggregateElement:
 
         # Unnest tuple terms
         new_tuple = []

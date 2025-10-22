@@ -45,4 +45,3 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             "f(X):=Y :- g(X)=Y.",
             "Ff(X,Y) :- Fg(X,Y).",
         )
-

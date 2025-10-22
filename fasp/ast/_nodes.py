@@ -104,7 +104,7 @@ class AssignmentAST:
         """
         ...
 
-    def update(self, lib: Library=Library(), **kwargs: Any) -> Self:
+    def update(self, lib: Library | None = None, **kwargs: Any) -> Self:
         """
         Create a new instance with some fields replaced.
 
