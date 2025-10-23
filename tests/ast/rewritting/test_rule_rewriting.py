@@ -239,6 +239,37 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "#sum { a(X): p(FUN): p(a), f(X)=FUN } = 0 :- p."
         )
 
+    def test_arithmetic_in_body(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1"},
+            "p :- f(a)-g(b)=10.",
+            "p :- FUN-FUN2=10; f(a)=FUN; g(b)=FUN2.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1"},
+            "p :- 10=f(a)-h(b).",
+            "p :- 10=FUN-h(b); f(a)=FUN.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "g/1"},
+            "p :- f(a)*g(b)=f(X).",
+            "p :- FUN=FUN2*FUN3; f(X)=FUN; f(a)=FUN2; g(b)=FUN3.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "g/1"},
+            "p :- h(X)=f(a)*g(b).",
+            "p :- h(X)=FUN*FUN2; f(a)=FUN; g(b)=FUN2.",
+        )
+        
+        self.assertEqualRewrite(
+            {"f/1", "g/1"},
+            "x(X) := h(f(X))-g(Y).",
+            "x(X) := h(FUN)-FUN2 :- f(X)=FUN; g(Y)=FUN2.",
+        )
+
     # def test_head_aggregate_with_evaluable_functions(self):
     #     self.assertEqualRewrite(
     #         {"f/1", "g/1"},

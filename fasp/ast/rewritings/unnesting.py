@@ -122,7 +122,7 @@ class UnnestFunctionsTransformer:
         new_assigned = self._unnest(node.assigned_function, outer)
         new_value = self._unnest(node.value, outer=False)
         return node.update(self.lib, assigned_function=new_assigned, value=new_value)
-        return node.transform(self.lib, self._unnest, outer) or node
+        # return node.transform(self.lib, self._unnest, outer) or node
 
     # Normalize compariosns to have evaluable functions on the left side of equality only
     @_unnest.register
@@ -131,6 +131,9 @@ class UnnestFunctionsTransformer:
     ) -> ast.LiteralComparison:
 
         if len(node.right) == 1 and node.right[0].relation != ast.Relation.Equal:
+            outer = False
+
+        if isinstance(node.left, ast.TermBinaryOperation):
             outer = False
 
         # Special case: equality with evaluable only on right-hand side
