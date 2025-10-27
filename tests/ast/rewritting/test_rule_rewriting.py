@@ -54,8 +54,8 @@ class TestRuleRewriteTransformer(unittest.TestCase):
     def test_basic_unnest(self):
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
-            "p(f(1),a) :- q(g(1),b), not not r(h(1)).",
-            "p(FUN,a) :- q(FUN2,b); g(1)=FUN2; not not r(FUN3); h(1)=FUN3; f(1)=FUN.",
+            "p(f(1),a) :- q(g(1),b), r(h(1)).",
+            "p(FUN,a) :- q(FUN2,b); g(1)=FUN2; r(FUN3); h(1)=FUN3; f(1)=FUN.",
         )
 
     def test_no_evaluable_functions(self):
@@ -67,11 +67,6 @@ class TestRuleRewriteTransformer(unittest.TestCase):
 
     def test_head_function_only(self):
         self.assertEqualRewrite({"c/0"}, "f(c) :- d.", "f(FUN) :- d; c=FUN.")
-
-    def test_double_negation_body(self):
-        self.assertEqualRewrite(
-            {"f/1"}, "p :- not not q(f(1)).", "p :- not not q(FUN); f(1)=FUN."
-        )
 
     def test_body_positive_literal(self):
         self.assertEqualRewrite({"f/1"}, "p :- q(f(1)).", "p :- q(FUN); f(1)=FUN.")
@@ -270,6 +265,21 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "x(X) := h(FUN)-FUN2 :- f(X)=FUN; g(Y)=FUN2.",
         )
 
+    def test_double_negation_body(self):
+        self.assertEqualRewrite(
+            {"f/1"}, "p :- not not q(f(1)).", "p :- not not q(FUN); not not f(1)=FUN."
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "g/1", "h/1"},
+            "p(f(1),a) :- q(g(1),b), not not r(h(1)).",
+            "p(FUN,a) :- q(FUN2,b); g(1)=FUN2; not not r(FUN3); not not h(1)=FUN3; f(1)=FUN.",
+        )
+
+    def test_double_negation_head(self):
+        self.assertEqualRewrite(
+            {"f/1"}, "not not p(f(1)) :- q.", "not not p(FUN) :- q; not not f(1)=FUN."
+        )
     # def test_head_aggregate_with_evaluable_functions(self):
     #     self.assertEqualRewrite(
     #         {"f/1", "g/1"},

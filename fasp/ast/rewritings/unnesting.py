@@ -73,18 +73,19 @@ class UnnestFunctionsTransformer:
         return False
 
     def _make_comparison(
-        self, loc: Location, left: TermAST, right: TermAST
+        self, loc: Location, left: TermAST, right: TermAST, sign: ast.Sign | None = None
     ) -> ast.LiteralComparison:
         return ast.LiteralComparison(
             self.lib,
             loc,
-            ast.Sign.NoSign,
+            # ast.Sign.NoSign if sign is None else sign,
+            ast.Sign.Double if sign == ast.Sign.Double else ast.Sign.NoSign,
             left,
             [ast.RightGuard(self.lib, ast.Relation.Equal, right)],
         )
 
     def transform_node(
-        self, node: FASP_AST, outer: bool = True
+        self, node: FASP_AST, outer: bool = True, sign: ast.Sign | None = None
     ) -> Tuple[FASP_AST, List[ast.LiteralComparison]]:
         """
         Transform one AST node and return (new_node, unnested_list).
@@ -96,7 +97,7 @@ class UnnestFunctionsTransformer:
         # Clear per-node collected unnested comparisons
         self.unnested_functions = []
 
-        new_node = self._unnest(node, outer=outer)
+        new_node = self._unnest(node, outer=outer, sign=None)
 
         # Copy the list and return
         collected = list(self.unnested_functions)
@@ -107,27 +108,37 @@ class UnnestFunctionsTransformer:
     #     return cast(FASP_Statement, self._unnest(st, outer=True))
 
     @singledispatchmethod
-    def _unnest(self, node: FASP_AST, outer: bool = False) -> FASP_AST:
+    def _unnest(
+        self, node: FASP_AST, outer: bool = False, sign: ast.Sign | None = None
+    ) -> FASP_AST:
         """Default: recurse if possible, else return as-is."""
-        return node.transform(self.lib, self._unnest, outer) or node
-
-    @_unnest.register
-    def _(self, node: AssignmentAST, outer: bool = False) -> AssignmentAST:
-        return node.transform(self.lib, self._unnest, outer) or node
+        return node.transform(self.lib, self._unnest, outer, sign) or node
 
     @_unnest.register
     def _(
-        self, node: HeadSimpleAssignment, outer: bool = False
+        self, node: AssignmentAST, outer: bool = False, sign: ast.Sign | None = None
+    ) -> AssignmentAST:
+        return node.transform(self.lib, self._unnest, outer, sign) or node
+
+    @_unnest.register
+    def _(
+        self,
+        node: HeadSimpleAssignment,
+        outer: bool = False,
+        sign: ast.Sign | None = None,
     ) -> HeadSimpleAssignment:
-        new_assigned = self._unnest(node.assigned_function, outer)
-        new_value = self._unnest(node.value, outer=False)
+        new_assigned = self._unnest(node.assigned_function, outer, sign)
+        new_value = self._unnest(node.value, outer=False, sign=sign)
         return node.update(self.lib, assigned_function=new_assigned, value=new_value)
         # return node.transform(self.lib, self._unnest, outer) or node
 
     # Normalize compariosns to have evaluable functions on the left side of equality only
     @_unnest.register
     def _(
-        self, node: ast.LiteralComparison, outer: bool = True
+        self,
+        node: ast.LiteralComparison,
+        outer: bool = True,
+        sign: ast.Sign | None = None,
     ) -> ast.LiteralComparison:
 
         if len(node.right) == 1 and node.right[0].relation != ast.Relation.Equal:
@@ -163,20 +174,32 @@ class UnnestFunctionsTransformer:
             )
             for rg in node.right
         ]
-        return node.update(self.lib, left=new_left, right=new_right)
+        return node.update(
+            self.lib,
+            left=new_left,
+            right=new_right,
+            sign=node.sign if sign is None else sign,
+        )
 
     @_unnest.register
     def _(
-        self, node: ast.BodyAggregate | ast.HeadAggregate, outer: bool = False
+        self,
+        node: ast.BodyAggregate | ast.HeadAggregate,
+        outer: bool = False,
+        sign: ast.Sign | None = None,
     ) -> ast.BodyAggregate | ast.HeadAggregate:
         # Visit left guard, elements, and right guard with outer=False
-        return node.transform(self.lib, lambda c: self._unnest(c, outer=False)) or node
+        return (
+            node.transform(self.lib, lambda c: self._unnest(c, outer=False, sign=sign))
+            or node
+        )
 
     @_unnest.register
     def _(
         self,
         node: ast.BodyAggregateElement | ast.HeadAggregateElement,
         outer: bool = False,
+        sign: ast.Sign | None = None,
     ) -> ast.BodyAggregateElement | ast.HeadAggregateElement:
         """
         Handle elements of aggregates of the form:
@@ -189,17 +212,29 @@ class UnnestFunctionsTransformer:
         The literal in head aggregates is also treated as outer.
         """
         # Unnest tuple terms immediately (inner context)
-        new_tuple = [self._unnest(t, outer=False) for t in node.tuple]
+        new_tuple = [self._unnest(t, outer=False, sign=sign) for t in node.tuple]
 
         # Traverse condition literals as outer (no unnesting of predicate calls)
-        new_condition = [self._unnest(c, outer=True) for c in node.condition]
+        new_condition = [self._unnest(c, outer=True, sign=sign) for c in node.condition]
 
         if isinstance(node, ast.HeadAggregateElement):
-            new_literal = self._unnest(node.literal, outer=True)
+            new_literal = self._unnest(node.literal, outer=True, sign=sign)
             return node.update(
                 self.lib, literal=new_literal, tuple=new_tuple, condition=new_condition
             )
         return node.update(self.lib, tuple=new_tuple, condition=new_condition)
+
+    # Passing down the sign of the literal to TermFunction/TermSymbolic dispatchers for handling double negation
+    @_unnest.register
+    def _(
+        self,
+        node: ast.BodySimpleLiteral | ast.HeadSimpleLiteral,
+        outer: bool = False,
+        sign: ast.Sign | None = None,
+    ) -> ast.BodySimpleLiteral | ast.HeadSimpleLiteral:
+        # Pass current node.sign downward for inner literals
+        new_literal = self._unnest(node.literal, outer=outer, sign=node.literal.sign)
+        return node.update(self.lib, literal=new_literal)
 
     # Need to pass outer=False to make sure TermFunctions and TermSymbolic functions in body aggregates are unnested
     # @_unnest.register
@@ -217,7 +252,10 @@ class UnnestFunctionsTransformer:
     # NOTE: For test `test_assignment_with_aggregate` in tests\ast\rewriting\test_unnesting.py
     @_unnest.register
     def _(
-        self, node: HeadAggregateAssignment, outer: bool = False
+        self,
+        node: HeadAggregateAssignment,
+        outer: bool = False,
+        sign: ast.Sign | None = None,
     ) -> HeadAggregateAssignment:
         """
         Handle head aggregates like:
@@ -228,16 +266,19 @@ class UnnestFunctionsTransformer:
 
         # Unnest the assigned function
         new_assigned = cast(
-            ast.TermFunction, self._unnest(node.assigned_function, outer=True)
+            ast.TermFunction,
+            self._unnest(node.assigned_function, outer=True, sign=sign),
         )
 
         # Rebuild elements
         new_elements = []
         for elem in node.elements:
             # The first tuple is visited with outer=True
-            new_tuple = [self._unnest(t, outer=True) for t in elem.tuple]
+            new_tuple = [self._unnest(t, outer=True, sign=sign) for t in elem.tuple]
             # The condition literals are visited with outer=True
-            new_condition = [self._unnest(c, outer=True) for c in elem.condition]
+            new_condition = [
+                self._unnest(c, outer=True, sign=sign) for c in elem.condition
+            ]
 
             new_elem = elem.update(
                 self.lib,
@@ -252,11 +293,14 @@ class UnnestFunctionsTransformer:
         )
 
     @_unnest.register
-    def _(self, node: ast.TermFunction, outer: bool = False) -> ast.TermFunction:
+    def _(
+        self, node: ast.TermFunction, outer: bool = False, sign: ast.Sign | None = None
+    ) -> ast.TermFunction:
         new_pool = []
         for tup in node.pool:
             new_args: List[TermAST] = [
-                cast(TermAST, self._unnest(t, outer=False)) for t in tup.arguments
+                cast(TermAST, self._unnest(t, outer=False, sign=sign))
+                for t in tup.arguments
             ]
             new_pool.append(ast.ArgumentTuple(self.lib, tuple(new_args)))
         new_func = node.update(self.lib, pool=tuple(new_pool))
@@ -271,7 +315,9 @@ class UnnestFunctionsTransformer:
 
             fresh: TermAST = self.var_gen.fresh_variable(self.lib, node.location, "FUN")
             # self._cache[key] = fresh
-            comp = self._make_comparison(node.location, cast(TermAST, new_func), fresh)
+            comp = self._make_comparison(
+                node.location, cast(TermAST, new_func), fresh, sign=sign
+            )
             self.unnested_functions.append(comp)
             fresh = cast(ast.TermFunction, fresh)
             self._var_to_comp[fresh.name] = comp
@@ -280,7 +326,9 @@ class UnnestFunctionsTransformer:
         return new_func
 
     @_unnest.register
-    def _(self, node: ast.TermSymbolic, outer: bool = False) -> ast.TermSymbolic:
+    def _(
+        self, node: ast.TermSymbolic, outer: bool = False, sign: ast.Sign | None = None
+    ) -> ast.TermSymbolic:
         if node.symbol.type == SymbolType.Function:
             name = str(node.symbol.name)
             arity = len(node.symbol.arguments)
@@ -292,7 +340,7 @@ class UnnestFunctionsTransformer:
 
                 fresh = self.var_gen.fresh_variable(self.lib, node.location, "FUN")
                 # self._cache[key] = fresh
-                comp = self._make_comparison(node.location, node, fresh)
+                comp = self._make_comparison(node.location, node, fresh, sign=sign)
                 self.unnested_functions.append(comp)
 
                 self._var_to_comp[fresh.name] = comp

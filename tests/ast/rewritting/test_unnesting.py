@@ -284,13 +284,6 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
         self.assertEqualUnnesting(
-            "p(f(1),b) :- q(a,b), not not r(h(1)).",
-            ["f/1", "a/0", "h/1"],
-            "p(FUN,b) :- q(FUN2,b); not not r(FUN3).",
-            [{"f(1)=FUN", "a=FUN2", "h(1)=FUN3"}],
-        )
-
-        self.assertEqualUnnesting(
             ":- g = a.",
             ["f/1", "a/0", "h/1"],
             ":- a=g.",
@@ -381,6 +374,23 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             [{"a=FUN", "q(X)=FUN2"}],
         )
 
+    def test_double_negation(self):
+        self.assertEqualUnnesting(
+            "p(f(1),b) :- q(a,b), not not r(h(1)).",
+            ["f/1", "a/0", "h/1"],
+            "p(FUN,b) :- q(FUN2,b); not not r(FUN3).",
+            [{"f(1)=FUN", "a=FUN2", "not not h(1)=FUN3"}],
+        )
+
+    def test_double_negation_in_multiple_level_unnesting(self):
+        self.assertEqualUnnesting(
+            "p :- not not q(f(g(a))).",
+            ["f/1", "g/1", "a/0"],
+            "p :- not not q(FUN3).",
+            [{"not not a=FUN", "not not g(FUN)=FUN2", "not not f(FUN2)=FUN3"}],
+        )
+
+    # NEED TO WORK ON THESE:
     # def test_negative_predicate_in_aggregate(self):
     #     self.assertEqualUnnesting(
     #         "p :- #sum { X: q(a), not r(q(X)) } = 1.",
