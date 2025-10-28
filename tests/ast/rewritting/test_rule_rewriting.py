@@ -80,15 +80,6 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             # Also add tests for all other arithmetic operations
         )
 
-    # def test_head_aggregate_assignmen(self):
-    #     self.assertEqualRewrite(
-    #         {"f/1", "p/1"},
-    #         "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p.",
-    #         "score(X) := #sum{f(Y): f(FUN), q(X)} :- p; p(Y)=FUN.",
-    #         # "score(X) := #sum{f(Y): f(FUN), q(X), p(Y)=FUN} :- p.",
-    #     )
-    # Add assert in code to check that never happens. assert False, "Should not happen"
-
     def test_body_aggregate_element(self):
         self.assertEqualRewrite(
             {"f/1", "g/1"},
@@ -280,16 +271,14 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqualRewrite(
             {"f/1"}, "not not p(f(1)) :- q.", "not not p(FUN) :- q; not not f(1)=FUN."
         )
-    # def test_head_aggregate_with_evaluable_functions(self):
-    #     self.assertEqualRewrite(
-    #         {"f/1", "g/1"},
-    #         "total(W) := #sum { f(X), g(Y) : p(X,Y) }.",
-    #         "total(W) := #sum { FUN,FUN2: p(X,Y), f(X)=FUN, g(Y)=FUN2 }."
-    #     )
 
-    # def test_head_aggregate_mixed_tuple_and_condition(self):
-    #     self.assertEqualRewrite(
-    #         {"f/1", "g/1"},
-    #         "score(S) := #sum { f(X), h(Y) : g(Y), q(Z) }.",
-    #         "score(S) := #sum { FUN,h(Y): g(Y)=FUN2, q(Z), f(X)=FUN }."
-    #     )
+    def test_head_aggregate_assignment(self):
+        with self.assertRaises(AssertionError) as cm:
+            self.assertEqualRewrite(
+                {"f/1", "p/1"},
+                "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p.",
+                "score(X) := #sum{f(Y): f(FUN), q(X)} :- p; p(Y)=FUN.",
+                # "score(X) := #sum{f(Y): f(FUN), q(X), p(Y)=FUN} :- p.",
+            )
+        self.assertEqual(str(cm.exception), "HeadAggregateAssignment is seen during rule rewriting. This should not happen.")
+        # Add assert in code to check that never happens. assert False, "Should not happen"

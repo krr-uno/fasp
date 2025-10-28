@@ -4,7 +4,7 @@ from typing import List, Set
 from clingo import ast
 from clingo.core import Library
 
-from fasp.ast._nodes import FASP_AST, AssignmentRule
+from fasp.ast._nodes import FASP_AST, AssignmentRule, HeadAggregateAssignment
 from fasp.ast.collectors import SymbolSignature, collect_variables
 from fasp.ast.rewritings.unnesting import unnest_functions
 from fasp.util.ast import (
@@ -38,15 +38,15 @@ class RuleRewriteTransformer:
         """
         used = collect_variables(node)
         var_gen = FreshVariableGenerator(used)
-        return self._transform(node, var_gen)
+        return self._rewrite(node, var_gen)
 
     @singledispatchmethod
-    def _transform(self, node: FASP_AST, var_gen: FreshVariableGenerator) -> FASP_AST:
+    def _rewrite(self, node: FASP_AST, var_gen: FreshVariableGenerator) -> FASP_AST:
         """Default: return node unchanged."""
         return node
 
     # Rule Statements
-    @_transform.register
+    @_rewrite.register
     def _(
         self, node: ast.StatementRule, var_gen: FreshVariableGenerator
     ) -> ast.StatementRule:
@@ -60,13 +60,13 @@ class RuleRewriteTransformer:
         #     pass
         #     # Throw error if evaluable functions found in head disjunctions or theory atoms
         else:
-            new_head = self._transform(node.head, var_gen)
+            new_head = self._rewrite(node.head, var_gen)
             head_comps = []
 
         new_body_literals: List[BodyLiteralAST] = []
 
         for lit in node.body:
-            new_lit = self._transform(lit, var_gen)
+            new_lit = self._rewrite(lit, var_gen)
             new_lit, comps = unnest_functions(
                 self.lib, new_lit, self.evaluable_functions, var_gen
             )
@@ -101,10 +101,11 @@ class RuleRewriteTransformer:
 
         return node.update(self.lib, head=new_head, body=new_body_literals)
 
-    @_transform.register
+    @_rewrite.register
     def _(
         self, node: AssignmentRule, var_gen: FreshVariableGenerator
     ) -> AssignmentRule:
+        new_head = self._rewrite(node.head, var_gen)
         new_head, head_comps = unnest_functions(
             self.lib, node.head, self.evaluable_functions, var_gen
         )
@@ -119,7 +120,7 @@ class RuleRewriteTransformer:
         return node.update(head=new_head, body=new_body)
 
     # Aggregates
-    @_transform.register
+    @_rewrite.register
     def _(
         self,
         node: ast.BodyAggregate | ast.HeadAggregate,
@@ -127,11 +128,11 @@ class RuleRewriteTransformer:
     ) -> ast.BodyAggregate | ast.HeadAggregate:
         new_elements = []
         for elem in node.elements:
-            new_elem = self._transform(elem, var_gen)
+            new_elem = self._rewrite(elem, var_gen)
             new_elements.append(new_elem)
         return node.update(self.lib, elements=new_elements)
 
-    @_transform.register
+    @_rewrite.register
     def _(
         self,
         node: ast.BodyAggregateElement | ast.HeadAggregateElement,
@@ -177,3 +178,11 @@ class RuleRewriteTransformer:
         new_condition.extend(local_comps)
 
         return node.update(self.lib, tuple=new_tuple, condition=new_condition)
+
+    @_rewrite.register
+    def _(
+        self, node: HeadAggregateAssignment, var_gen: FreshVariableGenerator
+    ) -> HeadAggregateAssignment:
+        assert (
+            False
+        ), "HeadAggregateAssignment is seen during rule rewriting. This should not happen."
