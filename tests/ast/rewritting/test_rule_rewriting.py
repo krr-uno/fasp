@@ -280,5 +280,5 @@ class TestRuleRewriteTransformer(unittest.TestCase):
                 "score(X) := #sum{f(Y): f(FUN), q(X)} :- p; p(Y)=FUN.",
                 # "score(X) := #sum{f(Y): f(FUN), q(X), p(Y)=FUN} :- p.",
             )
-        self.assertEqual(str(cm.exception), "HeadAggregateAssignment is seen during rule rewriting. This should not happen.")
+        self.assertEqual(str(cm.exception), "HeadAggregateAssignment seen during rule rewriting. This should not happen.")
         # Add assert in code to check that never happens. assert False, "Should not happen"

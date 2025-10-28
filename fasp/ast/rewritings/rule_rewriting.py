@@ -185,4 +185,4 @@ class RuleRewriteTransformer:
     ) -> HeadAggregateAssignment:
         assert (
             False
-        ), "HeadAggregateAssignment is seen during rule rewriting. This should not happen."
+        ), "HeadAggregateAssignment seen during rule rewriting. This should not happen."
