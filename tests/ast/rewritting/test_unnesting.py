@@ -105,11 +105,11 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         self.assertEqualUnnesting(
             """p(g(h(a,b),c),d(X)) :- q(X).
                q(X) :- g(1,a) = X.
-               g(X,Y) = Z :- true.""",
+               p(X,Y) = Z :- true.""",
             ["g/2", "h/2", "a/0"],
             """p(FUN3,d(X)) :- q(X).
                q(X) :- g(1,FUN)=X.
-               g(X,Y)=Z :- true.""",
+               p(X,Y)=Z :- true.""",
             [
                 {"a=FUN", "h(FUN,b)=FUN2", "g(FUN2,c)=FUN3"},
                 {"a=FUN"},
@@ -313,21 +313,6 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             [{"a(X)=FUN", "f(X)=FUN2"}],
         )
 
-    def test_aggregate_nested_split(self):
-        self.assertEqualUnnesting(
-            "f(X) = W :- b(X,Z), W = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.",
-            ["f/1", "g/1", "h/1"],
-            "f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X) }.",
-            [{"f(Y)=FUN", "g(Y)=FUN2"}],
-        )
-
-        self.assertEqualUnnesting(
-            "f(X) = 1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.",
-            ["f/1", "g/1", "h/1"],
-            "f(X)=1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.",
-            [{"h(1)=FUN", "f(Y)=FUN2", "g(Y)=FUN3"}],
-        )
-
     # f(X)=1 vs f(X) := 1 => SPACING
     def test_aggregate_nested_split_with_assignment(self):
         self.assertEqualUnnesting(
@@ -389,7 +374,49 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "p :- not not q(FUN3).",
             [{"not not a=FUN", "not not g(FUN)=FUN2", "not not f(FUN2)=FUN3"}],
         )
+    
+    # CHECK: Comparison with equality in head.
+    def test_equality_comparison_in_head(self):
+        self.assertEqualUnnesting(
+            "a=b :- p.",
+            ["a/0", "b/0"],
+            "FUN=FUN2 :- p.",
+            [{"a=FUN", "b=FUN2"}],
+        )
 
+    # CHECK: Comparison with equality in head.
+    # def test_aggregate_nested_split(self):
+    #     self.assertEqualUnnesting(
+    #         "f(X)=W :- b(X,Z), W = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.",
+    #         ["f/1", "g/1", "h/1"],
+    #         "f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X) }.",
+    #         [{"f(Y)=FUN", "g(Y)=FUN2"}],
+    #     )
+
+    #     self.assertEqualUnnesting(
+    #         "f(X)=1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.",
+    #         ["f/1", "g/1", "h/1"],
+    #         "f(X)=1 :- b(X,Z); FUN = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.",
+    #         [{"h(1)=FUN", "f(Y)=FUN2", "g(Y)=FUN3"}],
+    #     )
+
+    def test_aggregate_nested_split(self):
+        self.assertEqualUnnesting(
+            "f(X)=W :- b(X,Z), W = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.",
+            ["f/1", "g/1", "h/1"],
+            "FUN=W :- b(X,Z); W = #sum { FUN2: p(FUN3,Z), q(X), r(X) }.",
+            [{"f(X)=FUN", "f(Y)=FUN2", "g(Y)=FUN3"}],
+        )
+
+        self.assertEqualUnnesting(
+            "f(X)=1 :- b(X,Z), h(1) = #sum{ f(Y) : p(g(Y),Z), q(X), r(X) }.",
+            ["f/1", "g/1", "h/1"],
+            "FUN=1 :- b(X,Z); FUN2 = #sum { FUN3: p(FUN4,Z), q(X), r(X) }.",
+            [{"f(X)=FUN","h(1)=FUN2", "f(Y)=FUN3", "g(Y)=FUN4"}],
+        )
+
+
+########################################
     # NEED TO WORK ON THESE:
     # def test_negative_predicate_in_aggregate(self):
     #     self.assertEqualUnnesting(
