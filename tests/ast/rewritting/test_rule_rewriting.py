@@ -75,9 +75,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "x(X) := h(f(X))+g(Y).",
-            # "x(X) := h(FUN)+g(Y) :- f(X)=FUN.",
             "x(X) := h(FUN)+FUN2 :- f(X)=FUN; g(Y)=FUN2.",
-            # Also add tests for all other arithmetic operations
         )
 
     def test_body_aggregate_element(self):
@@ -211,6 +209,18 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             ":- f(1)=g.",
         )
 
+        self.assertEqualRewrite(
+            {"a/0", "b/0"},
+            "a>b.",
+            "FUN>FUN2 :- a=FUN; b=FUN2.",
+        )
+
+        self.assertEqualRewrite(
+            {"a/0", "b/0"},
+            "a=b.",
+            "FUN=FUN2 :- a=FUN; b=FUN2.",
+        )
+
     def test_head_aggregate_simple(self):
         self.assertEqualRewrite(
             {"f/1"},
@@ -224,6 +234,13 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "#sum { a(X): p(f(X)): p(a) } = 0 :- p.",
             "#sum { a(X): p(FUN): p(a), f(X)=FUN } = 0 :- p."
         )
+
+    # def test_head_aggregate_guard(self):
+    #     self.assertEqualRewrite(
+    #         {"f/1"},
+    #         "#sum { a(X): p(f(X)): p(a) } = f(2) :- p.",
+    #         "#sum { a(X): p(FUN): p(a), f(X)=FUN } = FUN2 :- p; f(2)=FUN2."
+    #     )
 
     def test_arithmetic_in_body(self):
         self.assertEqualRewrite(
@@ -248,6 +265,12 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             {"f/1", "g/1"},
             "p :- h(X)=f(a)*g(b).",
             "p :- h(X)=FUN*FUN2; f(a)=FUN; g(b)=FUN2.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1", "g/1"},
+            "p :- h(X)=f(a)/g(b).",
+            "p :- h(X)=FUN/FUN2; f(a)=FUN; g(b)=FUN2.",
         )
         
         self.assertEqualRewrite(
@@ -281,4 +304,4 @@ class TestRuleRewriteTransformer(unittest.TestCase):
                 # "score(X) := #sum{f(Y): f(FUN), q(X), p(Y)=FUN} :- p.",
             )
         self.assertEqual(str(cm.exception), "HeadAggregateAssignment seen during rule rewriting. This should not happen.")
-        # Add assert in code to check that never happens. assert False, "Should not happen"
+        # "HeadAggregateAssignment seen during function unnesting. This should not happen."
