@@ -56,9 +56,6 @@ class UnnestFunctionsTransformer:
         # Also checks for same TermSymbolic in the rule.
         # self._cache: dict[tuple[str, tuple[str, ...]], TermAST] = {}
 
-        # Map from variable name to the corresponding comparisons for lookup during rewrite
-        self._var_to_comp: dict[str, ast.LiteralComparison] = {}
-
     def _is_evaluable(self, name: str, arity: int) -> bool:
         return SymbolSignature(name, arity) in self.evaluable_functions
 
@@ -188,9 +185,20 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
     ) -> ast.BodyAggregate | ast.HeadAggregate:
-        # Visit left guard, elements, and right guard with outer=False
         return (
             node.transform(self.lib, lambda c: self._unnest(c, outer=False, sign=sign))
+            or node
+        )
+
+    @_unnest.register
+    def _(
+        self,
+        node: ast.RightGuard | ast.LeftGuard,
+        outer: bool = False,
+        sign: ast.Sign | None = None,
+    ) -> ast.RightGuard | ast.LeftGuard:
+        return (
+            node.transform(self.lib, lambda t: self._unnest(t, outer=False, sign=sign))
             or node
         )
 
@@ -320,7 +328,6 @@ class UnnestFunctionsTransformer:
             )
             self.unnested_functions.append(comp)
             fresh = cast(ast.TermFunction, fresh)
-            self._var_to_comp[fresh.name] = comp
 
             return fresh
         return new_func
@@ -343,7 +350,6 @@ class UnnestFunctionsTransformer:
                 comp = self._make_comparison(node.location, node, fresh, sign=sign)
                 self.unnested_functions.append(comp)
 
-                self._var_to_comp[fresh.name] = comp
                 fresh = cast(ast.TermSymbolic, fresh)
                 return fresh
         return node

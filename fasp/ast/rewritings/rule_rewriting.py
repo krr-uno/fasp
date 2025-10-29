@@ -31,6 +31,7 @@ class RuleRewriteTransformer:
         self.evaluable_functions_allowed_in_negated_literals = (
             evaluable_functions_allowed_in_negated_literals
         )
+        self.residual_comps: List[ast.LiteralComparison] = []
 
     def transform_rule(self, node: FASP_AST) -> FASP_AST:
         """
@@ -99,6 +100,10 @@ class RuleRewriteTransformer:
         for comp in head_comps:
             new_body_literals.append(ast.BodySimpleLiteral(self.lib, literal=comp))
 
+        # Add residual comparisons from unnesting guards in aggregates to body
+        for comp in self.residual_comps:
+            new_body_literals.append(ast.BodySimpleLiteral(self.lib, literal=comp))
+
         return node.update(self.lib, head=new_head, body=new_body_literals)
 
     @_rewrite.register
@@ -130,7 +135,25 @@ class RuleRewriteTransformer:
         for elem in node.elements:
             new_elem = self._rewrite(elem, var_gen)
             new_elements.append(new_elem)
-        return node.update(self.lib, elements=new_elements)
+
+        new_left, left_guard_comps = (
+            unnest_functions(self.lib, node.left, self.evaluable_functions, var_gen)
+            if node.left
+            else (None, [])
+        )
+        new_right, right_guard_comps = (
+            unnest_functions(self.lib, node.right, self.evaluable_functions, var_gen)
+            if node.right
+            else (None, [])
+        )
+
+        self.residual_comps = left_guard_comps + right_guard_comps
+        return node.update(
+            self.lib,
+            left=new_left if new_left is not None else node.left,
+            right=new_right if new_right is not None else node.right,
+            elements=new_elements,
+        )
 
     @_rewrite.register
     def _(
@@ -185,4 +208,4 @@ class RuleRewriteTransformer:
     ) -> HeadAggregateAssignment:
         assert (
             False
-        ), "HeadAggregateAssignment seen during rule rewriting. This should not happen."
+        ), "HeadAggregateAssignment seen during function unnesting. This should not happen."
