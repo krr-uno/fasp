@@ -301,6 +301,12 @@ class TestRuleRewriteTransformer(unittest.TestCase):
     #         "f(X)=W :- b(X,Z), W = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
     #         "f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }.",
     #     )
+    def test_aggregates(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1", "h/1"},
+            "f(X)=W :- b(X,Z), W = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
+            "FUN=W :- b(X,Z); W = #sum { FUN2: p(FUN3,Z), q(X), r(X), f(Y)=FUN2, g(Y)=FUN3 }; f(X)=FUN.",
+        )
 
 
     # CHECK: Comparison with equality in head.
@@ -310,11 +316,9 @@ class TestRuleRewriteTransformer(unittest.TestCase):
     #         "f(X)=1 :- b(X,Z), h(1) = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
     #         "f(X)=1 :- b(X,Z); FUN3 = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }; h(1)=FUN3.",
     #     )
-
-    # CHECK: Comparison with equality in head.
-    # def test_body_aggregate_and_head(self):
-    #     self.assertEqualRewrite(
-    #         {"f/1", "g/1"},
-    #         "f(X)=W :- b(X,Z), W = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
-    #         "f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }.",
-    #     )
+    def test_aggregates_2(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1", "h/1"},
+            "f(X)=1 :- b(X,Z), h(1) = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
+            "FUN=1 :- b(X,Z); FUN4 = #sum { FUN2: p(FUN3,Z), q(X), r(X), f(Y)=FUN2, g(Y)=FUN3 }; f(X)=FUN; h(1)=FUN4.",
+        )
