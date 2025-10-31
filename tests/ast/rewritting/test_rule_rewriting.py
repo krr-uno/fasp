@@ -193,7 +193,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "a>b.",
             "FUN>FUN2 :- a=FUN; b=FUN2.",
         )
-    
+    def test_comparison_with_equality_in_head(self):
     # CHECK: Comparison with equality in head.
         self.assertEqualRewrite(
             {"a/0", "b/0"},

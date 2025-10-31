@@ -53,7 +53,7 @@ class RuleRewriteTransformer:
     ) -> ast.StatementRule:
         if isinstance(node.head, ast.HeadSimpleLiteral):
             new_head, head_comps = unnest_functions(
-                self.lib, node.head, self.evaluable_functions, var_gen
+                self.lib, node.head, self.evaluable_functions, var_gen, is_in_head=True
             )
         # elif isinstance(node.head, ast.HeadDisjunction) or isinstance(
         #     node.head, ast.HeadTheoryAtom
@@ -112,7 +112,7 @@ class RuleRewriteTransformer:
     ) -> AssignmentRule:
         new_head = self._rewrite(node.head, var_gen)
         new_head, head_comps = unnest_functions(
-            self.lib, node.head, self.evaluable_functions, var_gen
+            self.lib, node.head, self.evaluable_functions, var_gen, is_in_head=True
         )
         new_body = []
         for lit in node.body:

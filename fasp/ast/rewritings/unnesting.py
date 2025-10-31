@@ -20,7 +20,10 @@ def unnest_functions(
     node: FASP_AST,
     evaluable_functions: Set[SymbolSignature],
     variable_generator: FreshVariableGenerator,
+    *,
     outer: bool = True,
+    sign: ast.Sign | None = None,
+    is_in_head: bool = False,
     # Might need to pass flag boolens like outer (already used downstream) and allow_evaluable_in_negative_literal (new)
 ) -> tuple[FASP_AST, List[ast.LiteralComparison]]:
     """
@@ -30,7 +33,7 @@ def unnest_functions(
         lib, evaluable_functions, variable_generator=variable_generator
     )
 
-    return transformer.transform_node(node, outer)
+    return transformer.transform_node(node, outer, sign, is_in_head)
 
 
 class UnnestFunctionsTransformer:
@@ -155,17 +158,15 @@ class UnnestFunctionsTransformer:
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
     ) -> ast.LiteralComparison:
-        print(
-            f"Unnesting LiteralComparison: {str(node)}, is_in_head={is_in_head}, outer={outer}, sign={sign}"
-        )
+        # print(
+        #     f"Unnesting LiteralComparison: {str(node)}, is_in_head={is_in_head}, outer={outer}, sign={sign}"
+        # )
         if len(node.right) == 1 and node.right[0].relation != ast.Relation.Equal:
             outer = False
 
         if isinstance(node.left, ast.TermBinaryOperation):
             outer = False
 
-        if is_in_head:
-            outer = False
         # Special case: equality with evaluable only on right-hand side
         if len(node.right) == 1 and node.right[0].relation == ast.Relation.Equal:
             left_eval = self._is_evaluable_term(node.left)
@@ -192,8 +193,22 @@ class UnnestFunctionsTransformer:
                     )
                 ]
                 return node.update(self.lib, left=new_left, right=new_right)
+
+        # Unnest left with outer = False if the comparison is an Equality
+        # See test: test_comparison_with_equality_in_head
+        # print(
+        #     f"Unnesting node {str(node)} right {str(node.right)} left {str(node.left)}"
+        # )
+        _outer = outer
+        if (
+            len(node.right) == 1
+            and node.right[0].relation == ast.Relation.Equal
+            and self._is_evaluable_term(node.left)
+            and is_in_head
+        ):
+            _outer = False
         new_left = cast(
-            TermAST, self._unnest(node.left, outer, sign=sign, is_in_head=is_in_head)
+            TermAST, self._unnest(node.left, _outer, sign=sign, is_in_head=is_in_head)
         )  # False if not = and len(node.right) == 1
         new_right = [
             ast.RightGuard(
