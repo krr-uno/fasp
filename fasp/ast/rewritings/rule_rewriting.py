@@ -179,6 +179,11 @@ class RuleRewriteTransformer:
             new_c, comps = unnest_functions(
                 self.lib, cond, self.evaluable_functions, var_gen
             )
+            # NOTE: Disallow negation with evaluable in aggregate
+            if new_c != cond and cond.sign == ast.Sign.Single:
+                raise RuntimeError(
+                    f"Negation is not supported with evaluable functions in Aggregate. Found {str(cond)} at {cond.location}."
+                )
             new_condition.append(new_c)
             local_comps.extend(comps)
 
@@ -186,6 +191,12 @@ class RuleRewriteTransformer:
             new_literal, literal_comps = unnest_functions(
                 self.lib, node.literal, self.evaluable_functions, var_gen, outer=True
             )
+            # NOTE: Disallow negation with evaluable in aggregate
+            if new_literal != node.literal and node.literal.sign == ast.Sign.Single:
+                raise RuntimeError(
+                    f"Negation is not supported with evaluable functions in Aggregate. Found {str(node.literal)} at {node.literal.location}."
+                )
+
             # place the literal's comparisons into the element condition
             local_comps.extend(literal_comps)
             # extend condition with comps coming from literal unnesting as well

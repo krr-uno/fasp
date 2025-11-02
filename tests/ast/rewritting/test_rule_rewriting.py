@@ -322,3 +322,52 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "f(X)=1 :- b(X,Z), h(1) = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
             "FUN=1 :- b(X,Z); FUN4 = #sum { FUN2: p(FUN3,Z), q(X), r(X), f(Y)=FUN2, g(Y)=FUN3 }; f(X)=FUN; h(1)=FUN4.",
         )
+
+    def test_negative_predicate_in_aggregate_with_evaluable_body_aggregate(self):
+        with self.assertRaises(RuntimeError) as cm:
+            self.assertEqualRewrite(
+                {"q/1", "a/0"},
+                "p :- #sum { X: q(a), not r(q(X)) } = 1.",
+                "p :- #sum { X: q(FUN), r(FUN2), a=FUN, q(X)=FUN2 } = 1."
+                )
+        self.assertEqual(str(cm.exception), "Negation is not supported with evaluable functions in Aggregate. Found not r(q(X)) at <string>:1:22-35.")
+    
+    def test_negative_predicate_in_aggregate_without_evaluable_body_aggregte(self):
+        self.assertEqualRewrite(
+            {"q/1", "a/0"},
+            "p :- #sum { X: not q(b), r(q(X)) } = 1.",
+            "p :- #sum { X: not q(b), r(FUN), q(X)=FUN } = 1."
+            )
+
+    def test_negative_predicate_in_aggregate_with_evaluable_head_aggregate(self):
+        with self.assertRaises(RuntimeError) as cm:
+            self.assertEqualRewrite(
+                {"f/1", "a/0"},
+                "#sum { a(X): not p(f(X)): not p(b) } = 0 :- p.",
+                "#sum { a(X): not p(f(X)): not p(b) } = 0 :- p."
+                )
+        self.assertEqual(str(cm.exception), "Negation is not supported with evaluable functions in Aggregate. Found not p(f(X)) at <string>:1:14-26.")
+
+
+    def test_body_conditional_literal(self):
+        self.assertEqualRewrite(
+            {"q/1", "a/0"},
+            "p :- q(a): r(q(X)).",
+            "p :- q(FUN): r(FUN2); a=FUN; q(X)=FUN2."
+            )
+
+    def test_negative_predicate_in_body_conditional_literal(self):
+        with self.assertRaises(RuntimeError) as cm:
+            self.assertEqualRewrite(
+                {"q/1", "a/0"},
+                "p :- q(a): not r(q(X)).",
+                "p :- q(FUN): not r(FUN2)."
+                )
+        self.assertEqual(str(cm.exception), "Negation is not supported with evaluable functions in Body Conditional Literal. Found not r(q(X)) at <string>:1:12-24.")
+
+    def test_aggregate_with_guard(self):
+        self.assertEqualRewrite(
+            {"a/0", "b/0", "c/0"},
+            "p :- #sum { X: q(a) } = b; q(c).",
+            "p :- #sum { X: q(FUN), a=FUN } = FUN2; q(FUN3); c=FUN3; b=FUN2."
+        )

@@ -24,6 +24,7 @@ def unnest_functions(
     outer: bool = True,
     sign: ast.Sign | None = None,
     is_in_head: bool = False,
+    allow_evaluable_in_negative_literal: bool = True,
     # Might need to pass flag boolens like outer (already used downstream) and allow_evaluable_in_negative_literal (new)
 ) -> tuple[FASP_AST, List[ast.LiteralComparison]]:
     """
@@ -90,6 +91,7 @@ class UnnestFunctionsTransformer:
         outer: bool = True,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> Tuple[FASP_AST, List[ast.LiteralComparison]]:
         """
         Transform one AST node and return (new_node, unnested_list).
@@ -284,6 +286,7 @@ class UnnestFunctionsTransformer:
         — because predicates should not be unnested in conditions.
         The literal in head aggregates is also treated as outer.
         """
+        print(f"Unnesting Aggregate {str(node)} {type(node)}")
         # Unnest tuple terms immediately (inner context)
         new_tuple = [
             self._unnest(t, outer=False, sign=sign, is_in_head=is_in_head)
@@ -291,17 +294,36 @@ class UnnestFunctionsTransformer:
         ]
 
         # Traverse condition literals as outer (no unnesting of predicate calls)
-        new_condition = [
-            self._unnest(c, outer=True, sign=sign, is_in_head=is_in_head)
-            for c in node.condition
-        ]
+        # new_condition = [
+        #     self._unnest(c, outer=True, sign=sign, is_in_head=is_in_head)
+        #     for c in node.condition
+        # ]
+
+        new_condition = []
+        for cond in node.condition:
+            new_c = self._unnest(cond, outer=True, sign=sign, is_in_head=is_in_head)
+            # NOTE: Disallow negation with evaluable in aggregate
+            if new_c != cond and cond.sign == ast.Sign.Single:
+                raise RuntimeError(
+                    f"Negation is not supported with evaluable functions in Aggregate. Found {str(cond)} at {cond.location}."
+                )
+            new_condition.append(new_c)
 
         if isinstance(node, ast.HeadAggregateElement):
             new_literal = self._unnest(
                 node.literal, outer=True, sign=sign, is_in_head=is_in_head
             )
+            # NOTE: Disallow negation with evaluable in aggregate
+            if new_literal != node.literal and node.literal.sign == ast.Sign.Single:
+                raise RuntimeError(
+                    f"Negation is not supported with evaluable functions in Aggregate. Found {str(node.literal)} at {node.literal.location}."
+                )
+            # else:
             return node.update(
-                self.lib, literal=new_literal, tuple=new_tuple, condition=new_condition
+                self.lib,
+                literal=new_literal,
+                tuple=new_tuple,
+                condition=new_condition,
             )
         return node.update(self.lib, tuple=new_tuple, condition=new_condition)
 
@@ -382,6 +404,28 @@ class UnnestFunctionsTransformer:
             assigned_function=new_assigned,
             elements=new_elements,
         )
+
+    # NOTE: Disallow negation with evaluable in BodyConditionalLiteral
+    @_unnest.register
+    def _(
+        self,
+        node: ast.BodyConditionalLiteral,
+        outer: bool = False,
+        sign: ast.Sign | None = None,
+        is_in_head: bool = False,
+    ) -> ast.BodyConditionalLiteral:
+        # return node.transform(self.lib, self._unnest, outer, sign, is_in_head) or node
+
+        new_literal = self._unnest(node.literal, outer, sign, is_in_head)
+        new_condition = []
+        for cond in node.condition:
+            new_c = self._unnest(cond, outer, sign, is_in_head)
+            if new_c != cond and cond.sign == ast.Sign.Single:
+                raise RuntimeError(
+                    f"Negation is not supported with evaluable functions in Body Conditional Literal. Found {str(cond)} at {cond.location}."
+                )
+            new_condition.append(new_c)
+        return node.update(self.lib, literal=new_literal, condition=new_condition)
 
     @_unnest.register
     def _(
