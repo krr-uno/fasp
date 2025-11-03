@@ -286,7 +286,6 @@ class UnnestFunctionsTransformer:
         — because predicates should not be unnested in conditions.
         The literal in head aggregates is also treated as outer.
         """
-        print(f"Unnesting Aggregate {str(node)} {type(node)}")
         # Unnest tuple terms immediately (inner context)
         new_tuple = [
             self._unnest(t, outer=False, sign=sign, is_in_head=is_in_head)
