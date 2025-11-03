@@ -34,7 +34,9 @@ def unnest_functions(
         lib, evaluable_functions, variable_generator=variable_generator
     )
 
-    return transformer.transform_node(node, outer, sign, is_in_head)
+    return transformer.transform_node(
+        node, outer, sign, is_in_head, allow_evaluable_in_negative_literal
+    )
 
 
 class UnnestFunctionsTransformer:
@@ -103,7 +105,13 @@ class UnnestFunctionsTransformer:
         # Clear per-node collected unnested comparisons
         self.unnested_functions = []
 
-        new_node = self._unnest(node, outer=outer, sign=None, is_in_head=is_in_head)
+        new_node = self._unnest(
+            node,
+            outer=outer,
+            sign=None,
+            is_in_head=is_in_head,
+            allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
+        )
 
         # Copy the list and return
         collected = list(self.unnested_functions)
@@ -120,9 +128,20 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> FASP_AST:
         """Default: recurse if possible, else return as-is."""
-        return node.transform(self.lib, self._unnest, outer, sign, is_in_head) or node
+        return (
+            node.transform(
+                self.lib,
+                self._unnest,
+                outer,
+                sign,
+                is_in_head,
+                allow_evaluable_in_negative_literal,
+            )
+            or node
+        )
 
     @_unnest.register
     def _(
@@ -131,8 +150,19 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> AssignmentAST:
-        return node.transform(self.lib, self._unnest, outer, sign, is_in_head) or node
+        return (
+            node.transform(
+                self.lib,
+                self._unnest,
+                outer,
+                sign,
+                is_in_head,
+                allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
+            )
+            or node
+        )
 
     @_unnest.register
     def _(
@@ -141,12 +171,21 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> HeadSimpleAssignment:
         new_assigned = self._unnest(
-            node.assigned_function, outer, sign, is_in_head=is_in_head
+            node.assigned_function,
+            outer,
+            sign,
+            is_in_head=is_in_head,
+            allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
         )
         new_value = self._unnest(
-            node.value, outer=False, sign=sign, is_in_head=is_in_head
+            node.value,
+            outer=False,
+            sign=sign,
+            is_in_head=is_in_head,
+            allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
         )
         return node.update(self.lib, assigned_function=new_assigned, value=new_value)
         # return node.transform(self.lib, self._unnest, outer) or node
@@ -159,6 +198,7 @@ class UnnestFunctionsTransformer:
         outer: bool = True,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> ast.LiteralComparison:
         # print(
         #     f"Unnesting LiteralComparison: {str(node)}, is_in_head={is_in_head}, outer={outer}, sign={sign}"
@@ -179,7 +219,11 @@ class UnnestFunctionsTransformer:
                 new_left = cast(
                     TermAST,
                     self._unnest(
-                        node.right[0].term, outer, sign=sign, is_in_head=is_in_head
+                        node.right[0].term,
+                        outer,
+                        sign=sign,
+                        is_in_head=is_in_head,
+                        allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
                     ),
                 )
                 new_right = [
@@ -189,7 +233,11 @@ class UnnestFunctionsTransformer:
                         cast(
                             TermAST,
                             self._unnest(
-                                node.left, outer=False, sign=sign, is_in_head=is_in_head
+                                node.left,
+                                outer=False,
+                                sign=sign,
+                                is_in_head=is_in_head,
+                                allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
                             ),
                         ),
                     )
@@ -210,7 +258,14 @@ class UnnestFunctionsTransformer:
         ):
             _outer = False
         new_left = cast(
-            TermAST, self._unnest(node.left, _outer, sign=sign, is_in_head=is_in_head)
+            TermAST,
+            self._unnest(
+                node.left,
+                _outer,
+                sign=sign,
+                is_in_head=is_in_head,
+                allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
+            ),
         )  # False if not = and len(node.right) == 1
         new_right = [
             ast.RightGuard(
@@ -219,7 +274,11 @@ class UnnestFunctionsTransformer:
                 cast(
                     TermAST,
                     self._unnest(
-                        rg.term, outer=False, sign=sign, is_in_head=is_in_head
+                        rg.term,
+                        outer=False,
+                        sign=sign,
+                        is_in_head=is_in_head,
+                        allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
                     ),
                 ),
             )
@@ -239,12 +298,17 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> ast.BodyAggregate | ast.HeadAggregate:
         return (
             node.transform(
                 self.lib,
                 lambda c: self._unnest(
-                    c, outer=False, sign=sign, is_in_head=is_in_head
+                    c,
+                    outer=False,
+                    sign=sign,
+                    is_in_head=is_in_head,
+                    allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
                 ),
             )
             or node
@@ -257,12 +321,17 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> ast.RightGuard | ast.LeftGuard:
         return (
             node.transform(
                 self.lib,
                 lambda t: self._unnest(
-                    t, outer=False, sign=sign, is_in_head=is_in_head
+                    t,
+                    outer=False,
+                    sign=sign,
+                    is_in_head=is_in_head,
+                    allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
                 ),
             )
             or node
@@ -275,6 +344,7 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> ast.BodyAggregateElement | ast.HeadAggregateElement:
         """
         Handle elements of aggregates of the form:
@@ -288,35 +358,59 @@ class UnnestFunctionsTransformer:
         """
         # Unnest tuple terms immediately (inner context)
         new_tuple = [
-            self._unnest(t, outer=False, sign=sign, is_in_head=is_in_head)
+            self._unnest(
+                t,
+                outer=False,
+                sign=sign,
+                is_in_head=is_in_head,
+                allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
+            )
             for t in node.tuple
         ]
 
         # Traverse condition literals as outer (no unnesting of predicate calls)
         # new_condition = [
-        #     self._unnest(c, outer=True, sign=sign, is_in_head=is_in_head)
+        #     self._unnest(c, outer=True, sign=sign, is_in_head=is_in_head, allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal)
         #     for c in node.condition
         # ]
 
         new_condition = []
         for cond in node.condition:
-            new_c = self._unnest(cond, outer=True, sign=sign, is_in_head=is_in_head)
+            new_c = self._unnest(
+                cond,
+                outer=True,
+                sign=sign,
+                is_in_head=is_in_head,
+                allow_evaluable_in_negative_literal=(
+                    False
+                    if cond.sign == ast.Sign.Single
+                    else allow_evaluable_in_negative_literal
+                ),
+            )
             # NOTE: Disallow negation with evaluable in aggregate
-            if new_c != cond and cond.sign == ast.Sign.Single:
-                raise RuntimeError(
-                    f"Negation is not supported with evaluable functions in Aggregate. Found {str(cond)} at {cond.location}."
-                )
+            # if new_c != cond and cond.sign == ast.Sign.Single:
+            #     raise RuntimeError(
+            #         f"Negation is not supported with evaluable functions in Aggregate. Found {str(cond)} at {cond.location}."
+            #     )
             new_condition.append(new_c)
 
         if isinstance(node, ast.HeadAggregateElement):
             new_literal = self._unnest(
-                node.literal, outer=True, sign=sign, is_in_head=is_in_head
+                node.literal,
+                outer=True,
+                sign=sign,
+                is_in_head=is_in_head,
+                allow_evaluable_in_negative_literal=(
+                    False
+                    if node.literal.sign == ast.Sign.Single
+                    else allow_evaluable_in_negative_literal
+                ),
             )
             # NOTE: Disallow negation with evaluable in aggregate
-            if new_literal != node.literal and node.literal.sign == ast.Sign.Single:
-                raise RuntimeError(
-                    f"Negation is not supported with evaluable functions in Aggregate. Found {str(node.literal)} at {node.literal.location}."
-                )
+            # if new_literal != node.literal and node.literal.sign == ast.Sign.Single:
+            #     raise RuntimeError(
+            #         f"Negation is not supported with evaluable functions in Aggregate. Found {str(node.literal)} at {node.literal.location}."
+            #     )
             # else:
             return node.update(
                 self.lib,
@@ -334,12 +428,17 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> ast.BodySimpleLiteral | ast.HeadSimpleLiteral:
         # Pass current node.sign downward for inner literals
         if isinstance(node, ast.HeadSimpleLiteral):
             is_in_head = True
         new_literal = self._unnest(
-            node.literal, outer=outer, sign=node.literal.sign, is_in_head=is_in_head
+            node.literal,
+            outer=outer,
+            sign=node.literal.sign,
+            is_in_head=is_in_head,
+            allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
         )
         return node.update(self.lib, literal=new_literal)
 
@@ -364,6 +463,7 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> HeadAggregateAssignment:
         """
         Handle head aggregates like:
@@ -383,12 +483,24 @@ class UnnestFunctionsTransformer:
         for elem in node.elements:
             # The first tuple is visited with outer=True
             new_tuple = [
-                self._unnest(t, outer=True, sign=sign, is_in_head=is_in_head)
+                self._unnest(
+                    t,
+                    outer=True,
+                    sign=sign,
+                    is_in_head=is_in_head,
+                    allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
+                )
                 for t in elem.tuple
             ]
             # The condition literals are visited with outer=True
             new_condition = [
-                self._unnest(c, outer=True, sign=sign, is_in_head=is_in_head)
+                self._unnest(
+                    c,
+                    outer=True,
+                    sign=sign,
+                    is_in_head=is_in_head,
+                    allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
+                )
                 for c in elem.condition
             ]
 
@@ -412,17 +524,34 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
+        allow_evaluable_in_negative_literal: bool = True,
     ) -> ast.BodyConditionalLiteral:
         # return node.transform(self.lib, self._unnest, outer, sign, is_in_head) or node
 
-        new_literal = self._unnest(node.literal, outer, sign, is_in_head)
+        new_literal = self._unnest(
+            node.literal,
+            outer,
+            sign,
+            is_in_head,
+            allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
+        )
         new_condition = []
         for cond in node.condition:
-            new_c = self._unnest(cond, outer, sign, is_in_head)
-            if new_c != cond and cond.sign == ast.Sign.Single:
-                raise RuntimeError(
-                    f"Negation is not supported with evaluable functions in Body Conditional Literal. Found {str(cond)} at {cond.location}."
-                )
+            new_c = self._unnest(
+                cond,
+                outer,
+                sign,
+                is_in_head,
+                allow_evaluable_in_negative_literal=(
+                    False
+                    if cond.sign == ast.Sign.Single
+                    else allow_evaluable_in_negative_literal
+                ),
+            )
+            # if new_c != cond and cond.sign == ast.Sign.Single:
+            #     raise RuntimeError(
+            #         f"Negation is not supported with evaluable functions in Body Conditional Literal. Found {str(cond)} at {cond.location}."
+            #     )
             new_condition.append(new_c)
         return node.update(self.lib, literal=new_literal, condition=new_condition)
 
@@ -433,13 +562,20 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
-    ) -> ast.TermFunction:
+        allow_evaluable_in_negative_literal: bool = True,
+    ) -> ast.TermFunction | ast.TermVariable:
         new_pool = []
         for tup in node.pool:
             new_args: List[TermAST] = [
                 cast(
                     TermAST,
-                    self._unnest(t, outer=False, sign=sign, is_in_head=is_in_head),
+                    self._unnest(
+                        t,
+                        outer=False,
+                        sign=sign,
+                        is_in_head=is_in_head,
+                        allow_evaluable_in_negative_literal=allow_evaluable_in_negative_literal,
+                    ),
                 )
                 for t in tup.arguments
             ]
@@ -448,19 +584,24 @@ class UnnestFunctionsTransformer:
 
         # Unnest if evaluable
         if not outer and self._is_evaluable(node.name, len(new_pool[0].arguments)):
+            if not allow_evaluable_in_negative_literal:
+                raise RuntimeError(
+                    f"Evaluable functions are not allowed in negated literals in aggregates and body condition. Found {str(node)} at {node.location}."
+                )
             # normalize key by node name + args stringified
             (node.name, tuple(str(arg) for arg in new_pool[0].arguments))
             # if key in self._cache:
             #     print(type(self._cache[key]))
             #     return self._cache[key]
 
-            fresh: TermAST = self.var_gen.fresh_variable(self.lib, node.location, "FUN")
-            # self._cache[key] = fresh
-            comp = self._make_comparison(
-                node.location, cast(TermAST, new_func), fresh, sign=sign
+            fresh: ast.TermVariable = self.var_gen.fresh_variable(
+                self.lib, node.location, "FUN"
             )
+            # self._cache[key] = fresh
+            comp = self._make_comparison(node.location, new_func, fresh, sign=sign)
             self.unnested_functions.append(comp)
-            fresh = cast(ast.TermFunction, fresh)
+
+            # fresh = cast(ast.TermFunction, fresh)
 
             return fresh
         return new_func
@@ -472,11 +613,16 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
         is_in_head: bool = False,
-    ) -> ast.TermSymbolic:
+        allow_evaluable_in_negative_literal: bool = True,
+    ) -> ast.TermSymbolic | ast.TermVariable:
         if node.symbol.type == SymbolType.Function:
             name = str(node.symbol.name)
             arity = len(node.symbol.arguments)
             if not outer and self._is_evaluable(name, arity):
+                if not allow_evaluable_in_negative_literal:
+                    raise RuntimeError(
+                        f"Evaluable functions are not allowed in negated literals in aggregates and body condition. Found {str(node)} at {node.location}."
+                    )
                 # # normalize key by symbol name + args stringified
                 # key = (name, tuple(str(arg) for arg in node.symbol.arguments))
                 # if key in self._cache:
@@ -487,6 +633,6 @@ class UnnestFunctionsTransformer:
                 comp = self._make_comparison(node.location, node, fresh, sign=sign)
                 self.unnested_functions.append(comp)
 
-                fresh = cast(ast.TermSymbolic, fresh)
+                # fresh = cast(ast.TermSymbolic, fresh)
                 return fresh
         return node

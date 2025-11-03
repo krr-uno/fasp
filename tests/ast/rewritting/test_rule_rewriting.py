@@ -330,7 +330,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
                 "p :- #sum { X: q(a), not r(q(X)) } = 1.",
                 "p :- #sum { X: q(FUN), r(FUN2), a=FUN, q(X)=FUN2 } = 1."
                 )
-        self.assertEqual(str(cm.exception), "Negation is not supported with evaluable functions in Aggregate. Found not r(q(X)) at <string>:1:22-35.")
+        self.assertEqual(str(cm.exception), "Evaluable functions are not allowed in negated literals in aggregates and body condition. Found q(X) at <string>:1:28-32.")
     
     def test_negative_predicate_in_aggregate_without_evaluable_body_aggregte(self):
         self.assertEqualRewrite(
@@ -346,7 +346,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
                 "#sum { a(X): not p(f(X)): not p(b) } = 0 :- p.",
                 "#sum { a(X): not p(f(X)): not p(b) } = 0 :- p."
                 )
-        self.assertEqual(str(cm.exception), "Negation is not supported with evaluable functions in Aggregate. Found not p(f(X)) at <string>:1:14-26.")
+        self.assertEqual(str(cm.exception), "Evaluable functions are not allowed in negated literals in aggregates and body condition. Found f(X) at <string>:1:20-24.")
 
 
     def test_body_conditional_literal(self):
@@ -363,7 +363,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
                 "p :- q(a): not r(q(X)).",
                 "p :- q(FUN): not r(FUN2)."
                 )
-        self.assertEqual(str(cm.exception), "Negation is not supported with evaluable functions in Body Conditional Literal. Found not r(q(X)) at <string>:1:12-24.")
+        self.assertEqual(str(cm.exception), "Evaluable functions are not allowed in negated literals in aggregates and body condition. Found q(X) at <string>:1:18-22.")
 
     def test_aggregate_with_guard(self):
         self.assertEqualRewrite(
