@@ -586,7 +586,7 @@ class UnnestFunctionsTransformer:
         if not outer and self._is_evaluable(node.name, len(new_pool[0].arguments)):
             if not allow_evaluable_in_negative_literal:
                 raise RuntimeError(
-                    f"Evaluable functions are not allowed in negated literals in aggregates and body condition. Found {str(node)} at {node.location}."
+                    f"Evaluable functions are not allowed in negated literals in aggregates and conditional literals. Found {str(node)} at {node.location}."
                 )
             # normalize key by node name + args stringified
             (node.name, tuple(str(arg) for arg in new_pool[0].arguments))
@@ -621,7 +621,7 @@ class UnnestFunctionsTransformer:
             if not outer and self._is_evaluable(name, arity):
                 if not allow_evaluable_in_negative_literal:
                     raise RuntimeError(
-                        f"Evaluable functions are not allowed in negated literals in aggregates and body condition. Found {str(node)} at {node.location}."
+                        f"Evaluable functions are not allowed in negated literals in aggregates and conditional literals. Found {str(node)} at {node.location}."
                     )
                 # # normalize key by symbol name + args stringified
                 # key = (name, tuple(str(arg) for arg in node.symbol.arguments))
