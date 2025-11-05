@@ -428,6 +428,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             )
         self.assertEqual(str(cm.exception), "Evaluable functions are not allowed in negated literals in aggregates and body condition. Found q(X) at <string>:1:28-32.")
     #     NOT ALLOWED because not r(q(X)) has an evaluable function inside a negation in a body condition. The same applies to conditional literals "p :- q(a): not r(q(X)).",
+    # CHANGE TO Evaluable functions are not allowed in negated literals in aggregates and conditional literals. Found q(X) at <string>:1:28-32
 
     def test_negative_predicate_in_body_aggregate_without_evaluable(self):
         self.assertEqualUnnesting(
