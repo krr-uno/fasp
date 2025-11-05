@@ -4,10 +4,10 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from fasp.ast.parsing.parser import parse_string
+from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary, FreshVariableGenerator
-from fasp.ast.collectors import SymbolSignature
-from fasp.ast.rewritings.rule_rewriting import RuleRewriteTransformer
+from fasp.syntax_tree.collectors import SymbolSignature
+from fasp.syntax_tree.rewritings.rule_rewriting import RuleRewriteTransformer
 
 
 class TestRuleRewriteTransformer(unittest.TestCase):
@@ -330,7 +330,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
                 "p :- #sum { X: q(a), not r(q(X)) } = 1.",
                 "p :- #sum { X: q(FUN), r(FUN2), a=FUN, q(X)=FUN2 } = 1."
                 )
-        self.assertEqual(str(cm.exception), "Evaluable functions are not allowed in negated literals in aggregates and body condition. Found q(X) at <string>:1:28-32.")
+        self.assertEqual(str(cm.exception), "Evaluable functions are not allowed in negated literals in aggregates and conditional literals. Found q(X) at <string>:1:28-32.")
     
     def test_negative_predicate_in_aggregate_without_evaluable_body_aggregte(self):
         self.assertEqualRewrite(
@@ -346,7 +346,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
                 "#sum { a(X): not p(f(X)): not p(b) } = 0 :- p.",
                 "#sum { a(X): not p(f(X)): not p(b) } = 0 :- p."
                 )
-        self.assertEqual(str(cm.exception), "Evaluable functions are not allowed in negated literals in aggregates and body condition. Found f(X) at <string>:1:20-24.")
+        self.assertEqual(str(cm.exception), "Evaluable functions are not allowed in negated literals in aggregates and conditional literals. Found f(X) at <string>:1:20-24.")
 
 
     def test_body_conditional_literal(self):
@@ -363,7 +363,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
                 "p :- q(a): not r(q(X)).",
                 "p :- q(FUN): not r(FUN2)."
                 )
-        self.assertEqual(str(cm.exception), "Evaluable functions are not allowed in negated literals in aggregates and body condition. Found q(X) at <string>:1:18-22.")
+        self.assertEqual(str(cm.exception), "Evaluable functions are not allowed in negated literals in aggregates and conditional literals. Found q(X) at <string>:1:18-22.")
 
     def test_aggregate_with_guard(self):
         self.assertEqualRewrite(

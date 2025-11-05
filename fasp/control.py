@@ -7,7 +7,7 @@ from clingo.symbol import Symbol
 from fasp.solve import Model
 from fasp.util.ast import ELibrary
 
-from .ast import parse_files
+from .syntax_tree import parse_files
 
 
 class Control:

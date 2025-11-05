@@ -4,9 +4,9 @@ from typing import List, Set
 from clingo import ast
 from clingo.core import Library
 
-from fasp.ast._nodes import FASP_AST, AssignmentRule, HeadAggregateAssignment
-from fasp.ast.collectors import SymbolSignature, collect_variables
-from fasp.ast.rewritings.unnesting import unnest_functions
+from fasp.syntax_tree._nodes import FASP_AST, AssignmentRule, HeadAggregateAssignment
+from fasp.syntax_tree.collectors import SymbolSignature, collect_variables
+from fasp.syntax_tree.rewritings.unnesting import unnest_functions
 from fasp.util.ast import (
     BodyLiteralAST,
     FreshVariableGenerator,

@@ -1,8 +1,8 @@
 import unittest
 
 
-from fasp.ast.collectors import collect_evaluable_functions, collect_variables
-from fasp.ast.parsing.parser import parse_string
+from fasp.syntax_tree.collectors import collect_evaluable_functions, collect_variables
+from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary
 
 
