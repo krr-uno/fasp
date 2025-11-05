@@ -79,12 +79,12 @@ For a rule
     { f(X) := Y : Cond(X,Y) } = N.
 ```
 
-We could add a new predicate `val_f(X,Y)` to represent the functional mapping of `f(X) := Y`.
+We could add a new predicate `Ff(X,Y)` to represent the functional mapping of `f(X) := Y`.
 
 Then, the rule becomes
  
 ```prolog
-    { val_f(X,Y): Cond(X,Y) } = N.
+    { Ff(X,Y): Cond(X,Y) } = N.
 ```
 which is valid in ASP.
 
