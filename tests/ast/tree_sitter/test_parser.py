@@ -4,13 +4,13 @@ import unittest
 
 from clingo import ast
 
-from fasp.ast import AssignmentRule, HeadSimpleAssignment
+from fasp.syntax_tree import AssignmentRule, HeadSimpleAssignment
 
 # from fasp.ast.rewrittings.assigments import ParsingException
 from fasp.util.ast import ParsingException
 from fasp.util.ast import ELibrary
 from fasp.util.ast import AST
-from fasp.ast.parsing import parser
+from fasp.syntax_tree.parsing import parser
 from fasp.util.ast import parse_string
 
 

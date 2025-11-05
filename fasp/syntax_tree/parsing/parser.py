@@ -15,7 +15,7 @@ from tree_sitter import (
     Tree,
 )
 
-from fasp.ast._nodes import (
+from fasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,

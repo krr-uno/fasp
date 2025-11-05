@@ -5,16 +5,16 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number
 
-from fasp.ast._nodes import (
+from fasp.syntax_tree._nodes import (
     FASP_AST_T,
     AssignmentRule,
     FASP_Statement,
     HeadSimpleAssignment,
 )
-from fasp.ast.collectors import (
+from fasp.syntax_tree.collectors import (
     SymbolSignature,
 )
-from fasp.ast.protecting import (  # protect_comparisons,; restore_comparisons,
+from fasp.syntax_tree.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
 )
 from fasp.util.ast import (

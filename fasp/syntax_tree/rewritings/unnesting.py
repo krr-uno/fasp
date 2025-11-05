@@ -5,13 +5,13 @@ from clingo import ast
 from clingo.core import Library, Location
 from clingo.symbol import SymbolType
 
-from fasp.ast._nodes import (
+from fasp.syntax_tree._nodes import (
     FASP_AST,
     AssignmentAST,
     HeadAggregateAssignment,
     HeadSimpleAssignment,
 )
-from fasp.ast.collectors import SymbolSignature
+from fasp.syntax_tree.collectors import SymbolSignature
 from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST
 
 

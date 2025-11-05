@@ -4,10 +4,10 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from fasp.ast.parsing.parser import parse_string
+from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary, FreshVariableGenerator
-from fasp.ast.collectors import SymbolSignature
-from fasp.ast.rewritings.rule_rewriting import RuleRewriteTransformer
+from fasp.syntax_tree.collectors import SymbolSignature
+from fasp.syntax_tree.rewritings.rule_rewriting import RuleRewriteTransformer
 
 
 class TestRuleRewriteTransformer(unittest.TestCase):

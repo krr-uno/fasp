@@ -2,11 +2,11 @@ import textwrap
 import unittest
 
 
-from fasp.ast.rewritings.aggregates import (
+from fasp.syntax_tree.rewritings.aggregates import (
     normalize_assignment_aggregates,
 )
 
-from fasp.ast.parsing.parser import parse_string
+from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary
 
 

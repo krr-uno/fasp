@@ -2,9 +2,9 @@ import unittest
 
 from fasp.util.ast import ELibrary
 
-from fasp.ast.collectors import SymbolSignature
-from fasp.ast.parsing.parser import parse_string
-from fasp.ast.to_asp import NormalForm2PredicateTransformer
+from fasp.syntax_tree.collectors import SymbolSignature
+from fasp.syntax_tree.parsing.parser import parse_string
+from fasp.syntax_tree.to_asp import NormalForm2PredicateTransformer
 
 
 class TestNormalForm2PredicateTransformer(unittest.TestCase):

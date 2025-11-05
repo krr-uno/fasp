@@ -10,7 +10,7 @@ from fasp.util.ast import (
     SyntacticCheckVisitor,
     SyntacticError,
 )
-from fasp.ast.collectors import collect_variables
+from fasp.syntax_tree.collectors import collect_variables
 from fasp.util import ast as util_ast
 
 

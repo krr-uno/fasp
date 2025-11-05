@@ -2,12 +2,12 @@ import textwrap
 import unittest
 
 from clingo.ast import RewriteContext
-from fasp.ast.parsing.parser import parse_string
+from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary
 from fasp.util.ast import AST
 
 
-from fasp.ast.rewritings import (
+from fasp.syntax_tree.rewritings import (
     _functional2asp,
 )
 

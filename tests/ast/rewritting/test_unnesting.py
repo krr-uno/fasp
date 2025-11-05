@@ -1,9 +1,9 @@
 import unittest
 
-from fasp.ast.parsing.parser import parse_string
+from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary, FreshVariableGenerator
-from fasp.ast.collectors import SymbolSignature, collect_variables
-from fasp.ast.rewritings.unnesting import UnnestFunctionsTransformer, unnest_functions
+from fasp.syntax_tree.collectors import SymbolSignature, collect_variables
+from fasp.syntax_tree.rewritings.unnesting import UnnestFunctionsTransformer, unnest_functions
 
 
 class TestUnnestFunctionsTransformer(unittest.TestCase):

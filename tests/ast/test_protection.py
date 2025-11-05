@@ -6,7 +6,7 @@ from clingo.core import Library
 from clingo.ast import RewriteContext
 from fasp.util.ast import AST
 
-from fasp.ast.protecting import (
+from fasp.syntax_tree.protecting import (
     _ComparisonProtectorTransformer,
     _ComparisonRestorationTransformer,
     _restore_guard_arguments,

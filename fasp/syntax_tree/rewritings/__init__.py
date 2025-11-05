@@ -4,20 +4,20 @@ from typing import Iterable
 from clingo import ast
 from clingo.core import Library
 
-from fasp.ast._nodes import (
+from fasp.syntax_tree._nodes import (
     FASP_Statement,
 )
-from fasp.ast.collectors import (
+from fasp.syntax_tree.collectors import (
     SymbolSignature,
     collect_evaluable_functions,
 )
-from fasp.ast.protecting import (  # protect_comparisons,; restore_comparisons,
+from fasp.syntax_tree.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
 )
-from fasp.ast.rewritings.aggregates import (
+from fasp.syntax_tree.rewritings.aggregates import (
     normalize_assignment_aggregates,
 )
-from fasp.ast.to_asp import (
+from fasp.syntax_tree.to_asp import (
     NormalForm2PredicateTransformer,
     functional_constraints,
 )
