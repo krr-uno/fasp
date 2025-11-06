@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import List, Set, Tuple
+from typing import Iterable, List, Set, Tuple
 
 from clingo import ast, symbol
 from clingo.core import Library, Location
@@ -17,7 +17,7 @@ from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST
 
 def unnest_functions(
     lib: Library,
-    node: FASP_AST,
+    node: FASP_AST | Iterable[FASP_AST],
     evaluable_functions: Set[SymbolSignature],
     variable_generator: FreshVariableGenerator,
     *,
@@ -26,7 +26,7 @@ def unnest_functions(
     unnest_left_guard_equality: bool = False,
     allowed_in_negated_literals: bool = True,
     # Might need to pass flag boolens like outer (already used downstream) and allow_evaluable_in_negative_literal (new)
-) -> tuple[FASP_AST, List[ast.LiteralComparison]]:
+) -> tuple[FASP_AST | list[FASP_AST], List[ast.LiteralComparison]]:
     """
     Unnest evaluable functions in a given rule and return the list of generated comparisons.
     """
@@ -38,11 +38,14 @@ def unnest_functions(
         allowed_in_negated_literals,
     )
 
-    return transformer.transform_node(
-        node,
-        outer,
-        sign,
-    )
+    if isinstance(node, FASP_AST):
+        return transformer.transform_node(
+            node,
+            outer,
+            sign,
+        )
+    nodes = [transformer._unnest(n) or n for n in node]
+    return nodes, transformer.unnested_functions
 
 
 class UnnestFunctionsInLiteralsTransformer:
@@ -121,7 +124,7 @@ class UnnestFunctionsInLiteralsTransformer:
     def _unnest(
         self,
         node: FASP_AST_T,
-        outer: bool = False,
+        outer: bool = True,
         sign: ast.Sign | None = None,
     ) -> FASP_AST_T | None:
         """
@@ -134,10 +137,10 @@ class UnnestFunctionsInLiteralsTransformer:
     def _(
         self,
         node: HeadSimpleAssignment,
-        outer: bool = False,
+        outer: bool = True,
         sign: ast.Sign | None = None,
     ) -> HeadSimpleAssignment:
-        new_assigned = self._unnest(node.assigned_function, outer, sign)
+        new_assigned = self._unnest(node.assigned_function, outer=True, sign=sign)
         new_value = self._unnest(node.value, outer=False, sign=sign)
         update = {}
         if new_assigned is not None:
@@ -218,7 +221,7 @@ class UnnestFunctionsInLiteralsTransformer:
     def _(
         self,
         node: ast.TermFunction | ast.TermSymbolic,
-        outer: bool = False,
+        outer: bool = True,
         sign: ast.Sign | None = None,
     ) -> ast.TermFunction | ast.TermSymbolic | ast.TermVariable | None:
         is_new_node = False

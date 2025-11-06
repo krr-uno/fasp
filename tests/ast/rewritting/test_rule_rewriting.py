@@ -56,7 +56,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
             "p(f(1),a) :- q(g(1),b), r(h(1)).",
-            "p(FUN,a) :- q(FUN2,b); g(1)=FUN2; r(FUN3); h(1)=FUN3; f(1)=FUN.",
+            "p(FUN,a) :- q(FUN2,b); r(FUN3); f(1)=FUN; g(1)=FUN2; h(1)=FUN3.",
         )
 
     def test_no_evaluable_functions(self):
@@ -128,14 +128,14 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "f(X) := g(X) :- p(f(X)).",
-            "f(X) := FUN :- p(FUN2); f(X)=FUN2; g(X)=FUN.",
+            "f(X) := FUN :- p(FUN2); g(X)=FUN; f(X)=FUN2.",
         )
 
     def test_function_and_predicate(self):
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             ":- f(X)=g(X); f(X).",
-            ":- f(X)=FUN; g(X)=FUN; f(X).",
+            ":- f(X)=FUN; f(X); g(X)=FUN.",
         )
 
     def test_comparisons(self):
@@ -237,7 +237,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "p :- f(a)*g(b)=f(X).",
-            "p :- FUN=FUN2*FUN3; f(X)=FUN; f(a)=FUN2; g(b)=FUN3.",
+            "p :- f(X)=FUN*FUN2; f(a)=FUN; g(b)=FUN2.",
         )
 
         self.assertEqualRewrite(
@@ -266,7 +266,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
             "p(f(1),a) :- q(g(1),b), not not r(h(1)).",
-            "p(FUN,a) :- q(FUN2,b); g(1)=FUN2; not not r(FUN3); not not h(1)=FUN3; f(1)=FUN.",
+            "p(FUN,a) :- q(FUN2,b); not not r(FUN3); f(1)=FUN; g(1)=FUN2; not not h(1)=FUN3.",
         )
 
     def test_double_negation_head(self):
@@ -282,6 +282,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
                 "score(X) := #sum{f(Y): f(FUN), q(X)} :- p; p(Y)=FUN.",
                 # "score(X) := #sum{f(Y): f(FUN), q(X), p(Y)=FUN} :- p.",
             )
+
         self.assertEqual(
             str(cm.exception),
             "HeadAggregateAssignment seen during function unnesting. This should not happen.",
@@ -323,12 +324,25 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "FUN=W :- b(X,Z); W = #sum { FUN2: p(FUN3,Z), q(X), r(X), f(Y)=FUN2, g(Y)=FUN3 }; f(X)=FUN.",
         )
 
-    # CHECK: Comparison with equality in head.
     def test_aggregates_2(self):
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
-            "f(X)=1 :- b(X,Z), h(1) = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
-            "f(X)=1 :- b(X,Z); FUN3 = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }; h(1)=FUN3.",
+            ":- b(X,Z), h(1) = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
+            ":- b(X,Z); FUN3 = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }; h(1)=FUN3.",
+        )
+
+    def test_assignment(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1", "h/1"},
+            "f(g(a)) := h(a).",
+            "f(FUN) := FUN2 :- g(a)=FUN; h(a)=FUN2.",
+        )
+
+    def test_assignment_body(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1", "h/1"},
+            "f(g(a)) := h(a) :- f(g(b)).",
+            "f(FUN) := FUN2 :- f(FUN3); g(a)=FUN; h(a)=FUN2; g(b)=FUN3.",
         )
 
     def test_aggregates_2(self):
@@ -347,7 +361,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             )
         self.assertEqual(
             str(cm.exception),
-            "Evaluable functions are not allowed in negated literals in aggregates and body condition. Found q(X) at <string>:1:28-32.",
+            "Evaluable functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found 'q(X)' at <string>:1:28-32.",
         )
 
     def test_negative_predicate_in_aggregate_without_evaluable_body_aggregte(self):
@@ -366,7 +380,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             )
         self.assertEqual(
             str(cm.exception),
-            "Evaluable functions are not allowed in negated literals in aggregates and body condition. Found f(X) at <string>:1:20-24.",
+            "Evaluable functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found 'f(X)' at <string>:1:20-24.",
         )
 
     def test_body_conditional_literal(self):
@@ -381,12 +395,12 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             self.assertEqualRewrite({"q/1", "a/0"}, "p :- q(a): not r(q(X)).", None)
         self.assertEqual(
             str(cm.exception),
-            "Evaluable functions are not allowed in negated literals in aggregates and body condition. Found q(X) at <string>:1:18-22.",
+            "Evaluable functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found 'q(X)' at <string>:1:18-22.",
         )
 
     def test_aggregate_with_guard(self):
         self.assertEqualRewrite(
             {"a/0", "b/0", "c/0"},
             "p :- #sum { X: q(a) } = b; q(c).",
-            "p :- #sum { X: q(FUN), a=FUN } = FUN2; q(FUN3); c=FUN3; b=FUN2.",
+            "p :- #sum { X: q(FUN), a=FUN } = FUN2; q(FUN3); b=FUN2; c=FUN3.",
         )

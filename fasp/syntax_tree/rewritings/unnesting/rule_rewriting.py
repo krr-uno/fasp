@@ -1,12 +1,21 @@
+from collections.abc import Iterable
 from functools import singledispatchmethod
 from typing import List, Set
 
 from clingo import ast
 from clingo.core import Library
 
-from fasp.syntax_tree._nodes import FASP_AST, AssignmentRule, HeadAggregateAssignment
+from fasp.syntax_tree._nodes import (
+    FASP_AST,
+    AssignmentRule,
+    HeadAggregateAssignment,
+    HeadSimpleAssignment,
+)
 from fasp.syntax_tree.collectors import SymbolSignature, collect_variables
-from fasp.syntax_tree.rewritings.unnesting.unnesting import unnest_functions
+from fasp.syntax_tree.rewritings.unnesting.unnesting import (
+    UnnestFunctionsInLiteralsTransformer,
+    unnest_functions,
+)
 from fasp.util.ast import (
     BodyLiteralAST,
     FreshVariableGenerator,
@@ -14,6 +23,27 @@ from fasp.util.ast import (
 )
 
 # mypy: ignore-errors
+
+
+def map_none[T](
+    func,
+    lst: Iterable[T],
+) -> list[T] | None:
+    """Applies `func` to each item in `lst`, returning a list of results.
+    If all results are None, returns None.
+    Otherwise, returns a list of non-None results.
+    None results are replaced by the item itself.
+    """
+    all_none = True
+    new_list = []
+    for item in lst:
+        result = func(item)
+        if result is not None:
+            new_list.append(result)
+            all_none = False
+        else:
+            new_list.append(item)
+    return new_list if not all_none else None
 
 
 class RuleRewriteTransformer:
@@ -29,7 +59,6 @@ class RuleRewriteTransformer:
     ):
         self.lib = lib
         self.evaluable_functions = evaluable_functions
-        self.residual_comps: List[ast.LiteralComparison] = []
 
     def transform_rule(self, node: FASP_AST) -> FASP_AST:
         """
@@ -37,6 +66,16 @@ class RuleRewriteTransformer:
         """
         used = collect_variables(node)
         var_gen = FreshVariableGenerator(used)
+        self.residual_comps: List[ast.LiteralComparison] = []
+        self.head_literal_transformer = UnnestFunctionsInLiteralsTransformer(
+            self.lib,
+            self.evaluable_functions,
+            var_gen,
+            unnest_left_guard_equality=True,
+        )
+        self.body_literal_transformer = UnnestFunctionsInLiteralsTransformer(
+            self.lib, self.evaluable_functions, var_gen
+        )
         return self._rewrite(node, var_gen)
 
     @singledispatchmethod
@@ -45,7 +84,33 @@ class RuleRewriteTransformer:
     ) -> tuple[FASP_AST, List[ast.LiteralComparison]]:
         """Default: return node unchanged."""
         print(f"Unnesting literal {node} ({type(node)})")
-        return node, []
+        return node
+
+    @_rewrite_literal.register
+    def _(
+        self,
+        node: ast.BodySimpleLiteral,
+        var_gen: FreshVariableGenerator,
+    ) -> tuple[ast.BodySimpleLiteral, List[ast.LiteralComparison]]:
+        if node.literal.sign != ast.Sign.Single:
+            literal = self.body_literal_transformer._unnest(node.literal)
+            if literal is None:
+                return node
+            return node.update(self.lib, literal=literal)
+        else:
+            literal, comparisons = unnest_functions(
+                self.lib, node.literal, self.evaluable_functions, var_gen
+            )
+            if not comparisons:
+                return node
+            false_lit = ast.LiteralBoolean(
+                self.lib, literal.location, ast.Sign.NoSign, False
+            )
+            literal = literal.update(self.lib, sign=ast.Sign.NoSign)
+            condition = [literal, *comparisons]
+            return ast.BodyConditionalLiteral(
+                self.lib, literal.location, false_lit, condition
+            )
 
     @_rewrite_literal.register
     def _(
@@ -53,9 +118,7 @@ class RuleRewriteTransformer:
         node: ast.BodyConditionalLiteral,
         var_gen: FreshVariableGenerator,
     ) -> ast.BodyConditionalLiteral:
-        literal, comparisons = unnest_functions(
-            self.lib, node.literal, self.evaluable_functions, var_gen
-        )
+        literal = self.body_literal_transformer._unnest(node.literal)
 
         condition = []
         local_comps: List[ast.LiteralComparison] = []
@@ -70,7 +133,7 @@ class RuleRewriteTransformer:
             condition.append(cond)
             local_comps.extend(comps)
         condition.extend(local_comps)
-        return node.update(self.lib, literal=literal, condition=condition), comparisons
+        return node.update(self.lib, literal=literal, condition=condition)
 
     # Aggregates
     @_rewrite_literal.register
@@ -84,18 +147,18 @@ class RuleRewriteTransformer:
             new_elem = self._rewrite_literal(elem, var_gen)
             new_elements.append(new_elem)
 
-        new_left, left_guard_comps = (
-            unnest_functions(self.lib, node.left, self.evaluable_functions, var_gen)
+        new_left = (
+            self.body_literal_transformer._unnest(node.left, outer=False)
             if node.left
-            else (None, [])
+            else None
         )
-        new_right, right_guard_comps = (
-            unnest_functions(self.lib, node.right, self.evaluable_functions, var_gen)
+        new_right = (
+            self.body_literal_transformer._unnest(node.right, outer=False)
             if node.right
-            else (None, [])
+            else None
         )
 
-        self.residual_comps = left_guard_comps + right_guard_comps
+        # self.residual_comps = left_guard_comps + right_guard_comps
         return node.update(
             self.lib,
             left=new_left if new_left is not None else node.left,
@@ -109,69 +172,32 @@ class RuleRewriteTransformer:
         node: ast.BodyAggregateElement | ast.HeadAggregateElement,
         var_gen: FreshVariableGenerator,
     ) -> ast.BodyAggregateElement | ast.HeadAggregateElement:
-        # Unnest tuple terms
-        new_tuple = []
-        local_comps: List[ast.LiteralComparison] = []
 
-        for t in node.tuple:
-            new_t, comps = unnest_functions(
-                self.lib, t, self.evaluable_functions, var_gen, outer=False
-            )
-            new_tuple.append(new_t)
-            local_comps.extend(comps)
-
-        # Unnest conditions (e.g. p(g(Y)), q(X))
-        new_condition = []
-        for cond in node.condition:
-            new_c, comps = unnest_functions(
-                self.lib,
-                cond,
-                self.evaluable_functions,
-                var_gen,
-                allowed_in_negated_literals=(
-                    False if cond.sign == ast.Sign.Single else True
-                ),
-            )
-            # NOTE: Disallow negation with evaluable in aggregate
-            # if new_c != cond and cond.sign == ast.Sign.Single:
-            #     raise RuntimeError(
-            #         f"Negation is not supported with evaluable functions in Aggregate. Found {str(cond)} at {cond.location}."
-            #     )
-            new_condition.append(new_c)
-            local_comps.extend(comps)
+        transformer = UnnestFunctionsInLiteralsTransformer(
+            self.lib,
+            self.evaluable_functions,
+            var_gen,
+            allowed_in_negated_literals=False,
+        )
+        update = {}
+        if tuple_ := map_none(
+            lambda t: transformer._unnest(t, outer=False), node.tuple
+        ):
+            update["tuple"] = tuple_
+        if condition := map_none(
+            lambda c: transformer._unnest(c, outer=False), node.condition
+        ):
+            update["condition"] = condition
 
         if isinstance(node, ast.HeadAggregateElement):
-            new_literal, literal_comps = unnest_functions(
-                self.lib,
-                node.literal,
-                self.evaluable_functions,
-                var_gen,
-                outer=True,
-                allowed_in_negated_literals=(
-                    False if node.literal.sign == ast.Sign.Single else True
-                ),
-            )
-            # NOTE: Disallow negation with evaluable in aggregate
-            # if new_literal != node.literal and node.literal.sign == ast.Sign.Single:
-            #     raise RuntimeError(
-            #         f"Negation is not supported with evaluable functions in Aggregate. Found {str(node.literal)} at {node.literal.location}."
-            #     )
-
-            # place the literal's comparisons into the element condition
-            local_comps.extend(literal_comps)
-            # extend condition with comps coming from literal unnesting as well
-            new_condition.extend(local_comps)
-            # return an updated HeadAggregateElement
-            return node.update(
-                self.lib,
-                tuple=tuple(new_tuple),
-                literal=new_literal,
-                condition=tuple(new_condition),
-            )
-
-        new_condition.extend(local_comps)
-
-        return node.update(self.lib, tuple=new_tuple, condition=new_condition)
+            literal = transformer._unnest(node.literal)
+            if literal is not None:
+                update["literal"] = literal
+        if extra := transformer.pop_all_unnested_functions():
+            condition = condition or node.condition
+            condition.extend(extra)
+            update["condition"] = condition
+        return node.update(self.lib, **update)
 
     @_rewrite_literal.register
     def _(
@@ -189,90 +215,25 @@ class RuleRewriteTransformer:
     # Rule Statements
     @_rewrite.register
     def _(
-        self, node: ast.StatementRule, var_gen: FreshVariableGenerator
+        self, node: ast.StatementRule | AssignmentRule, var_gen: FreshVariableGenerator
     ) -> ast.StatementRule:
-        if isinstance(node.head, ast.HeadSimpleLiteral):
-            new_head, head_comps = unnest_functions(
-                self.lib,
-                node.head,
-                self.evaluable_functions,
-                var_gen,
-                unnest_left_guard_equality=True,
-                allowed_in_negated_literals=True,
-            )
-        # elif isinstance(node.head, ast.HeadDisjunction) or isinstance(
-        #     node.head, ast.HeadTheoryAtom
-        # ):
-        #     pass
-        #     # Throw error if evaluable functions found in head disjunctions or theory atoms
+        if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):
+            new_head = self.head_literal_transformer._unnest(node.head) or node.head
         else:
             new_head = self._rewrite_literal(node.head, var_gen)
-            head_comps = []
 
         new_body_literals: List[BodyLiteralAST] = []
 
         for lit in node.body:
-            print(f"Unnesting body literal {lit} ({type(lit)})")
-            new_lit, comps = self._rewrite_literal(lit, var_gen)
-            print(
-                f"Unnesting body literal {lit} ({type(lit)}); got {new_lit} ({type(new_lit)})"
-            )
-            # new_lit, comps = unnest_functions(
-            #     self.lib, new_lit, self.evaluable_functions, var_gen
-            # )
-            # handle negated unnesting case
-            if (
-                isinstance(new_lit, ast.BodySimpleLiteral)
-                and new_lit.literal.sign == ast.Sign.Single
-                and comps  # only if unnesting actually happened
-            ):
-                # replace "not q(f(1))" with "#false : q(FUN), f(1)=FUN"
-                false_lit = ast.LiteralBoolean(
-                    self.lib, node.location, ast.Sign.NoSign, False
-                )
-                inner_lit = new_lit.literal.update(self.lib, sign=ast.Sign.NoSign)
-                conds = [inner_lit, *comps]
-                new_conditional = ast.BodyConditionalLiteral(
-                    self.lib, node.location, false_lit, conds
-                )
-                new_body_literals.append(new_conditional)
-                continue
-            # ========================================
+            new_lit = self._rewrite_literal(lit, var_gen)
 
             # For Mypy
-            assert isinstance(new_lit, BodyLiteralAST)
+            # assert isinstance(new_lit, BodyLiteralAST)
             new_body_literals.append(new_lit)
-            for comp in comps:
-                new_body_literals.append(ast.BodySimpleLiteral(self.lib, literal=comp))
 
-        # Head comparisons also belong in body
-        for comp in head_comps:
+        for comp in self.head_literal_transformer.pop_all_unnested_functions():
             new_body_literals.append(ast.BodySimpleLiteral(self.lib, literal=comp))
 
-        # Add residual comparisons from unnesting guards in aggregates to body
-        for comp in self.residual_comps:
+        for comp in self.body_literal_transformer.pop_all_unnested_functions():
             new_body_literals.append(ast.BodySimpleLiteral(self.lib, literal=comp))
-
         return node.update(self.lib, head=new_head, body=new_body_literals)
-
-    @_rewrite.register
-    def _(
-        self, node: AssignmentRule, var_gen: FreshVariableGenerator
-    ) -> AssignmentRule:
-        new_head = self._rewrite_literal(node.head, var_gen)
-        new_head, head_comps = unnest_functions(
-            self.lib,
-            node.head,
-            self.evaluable_functions,
-            var_gen,
-            unnest_left_guard_equality=True,
-        )
-        new_body = []
-        for lit in node.body:
-            new_lit, comps = unnest_functions(
-                self.lib, lit, self.evaluable_functions, var_gen
-            )
-            new_body.append(new_lit)
-            new_body.extend(comps)
-        new_body.extend(head_comps)
-        return node.update(head=new_head, body=new_body)
