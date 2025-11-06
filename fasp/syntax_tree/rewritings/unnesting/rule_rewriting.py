@@ -1,6 +1,5 @@
-from collections.abc import Iterable
 from functools import singledispatchmethod
-from typing import List, Set
+from typing import Any, List, Set
 
 from clingo import ast
 from clingo.core import Library
@@ -21,29 +20,7 @@ from fasp.util.ast import (
     FreshVariableGenerator,
     HeadLiteralAST,
 )
-
-# mypy: ignore-errors
-
-
-def map_none[T](
-    func,
-    lst: Iterable[T],
-) -> list[T] | None:
-    """Applies `func` to each item in `lst`, returning a list of results.
-    If all results are None, returns None.
-    Otherwise, returns a list of non-None results.
-    None results are replaced by the item itself.
-    """
-    all_none = True
-    new_list = []
-    for item in lst:
-        result = func(item)
-        if result is not None:
-            new_list.append(result)
-            all_none = False
-        else:
-            new_list.append(item)
-    return new_list if not all_none else None
+from fasp.util.iterables import map_none
 
 
 class RuleRewriteTransformer:
@@ -79,9 +56,10 @@ class RuleRewriteTransformer:
         return self._rewrite(node, var_gen)
 
     @singledispatchmethod
-    def _rewrite_literal(
-        self, node: BodyLiteralAST | HeadLiteralAST, _: FreshVariableGenerator
-    ) -> tuple[FASP_AST, List[ast.LiteralComparison]]:
+    def _rewrite_literal[T: (
+        BodyLiteralAST,
+        HeadLiteralAST,
+    )](self, node: T, _: FreshVariableGenerator) -> T:
         """Default: return node unchanged."""
         print(f"Unnesting literal {node} ({type(node)})")
         return node
@@ -91,7 +69,7 @@ class RuleRewriteTransformer:
         self,
         node: ast.BodySimpleLiteral,
         var_gen: FreshVariableGenerator,
-    ) -> tuple[ast.BodySimpleLiteral, List[ast.LiteralComparison]]:
+    ) -> ast.BodySimpleLiteral | ast.BodyConditionalLiteral:
         if node.literal.sign != ast.Sign.Single:
             literal = self.body_literal_transformer._unnest(node.literal)
             if literal is None:
@@ -179,7 +157,7 @@ class RuleRewriteTransformer:
             var_gen,
             allowed_in_negated_literals=False,
         )
-        update = {}
+        update: dict[str, Any] = {}
         if tuple_ := map_none(
             lambda t: transformer._unnest(t, outer=False), node.tuple
         ):
@@ -194,7 +172,7 @@ class RuleRewriteTransformer:
             if literal is not None:
                 update["literal"] = literal
         if extra := transformer.pop_all_unnested_functions():
-            condition = condition or node.condition
+            condition = condition or list(node.condition)
             condition.extend(extra)
             update["condition"] = condition
         return node.update(self.lib, **update)
@@ -213,10 +191,11 @@ class RuleRewriteTransformer:
         return node
 
     # Rule Statements
-    @_rewrite.register
-    def _(
-        self, node: ast.StatementRule | AssignmentRule, var_gen: FreshVariableGenerator
-    ) -> ast.StatementRule:
+    @_rewrite.register(ast.StatementRule | AssignmentRule)
+    def _[T: (
+        ast.StatementRule,
+        AssignmentRule,
+    )](self, node: T, var_gen: FreshVariableGenerator) -> T:
         if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):
             new_head = self.head_literal_transformer._unnest(node.head) or node.head
         else:

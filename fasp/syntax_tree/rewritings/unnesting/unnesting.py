@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import Iterable, List, Set, Tuple
+from typing import Any, Iterable, List, Set, Tuple, overload
 
 from clingo import ast, symbol
 from clingo.core import Library, Location
@@ -13,11 +13,44 @@ from fasp.syntax_tree._nodes import (
 )
 from fasp.syntax_tree.collectors import SymbolSignature
 from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST
+from fasp.util.iterables import map_none
+
+
+@overload
+def unnest_functions[T: (
+    ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
+)](
+    lib: Library,
+    node: T,
+    evaluable_functions: Set[SymbolSignature],
+    variable_generator: FreshVariableGenerator,
+    *,
+    outer: bool = True,
+    sign: ast.Sign | None = None,
+    unnest_left_guard_equality: bool = False,
+    allowed_in_negated_literals: bool = True,
+) -> tuple[T, List[ast.LiteralComparison]]: ...
+
+
+@overload
+def unnest_functions[T: (
+    ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
+)](
+    lib: Library,
+    node: Iterable[T],
+    evaluable_functions: Set[SymbolSignature],
+    variable_generator: FreshVariableGenerator,
+    *,
+    outer: bool = True,
+    sign: ast.Sign | None = None,
+    unnest_left_guard_equality: bool = False,
+    allowed_in_negated_literals: bool = True,
+) -> tuple[list[T], List[ast.LiteralComparison]]: ...
 
 
 def unnest_functions(
     lib: Library,
-    node: FASP_AST | Iterable[FASP_AST],
+    node: Any,
     evaluable_functions: Set[SymbolSignature],
     variable_generator: FreshVariableGenerator,
     *,
@@ -26,7 +59,7 @@ def unnest_functions(
     unnest_left_guard_equality: bool = False,
     allowed_in_negated_literals: bool = True,
     # Might need to pass flag boolens like outer (already used downstream) and allow_evaluable_in_negative_literal (new)
-) -> tuple[FASP_AST | list[FASP_AST], List[ast.LiteralComparison]]:
+) -> tuple[Any, List[ast.LiteralComparison]]:
     """
     Unnest evaluable functions in a given rule and return the list of generated comparisons.
     """
@@ -98,12 +131,16 @@ class UnnestFunctionsInLiteralsTransformer:
             [ast.RightGuard(self.lib, ast.Relation.Equal, right)],
         )
 
-    def transform_node(
+    def transform_node[T: (
+        ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
+    )](
         self,
-        node: FASP_AST,
+        node: T,
         outer: bool = True,
         sign: ast.Sign | None = None,
-    ) -> Tuple[FASP_AST, List[ast.LiteralComparison]]:
+    ) -> Tuple[
+        T, List[ast.LiteralComparison]
+    ]:
         """
         Transform one AST node and return (new_node, unnested_list).
 
@@ -157,7 +194,7 @@ class UnnestFunctionsInLiteralsTransformer:
         node: ast.LiteralSymbolic,
         outer: bool = True,
         sign: ast.Sign | None = None,
-    ) -> ast.LiteralSymbolic:
+    ) -> ast.LiteralSymbolic | None:
         return node.transform(self.lib, self._unnest, outer=True, sign=node.sign)
 
     def _flip_equality(
@@ -229,15 +266,15 @@ class UnnestFunctionsInLiteralsTransformer:
             is_new_node = False
             pool = []
             for tup in node.pool:
-                new_args: list[TermAST] = []
-                for term in tup.arguments:
-                    new_term = self._unnest(term, outer=False, sign=sign)
-                    if new_term is not None:
-                        is_new_node = True
-                        new_args.append(new_term)
-                    else:
-                        new_args.append(term)
-                pool.append(ast.ArgumentTuple(self.lib, new_args))
+                new_args = map_none(
+                    lambda term: self._unnest(term, outer=False, sign=sign),
+                    tup.arguments,
+                )
+                if new_args is not None:
+                    is_new_node = True
+                    pool.append(ast.ArgumentTuple(self.lib, new_args))
+                else:
+                    pool.append(tup)
             if is_new_node:
                 node = node.update(self.lib, pool=tuple(pool))
             name = node.name
@@ -245,15 +282,11 @@ class UnnestFunctionsInLiteralsTransformer:
         elif node.symbol.type != symbol.SymbolType.Function:
             return None
         else:
-            new_args: list[TermAST] = []
-            for term in node.symbol.arguments:
-                new_term = self._unnest(term, outer=False, sign=sign)
-                if new_term is not None:
-                    is_new_node = True
-                    new_args.append(new_term)
-                else:
-                    new_args.append(term)
-            if is_new_node:
+            new_args = map_none(
+                lambda term: self._unnest(term, outer=False, sign=sign),
+                node.symbol.arguments,
+            )
+            if new_args is not None:
                 node = node.update(
                     self.lib,
                     symbol=symbol.Function(self.lib, node.symbol.name, tuple(new_args)),
