@@ -186,8 +186,6 @@ class AssignmentAST:
                 d[key] = new_values
             elif new_value := transformer(value, *args, **kwargs):
                 d[key] = new_value
-        # Added to avoid passing 'type' to constructor
-        # which was causing errors in subclasses [TypeError: HeadSimpleAssignment.__init__() got an unexpected keyword argument 'type']
         d.pop("type", None)
         return self.__class__(**d)
 

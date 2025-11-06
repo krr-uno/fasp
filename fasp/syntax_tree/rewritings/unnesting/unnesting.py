@@ -1,9 +1,8 @@
 from functools import singledispatchmethod
-from typing import List, Set, Tuple, cast
+from typing import List, Set, Tuple
 
-from clingo import ast
+from clingo import ast, symbol
 from clingo.core import Library, Location
-from clingo.symbol import SymbolType
 
 from fasp.syntax_tree._nodes import (
     FASP_AST,
@@ -31,7 +30,7 @@ def unnest_functions(
     """
     Unnest evaluable functions in a given rule and return the list of generated comparisons.
     """
-    transformer = UnnestFunctionsTransformer(
+    transformer = UnnestFunctionsInLiteralsTransformer(
         lib,
         evaluable_functions,
         variable_generator,
@@ -46,7 +45,7 @@ def unnest_functions(
     )
 
 
-class UnnestFunctionsTransformer:
+class UnnestFunctionsInLiteralsTransformer:
     """
     Recursively unnest evaluable functions in Clingo AST.
     """
@@ -55,7 +54,6 @@ class UnnestFunctionsTransformer:
         self,
         lib: Library,
         evaluable_functions: Set[SymbolSignature],
-        # used_variable_names: Set[str],
         variable_generator: FreshVariableGenerator,
         unnest_left_guard_equality: bool = False,
         allowed_in_negated_literals: bool = True,
@@ -67,10 +65,10 @@ class UnnestFunctionsTransformer:
         self.unnest_left_guard_equality = unnest_left_guard_equality
         self.allowed_in_negated_literals = allowed_in_negated_literals
 
-        # Memoization cache to avoid duplicate unnested variables/comparisons
-        # Checks if same function with same args has already been unnested
-        # Also checks for same TermSymbolic in the rule.
-        # self._cache: dict[tuple[str, tuple[str, ...]], TermAST] = {}
+    def pop_all_unnested_functions(self) -> List[ast.LiteralComparison]:
+        unnested = self.unnested_functions
+        self.unnested_functions = []
+        return unnested
 
     def _is_evaluable(self, name: str, arity: int) -> bool:
         return SymbolSignature(name, arity) in self.evaluable_functions
@@ -80,7 +78,7 @@ class UnnestFunctionsTransformer:
             return self._is_evaluable(term.name, len(term.pool[0].arguments))
         if (
             isinstance(term, ast.TermSymbolic)
-            and term.symbol.type == SymbolType.Function
+            and term.symbol.type == symbol.SymbolType.Function
         ):
             return self._is_evaluable(str(term.symbol.name), len(term.symbol.arguments))
         return False
@@ -113,15 +111,11 @@ class UnnestFunctionsTransformer:
         # Clear per-node collected unnested comparisons
         self.unnested_functions = []
 
-        new_node = self._unnest(
-            node,
-            outer=outer,
-            sign=None,
-        )
+        new_node = self._unnest(node, outer=outer, sign=None)
 
         # Copy the list and return
         collected = list(self.unnested_functions)
-        return new_node, collected
+        return new_node or node, collected
 
     @singledispatchmethod
     def _unnest(
@@ -129,19 +123,12 @@ class UnnestFunctionsTransformer:
         node: FASP_AST_T,
         outer: bool = False,
         sign: ast.Sign | None = None,
-    ) -> FASP_AST_T:
+    ) -> FASP_AST_T | None:
         """
         Unnest evaluable functions in the given AST node.
+        It returns a new node if changes were made, or None otherwise.
         """
-        return (
-            node.transform(
-                self.lib,
-                self._unnest,
-                outer,
-                sign,
-            )
-            or node
-        )
+        return node.transform(self.lib, self._unnest, outer, sign)
 
     @_unnest.register
     def _(
@@ -150,26 +137,25 @@ class UnnestFunctionsTransformer:
         outer: bool = False,
         sign: ast.Sign | None = None,
     ) -> HeadSimpleAssignment:
-        new_assigned = self._unnest(
-            node.assigned_function,
-            outer,
-            sign,
-        )
-        new_value = self._unnest(
-            node.value,
-            outer=False,
-            sign=sign,
-        )
-        return node.update(self.lib, assigned_function=new_assigned, value=new_value)
+        new_assigned = self._unnest(node.assigned_function, outer, sign)
+        new_value = self._unnest(node.value, outer=False, sign=sign)
+        update = {}
+        if new_assigned is not None:
+            update["assigned_function"] = new_assigned
+        if new_value is not None:
+            update["value"] = new_value
+        if not update:
+            return node
+        return node.update(self.lib, **update)
 
     @_unnest.register
     def _(
         self,
         node: ast.LiteralSymbolic,
         outer: bool = True,
-        _: ast.Sign | None = None,
+        sign: ast.Sign | None = None,
     ) -> ast.LiteralSymbolic:
-        return node.transform(self.lib, self._unnest, outer, node.sign) or node
+        return node.transform(self.lib, self._unnest, outer=True, sign=node.sign)
 
     def _flip_equality(
         self,
@@ -186,13 +172,14 @@ class UnnestFunctionsTransformer:
     def _(
         self,
         node: ast.LiteralComparison,
-        _: bool = True,
+        outer: bool = True,
         sign: ast.Sign | None = None,
-    ) -> ast.LiteralComparison:
+    ) -> ast.LiteralComparison | None:
         """
         Normalize comparisons to have evaluable functions on the left side of equality only
         """
-        outer = False
+        outer_left = False
+        is_new_node = False
         # Special case: equality with a single right guard
         if len(node.right) == 1 and node.right[0].relation == ast.Relation.Equal:
             # Flip if evaluable only on right-hand side
@@ -200,19 +187,31 @@ class UnnestFunctionsTransformer:
                 node.right[0].term
             ):
                 node = self._flip_equality(node)
+                is_new_node = True
 
             if not self.unnest_left_guard_equality:
-                outer = True
+                outer_left = True
 
-        new_left = self._unnest(node.left, outer, sign=sign)
-        new_right = [
-            rg.update(self.lib, term=self._unnest(rg.term, outer=False, sign=sign))
-            for rg in node.right
-        ]
+        new_left = self._unnest(node.left, outer_left, sign=sign)
+        new_right = []
+        is_new_right = False
+        for rg in node.right:
+            new_term = self._unnest(rg.term, outer=False, sign=sign)
+            if new_term is not None:
+                is_new_right = True
+                new_right.append(rg.update(self.lib, term=new_term))
+            else:
+                new_right.append(rg)
+        update = {}
+        if new_left is not None:
+            update["left"] = new_left
+        if is_new_right:
+            update["right"] = new_right
+        if not update:
+            return node if is_new_node else None
         return node.update(
             self.lib,
-            left=new_left,
-            right=new_right,
+            **update,
         )
 
     @_unnest.register
@@ -221,23 +220,41 @@ class UnnestFunctionsTransformer:
         node: ast.TermFunction | ast.TermSymbolic,
         outer: bool = False,
         sign: ast.Sign | None = None,
-    ) -> ast.TermFunction | ast.TermSymbolic | ast.TermVariable:
+    ) -> ast.TermFunction | ast.TermSymbolic | ast.TermVariable | None:
+        is_new_node = False
         if isinstance(node, ast.TermFunction):
+            is_new_node = False
             pool = []
             for tup in node.pool:
-                new_args: list[TermAST] = [
-                    self._unnest(t, outer=False, sign=sign) for t in tup.arguments
-                ]
+                new_args: list[TermAST] = []
+                for term in tup.arguments:
+                    new_term = self._unnest(term, outer=False, sign=sign)
+                    if new_term is not None:
+                        is_new_node = True
+                        new_args.append(new_term)
+                    else:
+                        new_args.append(term)
                 pool.append(ast.ArgumentTuple(self.lib, new_args))
-            node = node.update(self.lib, pool=tuple(pool))
+            if is_new_node:
+                node = node.update(self.lib, pool=tuple(pool))
             name = node.name
             arguments = node.pool[0].arguments
-        elif node.symbol.type != SymbolType.Function:
-            return node
+        elif node.symbol.type != symbol.SymbolType.Function:
+            return None
         else:
-            new_args: list[TermAST] = [
-                self._unnest(t, outer=False, sign=sign) for t in node.symbol.arguments
-            ]
+            new_args: list[TermAST] = []
+            for term in node.symbol.arguments:
+                new_term = self._unnest(term, outer=False, sign=sign)
+                if new_term is not None:
+                    is_new_node = True
+                    new_args.append(new_term)
+                else:
+                    new_args.append(term)
+            if is_new_node:
+                node = node.update(
+                    self.lib,
+                    symbol=symbol.Function(self.lib, node.symbol.name, tuple(new_args)),
+                )
             name = node.symbol.name
             arguments = node.symbol.arguments
 
@@ -252,6 +269,18 @@ class UnnestFunctionsTransformer:
             comp = self._make_comparison(node.location, node, fresh, sign=sign)
             self.unnested_functions.append(comp)
             return fresh
-        return node
+        return node if is_new_node else None
 
-   
+    @_unnest.register(
+        ast.TermAbsolute
+        | ast.TermUnaryOperation
+        | ast.TermBinaryOperation
+        | ast.TermTuple
+    )
+    def _[T: (
+        ast.TermAbsolute,
+        ast.TermUnaryOperation,
+        ast.TermBinaryOperation,
+        ast.TermTuple,
+    )](self, node: T, outer: bool = True, sign: ast.Sign | None = None,) -> T | None:
+        return node.transform(self.lib, self._unnest, outer=False, sign=sign)

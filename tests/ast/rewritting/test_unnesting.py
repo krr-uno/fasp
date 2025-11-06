@@ -1,10 +1,139 @@
+from hmac import new
 from math import exp
 import unittest
 
+from clingo import ast as clingo_ast
+
+from fasp.syntax_tree._nodes import FASP_AST
 from fasp.syntax_tree.parsing.parser import parse_string
+from fasp.syntax_tree.rewritings.unnesting.unnesting import (
+    UnnestFunctionsInLiteralsTransformer,
+)
 from fasp.util.ast import ELibrary, FreshVariableGenerator
 from fasp.syntax_tree.collectors import SymbolSignature, collect_variables
 from fasp.syntax_tree.rewritings.unnesting.rule_rewriting import unnest_functions
+
+
+class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
+
+    def setUp(self):
+        self.elib = ELibrary()
+        self.lib = self.elib.library
+
+    def assertEqualUnnesting(
+        self,
+        node: FASP_AST,
+        evaluable_functions: list[str],
+        expected_node: FASP_AST | None,
+        outer: bool = False,
+        unnest_left_guard_equality: bool = False,
+    ):
+        eval_sigs = {
+            SymbolSignature(name, int(arity))
+            for name, arity in (s.split("/") for s in evaluable_functions)
+        }
+
+        variableGenerator = FreshVariableGenerator(collect_variables(node))
+        transformer = UnnestFunctionsInLiteralsTransformer(
+            self.lib,
+            eval_sigs,
+            variableGenerator,
+            unnest_left_guard_equality=unnest_left_guard_equality,
+        )
+        new_node = transformer._unnest(
+            node,
+            outer,
+        )
+        if expected_node is not None:
+            self.assertIsNotNone(new_node)
+            self.assertEqual(new_node, expected_node, f"{new_node} != {expected_node}")
+        else:
+            self.assertIsNone(new_node)
+
+    def assertEqualUnnestingTerm(
+        self,
+        term_str: str,
+        evaluable_functions: list[str],
+        expected_term_str: str | None,
+        outer: bool = False,
+    ):
+        term = clingo_ast.parse_term(self.lib, term_str)
+        expected_term = (
+            clingo_ast.parse_term(self.lib, expected_term_str)
+            if expected_term_str is not None
+            else None
+        )
+        self.assertEqualUnnesting(term, evaluable_functions, expected_term, outer)
+
+    def assertEqualUnnestingLiteral(
+        self,
+        literal_str: str,
+        evaluable_functions: list[str],
+        expected_literal_str: str | None,
+        unnest_left_guard_equality: bool = False,
+    ):
+        literal = clingo_ast.parse_literal(self.lib, literal_str)
+        expected_literal = (
+            clingo_ast.parse_literal(self.lib, expected_literal_str)
+            if expected_literal_str is not None
+            else None
+        )
+        self.assertEqualUnnesting(
+            literal,
+            evaluable_functions,
+            expected_literal,
+            outer=False,
+            unnest_left_guard_equality=unnest_left_guard_equality,
+        )
+
+    def test_function(self):
+        self.assertEqualUnnestingTerm("a", ["a/0"], "FUN")
+        self.assertEqualUnnestingTerm("a", ["a/0"], None, outer=True)
+        self.assertEqualUnnestingTerm("a", [], None)
+        self.assertEqualUnnestingTerm("f(a)", ["f/1"], "FUN")
+        self.assertEqualUnnestingTerm("f(a)", ["f/1"], None, outer=True)
+        self.assertEqualUnnestingTerm("f(a)", [], None)
+
+    def test_symbolic_literal(self):
+        self.assertEqualUnnestingLiteral("a(a)", ["a/0"], "a(FUN)")
+        self.assertEqualUnnestingLiteral("a", [], None)
+        self.assertEqualUnnestingLiteral("p(f(a))", ["f/1"], "p(FUN)")
+        self.assertEqualUnnestingLiteral("p(f(a))", ["p/1"], None)
+
+    def test_symbolic_equality(self):
+        self.assertEqualUnnestingLiteral("a=a", ["a/0"], "a=FUN")
+        self.assertEqualUnnestingLiteral("a=b", ["a/0"], None)
+        self.assertEqualUnnestingLiteral("a=b", [], None)
+        self.assertEqualUnnestingLiteral("a=b", ["a/0", "b/0"], "a=FUN")
+        self.assertEqualUnnestingLiteral("b=a", ["a/0"], "a=b")
+
+        self.assertEqualUnnestingLiteral("a+1=2", ["a/0"], "FUN+1=2")
+        self.assertEqualUnnestingLiteral("a*1=2", ["a/0"], "FUN*1=2")
+        self.assertEqualUnnestingLiteral("a/1=2", ["a/0"], "FUN/1=2")
+        self.assertEqualUnnestingLiteral("a-1=2", ["a/0"], "FUN-1=2")
+        self.assertEqualUnnestingLiteral("a**1=2", ["a/0"], "FUN**1=2")
+        self.assertEqualUnnestingLiteral("|a|=2", ["a/0"], "|FUN|=2")
+        self.assertEqualUnnestingLiteral("-a=2", ["a/0"], "-FUN=2")
+
+        self.assertEqualUnnestingLiteral(
+            "a=a", ["a/0"], "FUN=FUN2", unnest_left_guard_equality=True
+        )
+        self.assertEqualUnnestingLiteral(
+            "a=b", ["a/0"], "FUN=b", unnest_left_guard_equality=True
+        )
+        self.assertEqualUnnestingLiteral(
+            "a=b", ["a/0", "b/0"], "FUN=FUN2", unnest_left_guard_equality=True
+        )
+        self.assertEqualUnnestingLiteral(
+            "b=a", ["a/0"], "FUN=b", unnest_left_guard_equality=True
+        )
+
+    def test_symbolic_inequality(self):
+        self.assertEqualUnnestingLiteral("a<a", ["a/0"], "FUN<FUN2")
+        self.assertEqualUnnestingLiteral("a<b", ["a/0"], "FUN<b")
+        self.assertEqualUnnestingLiteral("a<b", [], None)
+        self.assertEqualUnnestingLiteral("a<b", ["a/0", "b/0"], "FUN<FUN2")
+        self.assertEqualUnnestingLiteral("b<a", ["a/0"], "b<FUN")
 
 
 class TestUnnestFunctionsTransformer(unittest.TestCase):
@@ -90,6 +219,14 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "q(a,b).",
             [],
             "q(a,b).",
+            [set()],
+        )
+
+    def test_non_evaluable_symbolic_and_function(self):
+        self.assertEqualUnnesting(
+            ":- q(a,b).",
+            [],
+            ":- q(a,b).",
             [set()],
         )
 
