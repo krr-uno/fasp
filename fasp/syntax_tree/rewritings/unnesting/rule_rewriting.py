@@ -61,8 +61,7 @@ class RuleRewriteTransformer:
         HeadLiteralAST,
     )](self, node: T, _: FreshVariableGenerator) -> T:
         """Default: return node unchanged."""
-        print(f"Unnesting literal {node} ({type(node)})")
-        return node
+        assert False, f"Unhandled literal type during function unnesting: {type(node)}"
 
     @_rewrite_literal.register
     def _(

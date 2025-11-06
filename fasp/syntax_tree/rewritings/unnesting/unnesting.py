@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import Any, Iterable, List, Set, Tuple, overload
+from typing import List, Set, Tuple
 
 from clingo import ast, symbol
 from clingo.core import Library, Location
@@ -16,7 +16,6 @@ from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST
 from fasp.util.iterables import map_none
 
 
-@overload
 def unnest_functions[T: (
     ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
 )](
@@ -29,37 +28,8 @@ def unnest_functions[T: (
     sign: ast.Sign | None = None,
     unnest_left_guard_equality: bool = False,
     allowed_in_negated_literals: bool = True,
-) -> tuple[T, List[ast.LiteralComparison]]: ...
-
-
-@overload
-def unnest_functions[T: (
-    ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
-)](
-    lib: Library,
-    node: Iterable[T],
-    evaluable_functions: Set[SymbolSignature],
-    variable_generator: FreshVariableGenerator,
-    *,
-    outer: bool = True,
-    sign: ast.Sign | None = None,
-    unnest_left_guard_equality: bool = False,
-    allowed_in_negated_literals: bool = True,
-) -> tuple[list[T], List[ast.LiteralComparison]]: ...
-
-
-def unnest_functions(
-    lib: Library,
-    node: Any,
-    evaluable_functions: Set[SymbolSignature],
-    variable_generator: FreshVariableGenerator,
-    *,
-    outer: bool = True,
-    sign: ast.Sign | None = None,
-    unnest_left_guard_equality: bool = False,
-    allowed_in_negated_literals: bool = True,
     # Might need to pass flag boolens like outer (already used downstream) and allow_evaluable_in_negative_literal (new)
-) -> tuple[Any, List[ast.LiteralComparison]]:
+) -> tuple[T, List[ast.LiteralComparison]]:
     """
     Unnest evaluable functions in a given rule and return the list of generated comparisons.
     """
@@ -71,14 +41,11 @@ def unnest_functions(
         allowed_in_negated_literals,
     )
 
-    if isinstance(node, FASP_AST):
-        return transformer.transform_node(
-            node,
-            outer,
-            sign,
-        )
-    nodes = [transformer._unnest(n) or n for n in node]
-    return nodes, transformer.unnested_functions
+    return transformer.transform_node(
+        node,
+        outer,
+        sign,
+    )
 
 
 class UnnestFunctionsInLiteralsTransformer:
@@ -286,7 +253,7 @@ class UnnestFunctionsInLiteralsTransformer:
                 lambda term: self._unnest(term, outer=False, sign=sign),
                 node.symbol.arguments,
             )
-            if new_args is not None:
+            if new_args is not None:  # pragma: no cover
                 node = node.update(
                     self.lib,
                     symbol=symbol.Function(self.lib, node.symbol.name, tuple(new_args)),

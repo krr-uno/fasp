@@ -331,6 +331,13 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             ":- b(X,Z); FUN3 = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }; h(1)=FUN3.",
         )
 
+    def test_assignment_simple(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1", "h/1"},
+            "f(a) := 5.",
+            "f(a) := 5.",
+        )
+
     def test_assignment(self):
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
