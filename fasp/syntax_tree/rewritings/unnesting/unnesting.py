@@ -28,7 +28,6 @@ def unnest_functions[T: (
     sign: ast.Sign | None = None,
     unnest_left_guard_equality: bool = False,
     allowed_in_negated_literals: bool = True,
-    # Might need to pass flag boolens like outer (already used downstream) and allow_evaluable_in_negative_literal (new)
 ) -> tuple[T, List[ast.LiteralComparison]]:
     """
     Unnest evaluable functions in a given rule and return the list of generated comparisons.
