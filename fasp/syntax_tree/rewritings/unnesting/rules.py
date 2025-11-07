@@ -11,7 +11,7 @@ from fasp.syntax_tree._nodes import (
     HeadSimpleAssignment,
 )
 from fasp.syntax_tree.collectors import SymbolSignature, collect_variables
-from fasp.syntax_tree.rewritings.unnesting.unnesting import (
+from fasp.syntax_tree.rewritings.unnesting.literals import (
     UnnestFunctionsInLiteralsTransformer,
     unnest_functions,
 )

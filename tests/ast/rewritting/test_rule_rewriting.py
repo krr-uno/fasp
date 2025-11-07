@@ -7,7 +7,7 @@ from clingo.core import Library
 from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary, FreshVariableGenerator
 from fasp.syntax_tree.collectors import SymbolSignature
-from fasp.syntax_tree.rewritings.unnesting.rule_rewriting import RuleRewriteTransformer
+from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 
 
 class TestRuleRewriteTransformer(unittest.TestCase):

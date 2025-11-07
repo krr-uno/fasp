@@ -6,12 +6,12 @@ from clingo import ast as clingo_ast
 
 from fasp.syntax_tree._nodes import FASP_AST
 from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.syntax_tree.rewritings.unnesting.unnesting import (
+from fasp.syntax_tree.rewritings.unnesting.literals import (
     UnnestFunctionsInLiteralsTransformer,
 )
 from fasp.util.ast import ELibrary, FreshVariableGenerator
 from fasp.syntax_tree.collectors import SymbolSignature, collect_variables
-from fasp.syntax_tree.rewritings.unnesting.rule_rewriting import unnest_functions
+from fasp.syntax_tree.rewritings.unnesting.rules import unnest_functions
 
 
 class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
