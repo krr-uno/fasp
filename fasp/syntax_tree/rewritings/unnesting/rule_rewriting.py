@@ -70,7 +70,7 @@ class RuleRewriteTransformer:
         var_gen: FreshVariableGenerator,
     ) -> ast.BodySimpleLiteral | ast.BodyConditionalLiteral:
         if node.literal.sign != ast.Sign.Single:
-            literal = self.body_literal_transformer._unnest(node.literal)
+            literal = self.body_literal_transformer.unnest(node.literal)
             if literal is None:
                 return node
             return node.update(self.lib, literal=literal)
@@ -95,7 +95,7 @@ class RuleRewriteTransformer:
         node: ast.BodyConditionalLiteral,
         var_gen: FreshVariableGenerator,
     ) -> ast.BodyConditionalLiteral:
-        literal = self.body_literal_transformer._unnest(node.literal)
+        literal = self.body_literal_transformer.unnest(node.literal)
 
         condition = []
         local_comps: List[ast.LiteralComparison] = []
@@ -125,12 +125,12 @@ class RuleRewriteTransformer:
             new_elements.append(new_elem)
 
         new_left = (
-            self.body_literal_transformer._unnest(node.left, outer=False)
+            self.body_literal_transformer.unnest(node.left, outer=False)
             if node.left
             else None
         )
         new_right = (
-            self.body_literal_transformer._unnest(node.right, outer=False)
+            self.body_literal_transformer.unnest(node.right, outer=False)
             if node.right
             else None
         )
@@ -157,17 +157,15 @@ class RuleRewriteTransformer:
             allowed_in_negated_literals=False,
         )
         update: dict[str, Any] = {}
-        if tuple_ := map_none(
-            lambda t: transformer._unnest(t, outer=False), node.tuple
-        ):
+        if tuple_ := map_none(lambda t: transformer.unnest(t, outer=False), node.tuple):
             update["tuple"] = tuple_
         if condition := map_none(
-            lambda c: transformer._unnest(c, outer=False), node.condition
+            lambda c: transformer.unnest(c, outer=False), node.condition
         ):
             update["condition"] = condition
 
         if isinstance(node, ast.HeadAggregateElement):
-            literal = transformer._unnest(node.literal)
+            literal = transformer.unnest(node.literal)
             if literal is not None:
                 update["literal"] = literal
         if extra := transformer.pop_all_unnested_functions():
@@ -196,7 +194,7 @@ class RuleRewriteTransformer:
         AssignmentRule,
     )](self, node: T, var_gen: FreshVariableGenerator) -> T:
         if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):
-            new_head = self.head_literal_transformer._unnest(node.head) or node.head
+            new_head = self.head_literal_transformer.unnest(node.head) or node.head
         else:
             new_head = self._rewrite_literal(node.head, var_gen)
 

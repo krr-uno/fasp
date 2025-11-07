@@ -40,7 +40,7 @@ class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
             variableGenerator,
             unnest_left_guard_equality=unnest_left_guard_equality,
         )
-        new_node = transformer._unnest(
+        new_node = transformer.unnest(
             node,
             outer,
         )

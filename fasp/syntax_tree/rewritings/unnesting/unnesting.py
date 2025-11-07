@@ -41,7 +41,7 @@ def unnest_functions[T: (
         allowed_in_negated_literals,
     )
 
-    new_node = transformer._unnest(
+    new_node = transformer.unnest(
         node,
         outer,
         sign,
@@ -100,7 +100,7 @@ class UnnestFunctionsInLiteralsTransformer:
         )
 
     @singledispatchmethod
-    def _unnest(
+    def unnest(
         self,
         node: FASP_AST_T,
         outer: bool = True,
@@ -110,17 +110,17 @@ class UnnestFunctionsInLiteralsTransformer:
         Unnest evaluable functions in the given AST node.
         It returns a new node if changes were made, or None otherwise.
         """
-        return node.transform(self.lib, self._unnest, outer, sign)
+        return node.transform(self.lib, self.unnest, outer, sign)
 
-    @_unnest.register
+    @unnest.register
     def _(
         self,
         node: HeadSimpleAssignment,
         outer: bool = True,
         sign: ast.Sign | None = None,
     ) -> HeadSimpleAssignment:
-        new_assigned = self._unnest(node.assigned_function, outer=True, sign=sign)
-        new_value = self._unnest(node.value, outer=False, sign=sign)
+        new_assigned = self.unnest(node.assigned_function, outer=True, sign=sign)
+        new_value = self.unnest(node.value, outer=False, sign=sign)
         update = {}
         if new_assigned is not None:
             update["assigned_function"] = new_assigned
@@ -130,14 +130,14 @@ class UnnestFunctionsInLiteralsTransformer:
             return node
         return node.update(self.lib, **update)
 
-    @_unnest.register
+    @unnest.register
     def _(
         self,
         node: ast.LiteralSymbolic,
         outer: bool = True,
         sign: ast.Sign | None = None,
     ) -> ast.LiteralSymbolic | None:
-        return node.transform(self.lib, self._unnest, outer=True, sign=node.sign)
+        return node.transform(self.lib, self.unnest, outer=True, sign=node.sign)
 
     def _flip_equality(
         self,
@@ -150,7 +150,7 @@ class UnnestFunctionsInLiteralsTransformer:
         right = [node.right[0].update(self.lib, term=node.left)]
         return node.update(self.lib, left=left, right=right)
 
-    @_unnest.register
+    @unnest.register
     def _(
         self,
         node: ast.LiteralComparison,
@@ -174,9 +174,9 @@ class UnnestFunctionsInLiteralsTransformer:
             if not self.unnest_left_guard_equality:
                 outer_left = True
 
-        left = self._unnest(node.left, outer_left, sign=sign)
+        left = self.unnest(node.left, outer_left, sign=sign)
         right = map_none(
-            lambda rg: rg.transform(self.lib, self._unnest, outer=False, sign=sign),
+            lambda rg: rg.transform(self.lib, self.unnest, outer=False, sign=sign),
             node.right,
         )
         update = {}
@@ -188,7 +188,7 @@ class UnnestFunctionsInLiteralsTransformer:
             return node if is_new_node else None
         return node.update(self.lib, **update)
 
-    @_unnest.register
+    @unnest.register
     def _(
         self,
         node: ast.TermFunction | ast.TermSymbolic,
@@ -203,7 +203,7 @@ class UnnestFunctionsInLiteralsTransformer:
 
         new_node = node.transform(
             self.lib,
-            self._unnest,
+            self.unnest,
             outer=False,
             sign=sign,
         )
@@ -230,7 +230,7 @@ class UnnestFunctionsInLiteralsTransformer:
         self.unnested_functions.append(comp)
         return fresh
 
-    @_unnest.register(
+    @unnest.register(
         ast.TermAbsolute
         | ast.TermUnaryOperation
         | ast.TermBinaryOperation
@@ -242,4 +242,4 @@ class UnnestFunctionsInLiteralsTransformer:
         ast.TermBinaryOperation,
         ast.TermTuple,
     )](self, node: T, outer: bool = True, sign: ast.Sign | None = None) -> T | None:
-        return node.transform(self.lib, self._unnest, outer=False, sign=sign)
+        return node.transform(self.lib, self.unnest, outer=False, sign=sign)
