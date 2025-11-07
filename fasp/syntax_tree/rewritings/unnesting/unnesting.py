@@ -228,51 +228,40 @@ class UnnestFunctionsInLiteralsTransformer:
         outer: bool = True,
         sign: ast.Sign | None = None,
     ) -> ast.TermFunction | ast.TermSymbolic | ast.TermVariable | None:
-        is_new_node = False
+        if (
+            isinstance(node, ast.TermSymbolic)
+            and node.symbol.type != symbol.SymbolType.Function
+        ):
+            return None
+
+        new_node = node.transform(
+            self.lib,
+            self._unnest,
+            outer=False,
+            sign=sign,
+        )
         if isinstance(node, ast.TermFunction):
-            is_new_node = False
-            pool = []
-            for tup in node.pool:
-                new_args = map_none(
-                    lambda term: self._unnest(term, outer=False, sign=sign),
-                    tup.arguments,
-                )
-                if new_args is not None:
-                    is_new_node = True
-                    pool.append(ast.ArgumentTuple(self.lib, new_args))
-                else:
-                    pool.append(tup)
-            if is_new_node:
-                node = node.update(self.lib, pool=tuple(pool))
             name = node.name
             arguments = node.pool[0].arguments
-        elif node.symbol.type != symbol.SymbolType.Function:
-            return None
         else:
-            new_args = map_none(
-                lambda term: self._unnest(term, outer=False, sign=sign),
-                node.symbol.arguments,
-            )
-            if new_args is not None:  # pragma: no cover
-                node = node.update(
-                    self.lib,
-                    symbol=symbol.Function(self.lib, node.symbol.name, tuple(new_args)),
-                )
             name = node.symbol.name
             arguments = node.symbol.arguments
 
-        if not outer and self._is_evaluable(name, len(arguments)):
-            if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
-                raise RuntimeError(
-                    f"Evaluable functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {node.location}."
-                )
-            fresh: ast.TermVariable = self.var_gen.fresh_variable(
-                self.lib, node.location, "FUN"
+        if outer or not self._is_evaluable(name, len(arguments)):
+            return new_node
+
+        node = new_node or node
+
+        if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
+            raise RuntimeError(
+                f"Evaluable functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {node.location}."
             )
-            comp = self._make_comparison(node.location, node, fresh, sign=sign)
-            self.unnested_functions.append(comp)
-            return fresh
-        return node if is_new_node else None
+        fresh: ast.TermVariable = self.var_gen.fresh_variable(
+            self.lib, node.location, "FUN"
+        )
+        comp = self._make_comparison(node.location, node, fresh, sign=sign)
+        self.unnested_functions.append(comp)
+        return fresh
 
     @_unnest.register(
         ast.TermAbsolute
@@ -285,5 +274,5 @@ class UnnestFunctionsInLiteralsTransformer:
         ast.TermUnaryOperation,
         ast.TermBinaryOperation,
         ast.TermTuple,
-    )](self, node: T, outer: bool = True, sign: ast.Sign | None = None,) -> T | None:
+    )](self, node: T, outer: bool = True, sign: ast.Sign | None = None) -> T | None:
         return node.transform(self.lib, self._unnest, outer=False, sign=sign)
