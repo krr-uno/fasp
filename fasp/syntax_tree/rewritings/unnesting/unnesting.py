@@ -199,22 +199,19 @@ class UnnestFunctionsInLiteralsTransformer:
             if not self.unnest_left_guard_equality:
                 outer_left = True
 
-        new_left = self._unnest(node.left, outer_left, sign=sign)
-        new_right = map_none(
+        left = self._unnest(node.left, outer_left, sign=sign)
+        right = map_none(
             lambda rg: rg.transform(self.lib, self._unnest, outer=False, sign=sign),
             node.right,
         )
         update = {}
-        if new_left is not None:
-            update["left"] = new_left
-        if new_right is not None:
-            update["right"] = new_right
+        if left is not None:
+            update["left"] = left
+        if right is not None:
+            update["right"] = right
         if not update:
-            return None
-        return node.update(
-            self.lib,
-            **update,
-        )
+            return node if is_new_node else None
+        return node.update(self.lib, **update)
 
     @_unnest.register
     def _(
