@@ -210,7 +210,7 @@ class UnnestFunctionsInLiteralsTransformer:
         if new_right is not None:
             update["right"] = new_right
         if not update:
-            return node if is_new_node else None
+            return None
         return node.update(
             self.lib,
             **update,
