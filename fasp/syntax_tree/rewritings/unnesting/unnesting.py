@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import List, Set, Tuple
+from typing import List, Set
 
 from clingo import ast, symbol
 from clingo.core import Library, Location
@@ -41,11 +41,12 @@ def unnest_functions[T: (
         allowed_in_negated_literals,
     )
 
-    return transformer.transform_node(
+    new_node = transformer._unnest(
         node,
         outer,
         sign,
     )
+    return new_node or node, transformer.unnested_functions
 
 
 class UnnestFunctionsInLiteralsTransformer:
@@ -97,32 +98,6 @@ class UnnestFunctionsInLiteralsTransformer:
             left,
             [ast.RightGuard(self.lib, ast.Relation.Equal, right)],
         )
-
-    def transform_node[T: (
-        ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
-    )](
-        self,
-        node: T,
-        outer: bool = True,
-        sign: ast.Sign | None = None,
-    ) -> Tuple[
-        T, List[ast.LiteralComparison]
-    ]:
-        """
-        Transform one AST node and return (new_node, unnested_list).
-
-        - Resets the per-node list `self.unnested_functions` before transformation.
-        - Keeps the same FreshVariableGenerator instance so successive calls across
-          nodes in the same rule reuse the same variable namespace.
-        """
-        # Clear per-node collected unnested comparisons
-        self.unnested_functions = []
-
-        new_node = self._unnest(node, outer=outer, sign=None)
-
-        # Copy the list and return
-        collected = list(self.unnested_functions)
-        return new_node or node, collected
 
     @singledispatchmethod
     def _unnest(
