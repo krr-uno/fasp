@@ -17,6 +17,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         evaluable_functions: set[str],
         program: str,
         expected: str,
+        prefix: str = "F"
     ):
         """
         Helper method to assert that the syntactic checker finds the expected errors.
@@ -31,7 +32,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             SymbolSignature(name, int(arity)) for name, arity in evaluable_functions
         }
         self.transformer = NormalForm2PredicateTransformer(
-            self.lib.library, evaluable_functions
+            self.lib.library, evaluable_functions, prefix=prefix
         )
         statements = parse_string(self.lib, program)
         transformed_statements = [self.transformer.rewrite(stmt) for stmt in statements]
@@ -44,4 +45,30 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             {"f/1", "g/1"},
             "f(X):=Y :- g(X)=Y.",
             "Ff(X,Y) :- Fg(X,Y).",
+        )
+
+    def test_choice_assignment_rewrite(self):
+        self.assertRewrite({"f/1"}, "{ f(X) := Y } :- p.", "{ f_f(X,Y) } :- p.", prefix="f_")
+
+    def test_choice_assignment_invalid(self):
+        with self.assertRaises(AssertionError) as cm:
+            self.assertRewrite({"f/1"}, "{ f := Y } :- p.", "{ f_f(X,Y) } :- p.")
+        self.assertEqual(
+            str(cm.exception),
+            "Function f/0 not in evaluable functions {'f/1'}."
+        )
+
+    def test_head_simple_assignment(self):
+        self.assertRewrite({"f/1"}, "f(X) := Y :- q.", "f_f(X,Y) :- q.", prefix="f_")
+
+    def test_aggregate_assignment_invalid(self):
+        with self.assertRaises(AssertionError) as cm:
+            self.assertRewrite(
+                {"score/1"},
+                "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p.",
+                "#sum{ f_f(X,Y) } :- q."
+            )
+        self.assertEqual(
+            str(cm.exception),
+            "HeadAggregateAssignment seen during Head AST rewrite during Normalization. This should not happen."
         )

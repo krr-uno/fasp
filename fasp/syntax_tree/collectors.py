@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import singledispatch
-from typing import Any, Iterable
+from typing import Any, Iterable, Set
 
 from clingo import ast
 
@@ -48,8 +48,17 @@ def collect_evaluable_functions(program: Iterable[FASP_AST]) -> set[SymbolSignat
 
 
 @singledispatch
-def _get_evaluable_functions_head(_: Any) -> set[SymbolSignature]:
+# TODO: Need to make it a visitor
+def _get_evaluable_functions_head(node: Any) -> set[SymbolSignature]:
     assert False, f"Unsupported type: {_.__class__}"  # pragma: no cover
+
+    found: Set[SymbolSignature] = set()
+
+    def collect(child: FASP_AST) -> None:
+        found.update(_get_evaluable_functions_head(child))
+
+    node.visit(collect)
+    return found
 
 
 @_get_evaluable_functions_head.register
