@@ -281,7 +281,10 @@ class RewriteHeadAssignmentsTransformer:
     def rewrite(self, node: FASP_AST_T) -> FASP_AST_T | None:
         """Default handler: recurse generically."""
         # Never called since all assignment based nodes have dispatchers.
-        return node.transform(self.lib, self.rewrite)  # pragma: no cover
+        assert (
+            False
+        ), f"Unhandled Assignment node during Head AST rewriting: {type(node)}"  # pragma: no cover
+        return node.transform(self.lib, self.rewrite)
 
     # Simple assignment f(X) := Y.
     @rewrite.register
