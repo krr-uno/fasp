@@ -21,7 +21,6 @@ from fasp.syntax_tree.protecting import (  # protect_comparisons,; restore_compa
     COMPARISON_NAME,
 )
 from fasp.util.ast import (
-    HeadLiteralAST,
     StatementAST,
     create_body_literal,
     create_literal,
@@ -53,10 +52,21 @@ class NormalForm2PredicateTransformer:
     @singledispatchmethod
     def _rewrite_head(self, node: FASP_AST_T) -> FASP_AST_T:
         """
+        Transforms functional head assignments like:
+            f(X) := Y.
+        or choices like:
+            { f(X) := Y }.
+        into predicate-based heads:
+            f_f(X, Y).
         Default handler for head rewriting: return the node unchanged.
         """
+        # Never called since all assignment based nodes have dispatchers.
+        assert (
+            False
+        ), f"Unhandled Assignment node during Head AST rewriting: {type(node)}"  # pragma: no cover
         return node
 
+    # Simple assignment f(X) := Y.
     @_rewrite_head.register
     def _(self, node: HeadSimpleAssignment) -> ast.HeadSimpleLiteral:
         """
@@ -82,6 +92,7 @@ class NormalForm2PredicateTransformer:
             ),
         )
 
+    # Choice { f(X) := Y }.
     @_rewrite_head.register
     def _(self, node: ChoiceAssignment) -> ast.HeadSetAggregate:
         """
@@ -96,6 +107,7 @@ class NormalForm2PredicateTransformer:
             node.right_guard,
         )
 
+    # Elements inside aggregates
     @_rewrite_head.register
     def _(self, node: AssignmentAggregateElement) -> ast.SetAggregateElement:
         assignment = self._rewrite_head(node.assignment)
@@ -109,6 +121,15 @@ class NormalForm2PredicateTransformer:
             assignment.literal,
             list(node.condition),
         )
+
+    # HeadAggregateAssignment: f(X) := #sum{ f(X) : cond }.
+    # HeadAggregateAssignment should be rewritten by normalize_assignment_aggregates
+
+    @_rewrite_head.register
+    def _(self, node: HeadAggregateAssignment) -> ast.HeadAggregate:
+        assert (
+            False
+        ), "HeadAggregateAssignment seen during Head AST rewrite during Normalization. This should not happen."
 
     @singledispatchmethod
     def _dispatch(self, node: FASP_AST_T) -> FASP_AST_T | None:
@@ -160,7 +181,6 @@ class NormalForm2PredicateTransformer:
             else:
                 body.append(lit)
         if new_rule:
-            assert isinstance(head, HeadLiteralAST)
             return ast.StatementRule(self.library, node.location, head, body)
         assert isinstance(node, ast.StatementRule)
         return node
@@ -241,104 +261,3 @@ def functional_constraints(
         list[ast.AST]: A list of constraints for the functional normal form.
     """
     return (_functional_constraint(library, fun, prefix) for fun in evaluable_functions)
-
-
-# class RewriteHeadAssignmentsTransformer:
-#     """
-#     Transforms functional head assignments like:
-#         f(X) := Y.
-#     or choices like:
-#         { f(X) := Y }.
-#     into predicate-based heads:
-#         f_f(X, Y).
-#     """
-
-#     def __init__(
-#         self,
-#         lib: Library,
-#         evaluable_functions: AbstractSet[SymbolSignature],
-#         prefix: str = "F",
-#     ):
-#         self.lib = lib
-#         self.evaluable_functions = evaluable_functions
-#         self.prefix = prefix
-
-#     @singledispatchmethod
-#     def rewrite(self, node: FASP_AST_T) -> FASP_AST_T | None:
-#         """Default handler: recurse generically."""
-#         # Never called since all assignment based nodes have dispatchers.
-#         assert (
-#             False
-#         ), f"Unhandled Assignment node during Head AST rewriting: {type(node)}"  # pragma: no cover
-#         return node.transform(self.lib, self.rewrite)
-
-#     # Simple assignment f(X) := Y.
-#     @rewrite.register
-#     def _(self, node: HeadSimpleAssignment) -> ast.HeadSimpleLiteral | None:
-#         name, arguments = function_arguments_ast(self.lib, node.assigned_function)
-#         if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
-#             assert (
-#                 SymbolSignature(name, len(arguments)) in self.evaluable_functions
-#             ), f"Function {name}/{len(arguments)} not in evaluable functions {set(map(str, self.evaluable_functions))}."
-
-#         return ast.HeadSimpleLiteral(
-#             self.lib,
-#             ast.LiteralSymbolic(
-#                 self.lib,
-#                 node.location,
-#                 ast.Sign.NoSign,
-#                 ast.TermFunction(
-#                     self.lib,
-#                     node.assigned_function.location,
-#                     f"{self.prefix}{name}",
-#                     [ast.ArgumentTuple(self.lib, [*arguments, node.value])],
-#                 ),
-#             ),
-#         )
-
-#     # HeadAggregateAssignment: f(X) := #sum{ f(X) : cond }.
-#     # HeadAggregateAssignment should be rewritten by normalize_assignment_aggregates
-#     @rewrite.register
-#     def _(self, node: HeadAggregateAssignment) -> ast.HeadAggregate:
-#         assert (
-#             False
-#         ), "HeadAggregateAssignment seen during Head AST rewrite during Normalization. This should not happen."
-
-#     # Elements inside aggregates
-#     @rewrite.register
-#     def _(self, node: AssignmentAggregateElement) -> ast.HeadAggregateElement:
-#         assignment = self.rewrite(node.assignment)
-#         assert isinstance(
-#             assignment, ast.HeadSimpleLiteral
-#         ), f"Expected HeadSimpleLiteral after rewriting {node.assignment}"
-
-#         return ast.HeadAggregateElement(
-#             self.lib,
-#             node.location,
-#             [],  # tuple terms
-#             assignment.literal,
-#             list(node.condition),
-#         )
-
-#     # Choice { f(X) := Y }.
-#     @rewrite.register
-#     def _(self, node: ChoiceAssignment) -> ast.HeadSetAggregate:
-#         rewritten = []
-#         for el in node.elements:
-#             agg_elem = self.rewrite(el)
-#             if isinstance(agg_elem, ast.HeadAggregateElement):
-#                 rewritten.append(
-#                     ast.SetAggregateElement(
-#                         self.lib,
-#                         el.location,
-#                         agg_elem.literal,
-#                         agg_elem.condition,
-#                     )
-#                 )
-#         return ast.HeadSetAggregate(
-#             self.lib,
-#             node.location,
-#             node.left_guard,
-#             rewritten,
-#             node.right_guard,
-#         )

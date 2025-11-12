@@ -126,13 +126,12 @@ BodyLiteralAST = (
 )
 
 HeadLiteralAST = (
-    HeadAggregate
-    | HeadAggregateElement
-    | HeadConditionalLiteral
+    HeadSimpleLiteral
     | HeadDisjunction
+    | HeadAggregate
     | HeadSetAggregate
-    | HeadSimpleLiteral
     | HeadTheoryAtom
+    | HeadConditionalLiteral
 )
 
 AST = (
@@ -143,6 +142,7 @@ AST = (
     | BodyLiteralAST
     | BodyAggregateElement
     | Edge
+    | HeadAggregateElement
     | HeadLiteralAST
     | LeftGuard
     | OptimizeElement
