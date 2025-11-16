@@ -19,6 +19,7 @@ from fasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,
+    ChoiceSomeAssignment,
     FASP_Statement,
     HeadAggregateAssignment,
     HeadSimpleAssignment,
@@ -227,8 +228,10 @@ class TreeSitterParser:
             head = self._parse_simple_assignment(unparsed_head)
         elif unparsed_head.type == "aggregate_assignment":
             head = self._parse_aggregate_assignment(unparsed_head)
-        else:
+        elif unparsed_head.type == "choice_assignment":
             head = self._parse_choice_assignment(unparsed_head)
+        else:
+            head = self._parse_choice_some_assignment(unparsed_head)
         unparsed_body = node.child_by_field_name("body")
         if unparsed_body:
             body = self._clingo_parse_body(unparsed_body.text.decode("utf8"))
@@ -332,6 +335,28 @@ class TreeSitterParser:
             elements,
             left,
             right,
+        )
+
+    def _parse_choice_some_assignment(self, node: Node) -> ChoiceSomeAssignment:
+        """
+        Parse a head of the form `f(X) := #some { X : p(X) }`
+        """
+
+        # unparsed_assigned_function = node.child_by_field_name("assigned_function")
+        # assigned_function = ast.parse_term(
+        #     self.library.library, unparsed_assigned_function.text.decode("utf-8")
+        # )
+
+        assigned_function, unparsed_aggregate = self._preparse_assignment(node)
+
+        # Creating to a valid dummy aggregate to parse for elements.
+        dummy_aggregate = "#count" + unparsed_aggregate.split("#some", 1)[1]
+        aggregate = self._clingo_parse_body_aggregate(dummy_aggregate)
+
+        return ChoiceSomeAssignment(
+            self._location_from_node(node),
+            assigned_function,
+            aggregate.elements,
         )
 
     def _location_from_node(self, node: Node) -> Location:

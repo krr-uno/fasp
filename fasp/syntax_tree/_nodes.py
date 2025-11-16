@@ -373,6 +373,37 @@ class ChoiceAssignment(AssignmentAST):
         }
 
 
+@dataclass
+class ChoiceSomeAssignment(AssignmentAST):
+    """
+    An assignment head of the form ``f(args) := #agg{ ... }``.
+
+    Parameters
+    ----------
+    location : Location
+        Source code location.
+    assigned_function : ast.TermFunction
+        The function symbol on the left-hand side.
+    elements : Sequence[ast.BodyAggregateElement]
+        Elements of the aggregate body.
+    """
+
+    location: Location
+    assigned_function: ast.TermFunction
+    elements: Sequence[ast.BodyAggregateElement]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{str(self.assigned_function)} := #some{{{'; '.join(map(str, self.elements))}}}"
+
+    def to_dict(self) -> dict[str, Any]: # pragma: no cover
+        return {
+            "type": "ChoiceSomeAssignment",
+            "location": self.location,
+            "assigned_function": self.assigned_function,
+            "elements": self.elements,
+        }
+
+
 HeadAssignment = HeadSimpleAssignment | HeadAggregateAssignment
 
 
