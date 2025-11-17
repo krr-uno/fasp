@@ -13,12 +13,12 @@ from fasp.syntax_tree._nodes import (
 from fasp.util.ast import BodyLiteralAST, TermAST
 
 
-def transform_choice_some_to_choice_assignment[T: (
+def transform_choice_some_to_choice_assignment[
+    T: (
         ast.StatementRule,
         AssignmentRule,
-    )](
-    library: Library, rule: T
-) -> T | None:
+    )
+](library: Library, rule: T) -> T | None:
     """
     Transform a ChoiceSomeAssignment head into a ChoiceAssignment head
     with a corresponding #count aggregate prepended to the body.
@@ -34,7 +34,7 @@ def transform_choice_some_to_choice_assignment[T: (
     """
     if not isinstance(rule, AssignmentRule):
         return None  # unchanged
-    
+
     head = rule.head
     if not isinstance(head, ChoiceSomeAssignment):
         return None  # unchanged
@@ -61,7 +61,11 @@ def transform_choice_some_to_choice_assignment[T: (
         )
 
     # Create right guard = 1
-    right_guard = ast.RightGuard(library, ast.Relation.Equal, ast.TermSymbolic(library, head.location, symbol.Number(library, 1)))
+    right_guard = ast.RightGuard(
+        library,
+        ast.Relation.Equal,
+        ast.TermSymbolic(library, head.location, symbol.Number(library, 1)),
+    )
 
     # Construct new ChoiceAssignment head
     new_head = ChoiceAssignment(

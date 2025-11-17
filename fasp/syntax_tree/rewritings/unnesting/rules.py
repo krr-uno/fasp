@@ -56,10 +56,12 @@ class RuleRewriteTransformer:
         return self._rewrite(node, var_gen)
 
     @singledispatchmethod
-    def _rewrite_literal[T: (
-        BodyLiteralAST,
-        HeadLiteralAST,
-    )](self, node: T, _: FreshVariableGenerator) -> T:
+    def _rewrite_literal[
+        T: (
+            BodyLiteralAST,
+            HeadLiteralAST,
+        )
+    ](self, node: T, _: FreshVariableGenerator) -> T:
         """Default: return node unchanged."""
         assert False, f"Unhandled literal type during function unnesting: {type(node)}"
 
@@ -183,16 +185,20 @@ class RuleRewriteTransformer:
         ), "HeadAggregateAssignment seen during function unnesting. This should not happen."
 
     @singledispatchmethod
-    def _rewrite(self, node: FASP_AST, _: FreshVariableGenerator) -> FASP_AST:
+    def _rewrite(
+        self, node: FASP_AST, _: FreshVariableGenerator
+    ) -> FASP_AST:  # pragma: no cover
         """Default: return node unchanged."""
         return node
 
     # Rule Statements
     @_rewrite.register(ast.StatementRule | AssignmentRule)
-    def _[T: (
-        ast.StatementRule,
-        AssignmentRule,
-    )](self, node: T, var_gen: FreshVariableGenerator) -> T:
+    def _[
+        T: (
+            ast.StatementRule,
+            AssignmentRule,
+        )
+    ](self, node: T, var_gen: FreshVariableGenerator) -> T:
         if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):
             new_head = self.head_literal_transformer.unnest(node.head) or node.head
         else:

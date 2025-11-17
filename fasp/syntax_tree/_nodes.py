@@ -395,7 +395,7 @@ class ChoiceSomeAssignment(AssignmentAST):
     def __str__(self) -> str:  # pragma: no cover
         return f"{str(self.assigned_function)} := #some{{{'; '.join(map(str, self.elements))}}}"
 
-    def to_dict(self) -> dict[str, Any]: # pragma: no cover
+    def to_dict(self) -> dict[str, Any]:  # pragma: no cover
         return {
             "type": "ChoiceSomeAssignment",
             "location": self.location,

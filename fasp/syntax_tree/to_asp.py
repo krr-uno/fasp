@@ -10,10 +10,10 @@ from fasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,
+    ChoiceSomeAssignment,
     FASP_Statement,
     HeadAggregateAssignment,
     HeadSimpleAssignment,
-    ChoiceSomeAssignment,
 )
 from fasp.syntax_tree.collectors import (
     SymbolSignature,
