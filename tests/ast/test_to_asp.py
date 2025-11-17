@@ -61,7 +61,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
     def test_head_simple_assignment(self):
         self.assertRewrite({"f/1"}, "f(X) := Y :- q.", "f_f(X,Y) :- q.", prefix="f_")
 
-    def test_aggregate_assignment_invalid(self):
+    def test_aggregate_assignment_invalid_head_aggregate_assignment(self):
         with self.assertRaises(AssertionError) as cm:
             self.assertRewrite(
                 {"score/1"},
@@ -71,4 +71,15 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         self.assertEqual(
             str(cm.exception),
             "HeadAggregateAssignment seen during Head AST rewrite during Normalization. This should not happen."
+        )
+    def test_aggregate_assignment_invalid_choice_some_assignment(self):
+        with self.assertRaises(AssertionError) as cm:
+            self.assertRewrite(
+                {"score/1"},
+                "a := #some{X: p(X)} :- p.",
+                "{a := X: p(X)} = 1 :- #count{X: p(X)} >=  1, p."
+            )
+        self.assertEqual(
+            str(cm.exception),
+            "ChoiceSomeAssignment seen during Head AST rewrite during Normalization. This should not happen."
         )

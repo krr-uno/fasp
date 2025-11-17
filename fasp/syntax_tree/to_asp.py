@@ -13,6 +13,7 @@ from fasp.syntax_tree._nodes import (
     FASP_Statement,
     HeadAggregateAssignment,
     HeadSimpleAssignment,
+    ChoiceSomeAssignment,
 )
 from fasp.syntax_tree.collectors import (
     SymbolSignature,
@@ -130,6 +131,12 @@ class NormalForm2PredicateTransformer:
         assert (
             False
         ), "HeadAggregateAssignment seen during Head AST rewrite during Normalization. This should not happen."
+
+    @_rewrite_head.register
+    def _(self, node: ChoiceSomeAssignment) -> ast.HeadAggregate:
+        assert (
+            False
+        ), "ChoiceSomeAssignment seen during Head AST rewrite during Normalization. This should not happen."
 
     @singledispatchmethod
     def _dispatch(self, node: FASP_AST_T) -> FASP_AST_T | None:
