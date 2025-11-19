@@ -14,6 +14,16 @@ from fasp.syntax_tree.protecting import (
     restore_comparison,
 )
 
+from fasp.syntax_tree._nodes import FASP_AST
+from fasp.syntax_tree.protecting import (
+    protect_assignments,
+
+)
+
+
+from fasp.util.ast import ELibrary
+
+from fasp.syntax_tree.parsing.parser import parse_string
 
 def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
     right = _restore_guard_arguments(term)
@@ -124,3 +134,89 @@ class TestRestoreComparisons(unittest.TestCase):
         restorer = _ComparisonRestorationTransformer(self.lib)
         restored = restorer.dispatch(protected)
         self.assertEqual(lit, restored)
+
+
+class TestProtectAssignments(unittest.TestCase):
+    """
+    Unit tests for assignment-protection transformation.
+    Mirrors TestProtectComparisons in style and structure.
+    """
+
+    def setUp(self):
+        self.lib = ELibrary()
+        self.rewrite_context = RewriteContext(self.lib.library)
+
+    def assertEqualRewrite(self, program: str, expected: str):
+        """
+        Parses `program`, runs protect_assignments(), and compares to `expected`.
+        """
+        
+        statements = parse_string(self.lib, program)
+
+        rewritten = list(protect_assignments(self.lib, statements))
+
+        expected_lines = [line.strip() for line in expected.splitlines()]
+
+        self.maxDiff = None
+        self.assertCountEqual(
+            list(map(lambda s: str(s).strip(), rewritten)),
+            expected_lines
+        )
+
+        for stmt in rewritten:
+            self.assertIsInstance(stmt, FASP_AST)
+
+    def test_basic_assignments(self):
+        """
+        Simple rules with assignments inside heads & bodies.
+        """
+        program = """\
+            f(X) := Y :- g.
+            a := b :- p(X, Y).
+            h(3) := 20.
+        """
+
+        expected = textwrap.dedent(
+            """\
+            #program base.
+            ASS(f(X),(ARG(0,Y),),0) :- g.
+            ASS(a,(ARG(0,b),),0) :- p(X,Y).
+            ASS(h(3),(ARG(0,20),),0).
+        """
+        ).strip()
+
+        self.assertEqualRewrite(program, expected)
+    
+    def test_aggregate(self):
+        program = """\
+            { f(X) := Y } :- p.
+        """
+
+        expected = textwrap.dedent(
+            """\
+            #program base.
+            { ASS(f(X),(ARG(0,Y),),0) } :- p.
+        """
+        ).strip()
+
+        self.assertEqualRewrite(program, expected)
+    
+    # WIP
+    def test_choice_some_aggregate(self):
+        program = """\
+            a := #some{X: p(X)} :- p.
+        """
+
+        expected = textwrap.dedent(
+            """\
+            #program base.
+            { ASS(f(X),(ARG(0,Y),),0) } :- p.
+        """
+        ).strip()
+
+        with self.assertRaises(AssertionError) as cm:
+            self.assertEqualRewrite(program, expected)
+        self.assertEqual(
+            str(cm.exception),
+            "ChoiceSomeAssignment seen during assignment protection. Unhandled."
+        )
