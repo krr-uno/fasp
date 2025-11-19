@@ -398,11 +398,11 @@ class _AssignmentProtectorTransformer:
         return self.protect_assignment.protect_assignment_element(node)
 
     @dispatch.register
-    def _(self, node: ChoiceAssignment) -> ast.HeadSetAggregate | ChoiceAssignment:
+    def _(self, node: ChoiceAssignment) -> ChoiceAssignment:
         return node.transform(self.library, self.dispatch)
-    
+
     @dispatch.register
-    def _(self, node: ChoiceSomeAssignment) -> ast.HeadAggregate:
+    def _(self, node: ChoiceSomeAssignment) -> None:
         raise AssertionError(
             "ChoiceSomeAssignment seen during assignment protection. Unhandled."
         )
