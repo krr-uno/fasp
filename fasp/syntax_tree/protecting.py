@@ -6,10 +6,18 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number, Symbol, SymbolType
 
+from fasp.syntax_tree._nodes import (
+    AssignmentAggregateElement,
+    AssignmentRule,
+    ChoiceAssignment,
+    ChoiceSomeAssignment,
+    HeadSimpleAssignment,
+)
 from fasp.util.ast import (
     AST,
     AST_T,
     ArgumentAST,
+    ELibrary,
     FunctionLikeAST,
     StatementAST,
     TermAST,
@@ -38,6 +46,9 @@ RELATION_TO_INT = {r: i for i, r in enumerate(INT_TO_RELATION)}
 
 COMPARISON_NAME = "CMP"
 GUARD_NAME = "GRD"
+
+ASSIGNMENT_NAME = "ASS"
+ARGUMENT_NAME = "ARG"
 
 
 class ComparisonProtector:
@@ -295,3 +306,125 @@ class _ComparisonRestorationTransformer:
 #     """
 #     transformer = _ComparisonRestorationTransformer(library)
 #     return (transformer.rewrite(statement) for statement in statements)
+
+
+class AssignmentProtector:
+    """
+    A class to protect assignments in FASP ASTs.
+    """
+
+    def __init__(self, library: Library, assignment_name: str = ASSIGNMENT_NAME):
+        self.library = library
+        self.assignment_name = assignment_name
+        position = Position(library, "<aux>", 0, 0)
+        self.location = Location(position, position)
+
+    def protect_head_simple_assignment(
+        self, node: HeadSimpleAssignment
+    ) -> ast.LiteralSymbolic:
+        left = node.assigned_function
+        right = node.value
+        location = node.location
+
+        # Build ARG(0, right)
+        arg0 = ast.TermFunction(
+            self.library,
+            location,
+            ARGUMENT_NAME,
+            [
+                ast.ArgumentTuple(
+                    self.library,
+                    [
+                        ast.TermSymbolic(
+                            self.library, location, Number(self.library, 0)
+                        ),
+                        right,
+                    ],
+                )
+            ],
+        )
+
+        # Wrap ARG(0,right) in an ArgumentTuple, then a TermTuple -> (ARG(0,right),)
+        arg0_argtuple = ast.ArgumentTuple(self.library, [arg0])
+        tuple_arg = ast.TermTuple(self.library, location, [arg0_argtuple])
+
+        # Tag 0 as TermSymbolic(Number)
+        tag = ast.TermSymbolic(self.library, location, Number(self.library, 0))
+
+        # Build ASS(left, (ARG(0,right),), 0)
+        atom = ast.TermFunction(
+            self.library,
+            location,
+            ASSIGNMENT_NAME,
+            [ast.ArgumentTuple(self.library, [left, tuple_arg, tag])],
+        )
+
+        return ast.LiteralSymbolic(self.library, location, ast.Sign.NoSign, atom)
+
+    def protect_assignment_element(
+        self, node: AssignmentAggregateElement
+    ) -> ast.LiteralSymbolic:
+        """
+        For an AssignmentAggregateElement the 'assignment' field is a HeadSimpleAssignment
+        and we protect it similarly.
+        """
+        return self.protect_head_simple_assignment(node.assignment)
+
+
+class _AssignmentProtectorTransformer:
+    """
+    A transformer to protect assignments in FASP ASTs.
+    """
+
+    def __init__(self, library: ELibrary):
+        self.elib = library
+        self.library = library.library
+
+        self.protect_assignment = AssignmentProtector(self.library)
+
+    @singledispatchmethod
+    def dispatch(self, node: AST_T) -> AST_T:
+        if hasattr(node, "transform"):
+            # Recurse into children via their transform method.
+            return node.transform(self.library, self.dispatch) or node
+        return node
+
+    @dispatch.register
+    def _(self, node: HeadSimpleAssignment) -> ast.LiteralSymbolic:
+        return self.protect_assignment.protect_head_simple_assignment(node)
+
+    @dispatch.register
+    def _(self, node: AssignmentAggregateElement) -> ast.LiteralSymbolic:
+        return self.protect_assignment.protect_assignment_element(node)
+
+    @dispatch.register
+    def _(self, node: ChoiceAssignment) -> ast.HeadSetAggregate | ChoiceAssignment:
+        return node.transform(self.library, self.dispatch)
+    
+    @dispatch.register
+    def _(self, node: ChoiceSomeAssignment) -> ast.HeadAggregate:
+        raise AssertionError(
+            "ChoiceSomeAssignment seen during assignment protection. Unhandled."
+        )
+
+    def rewrite(self, node: StatementAST) -> StatementAST:
+        if not isinstance(node, (ast.StatementRule, AssignmentRule)):
+            return node
+        return node.transform(self.library, self.dispatch) or node
+
+
+def protect_assignments(
+    library: ELibrary, statements: Iterable[StatementAST]
+) -> Iterable[StatementAST]:
+    """
+    Protect assignments in a FASP AST (assignment-heads etc).
+
+    Args:
+        library (ELibrary): Clingo library with assignment node support.
+        statements (Iterable[StatementAST]): Statements.
+
+    Returns:
+        Iterable[StatementAST]: Protected AST statements with assignments encoded as ASS(...).
+    """
+    transformer = _AssignmentProtectorTransformer(library)
+    return (transformer.rewrite(statement) for statement in statements)
