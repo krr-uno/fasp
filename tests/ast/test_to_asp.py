@@ -54,7 +54,11 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
 
     def test_choice_assignment_invalid(self):
         with self.assertRaises(AssertionError) as cm:
-            self.assertRewrite({"f/1"}, "{ f := Y } :- p.", "{ f_f(X,Y) } :- p.")
+            self.assertRewrite(
+                {"f/1"},
+                "{ f := Y } :- p.",
+                "{ f_f(X,Y) } :- p.",
+            )
         self.assertEqual(
             str(cm.exception), "Function f/0 not in evaluable functions {'f/1'}."
         )

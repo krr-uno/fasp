@@ -67,4 +67,3 @@ class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
     #         "a := #some{X,Y: p(X,Y)} :- p.",
     #         "{ a := (X,Y) : p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
     #     )
-    
