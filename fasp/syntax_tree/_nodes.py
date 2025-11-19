@@ -102,7 +102,6 @@ class AssignmentAST:
         constructor parameters. Typically includes a "type" field for
         debugging or serialization.
         """
-        ...
 
     def update(self, lib: Library | None = None, **kwargs: Any) -> Self:
         """

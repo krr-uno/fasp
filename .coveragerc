@@ -8,5 +8,5 @@ exclude_lines =
     pragma: no cover
     nocoverage
     assert
-    if __name__ == .__main__.:
-    ...
+    #if __name__ == .__main__.:
+    #...

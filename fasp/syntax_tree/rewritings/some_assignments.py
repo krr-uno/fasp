@@ -13,12 +13,10 @@ from fasp.syntax_tree._nodes import (
 from fasp.util.ast import BodyLiteralAST, TermAST
 
 
-def transform_choice_some_to_choice_assignment[
-    T: (
-        ast.StatementRule,
-        AssignmentRule,
-    )
-](library: Library, rule: T) -> T | None:
+def transform_choice_some_to_choice_assignment[T: (
+    ast.StatementRule,
+    AssignmentRule,
+)](library: Library, rule: T) -> T | None:
     """
     Transform a ChoiceSomeAssignment head into a ChoiceAssignment head
     with a corresponding #count aggregate prepended to the body.
