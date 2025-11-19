@@ -4,7 +4,9 @@ import unittest
 from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary
 from fasp.syntax_tree._nodes import AssignmentRule
-from fasp.syntax_tree.rewritings.some_assignments import transform_choice_some_to_choice_assignment
+from fasp.syntax_tree.rewritings.some_assignments import (
+    transform_choice_some_to_choice_assignment,
+)
 
 
 class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
@@ -23,7 +25,9 @@ class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
         stmts = stmts[1:]
         out: list[str] = []
         for stmt in stmts:
-            transformed = transform_choice_some_to_choice_assignment(self.lib.library, stmt)
+            transformed = transform_choice_some_to_choice_assignment(
+                self.lib.library, stmt
+            )
             stmt = transformed or stmt
             out.append(str(stmt).strip())
         return out, []
@@ -35,14 +39,31 @@ class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
         self.assertEqual(errors, [])
 
     def test_choice_some_transformation(self):
-        self.assertRewriteEqual("a := #some{X: p(X)} :- p.", "{ a := X: p(X) } = 1 :- #count { X: p(X) } >= 1; p.")
+        self.assertRewriteEqual(
+            "a := #some{X: p(X)} :- p.",
+            "{ a := X: p(X) } = 1 :- #count { X: p(X) } >= 1; p.",
+        )
 
     def test_choice_some_transformation_2(self):
-        self.assertRewriteEqual("a := #some{X: p(X), q; Y: p(Y)} :- p.", "{ a := X: p(X), q; a := Y: p(Y) } = 1 :- #count { X: p(X), q; Y: p(Y) } >= 1; p.")
-
+        self.assertRewriteEqual(
+            "a := #some{X: p(X), q; Y: p(Y)} :- p.",
+            "{ a := X: p(X), q; a := Y: p(Y) } = 1 :- #count { X: p(X), q; Y: p(Y) } >= 1; p.",
+        )
 
     def test_non_choice_some_transformation(self):
-        self.assertRewriteEqual("a := #sum{X: p(X)} :- p.", "a := #sum{X: p(X)} :- p.")
+        self.assertRewriteEqual(
+            "a := #sum{X: p(X)} :- p.",
+            "a := #sum{X: p(X)} :- p.",
+        )
 
     def test_non_assignment_transformation(self):
-        self.assertRewriteEqual("#sum{ X: p(X) } :- p.", "#sum { X: p(X) } :- p.")
+        self.assertRewriteEqual(
+            "#sum{ X: p(X) } :- p.",
+            "#sum { X: p(X) } :- p.",
+        )
+
+    def test_choice_some_tuple(self):
+        self.assertRewriteEqual(
+            "a := #some{X,Y: p(X,Y)} :- p.",
+            "{ a := X: p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
+        )

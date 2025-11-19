@@ -17,7 +17,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         evaluable_functions: set[str],
         program: str,
         expected: str,
-        prefix: str = "F"
+        prefix: str = "F",
     ):
         """
         Helper method to assert that the syntactic checker finds the expected errors.
@@ -48,14 +48,15 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         )
 
     def test_choice_assignment_rewrite(self):
-        self.assertRewrite({"f/1"}, "{ f(X) := Y } :- p.", "{ f_f(X,Y) } :- p.", prefix="f_")
+        self.assertRewrite(
+            {"f/1"}, "{ f(X) := Y } :- p.", "{ f_f(X,Y) } :- p.", prefix="f_"
+        )
 
     def test_choice_assignment_invalid(self):
         with self.assertRaises(AssertionError) as cm:
             self.assertRewrite({"f/1"}, "{ f := Y } :- p.", "{ f_f(X,Y) } :- p.")
         self.assertEqual(
-            str(cm.exception),
-            "Function f/0 not in evaluable functions {'f/1'}."
+            str(cm.exception), "Function f/0 not in evaluable functions {'f/1'}."
         )
 
     def test_head_simple_assignment(self):
@@ -66,20 +67,21 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             self.assertRewrite(
                 {"score/1"},
                 "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p.",
-                "#sum{ f_f(X,Y) } :- q."
+                "#sum{ f_f(X,Y) } :- q.",
             )
         self.assertEqual(
             str(cm.exception),
-            "HeadAggregateAssignment seen during Head AST rewrite during Normalization. This should not happen."
+            "HeadAggregateAssignment seen during Head AST rewrite during Normalization. This should not happen.",
         )
+
     def test_aggregate_assignment_invalid_choice_some_assignment(self):
         with self.assertRaises(AssertionError) as cm:
             self.assertRewrite(
                 {"score/1"},
                 "a := #some{X: p(X)} :- p.",
-                "{a := X: p(X)} = 1 :- #count{X: p(X)} >=  1, p."
+                "{a := X: p(X)} = 1 :- #count{X: p(X)} >=  1, p.",
             )
         self.assertEqual(
             str(cm.exception),
-            "ChoiceSomeAssignment seen during Head AST rewrite during Normalization. This should not happen."
+            "ChoiceSomeAssignment seen during Head AST rewrite during Normalization. This should not happen.",
         )
