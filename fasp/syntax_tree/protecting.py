@@ -48,7 +48,6 @@ COMPARISON_NAME = "CMP"
 GUARD_NAME = "GRD"
 
 ASSIGNMENT_NAME = "ASS"
-ARGUMENT_NAME = "ARG"
 
 
 class ComparisonProtector:
@@ -326,37 +325,12 @@ class AssignmentProtector:
         # right = node.value
         location = node.location
 
-        # Build ARG(0, right)
-        # arg0 = ast.TermFunction(
-        #     self.library,
-        #     location,
-        #     ARGUMENT_NAME,
-        #     [
-        #         ast.ArgumentTuple(
-        #             self.library,
-        #             [
-        #                 ast.TermSymbolic(
-        #                     self.library, location, Number(self.library, 0)
-        #                 ),
-        #                 right,
-        #             ],
-        #         )
-        #     ],
-        # )
-
-        # Wrap ARG(0,right) in an ArgumentTuple, then a TermTuple -> (ARG(0,right),)
-        # arg0_argtuple = ast.ArgumentTuple(self.library, [node.value])
-        # tuple_arg = ast.TermTuple(self.library, location, [arg0_argtuple])
-
-        # Tag 0 as TermSymbolic(Number)
-        tag = ast.TermSymbolic(self.library, location, Number(self.library, 0))
-
         # Build ASS(left, (ARG(0,right),), 0)
         atom = ast.TermFunction(
             self.library,
             location,
             ASSIGNMENT_NAME,
-            [ast.ArgumentTuple(self.library, [left, node.value, tag])],
+            [ast.ArgumentTuple(self.library, [left, node.value])],
         )
 
         return ast.LiteralSymbolic(self.library, location, ast.Sign.NoSign, atom)

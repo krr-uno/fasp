@@ -178,9 +178,9 @@ class TestProtectAssignments(unittest.TestCase):
         expected = textwrap.dedent(
             """\
             #program base.
-            ASS(f(X),Y,0) :- g.
-            ASS(a,b,0) :- p(X,Y).
-            ASS(h(3),20,0).
+            ASS(f(X),Y) :- g.
+            ASS(a,b) :- p(X,Y).
+            ASS(h(3),20).
         """
         ).strip()
 
@@ -194,7 +194,7 @@ class TestProtectAssignments(unittest.TestCase):
         expected = textwrap.dedent(
             """\
             #program base.
-            { ASS(f(X),(Y,Z),0) } :- p.
+            { ASS(f(X),(Y,Z)) } :- p.
         """
         ).strip()
 
@@ -211,7 +211,7 @@ class TestProtectAssignments(unittest.TestCase):
         expected = textwrap.dedent(
             """\
             #program base.
-            ASS(f(1;2),Y,0) :- g(Y).
+            ASS(f(1;2),Y) :- g(Y).
         """
         ).strip()
 
@@ -226,7 +226,7 @@ class TestProtectAssignments(unittest.TestCase):
         expected = textwrap.dedent(
             """\
             #program base.
-            { ASS(f(X),(ARG(0,Y),),0) } :- p.
+            { ASS(f(X),(ARG(0,Y),)) } :- p.
         """
         ).strip()
 
