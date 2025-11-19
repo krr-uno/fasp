@@ -85,3 +85,11 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             str(cm.exception),
             "ChoiceSomeAssignment seen during Head AST rewrite during Normalization. This should not happen.",
         )
+
+    def test_choice_assignment_with_tuple(self):
+        self.assertRewrite(
+            {"a/0"},
+            "{ a := (X,Y): p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
+            "{ f_a((X,Y)): p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
+            prefix="f_",
+        )
