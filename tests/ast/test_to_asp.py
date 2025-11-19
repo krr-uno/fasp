@@ -90,6 +90,5 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         self.assertRewrite(
             {"a/0"},
             "{ a := (X,Y): p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
-            "{ f_a((X,Y)): p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
-            prefix="f_",
+            "{ Fa((X,Y)): p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
         )

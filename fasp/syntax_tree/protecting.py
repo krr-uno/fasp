@@ -323,30 +323,30 @@ class AssignmentProtector:
         self, node: HeadSimpleAssignment
     ) -> ast.LiteralSymbolic:
         left = node.assigned_function
-        right = node.value
+        # right = node.value
         location = node.location
 
         # Build ARG(0, right)
-        arg0 = ast.TermFunction(
-            self.library,
-            location,
-            ARGUMENT_NAME,
-            [
-                ast.ArgumentTuple(
-                    self.library,
-                    [
-                        ast.TermSymbolic(
-                            self.library, location, Number(self.library, 0)
-                        ),
-                        right,
-                    ],
-                )
-            ],
-        )
+        # arg0 = ast.TermFunction(
+        #     self.library,
+        #     location,
+        #     ARGUMENT_NAME,
+        #     [
+        #         ast.ArgumentTuple(
+        #             self.library,
+        #             [
+        #                 ast.TermSymbolic(
+        #                     self.library, location, Number(self.library, 0)
+        #                 ),
+        #                 right,
+        #             ],
+        #         )
+        #     ],
+        # )
 
         # Wrap ARG(0,right) in an ArgumentTuple, then a TermTuple -> (ARG(0,right),)
-        arg0_argtuple = ast.ArgumentTuple(self.library, [arg0])
-        tuple_arg = ast.TermTuple(self.library, location, [arg0_argtuple])
+        # arg0_argtuple = ast.ArgumentTuple(self.library, [node.value])
+        # tuple_arg = ast.TermTuple(self.library, location, [arg0_argtuple])
 
         # Tag 0 as TermSymbolic(Number)
         tag = ast.TermSymbolic(self.library, location, Number(self.library, 0))
@@ -356,7 +356,7 @@ class AssignmentProtector:
             self.library,
             location,
             ASSIGNMENT_NAME,
-            [ast.ArgumentTuple(self.library, [left, tuple_arg, tag])],
+            [ast.ArgumentTuple(self.library, [left, node.value, tag])],
         )
 
         return ast.LiteralSymbolic(self.library, location, ast.Sign.NoSign, atom)

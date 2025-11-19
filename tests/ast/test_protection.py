@@ -179,9 +179,9 @@ class TestProtectAssignments(unittest.TestCase):
         expected = textwrap.dedent(
             """\
             #program base.
-            ASS(f(X),(ARG(0,Y),),0) :- g.
-            ASS(a,(ARG(0,b),),0) :- p(X,Y).
-            ASS(h(3),(ARG(0,20),),0).
+            ASS(f(X),Y,0) :- g.
+            ASS(a,b,0) :- p(X,Y).
+            ASS(h(3),20,0).
         """
         ).strip()
 
@@ -189,18 +189,35 @@ class TestProtectAssignments(unittest.TestCase):
     
     def test_aggregate(self):
         program = """\
-            { f(X) := Y } :- p.
+            { f(X) := (Y,Z) } :- p.
         """
 
         expected = textwrap.dedent(
             """\
             #program base.
-            { ASS(f(X),(ARG(0,Y),),0) } :- p.
+            { ASS(f(X),(Y,Z),0) } :- p.
         """
         ).strip()
 
         self.assertEqualRewrite(program, expected)
     
+    def test_pool(self):
+        """
+        Simple rules with assignments inside heads & bodies.
+        """
+        program = """\
+            f(1;2) := Y :- g(Y).
+        """
+
+        expected = textwrap.dedent(
+            """\
+            #program base.
+            ASS(f(1;2),Y,0) :- g(Y).
+        """
+        ).strip()
+
+        self.assertEqualRewrite(program, expected)
+
     # WIP
     def test_choice_some_aggregate(self):
         program = """\
