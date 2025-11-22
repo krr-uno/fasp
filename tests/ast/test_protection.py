@@ -4,7 +4,7 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 from clingo.ast import RewriteContext
-from fasp.util.ast import AST
+from fasp.util.ast import AST, ELibrary
 
 from fasp.syntax_tree.protecting import (
     _ComparisonProtectorTransformer,
@@ -12,15 +12,13 @@ from fasp.syntax_tree.protecting import (
     _restore_guard_arguments,
     protect_comparisons,
     restore_comparison,
+    protect_assignments,
+    restore_assignments,
+    _AssignmentRestorationTransformer
+    
 )
 
 from fasp.syntax_tree._nodes import FASP_AST
-from fasp.syntax_tree.protecting import (
-    protect_assignments,
-)
-
-
-from fasp.util.ast import ELibrary
 
 from fasp.syntax_tree.parsing.parser import parse_string
 
@@ -236,3 +234,71 @@ class TestProtectAssignments(unittest.TestCase):
             str(cm.exception),
             "ChoiceSomeAssignment seen during assignment protection. Unhandled.",
         )
+
+class TestRestoreAssignments(unittest.TestCase):
+    """
+    Unit tests for assignment restoration.
+    """
+
+    def setUp(self):
+        self.lib = ELibrary()
+
+    def assertEqualRestore(self, program: str, expected: str):
+        """
+        Parses `program`, protects assignments, restores them, and
+        checks the restored program matches the original AST structure.
+        """
+        statements = parse_string(self.lib, program)
+
+        # Protect assignments
+        protected = list(protect_assignments(self.lib, statements))
+
+        protected_str = "\n".join(str(stmt).strip() for stmt in protected[1:])
+        exp_protected_str = textwrap.dedent(expected).strip()
+
+        self.assertEqual(
+            protected_str,
+            exp_protected_str,
+            msg=f"Protected form mismatch.\nExpected:\n{exp_protected_str}\nGot:\n{protected_str}",
+        )
+
+        # Restore assignments
+        restored = list(restore_assignments(self.lib, protected))
+        print(f"{len(statements)}, {len(restored)}")
+        self.assertEqual(len(statements), len(restored))
+        for orig, rest in zip(statements, restored):
+            # Compare string forms
+            self.assertEqual(str(orig).strip(), str(rest).strip())
+            # Ensure restored node is a valid FASP AST
+            self.assertIsInstance(rest, FASP_AST)
+
+    def test_basic_assignments(self):
+        program = """\
+            f(X) := Y :- g.
+            a := b :- p(X, Y).
+            h(3) := 20.
+        """
+        expected = """\
+            ASS(f(X),Y) :- g.
+            ASS(a,b) :- p(X,Y).
+            ASS(h(3),20).
+        """
+        self.assertEqualRestore(program, expected)
+
+    def test_aggregate_assignments(self):
+        self.assertEqualRestore(
+            "{ f(X) := (Y,Z) } :- p.", 
+            "{ ASS(f(X),(Y,Z)) } :- p."
+            )
+
+    def test_choice_assignments(self):
+        self.assertEqualRestore(
+            "f(1;2) := Y :- g(Y).", 
+            "ASS(f(1;2),Y) :- g(Y)."
+            )
+    
+    def test_restore_non_function_atom(self):
+        self.assertEqualRestore(
+            "#true.",
+            "#true."
+            )

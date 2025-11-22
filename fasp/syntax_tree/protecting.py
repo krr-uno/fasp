@@ -325,7 +325,7 @@ class AssignmentProtector:
         # right = node.value
         location = node.location
 
-        # Build ASS(left, (ARG(0,right),), 0)
+        # Build ASS(left, right)
         atom = ast.TermFunction(
             self.library,
             location,
@@ -401,4 +401,91 @@ def protect_assignments(
         Iterable[StatementAST]: Protected AST statements with assignments encoded as ASS(...).
     """
     transformer = _AssignmentProtectorTransformer(library)
+    return (transformer.rewrite(statement) for statement in statements)
+
+
+# # RESTORATION: ASS(left, right) --> HeadSimpleAssignment
+
+
+def restore_assignment_arguments(
+    arguments: Sequence[ArgumentAST | Symbol],
+) -> tuple[TermAST, TermAST]:
+    """
+    Extract (left, right) from ASS(left, right)
+    """
+    assert len(arguments) == 2, f"Expected 2 arguments in ASS(...), got: {arguments}"
+    left, right = arguments
+
+    # Ensure they are not Projections
+    assert not isinstance(left, ast.Projection)
+    assert not isinstance(right, ast.Projection)
+
+    return cast(TermAST, left), cast(TermAST, right)
+
+
+def _restore_assignment(
+    literal: ast.LiteralSymbolic,
+    assignment_name: str = ASSIGNMENT_NAME,
+) -> ast.LiteralSymbolic | HeadSimpleAssignment:
+    """
+    Restore a protected assignment:
+        ASS(left, right)  -->  HeadSimpleAssignment(left, right)
+    """
+    atom = literal.atom
+
+    if not is_function(atom):
+        return literal  # pragma: no cover
+
+    fun_name, arguments = function_arguments(atom)
+    if fun_name != assignment_name:
+        return literal
+
+    left, right = restore_assignment_arguments(arguments)
+    # assert isinstance(left, ast.TermFunction)
+    return HeadSimpleAssignment(
+        literal.location,
+        cast(
+            ast.TermFunction, left
+        ),  # QUESTION: HeadSimpleAssignment only allows TermFunction as assigned function.
+        right,
+    )
+
+
+class _AssignmentRestorationTransformer:
+    """
+    Transformer to restore ASS(...) symbolic literals to HeadSimpleAssignment
+    """
+
+    def __init__(self, library: ELibrary):
+        self.elib = library
+        self.library = library.library
+
+    @singledispatchmethod
+    def dispatch(self, node: AST_T) -> AST_T:
+        print("hi", type(node))
+        if hasattr(node, "transform"):
+            return node.transform(self.library, self.dispatch) or node
+        return node
+
+    @dispatch.register
+    def _(
+        self, node: ast.LiteralSymbolic
+    ) -> ast.LiteralSymbolic | HeadSimpleAssignment:
+        return _restore_assignment(node)
+
+    @dispatch.register
+    def _(self, node: ChoiceAssignment) -> ChoiceAssignment:
+        return node.transform(self.library, self.dispatch) or node
+
+    def rewrite(self, node: StatementAST) -> StatementAST:
+        return node.transform(self.library, self.dispatch) or node
+
+
+def restore_assignments(
+    library: ELibrary, statements: Iterable[StatementAST]
+) -> Iterable[StatementAST]:
+    """
+    Apply the restoration transformer to all statements.
+    """
+    transformer = _AssignmentRestorationTransformer(library)
     return (transformer.rewrite(statement) for statement in statements)
