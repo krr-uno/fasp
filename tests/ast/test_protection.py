@@ -276,7 +276,6 @@ class TestRestoreAssignments(unittest.TestCase):
 
         # Restore assignments
         restored = list(restore_assignments(self.lib, protected))
-        print(f"{len(statements)}, {len(restored)}")
         self.assertEqual(len(statements), len(restored))
         for orig, rest in zip(statements, restored):
             # Compare string forms

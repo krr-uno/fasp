@@ -1,4 +1,4 @@
-from typing import List, Iterable
+from typing import List
 
 from clingo import ast, symbol
 from clingo.core import Library
@@ -8,10 +8,10 @@ from fasp.syntax_tree._nodes import (
     AssignmentRule,
     ChoiceAssignment,
     ChoiceSomeAssignment,
-    HeadSimpleAssignment,
     FASP_Statement,
+    HeadSimpleAssignment,
 )
-from fasp.util.ast import BodyLiteralAST, TermAST, StatementAST
+from fasp.util.ast import BodyLiteralAST, StatementAST, TermAST
 
 
 def _transform_choice_some_to_choice_assignment[
@@ -102,7 +102,7 @@ def transform_choice_some_to_choice_assignment(
     # if elif for mypy
     if isinstance(stm, ast.StatementRule):
         return _transform_choice_some_to_choice_assignment(library, stm) or stm
-    elif  isinstance(stm, AssignmentRule):
+    elif isinstance(stm, AssignmentRule):
         return _transform_choice_some_to_choice_assignment(library, stm) or stm
     else:
         return stm

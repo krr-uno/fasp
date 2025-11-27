@@ -11,8 +11,8 @@ from fasp.syntax_tree._nodes import (
     AssignmentRule,
     ChoiceAssignment,
     ChoiceSomeAssignment,
-    HeadSimpleAssignment,
     FASP_Statement,
+    HeadSimpleAssignment,
 )
 from fasp.util.ast import (
     AST,
@@ -463,7 +463,6 @@ class _AssignmentRestorationTransformer:
 
     @singledispatchmethod
     def dispatch(self, node: AST_T) -> AST_T:
-        print("hi", type(node))
         if hasattr(node, "transform"):
             return node.transform(self.library, self.dispatch) or node
         return node
