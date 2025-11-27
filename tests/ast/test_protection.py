@@ -199,9 +199,6 @@ class TestProtectAssignments(unittest.TestCase):
         self.assertEqualRewrite(program, expected)
 
     def test_pool(self):
-        """
-        Simple rules with assignments inside heads & bodies.
-        """
         program = """\
             f(1;2) := Y :- g(Y).
         """
@@ -214,6 +211,21 @@ class TestProtectAssignments(unittest.TestCase):
         ).strip()
 
         self.assertEqualRewrite(program, expected)
+
+    # How to add the condition p(X) ?
+    def test_aggregate_condition(self):
+        program ="""\
+            { a := X: p(X) } = 1 :- #count { X: p(X) } >= 1; s.
+        """
+
+        expected_program = textwrap.dedent(
+            """\
+            #program base.
+            { ASS(a,X) } = 1 :- #count { X: p(X) } >= 1; s.
+        """
+        ).strip()
+
+        self.assertEqualRewrite(program, expected_program)
 
     # WIP
     def test_choice_some_aggregate(self):
