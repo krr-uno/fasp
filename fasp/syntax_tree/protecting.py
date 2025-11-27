@@ -12,6 +12,7 @@ from fasp.syntax_tree._nodes import (
     ChoiceAssignment,
     ChoiceSomeAssignment,
     HeadSimpleAssignment,
+    FASP_Statement,
 )
 from fasp.util.ast import (
     AST,
@@ -142,15 +143,15 @@ class _ComparisonProtectorTransformer:
     ) -> ast.LiteralBoolean | ast.LiteralSymbolic:
         return node
 
-    def rewrite(self, node: StatementAST) -> StatementAST:
+    def rewrite(self, node: FASP_Statement) -> FASP_Statement:
         if not isinstance(node, ast.StatementRule):
             return node
         return node.transform(self.library, self.dispatch) or node
 
 
 def protect_comparisons(
-    library: Library, statements: Iterable[StatementAST]
-) -> Iterable[StatementAST]:
+    library: Library, statements: Iterable[FASP_Statement]
+) -> Iterable[FASP_Statement]:
     """
     Protect comparisons in a Clingo AST.
 
@@ -381,24 +382,24 @@ class _AssignmentProtectorTransformer:
             "ChoiceSomeAssignment seen during assignment protection. Unhandled."
         )
 
-    def rewrite(self, node: StatementAST) -> StatementAST:
+    def rewrite(self, node: FASP_Statement) -> FASP_Statement:
         if not isinstance(node, (ast.StatementRule, AssignmentRule)):
             return node
         return node.transform(self.library, self.dispatch) or node
 
 
 def protect_assignments(
-    library: ELibrary, statements: Iterable[StatementAST]
-) -> Iterable[StatementAST]:
+    library: ELibrary, statements: Iterable[FASP_Statement]
+) -> Iterable[FASP_Statement]:
     """
     Protect assignments in a FASP AST (assignment-heads etc).
 
     Args:
         library (ELibrary): Clingo library with assignment node support.
-        statements (Iterable[StatementAST]): Statements.
+        statements (Iterable[FASP_Statement]): Statements.
 
     Returns:
-        Iterable[StatementAST]: Protected AST statements with assignments encoded as ASS(...).
+        Iterable[FASP_Statement]: Protected AST statements with assignments encoded as ASS(...).
     """
     transformer = _AssignmentProtectorTransformer(library)
     return (transformer.rewrite(statement) for statement in statements)
