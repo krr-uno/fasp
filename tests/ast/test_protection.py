@@ -13,8 +13,8 @@ from fasp.syntax_tree.protecting import (
     protect_comparisons,
     restore_comparison,
     protect_assignments,
-    restore_assignments,
-    _AssignmentRestorationTransformer
+    # restore_assignments,
+    # _AssignmentRestorationTransformer
     
 )
 
@@ -142,7 +142,6 @@ class TestProtectAssignments(unittest.TestCase):
 
     def setUp(self):
         self.lib = ELibrary()
-        self.rewrite_context = RewriteContext(self.lib.library)
 
     def assertEqualRewrite(self, program: str, expected: str):
         """
@@ -212,22 +211,20 @@ class TestProtectAssignments(unittest.TestCase):
 
         self.assertEqualRewrite(program, expected)
 
-    # How to add the condition p(X) ?
     def test_aggregate_condition(self):
         program ="""\
-            { a := X: p(X) } = 1 :- #count { X: p(X) } >= 1; s.
+            { a := X: p(X); a } = 1 :- #count { X: p(X) } >= 1; s.
         """
 
         expected_program = textwrap.dedent(
             """\
             #program base.
-            { ASS(a,X) } = 1 :- #count { X: p(X) } >= 1; s.
+            { ASS(a,X): p(X); a } = 1 :- #count { X: p(X) } >= 1; s.
         """
         ).strip()
 
         self.assertEqualRewrite(program, expected_program)
 
-    # WIP
     def test_choice_some_aggregate(self):
         program = """\
             a := #some{X: p(X)} :- p.
@@ -247,69 +244,69 @@ class TestProtectAssignments(unittest.TestCase):
             "ChoiceSomeAssignment seen during assignment protection. Unhandled.",
         )
 
-class TestRestoreAssignments(unittest.TestCase):
-    """
-    Unit tests for assignment restoration.
-    """
+# class TestRestoreAssignments(unittest.TestCase):
+#     """
+#     Unit tests for assignment restoration.
+#     """
 
-    def setUp(self):
-        self.lib = ELibrary()
+#     def setUp(self):
+#         self.lib = ELibrary()
 
-    def assertEqualRestore(self, program: str, expected: str):
-        """
-        Parses `program`, protects assignments, restores them, and
-        checks the restored program matches the original AST structure.
-        """
-        statements = parse_string(self.lib, program)
+#     def assertEqualRestore(self, program: str, expected: str):
+#         """
+#         Parses `program`, protects assignments, restores them, and
+#         checks the restored program matches the original AST structure.
+#         """
+#         statements = parse_string(self.lib, program)
 
-        # Protect assignments
-        protected = list(protect_assignments(self.lib, statements))
+#         # Protect assignments
+#         protected = list(protect_assignments(self.lib, statements))
 
-        protected_str = "\n".join(str(stmt).strip() for stmt in protected[1:])
-        exp_protected_str = textwrap.dedent(expected).strip()
+#         protected_str = "\n".join(str(stmt).strip() for stmt in protected[1:])
+#         exp_protected_str = textwrap.dedent(expected).strip()
 
-        self.assertEqual(
-            protected_str,
-            exp_protected_str,
-            msg=f"Protected form mismatch.\nExpected:\n{exp_protected_str}\nGot:\n{protected_str}",
-        )
+#         self.assertEqual(
+#             protected_str,
+#             exp_protected_str,
+#             msg=f"Protected form mismatch.\nExpected:\n{exp_protected_str}\nGot:\n{protected_str}",
+#         )
 
-        # Restore assignments
-        restored = list(restore_assignments(self.lib, protected))
-        self.assertEqual(len(statements), len(restored))
-        for orig, rest in zip(statements, restored):
-            # Compare string forms
-            self.assertEqual(str(orig).strip(), str(rest).strip())
-            # Ensure restored node is a valid FASP AST
-            self.assertIsInstance(rest, FASP_AST)
+#         # Restore assignments
+#         restored = list(restore_assignments(self.lib, protected))
+#         self.assertEqual(len(statements), len(restored))
+#         for orig, rest in zip(statements, restored):
+#             # Compare string forms
+#             self.assertEqual(str(orig).strip(), str(rest).strip())
+#             # Ensure restored node is a valid FASP AST
+#             self.assertIsInstance(rest, FASP_AST)
 
-    def test_basic_assignments(self):
-        program = """\
-            f(X) := Y :- g.
-            a := b :- p(X, Y).
-            h(3) := 20.
-        """
-        expected = """\
-            ASS(f(X),Y) :- g.
-            ASS(a,b) :- p(X,Y).
-            ASS(h(3),20).
-        """
-        self.assertEqualRestore(program, expected)
+#     def test_basic_assignments(self):
+#         program = """\
+#             f(X) := Y :- g.
+#             a := b :- p(X, Y).
+#             h(3) := 20.
+#         """
+#         expected = """\
+#             ASS(f(X),Y) :- g.
+#             ASS(a,b) :- p(X,Y).
+#             ASS(h(3),20).
+#         """
+#         self.assertEqualRestore(program, expected)
 
-    def test_aggregate_assignments(self):
-        self.assertEqualRestore(
-            "{ f(X) := (Y,Z) } :- p.", 
-            "{ ASS(f(X),(Y,Z)) } :- p."
-            )
+#     def test_aggregate_assignments(self):
+#         self.assertEqualRestore(
+#             "{ f(X) := (Y,Z) } :- p.", 
+#             "{ ASS(f(X),(Y,Z)) } :- p."
+#             )
 
-    def test_choice_assignments(self):
-        self.assertEqualRestore(
-            "f(1;2) := Y :- g(Y).", 
-            "ASS(f(1;2),Y) :- g(Y)."
-            )
+#     def test_choice_assignments(self):
+#         self.assertEqualRestore(
+#             "f(1;2) := Y :- g(Y).", 
+#             "ASS(f(1;2),Y) :- g(Y)."
+#             )
     
-    def test_restore_non_function_atom(self):
-        self.assertEqualRestore(
-            "#true.",
-            "#true."
-            )
+#     def test_restore_non_function_atom(self):
+#         self.assertEqualRestore(
+#             "#true.",
+#             "#true."
+#             )

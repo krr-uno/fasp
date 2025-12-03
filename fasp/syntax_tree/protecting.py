@@ -308,6 +308,7 @@ class _ComparisonRestorationTransformer:
 #     return (transformer.rewrite(statement) for statement in statements)
 
 
+# #########################################################################
 class AssignmentProtector:
     """
     A class to protect assignments in FASP ASTs.
@@ -382,15 +383,57 @@ class _AssignmentProtectorTransformer:
             "ChoiceSomeAssignment seen during assignment protection. Unhandled."
         )
 
-    def rewrite(self, node: FASP_Statement) -> FASP_Statement:
-        if not isinstance(node, (ast.StatementRule, AssignmentRule)):
+    def rewrite(self, node: FASP_Statement) -> StatementAST:
+        if not isinstance(node, AssignmentRule):
             return node
-        return node.transform(self.library, self.dispatch) or node
+
+        head = getattr(node, "head", None)
+        body = list(getattr(node, "body", []))
+        if isinstance(head, HeadSimpleAssignment):
+            lit = self.dispatch(head)
+            assert isinstance(lit, ast.LiteralSymbolic)
+
+            new_head = ast.HeadSimpleLiteral(self.library, lit)
+            return ast.StatementRule(self.library, node.location, new_head, body)
+
+        if isinstance(head, ChoiceAssignment):
+            new_elements = []
+            for elem in head.elements:
+                if isinstance(elem, AssignmentAggregateElement):
+                    lit = self.dispatch(elem.assignment)
+                    assert isinstance(lit, ast.LiteralSymbolic)
+                    set_elem = ast.SetAggregateElement(
+                        self.library,
+                        elem.location,
+                        lit,
+                        elem.condition,
+                    )
+                    new_elements.append(set_elem)
+                else:
+                    new_elements.append(elem)
+
+            new_head = ast.HeadSetAggregate(
+                self.library,
+                head.location,
+                head.left_guard,
+                new_elements,
+                head.right_guard,
+            )
+            return ast.StatementRule(
+                self.library,
+                node.location,
+                new_head,
+                body,
+            )
+        # Raises assertion error from dispatch
+        self.dispatch(head)
+        # Should not happen
+        return cast(StatementAST, node)  # pragma: no cover
 
 
 def protect_assignments(
     library: ELibrary, statements: Iterable[FASP_Statement]
-) -> Iterable[FASP_Statement]:
+) -> Iterable[StatementAST]:
     """
     Protect assignments in a FASP AST (assignment-heads etc).
 
@@ -402,90 +445,4 @@ def protect_assignments(
         Iterable[FASP_Statement]: Protected AST statements with assignments encoded as ASS(...).
     """
     transformer = _AssignmentProtectorTransformer(library)
-    return (transformer.rewrite(statement) for statement in statements)
-
-
-# # RESTORATION: ASS(left, right) --> HeadSimpleAssignment
-
-
-def restore_assignment_arguments(
-    arguments: Sequence[ArgumentAST | Symbol],
-) -> tuple[TermAST, TermAST]:
-    """
-    Extract (left, right) from ASS(left, right)
-    """
-    assert len(arguments) == 2, f"Expected 2 arguments in ASS(...), got: {arguments}"
-    left, right = arguments
-
-    # Ensure they are not Projections
-    assert not isinstance(left, ast.Projection)
-    assert not isinstance(right, ast.Projection)
-
-    return cast(TermAST, left), cast(TermAST, right)
-
-
-def _restore_assignment(
-    literal: ast.LiteralSymbolic,
-    assignment_name: str = ASSIGNMENT_NAME,
-) -> ast.LiteralSymbolic | HeadSimpleAssignment:
-    """
-    Restore a protected assignment:
-        ASS(left, right)  -->  HeadSimpleAssignment(left, right)
-    """
-    atom = literal.atom
-
-    if not is_function(atom):
-        return literal  # pragma: no cover
-
-    fun_name, arguments = function_arguments(atom)
-    if fun_name != assignment_name:
-        return literal
-
-    left, right = restore_assignment_arguments(arguments)
-    # assert isinstance(left, ast.TermFunction)
-    return HeadSimpleAssignment(
-        literal.location,
-        cast(
-            ast.TermFunction, left
-        ),  # QUESTION: HeadSimpleAssignment only allows TermFunction as assigned function.
-        right,
-    )
-
-
-class _AssignmentRestorationTransformer:
-    """
-    Transformer to restore ASS(...) symbolic literals to HeadSimpleAssignment
-    """
-
-    def __init__(self, library: ELibrary):
-        self.elib = library
-        self.library = library.library
-
-    @singledispatchmethod
-    def dispatch(self, node: AST_T) -> AST_T:
-        if hasattr(node, "transform"):
-            return node.transform(self.library, self.dispatch) or node
-        return node
-
-    @dispatch.register
-    def _(
-        self, node: ast.LiteralSymbolic
-    ) -> ast.LiteralSymbolic | HeadSimpleAssignment:
-        return _restore_assignment(node)
-
-    @dispatch.register
-    def _(self, node: ChoiceAssignment) -> ChoiceAssignment:
-        return node.transform(self.library, self.dispatch) or node
-
-    def rewrite(self, node: StatementAST) -> StatementAST:
-        return node.transform(self.library, self.dispatch) or node
-
-
-def restore_assignments(
-    library: ELibrary, statements: Iterable[StatementAST]
-) -> Iterable[StatementAST]:
-    """
-    Apply the restoration transformer to all statements.
-    """
-    transformer = _AssignmentRestorationTransformer(library)
     return (transformer.rewrite(statement) for statement in statements)
