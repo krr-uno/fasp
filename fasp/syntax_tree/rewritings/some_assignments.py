@@ -11,7 +11,7 @@ from fasp.syntax_tree._nodes import (
     FASP_Statement,
     HeadSimpleAssignment,
 )
-from fasp.util.ast import BodyLiteralAST, StatementAST, TermAST
+from fasp.util.ast import BodyLiteralAST, TermAST
 
 
 def _transform_choice_some_to_choice_assignment[
@@ -45,7 +45,12 @@ def _transform_choice_some_to_choice_assignment[
     # Convert BodyAggregateElements -> AssignmentAggregateElements
     new_elements: List[AssignmentAggregateElement] = []
     for elem in head.elements:
-        rhs_term: TermAST = elem.tuple[0]  # first term of BodyAggregateElement
+        if len(elem.tuple) == 1:
+            rhs_term = elem.tuple[0]
+        else:
+            rhs_term = ast.TermTuple(
+                library, head.location, [ast.ArgumentTuple(library, elem.tuple)]
+            )
 
         assignment = HeadSimpleAssignment(
             location=head.location,

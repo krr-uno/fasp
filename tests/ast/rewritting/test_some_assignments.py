@@ -62,8 +62,8 @@ class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
             "#sum { X: p(X) } :- p.",
         )
 
-    # def test_choice_some_tuple(self):
-    #     self.assertRewriteEqual(
-    #         "a := #some{X,Y: p(X,Y)} :- p.",
-    #         "{ a := (X,Y) : p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
-    #     )
+    def test_choice_some_tuple(self):
+        self.assertRewriteEqual(
+            "a := #some{X,Y: p(X,Y)} :- p.",
+            "{ a := (X,Y): p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
+        )
