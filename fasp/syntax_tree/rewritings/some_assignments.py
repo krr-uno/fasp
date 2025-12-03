@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Sequence
 
 from clingo import ast, symbol
 from clingo.core import Library
@@ -40,7 +40,7 @@ def _transform_choice_some_to_choice_assignment[
     if not isinstance(head, ChoiceSomeAssignment):
         return None  # unchanged
 
-    body = rule.body
+    body: Sequence[BodyLiteralAST] = rule.body
 
     # Convert BodyAggregateElements -> AssignmentAggregateElements
     new_elements: List[AssignmentAggregateElement] = []
@@ -91,7 +91,7 @@ def _transform_choice_some_to_choice_assignment[
         ),
     )
 
-    new_body: list[BodyLiteralAST] = [count_aggregate] + body
+    new_body: list[BodyLiteralAST] = [count_aggregate, *body]
 
     return rule.update(library, head=new_head, body=new_body)
 
