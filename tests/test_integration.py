@@ -64,8 +64,53 @@ class TestFASPProgramTransformer(unittest.TestCase):
         #     f(X) := W :- b(X,Z); W = #count { Y: p(Y,Z) }.
         # """
         expected = """
-            { ASS(a,X) } = 1 :- #count { X: p(X) } >= 1; s.
+            { ASS(a,X): p(X) } = 1 :- #count { X: p(X) } >= 1; s.
             ASS(f(X),W) :- b(X,Z); W = #count { Y: p(Y,Z) }.
         """
 
         self.assertTransformEqual(program, expected, test_pipeline=4)
+
+    def test_choice_some_rewrite_context(self):
+        program = """
+            a := #sum{X: p(X)} :- q(X), r.
+        """       
+        expected = """
+            ASS(a,W) :- q(X); r; W = #sum { X: p(X) }.
+        """
+
+        self.assertTransformEqual(program, expected, test_pipeline=5)
+
+    def test_pool_rewrite(self):
+        program ="""\
+            f(1;2) := Y :- g(Y).
+        """
+
+        expected = """\
+            ASS(f(1;2),Y) :- g(Y).
+        """
+
+        self.assertTransformEqual(program, expected, test_pipeline=4)
+    
+    def test_pool_rewrite_2(self):
+        program ="""\
+            f(1;2) := Y :- g(Y).
+        """
+
+        expected = """\
+            ASS(f(1),Y) :- g(Y).
+            ASS(f(2),Y) :- g(Y).
+        """
+
+        self.assertTransformEqual(program, expected, test_pipeline=5)
+
+    def test_pool_restore(self):
+        program ="""\
+            f(1;2) := Y :- g(Y).
+        """
+
+        expected = """\
+            ASS(f(1),Y) :- g(Y).
+            ASS(f(2),Y) :- g(Y).
+        """
+
+        self.assertTransformEqual(program, expected, test_pipeline=5)
