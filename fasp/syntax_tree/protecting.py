@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import singledispatchmethod
-from typing import Iterable, Sequence, cast
+from typing import Any, Iterable, List, Optional, Sequence, cast
 
 from clingo import ast
 from clingo.core import Library, Location, Position
@@ -446,3 +446,167 @@ def protect_assignments(
     """
     transformer = _AssignmentProtectorTransformer(library)
     return (transformer.rewrite(statement) for statement in statements)
+
+
+# RESTORATION: Rule with ASS(left, right) --> AssignmentRule
+
+
+def _literal_is_protected_assignment(
+    literal: ast.LiteralSymbolic, assignment_name: str = ASSIGNMENT_NAME
+) -> Optional[Sequence[ArgumentAST] | Sequence[Symbol]]:
+    """
+    Checks if a literal is the protected assignment function or not.
+    Returns None if not, else returns the protected assignment's arguments.
+    """
+    atom = literal.atom
+    # QUESTION:
+    if not is_function(atom):
+        return None  # pragma: no cover
+
+    name, arguments = function_arguments(atom)
+    if name == assignment_name:
+        return arguments
+    return None
+
+
+def restore_assignment_arguments(
+    arguments: Sequence[ArgumentAST | Symbol],
+) -> tuple[TermAST, TermAST]:
+    """
+    Extract (left, right) from ASS(left, right)
+    """
+    assert len(arguments) == 2, f"Expected 2 arguments in ASS(...), got: {arguments}"
+    left, right = arguments
+
+    # Ensure they are not Projections
+    assert not isinstance(left, ast.Projection)
+    assert not isinstance(right, ast.Projection)
+
+    return cast(TermAST, left), cast(TermAST, right)
+
+
+def _restore_assignment_literal_to_head_simple_assignment(
+    literal: ast.LiteralSymbolic,
+    # assignment_name: str = ASSIGNMENT_NAME,
+) -> Optional[HeadSimpleAssignment]:
+    """
+    Restore a protected assignment:
+        ASS(left, right)  -->  HeadSimpleAssignment(left, right)
+    """
+    atom = literal.atom
+
+    if not is_function(atom):
+        return None  # pragma: no cover
+
+    fun_name, arguments = function_arguments(atom)
+    # if fun_name != assignment_name:
+    #     return literal
+
+    left, right = restore_assignment_arguments(arguments)
+    # assert isinstance(left, ast.TermFunction)
+    return HeadSimpleAssignment(
+        literal.location,
+        cast(
+            ast.TermFunction, left
+        ),  # QUESTION: HeadSimpleAssignment only allows TermFunction as assigned function.
+        right,
+    )
+
+
+class _AssignmentRestorationTransformer:
+    """
+    Transformer to restore ASS(...) symbolic literals to HeadSimpleAssignment
+    """
+
+    def __init__(self, library: ELibrary):
+        self.elib = library
+        self.library = library.library
+
+    # @singledispatchmethod
+    # def dispatch(self, node: AST_T) -> AST_T:
+    #     if hasattr(node, "transform"):
+    #         return node.transform(self.library, self.dispatch) or node
+    #     return node
+
+    def _restore_set_aggregate_head(
+        self, head: ast.HeadSetAggregate
+    ) -> Optional[ChoiceAssignment]:
+        """
+        If head is a HeadSetAggregate with SetAggregateElement(s) where the element.literal is ASS(...),
+        convert to a ChoiceAssignment with AssignmentAggregateElement(s).
+        """
+        new_elements: List[Any] = []
+        any_converted = False
+
+        for elem in head.elements:
+            lit = elem.literal
+            # check if it's ASS(...)
+            if (
+                isinstance(lit, ast.LiteralSymbolic)
+                and _literal_is_protected_assignment(lit) != None
+            ):
+                head_assign = _restore_assignment_literal_to_head_simple_assignment(lit)
+                if head_assign:
+                    any_converted = True
+                    condition = list(elem.condition)
+                    # Create AssignmentAggregateElement
+                    new_elem = AssignmentAggregateElement(
+                        elem.location, head_assign, condition
+                    )
+                    new_elements.append(new_elem)
+            else:
+                # not a protected assignment element: keep it
+                new_elements.append(elem)
+
+        if not any_converted:
+            return None
+
+        return ChoiceAssignment(head.location, new_elements, head.left, head.right)
+
+    def rewrite(self, node: StatementAST) -> FASP_Statement:
+        """
+        If node is an ast.StatementRule with protected assignment head(s), reconstruct an AssignmentRule.
+        Otherwise return node unchanged.
+        """
+        if isinstance(node, ast.StatementRule):
+
+            head = node.head
+            body = list(node.body) if hasattr(node, "body") else []
+
+            # CASE 1: HeadSimpleLiteral
+            if isinstance(head, ast.HeadSimpleLiteral):
+                # get literal attribute safely
+                lit = head.literal
+                if isinstance(
+                    lit, ast.LiteralSymbolic
+                ) and _literal_is_protected_assignment(lit):
+                    head_assign = _restore_assignment_literal_to_head_simple_assignment(
+                        lit
+                    )
+                    if head_assign is not None:
+                        return AssignmentRule(node.location, head_assign, body)
+                # otherwise unchanged
+                return node
+
+            # CASE 2: HeadSetAggregate (choice/aggregate protected assignment)
+            if isinstance(head, ast.HeadSetAggregate):
+                choice_assignment = self._restore_set_aggregate_head(head)
+                if choice_assignment is not None:
+                    return AssignmentRule(node.location, choice_assignment, body)
+                return node
+
+        # default
+        return node
+
+
+def restore_assignments(
+    library: ELibrary, statements: Iterable[StatementAST]
+) -> Iterable[FASP_Statement]:
+    """
+    Apply the restoration transformer to all statements.
+    """
+    transformer = _AssignmentRestorationTransformer(library)
+    return (transformer.rewrite(statement) for statement in statements)
+
+
+# #########################################################################

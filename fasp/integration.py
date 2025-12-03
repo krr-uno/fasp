@@ -13,9 +13,10 @@ from fasp.syntax_tree.collectors import (
     collect_variables,
 )
 from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.syntax_tree.protecting import (  # restore_assignments,
+from fasp.syntax_tree.protecting import (
     protect_assignments,
     protect_comparisons,
+    restore_assignments,
     restore_comparison,
 )
 from fasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
@@ -48,7 +49,7 @@ class FASPProgramTransformer:
             self._protect_comparisons_wrapper,
             self._protect_assignments_wrapper,
             self._clingo_rewrite_wrapper,
-            # self._restore_assignments_wrapper,
+            self._restore_assignments_wrapper,
             # self._restore_comparisons_wrapper,
             # self._unnest_functions_wrapper,
             # self._to_asp_wrapper,
@@ -146,12 +147,12 @@ class FASPProgramTransformer:
                 out.append(new_stmt)
         return out
 
+    def _restore_assignments_wrapper(
+        self, statements: Iterable[FASP_Statement]
+    ) -> Iterable[FASP_Statement]:
+        return restore_assignments(self.elib, cast(Iterable[StatementAST], statements))
+
     # def _restore_comparisons_wrapper(
     #     self, statements: Iterable[FASP_Statement]
     # ) -> Iterable[FASP_Statement]:
     #     return restore_comparison(self.library, statements)
-
-    # def _restore_assignments_wrapper(
-    #     self, statements: Iterable[FASP_Statement]
-    # ) -> Iterable[FASP_Statement]:
-    #     return restore_assignments(self.elib, statements)

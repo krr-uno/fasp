@@ -103,14 +103,14 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
         self.assertTransformEqual(program, expected, test_pipeline=5)
 
-    def test_pool_restore(self):
+    def test_pool_restore_assignments(self):
         program ="""\
             f(1;2) := Y :- g(Y).
         """
 
         expected = """\
-            ASS(f(1),Y) :- g(Y).
-            ASS(f(2),Y) :- g(Y).
+            f(1) := Y :- g(Y).
+            f(2) := Y :- g(Y).
         """
 
-        self.assertTransformEqual(program, expected, test_pipeline=5)
+        self.assertTransformEqual(program, expected, test_pipeline=6)
