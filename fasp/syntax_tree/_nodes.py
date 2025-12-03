@@ -403,7 +403,12 @@ class ChoiceSomeAssignment(AssignmentAST):
         }
 
 
-HeadAssignment = HeadSimpleAssignment | HeadAggregateAssignment | ChoiceAssignment | ChoiceSomeAssignment
+HeadAssignment = (
+    HeadSimpleAssignment
+    | HeadAggregateAssignment
+    | ChoiceAssignment
+    | ChoiceSomeAssignment
+)
 
 
 @dataclass
