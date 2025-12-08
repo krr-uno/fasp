@@ -17,7 +17,7 @@ from fasp.syntax_tree.protecting import (
     protect_assignments,
     protect_comparisons,
     restore_assignments,
-    restore_comparison,
+    restore_comparisons,
 )
 from fasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
 from fasp.syntax_tree.rewritings.some_assignments import (
@@ -46,11 +46,11 @@ class FASPProgramTransformer:
         self.pipeline = [
             self._rewrite_choice_some_wrapper,
             self._normalize_assignment_aggregates_wrapper,
-            self._protect_comparisons_wrapper,
             self._protect_assignments_wrapper,
+            self._protect_comparisons_wrapper,
             self._clingo_rewrite_wrapper,
+            self._restore_comparisons_wrapper,
             self._restore_assignments_wrapper,
-            # self._restore_comparisons_wrapper,
             # self._unnest_functions_wrapper,
             # self._to_asp_wrapper,
         ]
@@ -97,11 +97,6 @@ class FASPProgramTransformer:
         ]
         return out
 
-    def _protect_comparisons_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-        return protect_comparisons(self.library, statements)
-
     def _protect_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
@@ -110,30 +105,14 @@ class FASPProgramTransformer:
         return cast(Iterable[FASP_Statement], result)
         # return protect_assignments(self.elib, statements)
 
+    def _protect_comparisons_wrapper(
+        self, statements: Iterable[FASP_Statement]
+    ) -> Iterable[FASP_Statement]:
+        return protect_comparisons(self.library, statements)
+
     def _clingo_rewrite_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        # def fasp_to_clingo_statement(stmt: FASP_Statement) -> StatementAST:
-        #     if isinstance(stmt, AssignmentRule):
-        #         # assert(isinstance(ast.LiteralSymbolic,type(stmt.head)))
-        #         return ast.StatementRule(
-        #             self.library,
-        #             stmt.location,
-        #             ast.HeadSimpleLiteral(self.library, cast(ast.LiteralSymbolic,stmt.head)),
-        #             stmt.body,  # list of clingo AST literals
-        #         )
-        #     else:
-        #         return stmt
-
-        # def clingo_to_fasp_statement(stmt: StatementAST) -> FASP_Statement:
-        #     if isinstance(stmt, ast.StatementRule):
-        #         return AssignmentRule(
-        #             stmt.location,
-        #             stmt.head,
-        #             list(stmt.body),
-        #         )
-        #     else:
-        #         return stmt
 
         ctx = RewriteContext(self.library)
 
@@ -150,12 +129,18 @@ class FASPProgramTransformer:
                 out.append(stmt)
         return out
 
+    def _restore_comparisons_wrapper(
+        self, statements: Iterable[FASP_Statement]
+    ) -> Iterable[FASP_Statement]:
+
+        stmts = list(statements)
+
+        for stmt in stmts:
+            assert not isinstance(stmt, AssignmentRule)
+        result = restore_comparisons(self.library, cast(Iterable[StatementAST], stmts))
+        return result
+
     def _restore_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return restore_assignments(self.elib, cast(Iterable[StatementAST], statements))
-
-    # def _restore_comparisons_wrapper(
-    #     self, statements: Iterable[FASP_Statement]
-    # ) -> Iterable[FASP_Statement]:
-    #     return restore_comparison(self.library, statements)

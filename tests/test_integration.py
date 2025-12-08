@@ -113,11 +113,18 @@ class TestFASPProgramTransformer(unittest.TestCase):
             f(2) := Y :- g(Y).
         """
 
-        self.assertTransformEqual(program, expected, test_pipeline=6)
+        self.assertTransformEqual(program, expected, test_pipeline=7)
     
     def test_no_change(self):
         self.assertTransformEqual(
             "{ f(X) } :- g(Y).", 
             "{ f(X) } :- g(Y).",
-            test_pipeline=6
+            test_pipeline=8
+            )
+    
+    def test_comparison_rewrite(self):
+        self.assertTransformEqual(
+            "a=100.", 
+            "a=100.",
+            test_pipeline=8
             )

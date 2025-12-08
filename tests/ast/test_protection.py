@@ -12,6 +12,7 @@ from fasp.syntax_tree.protecting import (
     _restore_guard_arguments,
     protect_comparisons,
     restore_comparison,
+    restore_comparisons,
     protect_assignments,
     restore_assignments,
     
@@ -131,8 +132,46 @@ class TestRestoreComparisons(unittest.TestCase):
         restorer = _ComparisonRestorationTransformer(self.lib)
         restored = restorer.dispatch(protected)
         self.assertEqual(lit, restored)
+    
+    def assertEqualRestore(self, program: str, expected: str):
+        """
+        Parses `program`, protects comparisons, restores them, and
+        checks the restored program matches the original AST structure.
+        """
+        statements = []
 
+        def callback(statement):
+            statements.append(statement)
 
+        ast.parse_string(self.lib, program, callback)
+
+        # Protect comparisons
+        protected = list(protect_comparisons(self.lib, statements))
+
+        protected_str = "\n".join(str(stmt).strip() for stmt in protected[1:])
+        exp_protected_str = textwrap.dedent(expected).strip()
+
+        self.assertEqual(
+            protected_str,
+            exp_protected_str,
+            msg=f"Protected form mismatch.\nExpected:\n{exp_protected_str}\nGot:\n{protected_str}",
+        )
+
+        # Restore comparisons
+        restored = list(restore_comparisons(self.lib, protected))
+        self.assertEqual(len(statements), len(restored))
+        for orig, rest in zip(statements, restored):
+            # Compare string forms
+            self.assertEqual(str(orig).strip(), str(rest).strip())
+            # Ensure restored node is a valid FASP AST
+            self.assertIsInstance(rest, FASP_AST)
+
+    def test_basic_comparison_restore(self):
+        self.assertEqualRestore(
+            "a=100.",
+            "CMP(a,(GRD(0,100),),0)."
+            )
+        
 class TestProtectAssignments(unittest.TestCase):
     """
     Unit tests for assignment-protection transformation.
