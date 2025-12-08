@@ -143,8 +143,11 @@ class FASPProgramTransformer:
         for stmt in statements:
             assert not isinstance(stmt, AssignmentRule)
             rewritten_list = rewrite_statement(ctx, stmt)
-            for new_stmt in rewritten_list:
-                out.append(new_stmt)
+            if rewritten_list:
+                for new_stmt in rewritten_list:
+                    out.append(new_stmt)
+            else:
+                out.append(stmt)
         return out
 
     def _restore_assignments_wrapper(

@@ -337,14 +337,14 @@ class AssignmentProtector:
 
         return ast.LiteralSymbolic(self.library, location, ast.Sign.NoSign, atom)
 
-    def protect_assignment_element(
-        self, node: AssignmentAggregateElement
-    ) -> ast.LiteralSymbolic:
-        """
-        For an AssignmentAggregateElement the 'assignment' field is a HeadSimpleAssignment
-        and we protect it similarly.
-        """
-        return self.protect_head_simple_assignment(node.assignment)
+    # def protect_assignment_element(
+    #     self, node: AssignmentAggregateElement
+    # ) -> ast.LiteralSymbolic:
+    #     """
+    #     For an AssignmentAggregateElement the 'assignment' field is a HeadSimpleAssignment
+    #     and we protect it similarly.
+    #     """
+    #     return self.protect_head_simple_assignment(node.assignment)
 
 
 class _AssignmentProtectorTransformer:
@@ -360,28 +360,27 @@ class _AssignmentProtectorTransformer:
 
     @singledispatchmethod
     def dispatch(self, node: AST_T) -> AST_T:
-        if hasattr(node, "transform"):
-            # Recurse into children via their transform method.
-            return node.transform(self.library, self.dispatch) or node
-        return node
+        raise AssertionError(
+            f"{(node).__class__.__name__} seen during assignment protection. Unhandled."
+        )
+        # if hasattr(node, "transform"):
+        # # Recurse into children via their transform method.
+        #     return node.transform(self.library, self.dispatch) or node
+        # return node
 
     @dispatch.register
     def _(self, node: HeadSimpleAssignment) -> ast.LiteralSymbolic:
         return self.protect_assignment.protect_head_simple_assignment(node)
 
-    @dispatch.register
-    def _(self, node: AssignmentAggregateElement) -> ast.LiteralSymbolic:
-        return self.protect_assignment.protect_assignment_element(node)
+    # @dispatch.register
+    # def _(self, node: AssignmentAggregateElement) -> ast.LiteralSymbolic:
+    #     return self.protect_assignment.protect_assignment_element(node)
 
-    @dispatch.register
-    def _(self, node: ChoiceAssignment) -> ChoiceAssignment:
-        return node.transform(self.library, self.dispatch)
-
-    @dispatch.register
-    def _(self, node: ChoiceSomeAssignment) -> None:
-        raise AssertionError(
-            "ChoiceSomeAssignment seen during assignment protection. Unhandled."
-        )
+    # @dispatch.register
+    # def _(self, node: ChoiceSomeAssignment) -> None:
+    #     raise AssertionError(
+    #         "ChoiceSomeAssignment seen during assignment protection. Unhandled."
+    #     )
 
     def rewrite(self, node: FASP_Statement) -> StatementAST:
         if not isinstance(node, AssignmentRule):
@@ -521,12 +520,6 @@ class _AssignmentRestorationTransformer:
     def __init__(self, library: ELibrary):
         self.elib = library
         self.library = library.library
-
-    # @singledispatchmethod
-    # def dispatch(self, node: AST_T) -> AST_T:
-    #     if hasattr(node, "transform"):
-    #         return node.transform(self.library, self.dispatch) or node
-    #     return node
 
     def _restore_set_aggregate_head(
         self, head: ast.HeadSetAggregate

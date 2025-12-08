@@ -12,7 +12,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
         self.elib = ELibrary()
 
-    def assertTransformEqual(self, program: str, expected_program: str | None, *, test_pipeline):
+    def assertTransformEqual(self, program: str, expected_program: str | None, *, test_pipeline=10):
         program = textwrap.dedent(program).strip()
         expected_program = textwrap.dedent(expected_program).strip() if expected_program is not None else None
 
@@ -114,3 +114,10 @@ class TestFASPProgramTransformer(unittest.TestCase):
         """
 
         self.assertTransformEqual(program, expected, test_pipeline=6)
+    
+    def test_no_change(self):
+        self.assertTransformEqual(
+            "{ f(X) } :- g(Y).", 
+            "{ f(X) } :- g(Y).",
+            test_pipeline=6
+            )

@@ -309,3 +309,15 @@ class TestRestoreAssignments(unittest.TestCase):
             "#true.",
             "#true."
             )
+    
+    def test_no_assignment(self):
+        self.assertEqualRestore(
+            "f(X) :- g(Y).", 
+            "f(X) :- g(Y)."
+            )
+
+    def test_no_assignment_in_aggregate(self):
+        self.assertEqualRestore(
+            "{ f(X) } :- g(Y).", 
+            "{ f(X) } :- g(Y)."
+            )
