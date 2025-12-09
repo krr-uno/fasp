@@ -10,9 +10,7 @@ from fasp.syntax_tree._nodes import (
 from fasp.syntax_tree.collectors import (
     SymbolSignature,
     collect_evaluable_functions,
-    collect_variables,
 )
-from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.syntax_tree.protecting import (
     protect_assignments,
     protect_comparisons,
@@ -52,7 +50,7 @@ class FASPProgramTransformer:
             self._restore_comparisons_wrapper,
             self._restore_assignments_wrapper,
             self._unnest_functions_wrapper,
-            # self._to_asp_wrapper,
+            self._to_asp_wrapper,
         ]
 
         # self.rule_rewriter = RuleRewriteTransformer(self.library, self.evaluable_functions)
@@ -64,10 +62,6 @@ class FASPProgramTransformer:
         then run the pipeline and return transformed statements.
         """
         parsed_statements = self.statement_asts
-
-        self.program_variables = set()
-        for stm in parsed_statements:
-            self.program_variables.update(collect_variables(stm))
 
         # start pipeline with parsed_statements
         current: Iterable[FASP_Statement] = parsed_statements
@@ -158,4 +152,18 @@ class FASPProgramTransformer:
             out.append(
                 cast(FASP_Statement, unnested_statement) if unnested_statement else stmt
             )
+        return out
+
+    def _to_asp_wrapper(
+        self, statements: Iterable[FASP_Statement]
+    ) -> Iterable[FASP_Statement]:
+        # Collect evaluable functions again
+        self.evaluable_functions = collect_evaluable_functions(statements)
+
+        to_asp_transformer = NormalForm2PredicateTransformer(
+            self.library, self.evaluable_functions, self.prefix
+        )
+        out: list[StatementAST] = []
+        for stmt in statements:
+            out.append(to_asp_transformer.rewrite(stmt))
         return out

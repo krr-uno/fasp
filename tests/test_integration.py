@@ -127,5 +127,17 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(
             "a=100.", 
             "a=100.",
-            test_pipeline=8
+            test_pipeline=9
             )
+    
+    def test_to_asp(self):
+        self.assertTransformEqual(
+            "f(1) := Y :- g(Y).",
+            "Ff(1,Y) :- g(Y).",
+        )
+    
+    def test_total_integration(self):
+        self.assertTransformEqual(
+            "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p.",
+            "Fscore(X,W) :- p; W = #sum { f(Y): f(p(Y)), q(X) }.",
+        )

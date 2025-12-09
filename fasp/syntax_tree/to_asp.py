@@ -40,7 +40,6 @@ class NormalForm2PredicateTransformer:
         library: Library,
         evaluable_functions: AbstractSet[SymbolSignature],
         prefix: str = "F",
-        comparison_name: str = COMPARISON_NAME,
     ) -> None:
         """
         Initialize the transformer with the set of evaluable functions.
@@ -48,7 +47,6 @@ class NormalForm2PredicateTransformer:
         self.library = library
         self.evaluable_functions = evaluable_functions
         self.prefix = prefix
-        self.comparison_name = comparison_name
 
     @singledispatchmethod
     def _rewrite_head(self, node: FASP_AST_T) -> FASP_AST_T:
