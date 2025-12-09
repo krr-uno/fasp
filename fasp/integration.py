@@ -51,7 +51,7 @@ class FASPProgramTransformer:
             self._clingo_rewrite_wrapper,
             self._restore_comparisons_wrapper,
             self._restore_assignments_wrapper,
-            # self._unnest_functions_wrapper,
+            self._unnest_functions_wrapper,
             # self._to_asp_wrapper,
         ]
 
@@ -144,3 +144,18 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return restore_assignments(self.elib, cast(Iterable[StatementAST], statements))
+
+    def _unnest_functions_wrapper(
+        self, statements: Iterable[FASP_Statement]
+    ) -> Iterable[FASP_Statement]:
+        stmts = list(statements)
+        self.evaluable_functions = collect_evaluable_functions(statements)
+
+        transformer = RuleRewriteTransformer(self.library, self.evaluable_functions)
+        out: list[FASP_Statement] = []
+        for stmt in stmts:
+            unnested_statement = transformer.transform_rule(stmt)
+            out.append(
+                cast(FASP_Statement, unnested_statement) if unnested_statement else stmt
+            )
+        return out

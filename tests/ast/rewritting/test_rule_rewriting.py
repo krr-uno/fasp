@@ -427,3 +427,15 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqualRewrite(
             set(), "p :- not p(q).", "p :- not p(q)."  # no evaluable functions
         )
+
+    def test_head_set_aggegate(self):
+        with self.assertRaises(AssertionError) as cm:
+            self.assertEqualRewrite(
+                set(), 
+                "{ f(X) } :- g(Y).", 
+                "{ f(X) } :- g(Y)."
+            )
+        self.assertEqual(
+            str(cm.exception),
+            "Unhandled literal type during function unnesting: <class 'clingo.ast.HeadSetAggregate'>",
+        )

@@ -116,10 +116,11 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(program, expected, test_pipeline=7)
     
     def test_no_change(self):
+        # Check test_head_set_aggegate in tests\ast\rewritting\test_rule_rewriting.py
         self.assertTransformEqual(
             "{ f(X) } :- g(Y).", 
             "{ f(X) } :- g(Y).",
-            test_pipeline=8
+            test_pipeline=7
             )
     
     def test_comparison_rewrite(self):
