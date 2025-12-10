@@ -115,14 +115,6 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
         self.assertTransformEqual(program, expected, test_pipeline=7)
     
-    def test_no_change(self):
-        # Check test_head_set_aggegate in tests\ast\rewritting\test_rule_rewriting.py
-        self.assertTransformEqual(
-            "{ f(X) } :- g(Y).", 
-            "{ f(X) } :- g(Y).",
-            test_pipeline=7
-            )
-    
     def test_comparison_rewrite(self):
         self.assertTransformEqual(
             "a=100.", 
@@ -182,3 +174,11 @@ class TestFASPProgramTransformer(unittest.TestCase):
             "king(C) := #count{0; king(C) := X; king(C) := X; person(X)} :- country(C).",
             test_pipeline=7
         )
+    
+    # Check test_head_set_aggegate in tests\ast\rewritting\test_rule_rewriting.py
+    def test_no_change(self):
+        self.assertTransformEqual(
+            "{ f(X) } :- g(Y).", 
+            "{ f(X) } :- g(Y).",
+            test_pipeline=7
+            )

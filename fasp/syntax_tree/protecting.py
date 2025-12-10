@@ -597,7 +597,7 @@ class _AssignmentRestorationTransformer:
             # CASE 3: HeadAggregate: This might occur after running clingo.rewrite.
             # Need to correct the restoration for this case.
             elif isinstance(head, ast.HeadAggregate):
-                new_elements = []
+                new_elements: Any = []
                 any_converted = False
                 for element in head.elements:
                     for term in element.tuple:
@@ -615,7 +615,7 @@ class _AssignmentRestorationTransformer:
                             new_elements.append(new_element)
                         else:
                             new_elements.append(term)
-                    
+
                     if isinstance(
                         element.literal, ast.LiteralSymbolic
                     ) and _literal_is_protected_assignment(element.literal):
@@ -631,26 +631,31 @@ class _AssignmentRestorationTransformer:
                         new_elements.append(element.literal)
 
                     for condition in element.condition:
-                        if isinstance(condition, ast.LiteralSymbolic) and _literal_is_protected_assignment(condition):
-                            any_converted = True
-                            new_condition = (
-                                _restore_assignment_literal_to_head_simple_assignment(
-                                    element.literal
-                                )
-                                or element.literal
-                            )
-                            new_elements.append(new_condition)
-                        else:
-                            new_elements.append(condition)
+                        # if isinstance(
+                        #     condition, ast.LiteralSymbolic
+                        # ) and _literal_is_protected_assignment(condition):
+                        #     any_converted = True
+                        #     new_condition = (
+                        #         _restore_assignment_literal_to_head_simple_assignment(
+                        #             element.literal
+                        #         )
+                        #         or element.literal
+                        #     )
+                        #     new_elements.append(new_condition)
+                        # else:
+                        new_elements.append(condition)
                 if not any_converted:
                     return node
 
-
+                assert isinstance(new_literal, HeadSimpleAssignment)
                 new_head = HeadAggregateAssignment(
-                    head.location, new_literal.assigned_function, head.function, new_elements
+                    head.location,
+                    new_literal.assigned_function,
+                    head.function,
+                    new_elements,
                 )
                 return AssignmentRule(node.location, new_head, body)
-            
+
         # default
         return node
 
