@@ -418,25 +418,12 @@ class TestRuleRewriteTransformer(unittest.TestCase):
     #             "p := #some { X: q(a) }.",
     #             "{ p := X : q(FUN), a=FUN } = 1 :- #count { X : q(FUN2), a=FUN2}} >= 1.",
     #         )
-    #     # self.assertEqual(
-    #     #     str(cm.exception),
-    #     #     "Unhandled literal type during function unnesting: <class 'fasp.syntax_tree._nodes.ChoiceSomeAssignment'>",
-        # )
+    #     self.assertEqual(
+    #         str(cm.exception),
+    #         "Unhandled literal type during function unnesting: <class 'fasp.syntax_tree._nodes.ChoiceSomeAssignment'>",
+    #     )
 
     def test_body_negative_literal_no_evaluable_functions(self):
         self.assertEqualRewrite(
             set(), "p :- not p(q).", "p :- not p(q)."  # no evaluable functions
         )
-
-    # # Need to handle unnesting for HeadSetAggregate
-    # def test_head_set_aggegate(self):
-    #     with self.assertRaises(AssertionError) as cm:
-    #         self.assertEqualRewrite(
-    #             set(), 
-    #             "{ f(X) } :- g(Y).", 
-    #             "{ f(X) } :- g(Y)."
-    #         )
-    #     self.assertEqual(
-    #         str(cm.exception),
-    #         "Unhandled literal type during function unnesting: <class 'clingo.ast.HeadSetAggregate'>",
-    #     )

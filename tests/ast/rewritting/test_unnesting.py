@@ -179,7 +179,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
                 allowed_in_negated_literals=allowed_in_negated_literals,
             )
 
-            new_stmts.append(str(new_stmt).strip())
+            new_stmts.append(str(new_stmt).strip() if new_stmt else str(stmt).strip())
             per_rule_sets.append({str(c) for c in comps})
 
         program_str = (

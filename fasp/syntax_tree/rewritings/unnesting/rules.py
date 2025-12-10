@@ -56,10 +56,12 @@ class RuleRewriteTransformer:
         return self._rewrite(node, var_gen)
 
     @singledispatchmethod
-    def _rewrite_literal[T: (
-        BodyLiteralAST,
-        HeadLiteralAST,
-    )](self, node: T, var_gen: FreshVariableGenerator) -> T:
+    def _rewrite_literal[
+        T: (
+            BodyLiteralAST,
+            HeadLiteralAST,
+        )
+    ](self, node: T, var_gen: FreshVariableGenerator) -> T | None:
         """Default: return node unchanged."""
         return node.transform(self.lib, self._rewrite_literal, var_gen)
 
@@ -68,7 +70,7 @@ class RuleRewriteTransformer:
         self,
         node: ast.BodySimpleLiteral,
         var_gen: FreshVariableGenerator,
-    ) -> ast.BodySimpleLiteral | ast.BodyConditionalLiteral:
+    ) -> ast.BodySimpleLiteral | ast.BodyConditionalLiteral | None:
         if node.literal.sign != ast.Sign.Single:
             literal = self.body_literal_transformer.unnest(node.literal)
             if literal is None:
@@ -80,6 +82,11 @@ class RuleRewriteTransformer:
             )
             if not comparisons:
                 return None
+
+            assert isinstance(
+                literal,
+                ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic,
+            )
             false_lit = ast.LiteralBoolean(
                 self.lib, literal.location, ast.Sign.NoSign, False
             )
@@ -191,10 +198,12 @@ class RuleRewriteTransformer:
 
     # Rule Statements
     @_rewrite.register(ast.StatementRule | AssignmentRule)
-    def _[T: (
-        ast.StatementRule,
-        AssignmentRule,
-    )](self, node: T, var_gen: FreshVariableGenerator) -> T:
+    def _[
+        T: (
+            ast.StatementRule,
+            AssignmentRule,
+        )
+    ](self, node: T, var_gen: FreshVariableGenerator) -> T:
         if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):
             new_head = self.head_literal_transformer.unnest(node.head)
         else:
