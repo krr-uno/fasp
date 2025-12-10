@@ -12,6 +12,7 @@ from fasp.syntax_tree._nodes import (
     ChoiceAssignment,
     ChoiceSomeAssignment,
     FASP_Statement,
+    HeadAggregateAssignment,
     HeadSimpleAssignment,
 )
 from fasp.util.ast import (
@@ -485,6 +486,25 @@ def restore_assignment_arguments(
     return cast(TermAST, left), cast(TermAST, right)
 
 
+def _restore_assignment_term_function_to_head_simple_assignment(
+    atom: ast.TermFunction,
+) -> Optional[HeadSimpleAssignment]:
+    # if not is_function(atom):
+    #     return None  # pragma: no cover
+
+    _, arguments = function_arguments(atom)
+
+    left, right = restore_assignment_arguments(arguments)
+    # assert isinstance(left, ast.TermFunction)
+    return HeadSimpleAssignment(
+        atom.location,
+        cast(
+            ast.TermFunction, left
+        ),  # QUESTION: HeadSimpleAssignment only allows TermFunction as assigned function.
+        right,
+    )
+
+
 def _restore_assignment_literal_to_head_simple_assignment(
     literal: ast.LiteralSymbolic,
     # assignment_name: str = ASSIGNMENT_NAME,
@@ -494,23 +514,8 @@ def _restore_assignment_literal_to_head_simple_assignment(
         ASS(left, right)  -->  HeadSimpleAssignment(left, right)
     """
     atom = literal.atom
-
-    if not is_function(atom):
-        return None  # pragma: no cover
-
-    fun_name, arguments = function_arguments(atom)
-    # if fun_name != assignment_name:
-    #     return literal
-
-    left, right = restore_assignment_arguments(arguments)
-    # assert isinstance(left, ast.TermFunction)
-    return HeadSimpleAssignment(
-        literal.location,
-        cast(
-            ast.TermFunction, left
-        ),  # QUESTION: HeadSimpleAssignment only allows TermFunction as assigned function.
-        right,
-    )
+    assert isinstance(atom, ast.TermFunction)
+    return _restore_assignment_term_function_to_head_simple_assignment(atom)
 
 
 class _AssignmentRestorationTransformer:
@@ -583,12 +588,69 @@ class _AssignmentRestorationTransformer:
                 return node
 
             # CASE 2: HeadSetAggregate (choice/aggregate protected assignment)
-            if isinstance(head, ast.HeadSetAggregate):
+            elif isinstance(head, ast.HeadSetAggregate):
                 choice_assignment = self._restore_set_aggregate_head(head)
                 if choice_assignment is not None:
                     return AssignmentRule(node.location, choice_assignment, body)
                 return node
 
+            # CASE 3: HeadAggregate: This might occur after running clingo.rewrite.
+            # Need to correct the restoration for this case.
+            elif isinstance(head, ast.HeadAggregate):
+                new_elements = []
+                any_converted = False
+                for element in head.elements:
+                    for term in element.tuple:
+                        if (
+                            isinstance(term, ast.TermFunction)
+                            and term.name == ASSIGNMENT_NAME
+                        ):
+                            any_converted = True
+                            new_element = (
+                                _restore_assignment_term_function_to_head_simple_assignment(
+                                    term
+                                )
+                                or term
+                            )
+                            new_elements.append(new_element)
+                        else:
+                            new_elements.append(term)
+                    
+                    if isinstance(
+                        element.literal, ast.LiteralSymbolic
+                    ) and _literal_is_protected_assignment(element.literal):
+                        any_converted = True
+                        new_literal = (
+                            _restore_assignment_literal_to_head_simple_assignment(
+                                element.literal
+                            )
+                            or element.literal
+                        )
+                        new_elements.append(new_literal)
+                    else:
+                        new_elements.append(element.literal)
+
+                    for condition in element.condition:
+                        if isinstance(condition, ast.LiteralSymbolic) and _literal_is_protected_assignment(condition):
+                            any_converted = True
+                            new_condition = (
+                                _restore_assignment_literal_to_head_simple_assignment(
+                                    element.literal
+                                )
+                                or element.literal
+                            )
+                            new_elements.append(new_condition)
+                        else:
+                            new_elements.append(condition)
+                if not any_converted:
+                    return node
+
+
+                new_head = HeadAggregateAssignment(
+                    head.location, new_literal.assigned_function, head.function, new_elements
+                )
+                return AssignmentRule(node.location, new_head, body)
+            
         # default
         return node
 

@@ -141,3 +141,44 @@ class TestFASPProgramTransformer(unittest.TestCase):
             "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p.",
             "Fscore(X,W) :- p; W = #sum { f(Y): f(p(Y)), q(X) }.",
         )
+
+    def test_total_integration_2(self):
+        self.assertTransformEqual(
+            "1 { sk(X, Y)  : skis(Y) } 1 :- sks(X).",
+            "1 <= #count { 0,sk(X,Y): sk(X,Y): skis(Y) } <= 1 :- sks(X).",
+        )
+
+    def test_king(self):
+        self.assertTransformEqual(
+            """
+            country(france).
+            country(usa).
+            person(felipe).
+
+            {king(C,X) : person(X)}:- country(C).
+            
+
+            :- king(C1,X); king(C2,X); C1!=C2.
+            """,
+            """
+            country(france).
+            country(usa).
+            person(felipe).
+            #count { 0,king(C,X): king(C,X): person(X) } :- country(C).
+            :- king(C1,X); king(C2,X); C1!=C2.
+            """,
+            test_pipeline=9
+        )
+
+    # How to restore protected assignment from 
+    # #count { 0,ASS(king(C),X): ASS(king(C),X): person(X) } :- country(C).
+    
+    # { ASS(king(C),X): person(X) } :- country(C).          is rewritten into the above by clingo.rewrite
+    # HeadAggregateAssignment is not allowed during unnesting
+    
+    def test_king_error(self):
+        self.assertTransformEqual(
+            "{king(C) := X : person(X)}:- country(C).",
+            "king(C) := #count{0; king(C) := X; king(C) := X; person(X)} :- country(C).",
+            test_pipeline=7
+        )
