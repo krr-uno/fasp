@@ -172,6 +172,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(
             "{king(C) := X : person(X)}:- country(C).",
             "king(C) := #count{0; king(C) := X; king(C) := X; person(X)} :- country(C).",
+            #count { 0, king(C) := X: king(C) := X: person(X) } :- country(C).
             test_pipeline=7
         )
     
@@ -180,5 +181,5 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(
             "{ f(X) } :- g(Y).", 
             "{ f(X) } :- g(Y).",
-            test_pipeline=7
+            test_pipeline=9
             )

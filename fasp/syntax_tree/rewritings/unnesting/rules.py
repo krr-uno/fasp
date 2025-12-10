@@ -56,14 +56,12 @@ class RuleRewriteTransformer:
         return self._rewrite(node, var_gen)
 
     @singledispatchmethod
-    def _rewrite_literal[
-        T: (
-            BodyLiteralAST,
-            HeadLiteralAST,
-        )
-    ](self, node: T, _: FreshVariableGenerator) -> T:
+    def _rewrite_literal[T: (
+        BodyLiteralAST,
+        HeadLiteralAST,
+    )](self, node: T, var_gen: FreshVariableGenerator) -> T:
         """Default: return node unchanged."""
-        assert False, f"Unhandled literal type during function unnesting: {type(node)}"
+        return node.transform(self.lib, self._rewrite_literal, var_gen)
 
     @_rewrite_literal.register
     def _(
@@ -74,14 +72,14 @@ class RuleRewriteTransformer:
         if node.literal.sign != ast.Sign.Single:
             literal = self.body_literal_transformer.unnest(node.literal)
             if literal is None:
-                return node
+                return None
             return node.update(self.lib, literal=literal)
         else:
             literal, comparisons = unnest_functions(
                 self.lib, node.literal, self.evaluable_functions, var_gen
             )
             if not comparisons:
-                return node
+                return None
             false_lit = ast.LiteralBoolean(
                 self.lib, literal.location, ast.Sign.NoSign, False
             )
@@ -102,14 +100,14 @@ class RuleRewriteTransformer:
         condition = []
         local_comps: List[ast.LiteralComparison] = []
         for cond in node.condition:
-            cond, comps = unnest_functions(
+            new_cond, comps = unnest_functions(
                 self.lib,
                 cond,
                 self.evaluable_functions,
                 var_gen,
                 allowed_in_negated_literals=False,
             )
-            condition.append(cond)
+            condition.append(new_cond)
             local_comps.extend(comps)
         condition.extend(local_comps)
         return node.update(self.lib, literal=literal, condition=condition)
@@ -193,29 +191,38 @@ class RuleRewriteTransformer:
 
     # Rule Statements
     @_rewrite.register(ast.StatementRule | AssignmentRule)
-    def _[
-        T: (
-            ast.StatementRule,
-            AssignmentRule,
-        )
-    ](self, node: T, var_gen: FreshVariableGenerator) -> T:
+    def _[T: (
+        ast.StatementRule,
+        AssignmentRule,
+    )](self, node: T, var_gen: FreshVariableGenerator) -> T:
         if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):
-            new_head = self.head_literal_transformer.unnest(node.head) or node.head
+            new_head = self.head_literal_transformer.unnest(node.head)
         else:
             new_head = self._rewrite_literal(node.head, var_gen)
 
         new_body_literals: List[BodyLiteralAST] = []
 
+        are_new_body_literals = False
         for lit in node.body:
             new_lit = self._rewrite_literal(lit, var_gen)
+            if new_lit is None:
+                new_body_literals.append(lit)
+            else:
+                new_body_literals.append(new_lit)
+                are_new_body_literals = True
 
-            # For Mypy
-            # assert isinstance(new_lit, BodyLiteralAST)
-            new_body_literals.append(new_lit)
+        if not new_head and not are_new_body_literals:
+            return node
 
         for comp in self.head_literal_transformer.pop_all_unnested_functions():
             new_body_literals.append(ast.BodySimpleLiteral(self.lib, literal=comp))
 
         for comp in self.body_literal_transformer.pop_all_unnested_functions():
             new_body_literals.append(ast.BodySimpleLiteral(self.lib, literal=comp))
-        return node.update(self.lib, head=new_head, body=new_body_literals)
+
+        update = {}
+        if new_head:
+            update["head"] = new_head
+        if new_body_literals:
+            update["body"] = new_body_literals
+        return node.update(self.lib, **update)

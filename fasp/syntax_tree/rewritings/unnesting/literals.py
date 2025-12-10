@@ -16,9 +16,9 @@ from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST
 from fasp.util.iterables import map_none
 
 
-def unnest_functions[
-    T: (ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic)
-](
+def unnest_functions[T: (
+    ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
+)](
     lib: Library,
     node: T,
     evaluable_functions: Set[SymbolSignature],
@@ -28,7 +28,7 @@ def unnest_functions[
     sign: ast.Sign | None = None,
     unnest_left_guard_equality: bool = False,
     allowed_in_negated_literals: bool = True,
-) -> tuple[T, List[ast.LiteralComparison]]:
+) -> tuple[T | None, List[ast.LiteralComparison]]:
     """
     Unnest evaluable functions in a given rule and return the list of generated comparisons.
     """
@@ -46,6 +46,8 @@ def unnest_functions[
         sign,
     )
     return new_node or node, transformer.unnested_functions
+    # change to:
+    # return new_node or node, transformer.unnested_functions
 
 
 class UnnestFunctionsInLiteralsTransformer:
@@ -235,12 +237,10 @@ class UnnestFunctionsInLiteralsTransformer:
         | ast.TermBinaryOperation
         | ast.TermTuple
     )
-    def _[
-        T: (
-            ast.TermAbsolute,
-            ast.TermUnaryOperation,
-            ast.TermBinaryOperation,
-            ast.TermTuple,
-        )
-    ](self, node: T, outer: bool = True, sign: ast.Sign | None = None) -> T | None:
+    def _[T: (
+        ast.TermAbsolute,
+        ast.TermUnaryOperation,
+        ast.TermBinaryOperation,
+        ast.TermTuple,
+    )](self, node: T, outer: bool = True, sign: ast.Sign | None = None) -> T | None:
         return node.transform(self.lib, self.unnest, outer=False, sign=sign)
