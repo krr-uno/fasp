@@ -403,9 +403,116 @@ class ChoiceSomeAssignment(AssignmentAST):
         }
 
 
+@dataclass
+class HeadAggregate_AssignmentElement(AssignmentAST):
+    """
+    A single assignment element with an optional condition,
+    used inside a choice assignment.
+
+    This node wraps a `HeadSimpleAssignment` and associates it with
+    zero or more literals that act as a condition.
+
+    Example:
+        { f(X) := 1 : p(X); f(X) := 2 : q(X) }.
+    In this example, `f(X) := value : condition` becomes an
+    AssignmentAggregateElement.
+
+    Parameters
+    ----------
+    location : Location
+        Source code location.
+    assignment : HeadSimpleAssignment
+        The assignment part of the element (e.g., `f(X) := 1`).
+    condition : Sequence[util_ast.LiteralAST]
+        Optional literals serving as conditions (e.g., `p(X)`).
+    terms : Sequence[util_ast.TermAST]
+        Terms
+    """
+
+    location: Location
+    assignment: HeadSimpleAssignment
+    condition: Sequence[util_ast.LiteralAST]
+    terms: Sequence[util_ast.TermAST]
+
+    # Need to check for terms and condition
+    def __str__(self) -> str:
+        _term = ""
+        if self.terms:
+            _term = ", ".join(map(str, self.terms))
+            if _term != "":
+                _term += ": "
+        # TODO: FIX
+        # if self.condition:
+        #     return (
+        #         f"{_term}{str(self.assignment)}: {', '.join(map(str, self.condition))}"
+        #     )
+        return f"{_term}{str(self.assignment)}"
+
+    def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        return {
+            "type": "HeadAggregate_AssignmentElement",
+            "location": self.location,
+            "assignment": self.assignment,
+            "condition": self.condition,
+            "terms": self.terms,
+        }
+
+
+@dataclass
+class HeadAggregate_Assignment(AssignmentAST):
+    """
+    An aggregate with an assignment with optional guards.
+
+    Syntax form:
+        [left_guard] #agg{ element1; element2; ... } [right_guard]
+
+    Each element can be either:
+    - `HeadAggregate_AssignmentElement`,
+    - `ast.HeadAggregateElement`: a standard clingo Head aggregate element.
+
+    Example:
+        1 #count{ f(X,Y) : f(X) := Y : p(X,Y), not in(X); p(X) : p(X) } 1.
+
+    Parameters
+    ----------
+    location : Location
+        Source code location.
+    aggregate_function : ast.AggregateFunction
+        The aggregate function.
+    elements : Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
+        Elements inside the choice braces.
+    left_guard : LeftGuard, optional
+        An optional left guard.
+    right_guard : RightGuard, optional
+        An optional right guard.
+    """
+
+    location: Location
+    aggregate_function: ast.AggregateFunction
+    elements: Sequence[AssignmentAggregateElement | ast.HeadAggregateElement]
+    left_guard: LeftGuard | None = None
+    right_guard: RightGuard | None = None
+
+    def __str__(self) -> str:  # pragma: no cover
+        left = str(self.left_guard) if self.left_guard else ""
+        right = str(self.right_guard) if self.right_guard else ""
+        return f"{left}{_AGGREGATE_FUNCTION_TO_STR[self.aggregate_function]}{{ {'; '.join(map(str, self.elements))} }}{right}"
+
+    def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        return {
+            "type": "HeadAggregate_Assignment",
+            "location": self.location,
+            "left_guard": self.left_guard,
+            "aggregate_function": self.aggregate_function,
+            "elements": self.elements,
+            "right_guard": self.right_guard,
+        }
+
+
 HeadAssignment = (
     HeadSimpleAssignment
     | HeadAggregateAssignment
+    | HeadAggregate_Assignment
     | ChoiceAssignment
     | ChoiceSomeAssignment
 )

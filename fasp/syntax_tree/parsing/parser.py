@@ -21,6 +21,8 @@ from fasp.syntax_tree._nodes import (
     ChoiceAssignment,
     ChoiceSomeAssignment,
     FASP_Statement,
+    HeadAggregate_Assignment,
+    HeadAggregate_AssignmentElement,
     HeadAggregateAssignment,
     HeadSimpleAssignment,
 )
@@ -187,6 +189,13 @@ QUERY_MISSING = Query(LANGUAGE, "(MISSING) @missing-node")
 QUERY_ASSIGMENT_RULE = Query(LANGUAGE, "(assignment_rule) @match")
 QUERY_BODY_AGGREGATE_ELEMENTS = Query(LANGUAGE, "(body_aggregate_elements) @match")
 
+_STR_TO_AGGREGATE_FUNCTION = {
+    "#sum": ast.AggregateFunction.Sum,
+    "#count": ast.AggregateFunction.Count,
+    "#min": ast.AggregateFunction.Min,
+    "#max": ast.AggregateFunction.Max,
+}
+
 
 class TreeSitterParser:
     """
@@ -228,6 +237,8 @@ class TreeSitterParser:
             head = self._parse_simple_assignment(unparsed_head)
         elif unparsed_head.type == "aggregate_assignment":
             head = self._parse_aggregate_assignment(unparsed_head)
+        elif unparsed_head.type == "head_aggregate_assignment":
+            head = self._parse_head_aggregate_assignment(unparsed_head)
         elif unparsed_head.type == "choice_assignment":
             head = self._parse_choice_assignment(unparsed_head)
         else:
@@ -286,6 +297,92 @@ class TreeSitterParser:
             assigned_function,
             aggregate.function,
             aggregate.elements,
+        )
+
+    def _parse_head_aggregate_assignment(self, node: Node) -> HeadAggregateAssignment:
+        # print(node)
+        location = self._location_from_node(node)
+
+        # aggregate function
+        unparsed_function = node.child_by_field_name("function")
+        agg_str = unparsed_function.text.decode("utf-8")
+        aggregate_function = _STR_TO_AGGREGATE_FUNCTION[agg_str]
+
+        # print(location, aggregate_function)
+
+        # elements
+        elements = []
+        elements_node = node.child_by_field_name("elements")
+
+        for el in elements_node.named_children:
+            # HeadAssignment_AggregateElement
+            if el.type == "head_aggregate_assignment_element":
+                unparsed_terms = el.child_by_field_name("terms")
+                terms: list[TermAST] = []
+
+                if unparsed_terms:
+                    for t in unparsed_terms.named_children:
+                        term = ast.parse_term(
+                            self.library.library, t.text.decode("utf-8")
+                        )
+                        terms.append(term)
+
+                unparsed_assignment = el.child_by_field_name("assignment")
+                assignment = self._parse_simple_assignment(unparsed_assignment)
+
+                # Optional Condition
+                unparsed_condition = el.child_by_field_name("condition")
+                if not unparsed_condition:
+                    condition = []
+                # TODO: Fix
+                # Condition is empty right now
+                # else:
+                #     condition = self._clingo_parse_choice_condition(
+                #         ", ".join(
+                #             l.text.decode("utf-8") for l in unparsed_condition.children
+                #         )
+                #     )
+                # TODO: Fix
+                # Condition is empty right now
+                # print(condition)
+                elements.append(
+                    HeadAggregate_AssignmentElement(
+                        self._location_from_node(el),
+                        assignment,
+                        condition,
+                        terms,
+                    )
+                )
+
+            # Standard clingo head aggregate element
+            elif el.type == "head_aggregate_element":
+                # Delegate to clingo by parsing a dummy aggregate
+                # TODO: FIX
+                # FAILS FOR p(X) : p(X): p(Y)
+                dummy = f"#count{{{el.text.decode('utf-8')}}}"
+                aggregate = self._clingo_parse_body_aggregate(dummy)
+                elements.append(aggregate.elements[0])
+
+        # left guard
+        unparsed_left = node.child_by_field_name("left")
+        if unparsed_left:
+            left = self._clingo_parse_left_guard(unparsed_left.text.decode("utf-8"))
+        else:
+            left = None
+
+        # right guard
+        unparsed_right = node.child_by_field_name("right")
+        if unparsed_right:
+            right = self._clingo_parse_right_guard(unparsed_right.text.decode("utf-8"))
+        else:
+            right = None
+
+        return HeadAggregate_Assignment(
+            location=location,
+            aggregate_function=aggregate_function,
+            elements=elements,
+            left_guard=left,
+            right_guard=right,
         )
 
     def _parse_choice_assignment_element(
@@ -414,9 +511,16 @@ class TreeSitterParser:
         Return all assignment_rule nodes in the parse tree.
         """
         tree = self._tree_parse(src)
+        # self._debug_print_tree(tree.root_node)
+
         return [
             node for node in tree.root_node.children if node.type == "assignment_rule"
         ]
+
+    # def _debug_print_tree(self, node, indent=0):
+    #     print("  " * indent + node.type)
+    #     for child in node.named_children:
+    #         self._debug_print_tree(child, indent + 1)
 
 
 def parse_string(library: ELibrary, src: str) -> Iterable[AST]:
