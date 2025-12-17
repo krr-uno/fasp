@@ -355,7 +355,7 @@ class TreeSitterParser:
                 # TODO: FIX
                 # FAILS FOR p(X) : p(X): p(Y)
                 dummy = f"#count{{{el.text.decode('utf-8')}}}"
-                aggregate = self._clingo_parse_body_aggregate(dummy)
+                aggregate = self._clingo_parse_head_aggregate(dummy)
                 elements.append(aggregate.elements[0])
 
         # left guard
@@ -482,6 +482,10 @@ class TreeSitterParser:
     def _clingo_parse_body_aggregate(self, src: str) -> AST:
         body = self._clingo_parse_body(src)
         return body[0]
+
+    def _clingo_parse_head_aggregate(self, src: str) -> AST:
+        statement = ast.parse_statement(self.library.library, f"{src}.")
+        return statement.head
 
     def _clingo_parse_choice(self, src: str) -> AST:
         rule = ast.parse_statement(self.library.library, f"{src}.")

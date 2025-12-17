@@ -344,7 +344,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqualParse("1 <= #count{ f(X): f(X) := Y: p(X,Y) } <= 1.")
         self.assertEqualParse("1 <= #count{ f(X,Y), g(X): f(X) := Y: p(X); p(X): p(X) } <= 1.")
         self.assertEqualParse("#count{ f(X,Y), g(X): f(X) := Y; p(X): p(X) }.")
-        # self.assertEqualParse("1 <= #count{ f(X,Y): f(X) := Y : p(X,Y), not in(X); p(X): p(X): p(Y) } <= 1.")
+        self.assertEqualParse("1 <= #count{ f(X,Y): f(X) := Y: p(X,Y), not in(X); p(X): p(X): p(Y) } <= 1.")
     # def test_tree_parse_error_assigned_is_not_function(self):
     #     code = textwrap.dedent(
     #         """\
