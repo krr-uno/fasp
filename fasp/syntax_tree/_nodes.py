@@ -475,7 +475,7 @@ class HeadAggregateAssignment(AssignmentAST):
     ----------
     location : Location
         Source code location.
-    aggregate_function : ast.AggregateFunction
+    function : ast.AggregateFunction
         The aggregate function.
     elements : Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
         Elements inside the choice braces.
@@ -487,21 +487,21 @@ class HeadAggregateAssignment(AssignmentAST):
 
     location: Location
     left: LeftGuard | None
-    aggregate_function: ast.AggregateFunction
+    function: ast.AggregateFunction
     elements: Sequence[AssignmentAggregateElement | ast.HeadAggregateElement]
     right: RightGuard | None
 
     def __str__(self) -> str:  # pragma: no cover
         left = str(self.left) if self.left else ""
         right = str(self.right) if self.right else ""
-        return f"{left}{_AGGREGATE_FUNCTION_TO_STR[self.aggregate_function]}{{ {'; '.join(map(str, self.elements))} }}{right}"
+        return f"{left}{_AGGREGATE_FUNCTION_TO_STR[self.function]}{{ {'; '.join(map(str, self.elements))} }}{right}"
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
         return {
             "type": "HeadAggregate_Assignment",
             "location": self.location,
             "left": self.left,
-            "aggregate_function": self.aggregate_function,
+            "function": self.function,
             "elements": self.elements,
             "right": self.right,
         }

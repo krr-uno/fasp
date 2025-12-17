@@ -372,11 +372,11 @@ class TreeSitterParser:
             right = None
 
         return HeadAggregateAssignment(
-            location=location,
-            left=left,
-            aggregate_function=aggregate_function,
-            elements=elements,
-            right=right,
+            location,
+            left,
+            aggregate_function,
+            elements,
+            right,
         )
 
     def _parse_choice_assignment_element(
