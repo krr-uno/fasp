@@ -560,7 +560,7 @@ class _AssignmentRestorationTransformer:
         if not any_converted:
             return None
 
-        return ChoiceAssignment(head.location, new_elements, head.left, head.right)
+        return ChoiceAssignment(head.location, head.left, new_elements,  head.right)
 
     def rewrite(self, node: StatementAST) -> FASP_Statement:
         """
@@ -595,7 +595,8 @@ class _AssignmentRestorationTransformer:
                 return node
 
             # CASE 3: HeadAggregate: This might occur after running clingo.rewrite.
-            # Need to correct the restoration for this case.
+            # TODO: Fix
+            # Need to return HeadAggregateAssignment for this case.
             elif isinstance(head, ast.HeadAggregate):
                 new_elements: Any = []
                 any_converted = False

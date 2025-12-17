@@ -423,8 +423,8 @@ class TreeSitterParser:
             right = None
         return ChoiceAssignment(
             self._location_from_node(node),
-            elements,
             left,
+            elements,
             right,
         )
 

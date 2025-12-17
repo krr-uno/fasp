@@ -348,8 +348,8 @@ class ChoiceAssignment(AssignmentAST):
     """
 
     location: Location
-    elements: Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
     left: LeftGuard | None
+    elements: Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
     right: RightGuard | None
 
     def __str__(self) -> str:  # pragma: no cover
