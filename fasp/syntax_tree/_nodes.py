@@ -433,6 +433,7 @@ class HeadAggregateAssignmentElement(AssignmentAST):
     assignment: HeadSimpleAssignment
     condition: Sequence[util_ast.LiteralAST]
     terms: Sequence[util_ast.TermAST]
+    # rename this as tuple and move it before assignment
 
     # Need to check for terms and condition
     def __str__(self) -> str:
