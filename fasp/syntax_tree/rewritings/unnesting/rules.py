@@ -7,7 +7,7 @@ from clingo.core import Library
 from fasp.syntax_tree._nodes import (
     FASP_AST,
     AssignmentRule,
-    HeadAggregateAssignment,
+    HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
 from fasp.syntax_tree.collectors import SymbolSignature, collect_variables
@@ -181,8 +181,8 @@ class RuleRewriteTransformer:
 
     @_rewrite_literal.register
     def _(
-        self, node: HeadAggregateAssignment, var_gen: FreshVariableGenerator
-    ) -> HeadAggregateAssignment:
+        self, node: HeadAssignmentAggregate, var_gen: FreshVariableGenerator
+    ) -> HeadAssignmentAggregate:
         assert (
             False
         ), "HeadAggregateAssignment seen during function unnesting. This should not happen."

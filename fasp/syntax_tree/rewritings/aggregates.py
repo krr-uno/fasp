@@ -4,7 +4,7 @@ from clingo.core import Library
 from fasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
-    HeadAggregateAssignment,
+    HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
 from fasp.syntax_tree.collectors import collect_variables
@@ -162,7 +162,7 @@ def normalize_assignment_aggregates(
     library: Library, stm: FASP_Statement
 ) -> FASP_Statement:
     if not isinstance(stm, AssignmentRule) or not isinstance(
-        head := stm.head, HeadAggregateAssignment
+        head := stm.head, HeadAssignmentAggregate
     ):
         return stm
     used_variables = collect_variables(stm)

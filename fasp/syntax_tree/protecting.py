@@ -12,7 +12,7 @@ from fasp.syntax_tree._nodes import (
     ChoiceAssignment,
     ChoiceSomeAssignment,
     FASP_Statement,
-    HeadAggregateAssignment,
+    HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
 from fasp.util.ast import (
@@ -648,7 +648,7 @@ class _AssignmentRestorationTransformer:
                     return node
 
                 assert isinstance(new_literal, HeadSimpleAssignment)
-                new_head = HeadAggregateAssignment(
+                new_head = HeadAssignmentAggregate(
                     head.location,
                     new_literal.assigned_function,
                     head.function,

@@ -8,7 +8,7 @@ from fasp.syntax_tree._nodes import (
     FASP_AST,
     FASP_AST_T,
     AssignmentAST,
-    HeadAggregateAssignment,
+    HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
 from fasp.syntax_tree.collectors import SymbolSignature

@@ -12,7 +12,7 @@ from fasp.syntax_tree._nodes import (
     ChoiceAssignment,
     ChoiceSomeAssignment,
     FASP_Statement,
-    HeadAggregateAssignment,
+    HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
 from fasp.syntax_tree.collectors import (
@@ -125,7 +125,7 @@ class NormalForm2PredicateTransformer:
     # HeadAggregateAssignment should be rewritten by normalize_assignment_aggregates
 
     @_rewrite_head.register
-    def _(self, node: HeadAggregateAssignment) -> ast.HeadAggregate:
+    def _(self, node: HeadAssignmentAggregate) -> ast.HeadAggregate:
         assert (
             False
         ), "HeadAggregateAssignment seen during Head AST rewrite during Normalization. This should not happen."

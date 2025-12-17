@@ -13,8 +13,8 @@ from ._nodes import (
     AssignmentRule,
     ChoiceAssignment,
     FASP_Statement,
-    HeadAggregateAssignment,
     HeadAssignment,
+    HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
 from .collectors import SymbolSignature

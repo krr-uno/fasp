@@ -21,9 +21,9 @@ from fasp.syntax_tree._nodes import (
     ChoiceAssignment,
     ChoiceSomeAssignment,
     FASP_Statement,
-    HeadAggregate_Assignment,
-    HeadAggregate_AssignmentElement,
     HeadAggregateAssignment,
+    HeadAggregateAssignmentElement,
+    HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
 from fasp.util.ast import (
@@ -289,17 +289,17 @@ class TreeSitterParser:
             value,
         )
 
-    def _parse_aggregate_assignment(self, node: Node) -> HeadAggregateAssignment:
+    def _parse_aggregate_assignment(self, node: Node) -> HeadAssignmentAggregate:
         assigned_function, unparsed_aggregate = self._preparse_assignment(node)
         aggregate = self._clingo_parse_body_aggregate(unparsed_aggregate)
-        return HeadAggregateAssignment(
+        return HeadAssignmentAggregate(
             self._location_from_node(node),
             assigned_function,
             aggregate.function,
             aggregate.elements,
         )
 
-    def _parse_head_aggregate_assignment(self, node: Node) -> HeadAggregateAssignment:
+    def _parse_head_aggregate_assignment(self, node: Node) -> HeadAssignmentAggregate:
         # print(node)
         location = self._location_from_node(node)
 
@@ -341,7 +341,7 @@ class TreeSitterParser:
                         unparsed_condition.text.decode("utf-8")
                     )
                 elements.append(
-                    HeadAggregate_AssignmentElement(
+                    HeadAggregateAssignmentElement(
                         self._location_from_node(el),
                         assignment,
                         condition,
@@ -372,7 +372,7 @@ class TreeSitterParser:
         else:
             right = None
 
-        return HeadAggregate_Assignment(
+        return HeadAggregateAssignment(
             location=location,
             aggregate_function=aggregate_function,
             elements=elements,

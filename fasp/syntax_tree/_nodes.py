@@ -242,7 +242,7 @@ _AGGREGATE_FUNCTION_TO_STR = {
 
 
 @dataclass
-class HeadAggregateAssignment(AssignmentAST):
+class HeadAssignmentAggregate(AssignmentAST):
     """
     An assignment head of the form ``f(args) := #agg{ ... }``.
 
@@ -404,7 +404,7 @@ class ChoiceSomeAssignment(AssignmentAST):
 
 
 @dataclass
-class HeadAggregate_AssignmentElement(AssignmentAST):
+class HeadAggregateAssignmentElement(AssignmentAST):
     """
     A single assignment element with an optional condition,
     used inside a choice assignment.
@@ -458,7 +458,7 @@ class HeadAggregate_AssignmentElement(AssignmentAST):
 
 
 @dataclass
-class HeadAggregate_Assignment(AssignmentAST):
+class HeadAggregateAssignment(AssignmentAST):
     """
     An aggregate with an assignment with optional guards.
 
@@ -510,8 +510,8 @@ class HeadAggregate_Assignment(AssignmentAST):
 
 HeadAssignment = (
     HeadSimpleAssignment
+    | HeadAssignmentAggregate
     | HeadAggregateAssignment
-    | HeadAggregate_Assignment
     | ChoiceAssignment
     | ChoiceSomeAssignment
 )
@@ -586,7 +586,7 @@ FASP_AST_T = TypeVar(
     "FASP_AST_T",
     AssignmentAST,
     HeadSimpleAssignment,
-    HeadAggregateAssignment,
+    HeadAssignmentAggregate,
     ArgumentTuple,
     BodyAggregate,
     BodyAggregateElement,
