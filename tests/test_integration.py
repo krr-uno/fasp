@@ -171,7 +171,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
     def test_king_error(self):
         self.assertTransformEqual(
             "{king(C) := X : person(X)}:- country(C).",
-            "king(C) := #count{0; king(C) := X; king(C) := X; person(X)} :- country(C).",
+            "#count{0,ASS(king(C),X); king(C) := X; king(C) := X; person(X)} :- country(C).",
             #count { 0, king(C) := X: king(C) := X: person(X) } :- country(C).
             test_pipeline=7
         )
