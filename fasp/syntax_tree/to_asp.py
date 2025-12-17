@@ -101,9 +101,9 @@ class NormalForm2PredicateTransformer:
         return ast.HeadSetAggregate(
             self.library,
             node.location,
-            node.left_guard,
+            node.left,
             elements,
-            node.right_guard,
+            node.right,
         )
 
     # Elements inside aggregates

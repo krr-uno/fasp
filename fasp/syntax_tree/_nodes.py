@@ -324,7 +324,7 @@ class ChoiceAssignment(AssignmentAST):
     A choice-style assignment with optional guards.
 
     Syntax form:
-        [left_guard] { element1; element2; ... } [right_guard]
+        [left] { element1; element2; ... } [right]
 
     Each element can be either:
     - `AssignmentAggregateElement`: a simple assignment with an optional condition,
@@ -341,20 +341,20 @@ class ChoiceAssignment(AssignmentAST):
         Source code location.
     elements : Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
         Elements inside the choice braces.
-    left_guard : LeftGuard, optional
+    left : LeftGuard, optional
         An optional left guard.
-    right_guard : RightGuard, optional
+    right : RightGuard, optional
         An optional right guard.
     """
 
     location: Location
     elements: Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
-    left_guard: LeftGuard | None = None
-    right_guard: RightGuard | None = None
+    left: LeftGuard | None
+    right: RightGuard | None
 
     def __str__(self) -> str:  # pragma: no cover
-        left = str(self.left_guard) if self.left_guard else ""
-        right = str(self.right_guard) if self.right_guard else ""
+        left = str(self.left) if self.left else ""
+        right = str(self.right) if self.right else ""
         return f"{left}{{ {'; '.join(map(str, self.elements))} }}{right}"
 
     # Note: Implementation seemed to be incomplete since this class does not have assigned_function
@@ -367,8 +367,8 @@ class ChoiceAssignment(AssignmentAST):
             "location": self.location,
             # "assigned_function": self.assigned_function,
             "elements": self.elements,
-            "left_guard": self.left_guard,
-            "right_guard": self.right_guard,
+            "left": self.left,
+            "right": self.right,
         }
 
 
@@ -433,7 +433,7 @@ class HeadAggregateAssignmentElement(AssignmentAST):
     tuple: Sequence[util_ast.TermAST]
     assignment: HeadSimpleAssignment
     condition: Sequence[util_ast.LiteralAST]
-    
+
     def __str__(self) -> str:
         _tuple = ""
         if self.tuple:
@@ -453,7 +453,6 @@ class HeadAggregateAssignmentElement(AssignmentAST):
             "tuple": self.tuple,
             "assignment": self.assignment,
             "condition": self.condition,
-            
         }
 
 
@@ -463,7 +462,7 @@ class HeadAggregateAssignment(AssignmentAST):
     An aggregate with an assignment with optional guards.
 
     Syntax form:
-        [left_guard] #agg{ element1; element2; ... } [right_guard]
+        [left] #agg{ element1; element2; ... } [right]
 
     Each element can be either:
     - `HeadAggregate_AssignmentElement`,
@@ -480,31 +479,31 @@ class HeadAggregateAssignment(AssignmentAST):
         The aggregate function.
     elements : Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
         Elements inside the choice braces.
-    left_guard : LeftGuard, optional
+    left : LeftGuard, optional
         An optional left guard.
-    right_guard : RightGuard, optional
+    right : RightGuard, optional
         An optional right guard.
     """
 
     location: Location
+    left: LeftGuard | None
     aggregate_function: ast.AggregateFunction
     elements: Sequence[AssignmentAggregateElement | ast.HeadAggregateElement]
-    left_guard: LeftGuard | None = None
-    right_guard: RightGuard | None = None
+    right: RightGuard | None
 
     def __str__(self) -> str:  # pragma: no cover
-        left = str(self.left_guard) if self.left_guard else ""
-        right = str(self.right_guard) if self.right_guard else ""
+        left = str(self.left) if self.left else ""
+        right = str(self.right) if self.right else ""
         return f"{left}{_AGGREGATE_FUNCTION_TO_STR[self.aggregate_function]}{{ {'; '.join(map(str, self.elements))} }}{right}"
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
         return {
             "type": "HeadAggregate_Assignment",
             "location": self.location,
-            "left_guard": self.left_guard,
+            "left": self.left,
             "aggregate_function": self.aggregate_function,
             "elements": self.elements,
-            "right_guard": self.right_guard,
+            "right": self.right,
         }
 
 

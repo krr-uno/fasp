@@ -352,8 +352,7 @@ class TreeSitterParser:
             # Standard clingo head aggregate element
             elif el.type == "head_aggregate_element":
                 # Delegate to clingo by parsing a dummy aggregate
-                # TODO: FIX
-                # FAILS FOR p(X) : p(X): p(Y)
+                
                 dummy = f"#count{{{el.text.decode('utf-8')}}}"
                 aggregate = self._clingo_parse_head_aggregate(dummy)
                 elements.append(aggregate.elements[0])
@@ -374,10 +373,10 @@ class TreeSitterParser:
 
         return HeadAggregateAssignment(
             location=location,
+            left=left,
             aggregate_function=aggregate_function,
             elements=elements,
-            left_guard=left,
-            right_guard=right,
+            right=right,
         )
 
     def _parse_choice_assignment_element(

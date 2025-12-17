@@ -65,7 +65,7 @@ def _transform_choice_some_to_choice_assignment[T: (
         )
 
     # Create right guard = 1
-    right_guard = ast.RightGuard(
+    right = ast.RightGuard(
         library,
         ast.Relation.Equal,
         ast.TermSymbolic(library, head.location, symbol.Number(library, 1)),
@@ -75,8 +75,8 @@ def _transform_choice_some_to_choice_assignment[T: (
     new_head = ChoiceAssignment(
         location=head.location,
         elements=new_elements,
-        left_guard=None,
-        right_guard=right_guard,
+        left=None,
+        right=right,
     )
 
     # Construct #count aggregate for the body

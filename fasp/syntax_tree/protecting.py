@@ -416,9 +416,9 @@ class _AssignmentProtectorTransformer:
             new_head = ast.HeadSetAggregate(
                 self.library,
                 head.location,
-                head.left_guard,
+                head.left,
                 new_elements,
-                head.right_guard,
+                head.right,
             )
             return ast.StatementRule(
                 self.library,
