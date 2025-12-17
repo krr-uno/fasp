@@ -331,20 +331,15 @@ class TreeSitterParser:
                 assignment = self._parse_simple_assignment(unparsed_assignment)
 
                 # Optional Condition
-                unparsed_condition = el.child_by_field_name("condition")
+                unparsed_condition = el.children_by_field_name("condition")
                 if not unparsed_condition:
                     condition = []
-                # TODO: Fix
-                # Condition is empty right now
-                # else:
-                #     condition = self._clingo_parse_choice_condition(
-                #         ", ".join(
-                #             l.text.decode("utf-8") for l in unparsed_condition.children
-                #         )
-                #     )
-                # TODO: Fix
-                # Condition is empty right now
-                # print(condition)
+                else:
+                    if len(unparsed_condition) > 1:
+                        unparsed_condition = unparsed_condition[1]
+                    condition = self._clingo_parse_choice_condition(
+                        unparsed_condition.text.decode("utf-8")
+                    )
                 elements.append(
                     HeadAggregate_AssignmentElement(
                         self._location_from_node(el),
@@ -390,12 +385,12 @@ class TreeSitterParser:
     ) -> AssignmentAggregateElement:
         unparsed_assignment = node.child_by_field_name("assignment")
         unparsed_condition = node.children_by_field_name("condition")
-        if len(unparsed_condition) > 1:
-            unparsed_condition = unparsed_condition[1]
         assignment = self._parse_simple_assignment(unparsed_assignment)
         if not unparsed_condition:
             condition = []
         else:
+            if len(unparsed_condition) > 1:
+                unparsed_condition = unparsed_condition[1]
             condition = self._clingo_parse_choice_condition(
                 unparsed_condition.text.decode("utf-8")
             )

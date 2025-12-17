@@ -441,11 +441,10 @@ class HeadAggregate_AssignmentElement(AssignmentAST):
             _term = ", ".join(map(str, self.terms))
             if _term != "":
                 _term += ": "
-        # TODO: FIX
-        # if self.condition:
-        #     return (
-        #         f"{_term}{str(self.assignment)}: {', '.join(map(str, self.condition))}"
-        #     )
+        if self.condition:
+            return (
+                f"{_term}{str(self.assignment)}: {', '.join(map(str, self.condition))}"
+            )
         return f"{_term}{str(self.assignment)}"
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
