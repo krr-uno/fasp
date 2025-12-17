@@ -425,36 +425,35 @@ class HeadAggregateAssignmentElement(AssignmentAST):
         The assignment part of the element (e.g., `f(X) := 1`).
     condition : Sequence[util_ast.LiteralAST]
         Optional literals serving as conditions (e.g., `p(X)`).
-    terms : Sequence[util_ast.TermAST]
-        Terms
+    tuple : Sequence[util_ast.TermAST]
+        tuple
     """
 
     location: Location
+    tuple: Sequence[util_ast.TermAST]
     assignment: HeadSimpleAssignment
     condition: Sequence[util_ast.LiteralAST]
-    terms: Sequence[util_ast.TermAST]
-    # rename this as tuple and move it before assignment
-
-    # Need to check for terms and condition
+    
     def __str__(self) -> str:
-        _term = ""
-        if self.terms:
-            _term = ", ".join(map(str, self.terms))
-            if _term != "":
-                _term += ": "
+        _tuple = ""
+        if self.tuple:
+            _tuple = ", ".join(map(str, self.tuple))
+            if _tuple != "":
+                _tuple += ": "
         if self.condition:
             return (
-                f"{_term}{str(self.assignment)}: {', '.join(map(str, self.condition))}"
+                f"{_tuple}{str(self.assignment)}: {', '.join(map(str, self.condition))}"
             )
-        return f"{_term}{str(self.assignment)}"
+        return f"{_tuple}{str(self.assignment)}"
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
         return {
             "type": "HeadAggregate_AssignmentElement",
             "location": self.location,
+            "tuple": self.tuple,
             "assignment": self.assignment,
             "condition": self.condition,
-            "terms": self.terms,
+            
         }
 
 

@@ -317,15 +317,15 @@ class TreeSitterParser:
         for el in elements_node.named_children:
             # HeadAssignment_AggregateElement
             if el.type == "head_aggregate_assignment_element":
-                unparsed_terms = el.child_by_field_name("terms")
-                terms: list[TermAST] = []
+                unparsed_tuple = el.child_by_field_name("terms")
+                tuple: list[TermAST] = []
 
-                if unparsed_terms:
-                    for t in unparsed_terms.named_children:
+                if unparsed_tuple:
+                    for t in unparsed_tuple.named_children:
                         term = ast.parse_term(
                             self.library.library, t.text.decode("utf-8")
                         )
-                        terms.append(term)
+                        tuple.append(term)
 
                 unparsed_assignment = el.child_by_field_name("assignment")
                 assignment = self._parse_simple_assignment(unparsed_assignment)
@@ -343,9 +343,9 @@ class TreeSitterParser:
                 elements.append(
                     HeadAggregateAssignmentElement(
                         self._location_from_node(el),
+                        tuple,
                         assignment,
-                        condition,
-                        terms,
+                        condition,  
                     )
                 )
 
