@@ -345,14 +345,14 @@ class TreeSitterParser:
                         self._location_from_node(el),
                         tuple,
                         assignment,
-                        condition,  
+                        condition,
                     )
                 )
 
             # Standard clingo head aggregate element
             elif el.type == "head_aggregate_element":
                 # Delegate to clingo by parsing a dummy aggregate
-                
+
                 dummy = f"#count{{{el.text.decode('utf-8')}}}"
                 aggregate = self._clingo_parse_head_aggregate(dummy)
                 elements.append(aggregate.elements[0])

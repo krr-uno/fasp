@@ -12,7 +12,7 @@ from fasp.syntax_tree._nodes import (
     ChoiceAssignment,
     ChoiceSomeAssignment,
     FASP_Statement,
-    HeadAssignmentAggregate,
+    HeadAggregateAssignment,
     HeadSimpleAssignment,
 )
 from fasp.util.ast import (
@@ -452,9 +452,27 @@ def protect_assignments(
 # RESTORATION: Rule with ASS(left, right) --> AssignmentRule
 
 
-def _literal_is_protected_assignment(
+# def _literal_is_protected_assignment(
+#     literal: ast.LiteralSymbolic, assignment_name: str = ASSIGNMENT_NAME
+# ) -> Optional[Sequence[ArgumentAST] | Sequence[Symbol]]:
+#     """
+#     Checks if a literal is the protected assignment function or not.
+#     Returns None if not, else returns the protected assignment's arguments.
+#     """
+#     atom = literal.atom
+#     # QUESTION:
+#     if not is_function(atom):
+#         return None  # pragma: no cover
+
+#     name, arguments = function_arguments(atom)
+#     if name == assignment_name:
+#         return arguments
+#     return None
+
+
+def _is_literal_protected_assignment(
     literal: ast.LiteralSymbolic, assignment_name: str = ASSIGNMENT_NAME
-) -> Optional[Sequence[ArgumentAST] | Sequence[Symbol]]:
+) -> bool:
     """
     Checks if a literal is the protected assignment function or not.
     Returns None if not, else returns the protected assignment's arguments.
@@ -462,12 +480,12 @@ def _literal_is_protected_assignment(
     atom = literal.atom
     # QUESTION:
     if not is_function(atom):
-        return None  # pragma: no cover
+        return False  # pragma: no cover
 
     name, arguments = function_arguments(atom)
     if name == assignment_name:
-        return arguments
-    return None
+        return True
+    return False
 
 
 def restore_assignment_arguments(
@@ -540,10 +558,9 @@ class _AssignmentRestorationTransformer:
         for elem in head.elements:
             lit = elem.literal
             # check if it's ASS(...)
-            if (
-                isinstance(lit, ast.LiteralSymbolic)
-                and _literal_is_protected_assignment(lit) != None
-            ):
+            if isinstance(
+                lit, ast.LiteralSymbolic
+            ) and _is_literal_protected_assignment(lit):
                 head_assign = _restore_assignment_literal_to_head_simple_assignment(lit)
                 if head_assign:
                     any_converted = True
@@ -560,7 +577,7 @@ class _AssignmentRestorationTransformer:
         if not any_converted:
             return None
 
-        return ChoiceAssignment(head.location, head.left, new_elements,  head.right)
+        return ChoiceAssignment(head.location, head.left, new_elements, head.right)
 
     def rewrite(self, node: StatementAST) -> FASP_Statement:
         """
@@ -578,7 +595,7 @@ class _AssignmentRestorationTransformer:
                 lit = head.literal
                 if isinstance(
                     lit, ast.LiteralSymbolic
-                ) and _literal_is_protected_assignment(lit):
+                ) and _is_literal_protected_assignment(lit):
                     head_assign = _restore_assignment_literal_to_head_simple_assignment(
                         lit
                     )
@@ -602,24 +619,25 @@ class _AssignmentRestorationTransformer:
                 any_converted = False
                 for element in head.elements:
                     for term in element.tuple:
-                        if (
-                            isinstance(term, ast.TermFunction)
-                            and term.name == ASSIGNMENT_NAME
-                        ):
-                            any_converted = True
-                            new_element = (
-                                _restore_assignment_term_function_to_head_simple_assignment(
-                                    term
-                                )
-                                or term
-                            )
-                            new_elements.append(new_element)
-                        else:
-                            new_elements.append(term)
+                        # if (
+                        #     isinstance(term, ast.TermFunction)
+                        #     and term.name == ASSIGNMENT_NAME
+                        # ):
+                        #     any_converted = True
+                        #     new_element = (
+                        #         _restore_assignment_term_function_to_head_simple_assignment(
+                        #             term
+                        #         )
+                        #         or term
+                        #     )
+                        #     new_elements.append(new_element)
+                        # else:
+                        #     new_elements.append(term)
+                        new_elements.append(term)
 
                     if isinstance(
                         element.literal, ast.LiteralSymbolic
-                    ) and _literal_is_protected_assignment(element.literal):
+                    ) and _is_literal_protected_assignment(element.literal):
                         any_converted = True
                         new_literal = (
                             _restore_assignment_literal_to_head_simple_assignment(
@@ -634,26 +652,28 @@ class _AssignmentRestorationTransformer:
                     for condition in element.condition:
                         # if isinstance(
                         #     condition, ast.LiteralSymbolic
-                        # ) and _literal_is_protected_assignment(condition):
+                        # ) and _is_literal_protected_assignment(condition):
                         #     any_converted = True
                         #     new_condition = (
                         #         _restore_assignment_literal_to_head_simple_assignment(
-                        #             element.literal
+                        #             condition
                         #         )
-                        #         or element.literal
+                        #         or condition
                         #     )
                         #     new_elements.append(new_condition)
                         # else:
+                        #     new_elements.append(condition)
                         new_elements.append(condition)
                 if not any_converted:
                     return node
 
                 assert isinstance(new_literal, HeadSimpleAssignment)
-                new_head = HeadAssignmentAggregate(
+                new_head = HeadAggregateAssignment(
                     head.location,
-                    new_literal.assigned_function,
+                    head.left,
                     head.function,
                     new_elements,
+                    head.right,
                 )
                 return AssignmentRule(node.location, new_head, body)
 

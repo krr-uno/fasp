@@ -173,15 +173,15 @@ class TestFASPProgramTransformer(unittest.TestCase):
     # Should be restored into something like:
     # "#count{0,ASS(king(C),X); king(C) := X; person(X)} :- country(C).",
     
-    def test_king_error(self):
+    def test_head_aggregate_assignment(self):
         self.assertTransformEqual(
             "{king(C) := X : person(X)}:- country(C).",
-            "king(C) := #count{0; king(C) := X; king(C) := X; person(X)} :- country(C).", # Wrong => Only added for test coverage, need to correct it.
+            "#count{ 0; ASS(king(C),X); king(C) := X; person(X) } :- country(C).",
             # "#count{0,ASS(king(C),X); king(C) := X; person(X)} :- country(C).",
             
             test_pipeline=7
         )
-    
+
     # Check test_head_set_aggegate in tests\ast\rewritting\test_rule_rewriting.py
     def test_no_change(self):
         self.assertTransformEqual(

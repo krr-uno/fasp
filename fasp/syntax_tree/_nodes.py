@@ -427,7 +427,7 @@ class HeadAggregateAssignmentElement(AssignmentAST):
         The assignment part of the element (e.g., `f(X) := 1`).
     condition : Sequence[util_ast.LiteralAST]
         Optional literals serving as conditions (e.g., `p(X)`).
-   
+
     """
 
     location: Location
