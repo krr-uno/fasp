@@ -268,7 +268,7 @@ class HeadAssignmentAggregate(AssignmentAST):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "type": "HeadAggregateAssignment",
+            "type": "HeadAssignmentAggregate",
             "location": self.location,
             "assigned_function": self.assigned_function,
             "aggregate_function": self.aggregate_function,
@@ -421,12 +421,13 @@ class HeadAggregateAssignmentElement(AssignmentAST):
     ----------
     location : Location
         Source code location.
+    tuple : Sequence[util_ast.TermAST]
+        tuple
     assignment : HeadSimpleAssignment
         The assignment part of the element (e.g., `f(X) := 1`).
     condition : Sequence[util_ast.LiteralAST]
         Optional literals serving as conditions (e.g., `p(X)`).
-    tuple : Sequence[util_ast.TermAST]
-        tuple
+   
     """
 
     location: Location
@@ -448,7 +449,7 @@ class HeadAggregateAssignmentElement(AssignmentAST):
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
         return {
-            "type": "HeadAggregate_AssignmentElement",
+            "type": "HeadAggregateAssignmentElement",
             "location": self.location,
             "tuple": self.tuple,
             "assignment": self.assignment,
@@ -465,7 +466,7 @@ class HeadAggregateAssignment(AssignmentAST):
         [left] #agg{ element1; element2; ... } [right]
 
     Each element can be either:
-    - `HeadAggregate_AssignmentElement`,
+    - `HeadAggregateAssignmentElement`,
     - `ast.HeadAggregateElement`: a standard clingo Head aggregate element.
 
     Example:
@@ -475,12 +476,12 @@ class HeadAggregateAssignment(AssignmentAST):
     ----------
     location : Location
         Source code location.
-    function : ast.AggregateFunction
-        The aggregate function.
-    elements : Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
-        Elements inside the choice braces.
     left : LeftGuard, optional
         An optional left guard.
+    function : ast.AggregateFunction
+        The aggregate function.
+    elements : Sequence[HeadAggregateAssignmentElement | ast.HeadAggregateElement]
+        Elements inside the choice braces.
     right : RightGuard, optional
         An optional right guard.
     """
@@ -498,7 +499,7 @@ class HeadAggregateAssignment(AssignmentAST):
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
         return {
-            "type": "HeadAggregate_Assignment",
+            "type": "HeadAggregateAssignment",
             "location": self.location,
             "left": self.left,
             "function": self.function,
