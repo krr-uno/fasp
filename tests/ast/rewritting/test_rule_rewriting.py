@@ -427,3 +427,10 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqualRewrite(
             set(), "p :- not p(q).", "p :- not p(q)."  # no evaluable functions
         )
+
+    def test_head_aggregate_with_evaluable_along_with_guard(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1"},
+            "#sum { f(Y) : p(f(2)) : p(g(Y),Z), q(X), r(X) } >= f(Z).",
+            "#sum { FUN: p(FUN3): p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2, f(2)=FUN3 } >= FUN4 :- f(Z)=FUN4."
+        )
