@@ -646,6 +646,7 @@ class _AssignmentRestorationTransformer:
                             )
                             or element.literal
                         )
+                        assert(isinstance(new_literal, HeadSimpleAssignment))
                         new_elements.append(
                             HeadAggregateAssignmentElement(
                                 element.location,
