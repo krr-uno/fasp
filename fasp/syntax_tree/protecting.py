@@ -13,6 +13,7 @@ from fasp.syntax_tree._nodes import (
     ChoiceSomeAssignment,
     FASP_Statement,
     HeadAggregateAssignment,
+    HeadAggregateAssignmentElement,
     HeadSimpleAssignment,
 )
 from fasp.util.ast import (
@@ -618,22 +619,22 @@ class _AssignmentRestorationTransformer:
                 new_elements: Any = []
                 any_converted = False
                 for element in head.elements:
-                    for term in element.tuple:
-                        # if (
-                        #     isinstance(term, ast.TermFunction)
-                        #     and term.name == ASSIGNMENT_NAME
-                        # ):
-                        #     any_converted = True
-                        #     new_element = (
-                        #         _restore_assignment_term_function_to_head_simple_assignment(
-                        #             term
-                        #         )
-                        #         or term
-                        #     )
-                        #     new_elements.append(new_element)
-                        # else:
-                        #     new_elements.append(term)
-                        new_elements.append(term)
+                    # for term in element.tuple:
+                    #     # if (
+                    #     #     isinstance(term, ast.TermFunction)
+                    #     #     and term.name == ASSIGNMENT_NAME
+                    #     # ):
+                    #     #     any_converted = True
+                    #     #     new_element = (
+                    #     #         _restore_assignment_term_function_to_head_simple_assignment(
+                    #     #             term
+                    #     #         )
+                    #     #         or term
+                    #     #     )
+                    #     #     new_elements.append(new_element)
+                    #     # else:
+                    #     #     new_elements.append(term)
+                    #     new_elements.append(term)
 
                     if isinstance(
                         element.literal, ast.LiteralSymbolic
@@ -645,25 +646,32 @@ class _AssignmentRestorationTransformer:
                             )
                             or element.literal
                         )
-                        new_elements.append(new_literal)
+                        new_elements.append(
+                            HeadAggregateAssignmentElement(
+                                element.location,
+                                element.tuple,
+                                new_literal,
+                                element.condition,
+                            )
+                        )
                     else:
-                        new_elements.append(element.literal)
+                        new_elements.append(element)
 
-                    for condition in element.condition:
-                        # if isinstance(
-                        #     condition, ast.LiteralSymbolic
-                        # ) and _is_literal_protected_assignment(condition):
-                        #     any_converted = True
-                        #     new_condition = (
-                        #         _restore_assignment_literal_to_head_simple_assignment(
-                        #             condition
-                        #         )
-                        #         or condition
-                        #     )
-                        #     new_elements.append(new_condition)
-                        # else:
-                        #     new_elements.append(condition)
-                        new_elements.append(condition)
+                    # for condition in element.condition:
+                    #     # if isinstance(
+                    #     #     condition, ast.LiteralSymbolic
+                    #     # ) and _is_literal_protected_assignment(condition):
+                    #     #     any_converted = True
+                    #     #     new_condition = (
+                    #     #         _restore_assignment_literal_to_head_simple_assignment(
+                    #     #             condition
+                    #     #         )
+                    #     #         or condition
+                    #     #     )
+                    #     #     new_elements.append(new_condition)
+                    #     # else:
+                    #     #     new_elements.append(condition)
+                    #     new_elements.append(condition)
                 if not any_converted:
                     return node
 

@@ -434,3 +434,17 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "#sum { f(Y) : p(f(2)) : p(g(Y),Z), q(X), r(X) } >= f(Z).",
             "#sum { FUN: p(FUN3): p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2, f(2)=FUN3 } >= FUN4 :- f(Z)=FUN4."
         )
+
+    def test_head_aggregate_with_assignment(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1"},
+            "#count{ 0,ass(king(C),X): king(C) := X: person(X) } :- country(C).",
+            "#count{ 0,ass(king(C),X): king(C) := X: person(X) } :- country(C)."
+        )
+
+    def test_head_aggregate_with_assignment2(self):
+        self.assertEqualRewrite(
+            {"f/1", "g/1", "h/1", "e/1"},
+            "#count{ 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)) } :- country(C).",
+            "#count{ 0,ass(king(FUN),X): king(FUN3) := FUN4: person(FUN2), f(C)=FUN, e(X)=FUN2, g(C)=FUN3, h(X)=FUN4 } :- country(C)."
+        )

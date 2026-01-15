@@ -438,7 +438,7 @@ class HeadAggregateAssignmentElement(AssignmentAST):
     def __str__(self) -> str:
         _tuple = ""
         if self.tuple:
-            _tuple = ", ".join(map(str, self.tuple))
+            _tuple = ",".join(map(str, self.tuple))
             if _tuple != "":
                 _tuple += ": "
         if self.condition:
@@ -489,7 +489,7 @@ class HeadAggregateAssignment(AssignmentAST):
     location: Location
     left: LeftGuard | None
     function: ast.AggregateFunction
-    elements: Sequence[AssignmentAggregateElement | ast.HeadAggregateElement]
+    elements: Sequence[HeadAggregateAssignmentElement | ast.HeadAggregateElement]
     right: RightGuard | None
 
     def __str__(self) -> str:  # pragma: no cover

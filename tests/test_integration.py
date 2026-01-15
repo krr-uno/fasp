@@ -6,7 +6,7 @@ from fasp.util.ast import ELibrary
 from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import StatementAST
 from fasp.syntax_tree.collectors import collect_evaluable_functions
-from fasp.integration import FASPProgramTransformer 
+from fasp.integration import FASPProgramTransformer
 
 class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
@@ -23,12 +23,12 @@ class TestFASPProgramTransformer(unittest.TestCase):
         transformed_str = "\n".join([str(statement).strip() for statement in transformed][1:])
 
         self.assertEqual(transformed_str, expected_program)
-        
+
 
     def test_choice_some_rewrite(self):
         program = """
             a := #some{X: p(X)} :- q(X), r.
-        """       
+        """
         expected = """
             { a := X: p(X) } = 1 :- #count { X: p(X) } >= 1; q(X); r.
         """
@@ -73,7 +73,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
     def test_choice_some_rewrite_context(self):
         program = """
             a := #sum{X: p(X)} :- q(X), r.
-        """       
+        """
         expected = """
             ASS(a,W) :- q(X); r; W = #sum { X: p(X) }.
         """
@@ -90,7 +90,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         """
 
         self.assertTransformEqual(program, expected, test_pipeline=4)
-    
+
     def test_pool_rewrite_2(self):
         program ="""\
             f(1;2) := Y :- g(Y).
@@ -114,20 +114,20 @@ class TestFASPProgramTransformer(unittest.TestCase):
         """
 
         self.assertTransformEqual(program, expected, test_pipeline=7)
-    
+
     def test_comparison_rewrite(self):
         self.assertTransformEqual(
-            "a=100.", 
+            "a=100.",
             "a=100.",
             test_pipeline=9
             )
-    
+
     def test_to_asp(self):
         self.assertTransformEqual(
             "f(1) := Y :- g(Y).",
             "Ff(1,Y) :- g(Y).",
         )
-    
+
     def test_total_integration(self):
         self.assertTransformEqual(
             "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p.",
@@ -148,7 +148,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
             person(felipe).
 
             {king(C,X) : person(X)}:- country(C).
-            
+
 
             :- king(C1,X); king(C2,X); C1!=C2.
             """,
@@ -162,30 +162,33 @@ class TestFASPProgramTransformer(unittest.TestCase):
             test_pipeline=9
         )
 
-    # How to restore protected assignment from 
+    # How to restore protected assignment from
     # #count { 0,ASS(king(C),X): ASS(king(C),X): person(X) } :- country(C).
-    
+
     # { ASS(king(C),X): person(X) } :- country(C).          is rewritten into the above by clingo.rewrite
-    
+
     # TODO: Fix Assignment Restoring.
 
     # Restore protected assignments in this case into a HeadAggregateAssignment Node in _nodes.py
     # Should be restored into something like:
     # "#count{0,ASS(king(C),X); king(C) := X; person(X)} :- country(C).",
-    
+
     def test_head_aggregate_assignment(self):
         self.assertTransformEqual(
-            "{king(C) := X : person(X)}:- country(C).",
-            "#count{ 0; ASS(king(C),X); king(C) := X; person(X) } :- country(C).",
+            "{king(C) := X: person(X)}:- country(C).",
+            "#count{ 0,ASS(king(C),X): king(C) := X: person(X) } :- country(C).",
             # "#count{0,ASS(king(C),X); king(C) := X; person(X)} :- country(C).",
-            
+
             test_pipeline=7
         )
 
     # Check test_head_set_aggegate in tests\ast\rewritting\test_rule_rewriting.py
     def test_no_change(self):
         self.assertTransformEqual(
-            "{ f(X) } :- g(Y).", 
+            "{ f(X) } :- g(Y).",
             "{ f(X) } :- g(Y).",
             test_pipeline=9
             )
+
+
+        #count{ 0, ass(king(C),X); king(C) := X; person(X) } :- country(C).

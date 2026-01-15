@@ -7,6 +7,8 @@ from clingo.core import Library
 from fasp.syntax_tree._nodes import (
     FASP_AST,
     AssignmentRule,
+    HeadAggregateAssignment,
+    HeadAggregateAssignmentElement,
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
@@ -121,9 +123,9 @@ class RuleRewriteTransformer:
     @_rewrite_literal.register
     def _(
         self,
-        node: ast.BodyAggregate | ast.HeadAggregate,
+        node: ast.BodyAggregate | ast.HeadAggregate | HeadAggregateAssignment,
         var_gen: FreshVariableGenerator,
-    ) -> ast.BodyAggregate | ast.HeadAggregate:
+    ) -> ast.BodyAggregate | ast.HeadAggregate | HeadAggregateAssignment:
         new_elements = []
         for elem in node.elements:
             new_elem = self._rewrite_literal(elem, var_gen)
@@ -151,9 +153,17 @@ class RuleRewriteTransformer:
     @_rewrite_literal.register
     def _(
         self,
-        node: ast.BodyAggregateElement | ast.HeadAggregateElement,
+        node: (
+            ast.BodyAggregateElement
+            | ast.HeadAggregateElement
+            | HeadAggregateAssignmentElement
+        ),
         var_gen: FreshVariableGenerator,
-    ) -> ast.BodyAggregateElement | ast.HeadAggregateElement:
+    ) -> (
+        ast.BodyAggregateElement
+        | ast.HeadAggregateElement
+        | HeadAggregateAssignmentElement
+    ):
 
         transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
@@ -173,6 +183,11 @@ class RuleRewriteTransformer:
             literal = transformer.unnest(node.literal)
             if literal is not None:
                 update["literal"] = literal
+        elif isinstance(node, HeadAggregateAssignmentElement):
+            assignment = transformer.unnest(node.assignment)
+            if assignment is not None:
+                update["assignment"] = assignment
+
         if extra := transformer.pop_all_unnested_functions():
             condition = condition or list(node.condition)
             condition.extend(extra)
