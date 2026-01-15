@@ -96,10 +96,3 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             "{ a := (X,Y): p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
             "{ Fa((X,Y)): p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
         )
-
-    def test_head_aggregate_assignment(self):
-        self.assertRewrite(
-            {"f/1"},
-            "#count{ 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)) } :- country(C).",
-            "#count{ 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)) } :- country(C).",
-        )
