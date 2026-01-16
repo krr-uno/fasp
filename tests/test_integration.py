@@ -192,3 +192,18 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
 
         #count{ 0, ass(king(C),X); king(C) := X; person(X) } :- country(C).
+
+    def test_to_asp_head_aggregate_assignment(self):
+        # self.assertTransformEqual(
+        #     # king/1 is not in evaluable functions. Error?
+        #     "#count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
+        #     "#count { 0,ass(king(f(C)),X): Fking(g(C),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
+        #     test_pipeline=9,
+        # )
+
+        self.assertTransformEqual(
+            # king/1 is not in evaluable functions. Error?
+            "{king(C) := X: person(X)}:- country(C).",
+            "#count { 0,ASS(king(C),X): Fking(C,X): person(X) } :- country(C).",
+            test_pipeline=9,
+        )       
