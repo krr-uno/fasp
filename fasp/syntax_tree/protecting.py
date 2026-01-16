@@ -451,26 +451,6 @@ def protect_assignments(
 
 
 # RESTORATION: Rule with ASS(left, right) --> AssignmentRule
-
-
-# def _literal_is_protected_assignment(
-#     literal: ast.LiteralSymbolic, assignment_name: str = ASSIGNMENT_NAME
-# ) -> Optional[Sequence[ArgumentAST] | Sequence[Symbol]]:
-#     """
-#     Checks if a literal is the protected assignment function or not.
-#     Returns None if not, else returns the protected assignment's arguments.
-#     """
-#     atom = literal.atom
-#     # QUESTION:
-#     if not is_function(atom):
-#         return None  # pragma: no cover
-
-#     name, arguments = function_arguments(atom)
-#     if name == assignment_name:
-#         return arguments
-#     return None
-
-
 def _is_literal_protected_assignment(
     literal: ast.LiteralSymbolic, assignment_name: str = ASSIGNMENT_NAME
 ) -> bool:
@@ -613,29 +593,11 @@ class _AssignmentRestorationTransformer:
                 return node
 
             # CASE 3: HeadAggregate: This might occur after running clingo.rewrite.
-            # TODO: Fix
             # Need to return HeadAggregateAssignment for this case.
             elif isinstance(head, ast.HeadAggregate):
                 new_elements: Any = []
                 any_converted = False
                 for element in head.elements:
-                    # for term in element.tuple:
-                    #     # if (
-                    #     #     isinstance(term, ast.TermFunction)
-                    #     #     and term.name == ASSIGNMENT_NAME
-                    #     # ):
-                    #     #     any_converted = True
-                    #     #     new_element = (
-                    #     #         _restore_assignment_term_function_to_head_simple_assignment(
-                    #     #             term
-                    #     #         )
-                    #     #         or term
-                    #     #     )
-                    #     #     new_elements.append(new_element)
-                    #     # else:
-                    #     #     new_elements.append(term)
-                    #     new_elements.append(term)
-
                     if isinstance(
                         element.literal, ast.LiteralSymbolic
                     ) and _is_literal_protected_assignment(element.literal):
@@ -657,22 +619,6 @@ class _AssignmentRestorationTransformer:
                         )
                     else:
                         new_elements.append(element)
-
-                    # for condition in element.condition:
-                    #     # if isinstance(
-                    #     #     condition, ast.LiteralSymbolic
-                    #     # ) and _is_literal_protected_assignment(condition):
-                    #     #     any_converted = True
-                    #     #     new_condition = (
-                    #     #         _restore_assignment_literal_to_head_simple_assignment(
-                    #     #             condition
-                    #     #         )
-                    #     #         or condition
-                    #     #     )
-                    #     #     new_elements.append(new_condition)
-                    #     # else:
-                    #     #     new_elements.append(condition)
-                    #     new_elements.append(condition)
                 if not any_converted:
                     return node
 
