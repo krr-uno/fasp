@@ -143,7 +143,7 @@ class NormalForm2PredicateTransformer:
         for element in node.elements:
             if isinstance(element, HeadAggregateAssignmentElement):
                 new_literal = self.function_to_literal(element.assignment.assigned_function, element.assignment.value, element.assignment.location)
-                assert isinstance(new_literal, ast.LiteralSymbolic), f"Expected HeadSimpleLiteral after rewriting {node.assignment}"
+                assert isinstance(new_literal, ast.LiteralSymbolic), f"Expected LiteralSymbolic after rewriting {element.assignment}"
 
                 new_element = ast.HeadAggregateElement(
                     self.library,
