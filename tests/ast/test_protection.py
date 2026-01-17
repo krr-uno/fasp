@@ -220,74 +220,39 @@ class TestProtectAssignments(unittest.TestCase):
         self.assertEqualRewrite(program, expected)
 
     def test_aggregate(self):
-        program = """\
-            { f(X) := (Y,Z) } :- p.
-        """
-
-        expected = textwrap.dedent(
-            """\
-            { ASS(f(X),(Y,Z)) } :- p.
-        """
-        ).strip()
-
-        self.assertEqualRewrite(program, expected)
+        self.assertEqualRewrite(
+            "{ f(X) := (Y,Z) } :- p.",
+            "{ ASS(f(X),(Y,Z)) } :- p.",
+            )
 
     def test_pool(self):
-        program = """\
-            f(1;2) := Y :- g(Y).
-        """
-
-        expected = textwrap.dedent(
-            """\
-            ASS(f(1;2),Y) :- g(Y).
-        """
-        ).strip()
-
-        self.assertEqualRewrite(program, expected)
+        self.assertEqualRewrite(
+            "f(1;2) := Y :- g(Y).",
+            "ASS(f(1;2),Y) :- g(Y).",
+            )
 
     def test_aggregate_condition(self):
-        program = """\
-            { a := X: p(X); a } = 1 :- #count { X: p(X) } >= 1; s.
-        """
-
-        expected_program = textwrap.dedent(
-            """\
-            { ASS(a,X): p(X); a } = 1 :- #count { X: p(X) } >= 1; s.
-        """
-        ).strip()
-
-        self.assertEqualRewrite(program, expected_program)
+        self.assertEqualRewrite(
+            "{ a := X: p(X); a } = 1 :- #count { X: p(X) } >= 1; s.",
+            "{ ASS(a,X): p(X); a } = 1 :- #count { X: p(X) } >= 1; s.",
+            )
 
     def test_choice_some_aggregate(self):
-        program = """\
-            a := #some{X: p(X)} :- p.
-        """
-
-        expected = textwrap.dedent(
-            """\
-            { ASS(f(X),(ARG(0,Y),)) } :- p.
-        """
-        ).strip()
-
         with self.assertRaises(AssertionError) as cm:
-            self.assertEqualRewrite(program, expected)
+            self.assertEqualRewrite(
+                "a := #some{X: p(X)} :- p.",
+                "{ ASS(f(X),(ARG(0,Y),)) } :- p.",
+                )
         self.assertEqual(
             str(cm.exception),
             "ChoiceSomeAssignment seen during assignment protection. Unhandled.",
         )
 
     def test_head_aggregate_assignment(self):
-        program = """\
-            #count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).
-        """
-
-        expected = textwrap.dedent(
-            """\
-            #count { 0,ass(king(f(C)),X): ASS(king(g(C)),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).
-        """
-        ).strip()
-
-        self.assertEqualRewrite(program, expected)
+        self.assertEqualRewrite(
+            "#count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
+            "#count { 0,ass(king(f(C)),X): ASS(king(g(C)),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
+            )
 
 
 class TestRestoreAssignments(unittest.TestCase):
