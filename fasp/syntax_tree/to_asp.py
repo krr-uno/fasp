@@ -12,10 +12,10 @@ from fasp.syntax_tree._nodes import (
     ChoiceAssignment,
     ChoiceSomeAssignment,
     FASP_Statement,
+    HeadAggregateAssignment,
+    HeadAggregateAssignmentElement,
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
-    HeadAggregateAssignmentElement,
-    HeadAggregateAssignment,
 )
 from fasp.syntax_tree.collectors import (
     SymbolSignature,
@@ -52,27 +52,26 @@ class NormalForm2PredicateTransformer:
         self.prefix = prefix
 
     def function_to_literal(
-            self, 
-            assigned_function: ast.TermFunction , 
-            value: TermAST, 
-            location: Location) -> ast.LiteralSymbolic:
-        
+        self, assigned_function: ast.TermFunction, value: TermAST, location: Location
+    ) -> ast.LiteralSymbolic:
+
         name, arguments = function_arguments_ast(self.library, assigned_function)
         assert (
             SymbolSignature(name, len(arguments)) in self.evaluable_functions
         ), f"Function {name}/{len(arguments)} not in evaluable functions {set(map(str, self.evaluable_functions))}."
 
         return ast.LiteralSymbolic(
+            self.library,
+            location,
+            ast.Sign.NoSign,
+            ast.TermFunction(
                 self.library,
-                location,
-                ast.Sign.NoSign,
-                ast.TermFunction(
-                    self.library,
-                    assigned_function.location,
-                    f"{self.prefix}{name}",
-                    [ast.ArgumentTuple(self.library, [*arguments, value])],
-                ),
-            )
+                assigned_function.location,
+                f"{self.prefix}{name}",
+                [ast.ArgumentTuple(self.library, [*arguments, value])],
+            ),
+        )
+
     @singledispatchmethod
     def _rewrite_head(self, node: FASP_AST_T) -> FASP_AST_T:
         """
@@ -101,7 +100,9 @@ class NormalForm2PredicateTransformer:
         #     SymbolSignature(name, len(arguments)) in self.evaluable_functions
         # ), f"Function {name}/{len(arguments)} not in evaluable functions {set(map(str, self.evaluable_functions))}."
 
-        literal = self.function_to_literal(node.assigned_function, node.value, node.location)
+        literal = self.function_to_literal(
+            node.assigned_function, node.value, node.location
+        )
         return ast.HeadSimpleLiteral(
             self.library,
             literal,
@@ -136,21 +137,27 @@ class NormalForm2PredicateTransformer:
             assignment.literal,
             list(node.condition),
         )
-    
+
     @_rewrite_head.register
     def _(self, node: HeadAggregateAssignment) -> ast.HeadAggregate:
         new_elements = []
         for element in node.elements:
             if isinstance(element, HeadAggregateAssignmentElement):
-                new_literal = self.function_to_literal(element.assignment.assigned_function, element.assignment.value, element.assignment.location)
-                assert isinstance(new_literal, ast.LiteralSymbolic), f"Expected LiteralSymbolic after rewriting {element.assignment}"
+                new_literal = self.function_to_literal(
+                    element.assignment.assigned_function,
+                    element.assignment.value,
+                    element.assignment.location,
+                )
+                assert isinstance(
+                    new_literal, ast.LiteralSymbolic
+                ), f"Expected LiteralSymbolic after rewriting {element.assignment}"
 
                 new_element = ast.HeadAggregateElement(
                     self.library,
                     element.location,
                     element.tuple,
                     new_literal,
-                    element.condition
+                    element.condition,
                 )
                 new_elements.append(new_element)
             else:
@@ -168,8 +175,6 @@ class NormalForm2PredicateTransformer:
         # assert isinstance(
         #     assignment, ast.HeadSimpleLiteral
         # ), f"Expected HeadSimpleLiteral after rewriting {node.assignment}"
-
-        pass
 
     # HeadAggregateAssignment: f(X) := #sum{ f(X) : cond }.
     # HeadAggregateAssignment should be rewritten by normalize_assignment_aggregates
@@ -243,6 +248,7 @@ class NormalForm2PredicateTransformer:
     def rewrite(self, node: FASP_Statement) -> StatementAST:
         result = self._dispatch(node) or node
         return cast(StatementAST, result)
+
 
 def _functional_constraint(
     library: Library, function: SymbolSignature, prefix: str = "F"

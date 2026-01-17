@@ -428,7 +428,7 @@ class _AssignmentProtectorTransformer:
                 body,
             )
         if isinstance(head, HeadAggregateAssignment):
-            new_elements = []
+            new_head_aggregate_elements = []
             for element in head.elements:
                 if isinstance(element, HeadAggregateAssignmentElement):
                     lit = self.dispatch(element.assignment)
@@ -440,16 +440,16 @@ class _AssignmentProtectorTransformer:
                         lit,
                         element.condition,
                     )
-                    new_elements.append(new_head_aggregate_element)
+                    new_head_aggregate_elements.append(new_head_aggregate_element)
                 else:
-                    new_elements.append(element)
+                    new_head_aggregate_elements.append(element)
             new_head = ast.HeadAggregate(
                 self.library,
                 head.location,
                 head.left,
                 head.function,
-                new_elements,
-                head.right
+                new_head_aggregate_elements,
+                head.right,
             )
             return ast.StatementRule(
                 self.library,
@@ -457,8 +457,7 @@ class _AssignmentProtectorTransformer:
                 new_head,
                 body,
             )
-            assert False, "hi"
-                
+
         # Raises assertion error from dispatch
         self.dispatch(head)
         # Should not happen
@@ -640,7 +639,7 @@ class _AssignmentRestorationTransformer:
                             )
                             or element.literal
                         )
-                        assert(isinstance(new_literal, HeadSimpleAssignment))
+                        assert isinstance(new_literal, HeadSimpleAssignment)
                         new_elements.append(
                             HeadAggregateAssignmentElement(
                                 element.location,

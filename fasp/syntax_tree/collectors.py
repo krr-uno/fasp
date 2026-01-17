@@ -4,7 +4,13 @@ from typing import Any, Iterable
 
 from clingo import ast
 
-from fasp.syntax_tree._nodes import FASP_AST, AssignmentRule, HeadSimpleAssignment, HeadAggregateAssignment, HeadAggregateAssignmentElement
+from fasp.syntax_tree._nodes import (
+    FASP_AST,
+    AssignmentRule,
+    HeadAggregateAssignment,
+    HeadAggregateAssignmentElement,
+    HeadSimpleAssignment,
+)
 from fasp.util.ast import function_arguments
 
 
@@ -57,6 +63,7 @@ def _get_evaluable_functions_head(node: Any) -> set[SymbolSignature]:
 def _(head: HeadSimpleAssignment) -> set[SymbolSignature]:
     name, arguments = function_arguments(head.assigned_function)
     return {SymbolSignature(name, len(arguments))}
+
 
 @_get_evaluable_functions_head.register
 def _(head: HeadAggregateAssignment) -> set[SymbolSignature]:

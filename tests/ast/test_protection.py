@@ -2,9 +2,11 @@ import textwrap
 import unittest
 
 from clingo import ast
-from clingo.core import Library
 from clingo.ast import RewriteContext
-from fasp.util.ast import AST, ELibrary
+from clingo.core import Library
+
+from fasp.syntax_tree._nodes import FASP_AST
+from fasp.syntax_tree.parsing.parser import parse_string
 
 from fasp.syntax_tree.protecting import (
     _ComparisonProtectorTransformer,
@@ -17,10 +19,7 @@ from fasp.syntax_tree.protecting import (
     restore_assignments,
     
 )
-
-from fasp.syntax_tree._nodes import FASP_AST
-
-from fasp.syntax_tree.parsing.parser import parse_string
+from fasp.util.ast import AST, ELibrary
 
 
 def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
@@ -132,7 +131,7 @@ class TestRestoreComparisons(unittest.TestCase):
         restorer = _ComparisonRestorationTransformer(self.lib)
         restored = restorer.dispatch(protected)
         self.assertEqual(lit, restored)
-    
+
     def assertEqualRestore(self, program: str, expected: str):
         """
         Parses `program`, protects comparisons, restores them, and
@@ -188,7 +187,7 @@ class TestProtectAssignments(unittest.TestCase):
 
         statements = parse_string(self.lib, program)
 
-        rewritten = list(protect_assignments(self.lib, statements))
+        rewritten = list(protect_assignments(self.lib, statements))[1:]  # :1 to remove #program base.
 
         expected_lines = [line.strip() for line in expected.splitlines()]
 
@@ -212,7 +211,6 @@ class TestProtectAssignments(unittest.TestCase):
 
         expected = textwrap.dedent(
             """\
-            #program base.
             ASS(f(X),Y) :- g.
             ASS(a,b) :- p(X,Y).
             ASS(h(3),20).
@@ -228,7 +226,6 @@ class TestProtectAssignments(unittest.TestCase):
 
         expected = textwrap.dedent(
             """\
-            #program base.
             { ASS(f(X),(Y,Z)) } :- p.
         """
         ).strip()
@@ -242,7 +239,6 @@ class TestProtectAssignments(unittest.TestCase):
 
         expected = textwrap.dedent(
             """\
-            #program base.
             ASS(f(1;2),Y) :- g(Y).
         """
         ).strip()
@@ -250,13 +246,12 @@ class TestProtectAssignments(unittest.TestCase):
         self.assertEqualRewrite(program, expected)
 
     def test_aggregate_condition(self):
-        program ="""\
+        program = """\
             { a := X: p(X); a } = 1 :- #count { X: p(X) } >= 1; s.
         """
 
         expected_program = textwrap.dedent(
             """\
-            #program base.
             { ASS(a,X): p(X); a } = 1 :- #count { X: p(X) } >= 1; s.
         """
         ).strip()
@@ -270,7 +265,6 @@ class TestProtectAssignments(unittest.TestCase):
 
         expected = textwrap.dedent(
             """\
-            #program base.
             { ASS(f(X),(ARG(0,Y),)) } :- p.
         """
         ).strip()
@@ -281,7 +275,7 @@ class TestProtectAssignments(unittest.TestCase):
             str(cm.exception),
             "ChoiceSomeAssignment seen during assignment protection. Unhandled.",
         )
-    
+
     def test_head_aggregate_assignment(self):
         program = """\
             #count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).
@@ -289,12 +283,12 @@ class TestProtectAssignments(unittest.TestCase):
 
         expected = textwrap.dedent(
             """\
-            #program base.
             #count { 0,ass(king(f(C)),X): ASS(king(g(C)),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).
         """
         ).strip()
 
         self.assertEqualRewrite(program, expected)
+
 
 class TestRestoreAssignments(unittest.TestCase):
     """
