@@ -281,6 +281,20 @@ class TestProtectAssignments(unittest.TestCase):
             str(cm.exception),
             "ChoiceSomeAssignment seen during assignment protection. Unhandled.",
         )
+    
+    def test_head_aggregate_assignment(self):
+        program = """\
+            #count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).
+        """
+
+        expected = textwrap.dedent(
+            """\
+            #program base.
+            #count { 0,ass(king(f(C)),X): ASS(king(g(C)),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).
+        """
+        ).strip()
+
+        self.assertEqualRewrite(program, expected)
 
 class TestRestoreAssignments(unittest.TestCase):
     """

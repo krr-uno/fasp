@@ -400,19 +400,19 @@ class _AssignmentProtectorTransformer:
 
         if isinstance(head, ChoiceAssignment):
             new_elements = []
-            for elem in head.elements:
-                if isinstance(elem, AssignmentAggregateElement):
-                    lit = self.dispatch(elem.assignment)
+            for element in head.elements:
+                if isinstance(element, AssignmentAggregateElement):
+                    lit = self.dispatch(element.assignment)
                     assert isinstance(lit, ast.LiteralSymbolic)
-                    set_elem = ast.SetAggregateElement(
+                    set_element = ast.SetAggregateElement(
                         self.library,
-                        elem.location,
+                        element.location,
                         lit,
-                        elem.condition,
+                        element.condition,
                     )
-                    new_elements.append(set_elem)
+                    new_elements.append(set_element)
                 else:
-                    new_elements.append(elem)
+                    new_elements.append(element)
 
             new_head = ast.HeadSetAggregate(
                 self.library,
@@ -427,6 +427,38 @@ class _AssignmentProtectorTransformer:
                 new_head,
                 body,
             )
+        if isinstance(head, HeadAggregateAssignment):
+            new_elements = []
+            for element in head.elements:
+                if isinstance(element, HeadAggregateAssignmentElement):
+                    lit = self.dispatch(element.assignment)
+                    assert isinstance(lit, ast.LiteralSymbolic)
+                    new_head_aggregate_element = ast.HeadAggregateElement(
+                        self.library,
+                        element.location,
+                        element.tuple,
+                        lit,
+                        element.condition,
+                    )
+                    new_elements.append(new_head_aggregate_element)
+                else:
+                    new_elements.append(element)
+            new_head = ast.HeadAggregate(
+                self.library,
+                head.location,
+                head.left,
+                head.function,
+                new_elements,
+                head.right
+            )
+            return ast.StatementRule(
+                self.library,
+                node.location,
+                new_head,
+                body,
+            )
+            assert False, "hi"
+                
         # Raises assertion error from dispatch
         self.dispatch(head)
         # Should not happen
