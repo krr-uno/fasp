@@ -293,14 +293,6 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "p :- #sum { FUN: q(X), h(X), g(X)=FUN } = FUN2; f(2)=FUN2.",
         )
 
-    # CHECK: Comparison with equality in head.
-    # def test_aggregates(self):
-    #     self.assertEqualRewrite(
-    #         {"f/1", "g/1", "h/1"},
-    #         "f(X)=W :- b(X,Z), W = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
-    #         "f(X)=W :- b(X,Z); W = #sum { FUN: p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2 }.",
-    #     )
-
     def test_aggregate(self):
         self.assertEqualRewrite(
             {"f/1"},
@@ -409,18 +401,6 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "p :- #sum { X: q(a) } = b; q(c).",
             "p :- #sum { X: q(FUN), a=FUN } = FUN2; q(FUN3); b=FUN2; c=FUN3.",
         )
-
-    # def test_choice_some_aggregate(self):
-    #     with self.assertRaises(AssertionError) as cm:
-    #         self.assertEqualRewrite(
-    #             {"a/0", "b/0", "c/0"},
-    #             "p := #some { X: q(a) }.",
-    #             "{ p := X : q(FUN), a=FUN } = 1 :- #count { X : q(FUN2), a=FUN2}} >= 1.",
-    #         )
-    #     self.assertEqual(
-    #         str(cm.exception),
-    #         "Unhandled literal type during function unnesting: <class 'fasp.syntax_tree._nodes.ChoiceSomeAssignment'>",
-    #     )
 
     def test_body_negative_literal_no_evaluable_functions(self):
         self.assertEqualRewrite(
