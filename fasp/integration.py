@@ -1,3 +1,4 @@
+import sys
 from typing import Iterable, cast
 
 from clingo.ast import RewriteContext, rewrite_statement
@@ -56,7 +57,9 @@ class FASPProgramTransformer:
         # self.rule_rewriter = RuleRewriteTransformer(self.library, self.evaluable_functions)
         # self.to_asp_transformer: Optional[NormalForm2PredicateTransformer] = None
 
-    def transform(self, *, test_pipeline: int = 2) -> Iterable[FASP_Statement]:
+    def transform(
+        self, *, test_pipeline: int = sys.maxsize
+    ) -> Iterable[FASP_Statement]:
         """
         Parse the program string, collect variables,
         then run the pipeline and return transformed statements.
@@ -116,6 +119,7 @@ class FASPProgramTransformer:
         for stmt in statements:
             assert not isinstance(stmt, AssignmentRule)
             rewritten_list = rewrite_statement(ctx, stmt)
+            # print(list(map(str, rewritten_list)))
             if rewritten_list:
                 for new_stmt in rewritten_list:
                     out.append(new_stmt)
@@ -143,7 +147,8 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         stmts = list(statements)
-        self.evaluable_functions = collect_evaluable_functions(statements)
+        stmts2 = list(stmts)
+        self.evaluable_functions = collect_evaluable_functions(stmts2)
 
         transformer = RuleRewriteTransformer(self.library, self.evaluable_functions)
         out: list[FASP_Statement] = []
