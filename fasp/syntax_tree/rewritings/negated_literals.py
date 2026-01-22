@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import Any, Iterable
+from typing import Any, Iterable, List
 
 from clingo import ast
 from clingo.core import Library
@@ -10,8 +10,6 @@ from fasp.syntax_tree._nodes import (
 )
 from fasp.util.ast import (
     BodyLiteralAST,
-    ELibrary,
-    LiteralAST,
 )
 
 
@@ -21,66 +19,78 @@ class RemoveNegatedLiteralsHead:
         self.moved_to_body: list[BodyLiteralAST] = []
         self.changed = False
 
-    def _flip_sign(self, lit: LiteralAST) -> LiteralAST:
-        if lit.sign == ast.Sign.Single:
-            new_sign = ast.Sign.Double
-        elif lit.sign == ast.Sign.Double:
-            new_sign = ast.Sign.Single
-        else:
-            return lit  # should not happen
-        return lit.update(self.lib, sign=new_sign)
-
     def transform_statement(self, stmt: FASP_Statement) -> FASP_Statement | None:
 
-        if not isinstance(stmt, ast.StatementRule):
-            return None
-        update: dict[str, Any] = {}
-        new_head = self.visit(stmt.head)
+        assert isinstance(stmt, ast.StatementRule)
 
-        # new_head = stmt.head
-        if not self.changed:
+        update: dict[str, Any] = {}
+
+        new_body: List[BodyLiteralAST] = []
+        any_changed = False
+
+        for literal in stmt.body:
+            new_literal = self.dispatch(literal)
+            if new_literal is not None:
+                any_changed = True
+                new_body.append(new_literal)
+            else:
+                new_body.append(literal)
+        if not any_changed:
             return None
-        update["head"] = new_head
+        update["body"] = new_body
 
         new_body = list(stmt.body) + self.moved_to_body
-        update["body"] = new_body
+
         return stmt.update(self.lib, **update)
 
     @singledispatchmethod
-    def visit(self, node: FASP_AST_T) -> FASP_AST_T:
-        print(f"hi {1}")
+    def dispatch(self, node: FASP_AST_T) -> FASP_AST_T | None:
+        return None
 
-        return node
-
-    @visit.register
-    def _(self, node: ast.HeadSimpleLiteral) -> ast.HeadSimpleLiteral | None:
+    @dispatch.register
+    def _(self, node: ast.BodySimpleLiteral) -> ast.BodyConditionalLiteral | None:
         lit = node.literal
-        print(f"hi {lit}")
 
-        if lit.sign != ast.Sign.NoSign:
-            self.changed = True
+        # Only rewrite single-negated literals: not r(X)
+        if lit.sign != ast.Sign.Single:
+            return None
 
-            # flip sign and move to body
-            flipped = self._flip_sign(lit)
-            self.moved_to_body.append(ast.BodySimpleLiteral(self.lib, flipped))
+        # avoid rewriting if: not #false.
+        if isinstance(lit, ast.LiteralBoolean):
+            return None
 
-            return None  # remove from head
+        # Build #false
+        false_lit = ast.LiteralBoolean(
+            self.lib,
+            lit.location,
+            ast.Sign.NoSign,
+            False,
+        )
 
-        return node
+        # Remove negation from original literal
+        positive_lit = lit.update(self.lib, sign=ast.Sign.NoSign)
+
+        # Create conditional literal: #false : r(X)
+        cond = ast.BodyConditionalLiteral(
+            self.lib,
+            lit.location,
+            false_lit,
+            [positive_lit],
+        )
+
+        return cond
 
 
-def remove_negated_literals_from_head_in_statement(
-    statement: FASP_Statement,
-) -> FASP_Statement | None:
+def rewrite_negated_body_literals(statement: FASP_Statement) -> FASP_Statement | None:
     transformer = RemoveNegatedLiteralsHead()
     return transformer.transform_statement(statement)
 
 
-def remove_negated_literals_from_head_in_statements(
+def rewrite_negated_body_literals_from_statements(
     statements: Iterable[FASP_Statement],
 ) -> Iterable[FASP_Statement]:
     new_statements = []
     for stmt in statements:
-        new_stmt = remove_negated_literals_from_head_in_statement(stmt)
+        new_stmt = rewrite_negated_body_literals(stmt)
         new_statements.append(new_stmt or stmt)
     return new_statements

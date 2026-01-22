@@ -4,7 +4,7 @@ from clingo import ast
 
 from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary
-from fasp.syntax_tree.rewritings.negated_literals import remove_negated_literals_from_head_in_statements
+from fasp.syntax_tree.rewritings.negated_literals import rewrite_negated_body_literals_from_statements
 
 class TestNegatedLiteralsTransformer(unittest.TestCase):
     def setUp(self):
@@ -26,7 +26,7 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
             stmts[1:] if stmts and isinstance(stmts[0], ast.StatementProgram) else stmts
         )
 
-        new_stmts = remove_negated_literals_from_head_in_statements(stmts)
+        new_stmts = rewrite_negated_body_literals_from_statements(stmts)
 
         new_stmts_str = []
         for stmt in new_stmts:
@@ -45,5 +45,26 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
     def test_empty(self):
         self.assertCorrectRewrite("a.","a.")
     
-    def test_empty(self):
-        self.assertCorrectRewrite("b, not a.","b; not a.")
+    def test_no_change(self):
+        self.assertCorrectRewrite("a :- b.","a :- b.")
+    
+    def test_basic(self):
+        self.assertCorrectRewrite("b :- not a; c.","b :- #false: a; c.")
+
+    def test_negated_literals_and_aggregates(self):
+        self.assertCorrectRewrite(
+            "d :- not a; #count { X: p(X), not b(X) } >= 2.",
+            "d :- #false: a; #count { X: p(X), not b(X) } >= 2."
+        )
+    
+    def test_double_negation(self):
+        self.assertCorrectRewrite(
+            "b :- not not a.",
+            "b :- not not a."
+        )
+    
+    def test_literal_boolean(self):
+        self.assertCorrectRewrite(
+            "b :- not #false.",
+            "b :- not #false."
+        )
