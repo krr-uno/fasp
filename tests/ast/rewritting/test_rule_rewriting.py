@@ -2,10 +2,9 @@ import textwrap
 import unittest
 
 from clingo import ast
-from clingo.core import Library
 
 from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.util.ast import ELibrary, FreshVariableGenerator
+from fasp.util.ast import ELibrary
 from fasp.syntax_tree.collectors import SymbolSignature
 from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 

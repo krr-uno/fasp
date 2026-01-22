@@ -1,5 +1,3 @@
-from hmac import new
-from math import exp
 import unittest
 
 from clingo import ast as clingo_ast

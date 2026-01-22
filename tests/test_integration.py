@@ -1,11 +1,8 @@
 import textwrap
 import unittest
-from typing import Iterable, List
 
 from fasp.util.ast import ELibrary
 from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.util.ast import StatementAST
-from fasp.syntax_tree.collectors import collect_evaluable_functions
 from fasp.integration import FASPProgramTransformer
 
 class TestFASPProgramTransformer(unittest.TestCase):

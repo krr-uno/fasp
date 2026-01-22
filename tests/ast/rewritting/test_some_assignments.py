@@ -1,9 +1,7 @@
-import textwrap
 import unittest
 
 from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary
-from fasp.syntax_tree._nodes import AssignmentRule
 from fasp.syntax_tree.rewritings.some_assignments import (
     transform_choice_some_to_choice_assignment,
 )
