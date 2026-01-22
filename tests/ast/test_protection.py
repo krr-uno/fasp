@@ -334,8 +334,8 @@ class TestRestoreAssignments(unittest.TestCase):
             "{ f(X) } :- g(Y)."
             )
     
-    # def test_head_aggregate_Assignment(self):
-    #     self.assertEqualRestore(
-    #         "#count{0,ass(king(C),X); king(C) := X; person(X)} :- country(C).",
-    #         "{ ASS(king(C),X): person(X) } :- country(C).",
-    #     )
+    def test_head_aggregate_Assignment(self):
+        self.assertEqualRestore(
+            "#count { 0,ass(king(C),X): king(C) := X: person(X) } :- country(C).",
+            "#count { 0,ass(king(C),X): ASS(king(C),X): person(X) } :- country(C).",
+        )
