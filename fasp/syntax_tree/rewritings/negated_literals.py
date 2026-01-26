@@ -24,12 +24,10 @@ class RemoveNegatedLiteralsHead:
         self.moved_to_body: list[BodyLiteralAST] = []
         self.changed = False
 
-    def _transform_statement_rule[
-        T: (
-            ast.StatementRule,
-            AssignmentRule,
-        )
-    ](self, stmt: T) -> T | None:
+    def _transform_statement_rule[T: (
+        ast.StatementRule,
+        AssignmentRule,
+    )](self, stmt: T) -> T | None:
         update: dict[str, Any] = {}
 
         new_body: List[BodyLiteralAST] = []

@@ -148,15 +148,51 @@ class TestFASPProgramTransformer(unittest.TestCase):
             "{ f(X) } :- g(Y).",
             )
 
+    def test_aggregate(self):
+        self.assertTransformEqual(
+            """
+            f(X) := Y :- p(X,Y).
+            a := #sum{Y: f(X) = Y} :- q(X), r.
+            """,
+            """
+            Ff(X,Y) :- p(X,Y).
+            Fa(W) :- q(X); r; W = #sum { Y: Ff(X,Y) }.
+            """,
+            )
+
+    def test_choice_count(self):
+        self.assertTransformEqual(
+            """
+            f(X) := Y :- p(X,Y).
+            #count { Y: p(X): f(X) = Y} :- q(X); r.
+            """,
+            """
+            Ff(X,Y) :- p(X,Y).
+            #count { Y: p(X): Ff(X,Y) } :- q(X); r.
+            """,
+            )
+
+    def test_choice_count_Ass(self):
+        self.assertTransformEqual(
+            """
+            f(X) := Y :- p(X,Y).
+            #count { Y: g(X) := Y: f(X) = Y} :- q(X); r.
+            """,
+            """
+            Ff(X,Y) :- p(X,Y).
+            #count { Y: Fg(X,Y): Ff(X,Y) } :- q(X); r.
+            """,
+            )
+
     def test_to_asp_head_aggregate_assignment(self):
         self.assertTransformEqual(
             "#count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
-            "#count { 0,ass(FUN,X): Fking(g(C),h(X)): person(e(X)), king(f(C))=FUN; ass(FUN2,X): f(X): person(e(X)), king(f(C))=FUN2 } :- country(C).",
+            "#count { 0,ass(FUN,X): Fking(g(C),h(X)): person(e(X)), Fking(f(C),FUN); ass(FUN2,X): f(X): person(e(X)), Fking(f(C),FUN2) } :- country(C).",
         )
 
         self.assertTransformEqual(
             "{king(C) := X: person(X)}:- country(C).",
-            "#count { 0,ASS(FUN,X): Fking(C,X): person(X), king(C)=FUN } :- country(C).",
+            "#count { 0,ASS(FUN,X): Fking(C,X): person(X), Fking(C,FUN) } :- country(C).",
         )
 
     def test_fibo(self):
@@ -212,13 +248,44 @@ class TestFASPProgramTransformer(unittest.TestCase):
             test_pipeline=PipelineStage.NEGATED_LITERALS
         )
 
+    def test_basic_negated_literals2(self):
+        self.assertTransformEqual(
+            """
+            f(X) := 1 :- p(X).
+            a :- p(C); #false: country(f(C)).
+            """,
+            """
+            f(X) := 1 :- p(X).
+            a :- p(C); #false: country(FUN), f(C)=FUN.
+            """,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS
+        )
+        self.assertTransformEqual(
+            """
+            f(X) := 1 :- p(X).
+            a :- p(C); #false: country(f(b)).
+            """,
+            """
+            f(X) := 1 :- p(X).
+            a :- p(C); #false: country(FUN), f(b)=FUN.
+            """,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS
+        )
+
         # self.assertTransformEqual(
-        #     "a:- not country(C).",
-        #     "a :- #false: country(C).",
+        #     "a :- p(C); #false: country(C).",
+        #     "a :- p(C); #false: country(C).",
         #     test_pipeline=PipelineStage.UNNEST_FUNCTIONS
         # )
 
-    
+    def test_basic_negated_literals3(self):
+        self.assertTransformEqual(
+            "a :- p(C); not country(C).",
+            "a :- p(C); #false: country(C).",
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS
+        )
+
+
     # # Adding not parses it as ChoiceAssignment?
     def test_negated_literals(self):
         self.assertTransformEqual(
@@ -235,7 +302,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
             test_pipeline=PipelineStage.CLINGO_REWRITE,
             LOG=True,
         )
-    
+
     #  FOR "not"
     """
     REWRITE_CHOICE_SOME { king(C) := X: person(X) } :- not country(C). <class 'fasp.syntax_tree._nodes.ChoiceAssignment'>
@@ -244,7 +311,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
     PROTECT_COMPARISONS { ASS(king(C),X): person(X) } :- not country(C). <class 'clingo.ast.HeadSetAggregate'>
     CLINGO_REWRITE { ASS(king(C),X): person(X) } :- not country(C). <class 'clingo.ast.HeadSetAggregate'>
     """
-    
+
     # For "country"
     """
     REWRITE_CHOICE_SOME { king(C) := X: person(X) } :- country(C). <class 'fasp.syntax_tree._nodes.ChoiceAssignment'>

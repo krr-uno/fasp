@@ -1,4 +1,5 @@
 from functools import singledispatchmethod
+from turtle import up
 from typing import Any, List, Set
 
 from clingo import ast
@@ -58,12 +59,10 @@ class RuleRewriteTransformer:
         return self._rewrite(node, var_gen)
 
     @singledispatchmethod
-    def _rewrite_literal[
-        T: (
-            BodyLiteralAST,
-            HeadLiteralAST,
-        )
-    ](self, node: T, var_gen: FreshVariableGenerator) -> T | None:
+    def _rewrite_literal[T: (
+        BodyLiteralAST,
+        HeadLiteralAST,
+    )](self, node: T, var_gen: FreshVariableGenerator) -> T | None:
         """Default: return node unchanged."""
         return node.transform(self.lib, self._rewrite_literal, var_gen)
 
@@ -104,8 +103,10 @@ class RuleRewriteTransformer:
         node: ast.BodyConditionalLiteral,
         var_gen: FreshVariableGenerator,
     ) -> ast.BodyConditionalLiteral:
+        update = {}
         literal = self.body_literal_transformer.unnest(node.literal)
-
+        if literal is not None:
+            update["literal"] = literal
         condition = []
         local_comps: List[ast.LiteralComparison] = []
         for cond in node.condition:
@@ -116,10 +117,12 @@ class RuleRewriteTransformer:
                 var_gen,
                 allowed_in_negated_literals=False,
             )
+            print(new_cond, comps, self.evaluable_functions)
             condition.append(new_cond)
             local_comps.extend(comps)
+        update["condition"] = condition
         condition.extend(local_comps)
-        return node.update(self.lib, literal=literal, condition=condition)
+        return node.update(self.lib, **update)
 
     # Aggregates
     @_rewrite_literal.register
@@ -213,12 +216,10 @@ class RuleRewriteTransformer:
 
     # Rule Statements
     @_rewrite.register(ast.StatementRule | AssignmentRule)
-    def _[
-        T: (
-            ast.StatementRule,
-            AssignmentRule,
-        )
-    ](self, node: T, var_gen: FreshVariableGenerator) -> T:
+    def _[T: (
+        ast.StatementRule,
+        AssignmentRule,
+    )](self, node: T, var_gen: FreshVariableGenerator) -> T:
         if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):
             new_head = self.head_literal_transformer.unnest(node.head)
         else:

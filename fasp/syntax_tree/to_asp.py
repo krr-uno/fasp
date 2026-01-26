@@ -233,6 +233,10 @@ class NormalForm2PredicateTransformer:
             new_rule = True
         else:
             head = node.head
+        new_head = self._dispatch(head)
+        if new_head is not None:
+            new_rule = True
+            head = new_head
         body = []
         for lit in node.body:
             if (rewritten := self._dispatch(lit)) is not None:
