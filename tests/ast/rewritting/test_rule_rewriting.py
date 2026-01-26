@@ -434,3 +434,11 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
             "fibo(X) := Y :- number(X); X>1; FUN+FUN2=Y; fibo(X-1)=FUN; fibo(X-2)=FUN2."
         )
+    
+    # # TODO: Fix for such case.
+    # def test_body_conditional_literal_false(self):
+    #      self.assertEqualRewrite(
+    #         set(),
+    #         "a :- #false: c.",
+    #         "a :- #false: c."
+    #     )

@@ -1,4 +1,4 @@
-import sys
+from enum import IntEnum
 from typing import Iterable, cast
 
 from clingo.ast import RewriteContext, rewrite_statement
@@ -34,6 +34,19 @@ from fasp.util.ast import (
 )
 
 
+class PipelineStage(IntEnum):
+    REWRITE_CHOICE_SOME = 1
+    NORMALIZE_ASSIGNMENT_AGGREGATES = 2
+    PROTECT_ASSIGNMENTS = 3
+    PROTECT_COMPARISONS = 4
+    CLINGO_REWRITE = 5
+    RESTORE_COMPARISONS = 6
+    RESTORE_ASSIGNMENTS = 7
+    NEGATED_LITERALS = 8
+    UNNEST_FUNCTIONS = 9
+    TO_ASP = 10
+
+
 class FASPProgramTransformer:
     def __init__(
         self, elib: ELibrary, statement_asts: Iterable[AST], prefix: str = "F"
@@ -46,23 +59,45 @@ class FASPProgramTransformer:
 
         self.evaluable_functions: set[SymbolSignature] = set()
         self.pipeline = [
-            self._rewrite_choice_some_wrapper,
-            self._normalize_assignment_aggregates_wrapper,
-            self._protect_assignments_wrapper,
-            self._protect_comparisons_wrapper,
-            self._clingo_rewrite_wrapper,
-            self._restore_comparisons_wrapper,
-            self._restore_assignments_wrapper,
-            self._negated_literals_wrapper,
-            self._unnest_functions_wrapper,
-            self._to_asp_wrapper,
+            PipelineStage.REWRITE_CHOICE_SOME,
+            PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES,
+            PipelineStage.PROTECT_ASSIGNMENTS,
+            PipelineStage.PROTECT_COMPARISONS,
+            PipelineStage.CLINGO_REWRITE,
+            PipelineStage.RESTORE_COMPARISONS,
+            PipelineStage.RESTORE_ASSIGNMENTS,
+            PipelineStage.NEGATED_LITERALS,
+            PipelineStage.UNNEST_FUNCTIONS,
+            PipelineStage.TO_ASP,
         ]
 
-        # self.rule_rewriter = RuleRewriteTransformer(self.library, self.evaluable_functions)
-        # self.to_asp_transformer: Optional[NormalForm2PredicateTransformer] = None
+        self.PIPELINE_IMPL = {
+            PipelineStage.REWRITE_CHOICE_SOME: self._rewrite_choice_some_wrapper,
+            PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES: self._normalize_assignment_aggregates_wrapper,
+            PipelineStage.PROTECT_ASSIGNMENTS: self._protect_assignments_wrapper,
+            PipelineStage.PROTECT_COMPARISONS: self._protect_comparisons_wrapper,
+            PipelineStage.CLINGO_REWRITE: self._clingo_rewrite_wrapper,
+            PipelineStage.RESTORE_COMPARISONS: self._restore_comparisons_wrapper,
+            PipelineStage.RESTORE_ASSIGNMENTS: self._restore_assignments_wrapper,
+            PipelineStage.NEGATED_LITERALS: self._negated_literals_wrapper,
+            PipelineStage.UNNEST_FUNCTIONS: self._unnest_functions_wrapper,
+            PipelineStage.TO_ASP: self._to_asp_wrapper,
+        }
+
+    def log_info(
+        self, statements: Iterable[FASP_Statement], stage: PipelineStage
+    ) -> Iterable[FASP_Statement]:  # pragma: no cover
+        out = list(statements)
+        for s in out:
+            if hasattr(s, "head") and hasattr(s, "body"):
+                print(stage.name, s, type(s.head))
+        return out
 
     def transform(
-        self, *, test_pipeline: int = sys.maxsize
+        self,
+        *,
+        stop_at: PipelineStage = PipelineStage.TO_ASP,
+        LOG: bool = False,
     ) -> Iterable[FASP_Statement]:
         """
         Parse the program string, collect variables,
@@ -72,11 +107,11 @@ class FASPProgramTransformer:
 
         # start pipeline with parsed_statements
         current: Iterable[FASP_Statement] = parsed_statements
-        count = 1
         for stage in self.pipeline:
-            current = stage(current)
-            count += 1
-            if count > test_pipeline:
+            current = list(self.PIPELINE_IMPL[stage](current))
+            if LOG:
+                self.log_info(current, stage)  # pragma: no cover
+            if stage >= stop_at:
                 break
 
         return current

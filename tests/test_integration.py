@@ -1,23 +1,21 @@
 import textwrap
 import unittest
-import sys
 
 from fasp.util.ast import ELibrary
 from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.integration import FASPProgramTransformer
+from fasp.integration import FASPProgramTransformer, PipelineStage
 
 class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
         self.elib = ELibrary()
 
-    def assertTransformEqual(self, program: str, expected_program: str | None, *, test_pipeline=sys.maxsize):
+    def assertTransformEqual(self, program: str, expected_program: str | None, *, test_pipeline=PipelineStage.TO_ASP, LOG: bool = False):
         program = textwrap.dedent(program).strip()
         expected_program = textwrap.dedent(expected_program).strip() if expected_program is not None else None
 
         statement_asts = parse_string(self.elib, program)
         transformer = FASPProgramTransformer(self.elib, statement_asts, prefix="F")
-        transformed = transformer.transform(test_pipeline=test_pipeline)
-
+        transformed = transformer.transform(stop_at=test_pipeline, LOG = LOG)
         transformed_str = "\n".join([str(statement).strip() for statement in transformed][1:])
 
         self.assertEqual(transformed_str, expected_program)
@@ -27,7 +25,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(
             "a := #some{X: p(X)} :- q(X), r.",
             "{ a := X: p(X) } = 1 :- #count { X: p(X) } >= 1; q(X); r.",
-            test_pipeline=2,
+            test_pipeline=PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES,
             )
 
     def test_assignment_aggregate_rewrite(self):
@@ -37,7 +35,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(
             "f(X) := #sum { Y: p(Y,Z) , q(X), r(X) } :- b(X,Z).",
             "f(X) := W :- b(X,Z); W = #sum { Y: p(Y,Z), q(X), r(X) }.",
-            test_pipeline=2,
+            test_pipeline=PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES,
             )
 
     def test_combined_rewrite(self):
@@ -54,21 +52,21 @@ class TestFASPProgramTransformer(unittest.TestCase):
                 { ASS(a,X): p(X) } = 1 :- #count { X: p(X) } >= 1; s.
                 ASS(f(X),W) :- b(X,Z); W = #count { Y: p(Y,Z) }.
             """,
-            test_pipeline=4,
+            test_pipeline=PipelineStage.PROTECT_COMPARISONS,
             )
 
     def test_choice_some_rewrite_context(self):
         self.assertTransformEqual(
             "a := #sum{X: p(X)} :- q(X), r.",
             "ASS(a,W) :- q(X); r; W = #sum { X: p(X) }.",
-            test_pipeline=5,
+            test_pipeline=PipelineStage.CLINGO_REWRITE,
             )
 
     def test_pool_rewrite(self):
         self.assertTransformEqual(
             "f(1;2) := Y :- g(Y).",
             "ASS(f(1;2),Y) :- g(Y).",
-            test_pipeline=4,
+            test_pipeline=PipelineStage.PROTECT_COMPARISONS,
             )
 
     def test_pool_rewrite_2(self):
@@ -78,7 +76,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
                 ASS(f(1),Y) :- g(Y).
                 ASS(f(2),Y) :- g(Y).
             """,
-            test_pipeline=5,
+            test_pipeline=PipelineStage.CLINGO_REWRITE,
             )
 
     def test_pool_restore_assignments(self):
@@ -88,14 +86,14 @@ class TestFASPProgramTransformer(unittest.TestCase):
                 f(1) := Y :- g(Y).
                 f(2) := Y :- g(Y).
             """,
-            test_pipeline=7,
+            test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
             )
 
     def test_comparison_rewrite(self):
         self.assertTransformEqual(
             "a=100.",
             "a=100.",
-            test_pipeline=9,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
             )
 
     def test_to_asp(self):
@@ -141,7 +139,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(
             "{king(C) := X: person(X)}:- country(C).",
             "#count{ 0,ASS(king(C),X): king(C) := X: person(X) } :- country(C).",
-            test_pipeline=7,
+            test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
         )
 
     def test_no_change(self):
@@ -165,44 +163,93 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
             "fibo(X) := Y :- number(X); X>1; FUN+FUN2=Y; fibo(X-1)=FUN; fibo(X-2)=FUN2.",
-            test_pipeline=9,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
         )
         self.assertTransformEqual(
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
             "Ffibo(X,Y) :- number(X); X>1; FUN+FUN2=Y; Ffibo(X-1,FUN); Ffibo(X-2,FUN2).",
-            test_pipeline=10,
+            test_pipeline=PipelineStage.TO_ASP,
         )
 
     def test_fibo2(self):
         self.assertTransformEqual(
             "fibo(X) := fibo(X-1) + fibo(X-2) :- number(X); X>1.",
             "fibo(X) := FUN+FUN2 :- number(X); X>1; fibo(X-1)=FUN; fibo(X-2)=FUN2.",
-            test_pipeline=9,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
         )
         self.assertTransformEqual(
             "fibo(X) := fibo(X-1) + fibo(X-2) :- number(X); X>1.",
             "Ffibo(X,FUN+FUN2) :- number(X); X>1; Ffibo(X-1,FUN); Ffibo(X-2,FUN2).",
-            test_pipeline=10,
+            test_pipeline=PipelineStage.TO_ASP,
         )
 
     # def test_king0(self):
     #     # self.assertTransformEqual(
     #     #     "{ f(X) := Y: p(X,Y) } = 1.",
     #     #     "#count{ 0,ASS(f(X),Y): f(X) := Y: p(X,Y) } = 1.",
-    #     #     test_pipeline=7,
+    #     #     test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
     #     # )
     #     self.assertTransformEqual(
     #         "{ f(X) := Y: p(X,Y) } = N.",
     #         "{ ASS(f(X),Y): p(X,Y) } = N.",
-    #         test_pipeline=6,
+    #         test_pipeline=PipelineStage.RESTORE_COMPARISONS,
     #     )
     #     # self.assertTransformEqual(
     #     #     "{ f(X) := Y: p(X,Y) } = N.",
     #     #     "{ f(X) := Y: p(X,Y) } = N.",
-    #     #     test_pipeline=7,
+    #     #     test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
     #     # )
     #     # self.assertTransformEqual(
     #     #     "{ f(X):=Y: p(X,Y) } = N.",
     #     #     None,
-    #     #     test_pipeline=8,
+    #     #     test_pipeline=PipelineStage.NEGATED_LITERALS,
     #     # )
+
+    def test_basic_negated_literals(self):
+        self.assertTransformEqual(
+            "a:- not country(C).",
+            "a :- #false: country(C).",
+            test_pipeline=PipelineStage.NEGATED_LITERALS
+        )
+
+        # self.assertTransformEqual(
+        #     "a:- not country(C).",
+        #     "a :- #false: country(C).",
+        #     test_pipeline=PipelineStage.UNNEST_FUNCTIONS
+        # )
+
+    
+    # # Adding not parses it as ChoiceAssignment?
+    def test_negated_literals(self):
+        self.assertTransformEqual(
+            "{king(C) := X: person(X)}:- country(C).",
+            "#count { 0,ASS(king(C),X): ASS(king(C),X): person(X) } :- country(C).",
+            test_pipeline=PipelineStage.CLINGO_REWRITE,
+            LOG=True,
+        )
+
+    def test_negated_literals2(self):
+        self.assertTransformEqual(
+            "{king(C) := X: person(X)}:- not country(C).",
+            "{ ASS(king(C),X): person(X) } :- not country(C).",
+            test_pipeline=PipelineStage.CLINGO_REWRITE,
+            LOG=True,
+        )
+    
+    #  FOR "not"
+    """
+    REWRITE_CHOICE_SOME { king(C) := X: person(X) } :- not country(C). <class 'fasp.syntax_tree._nodes.ChoiceAssignment'>
+    NORMALIZE_ASSIGNMENT_AGGREGATES { king(C) := X: person(X) } :- not country(C). <class 'fasp.syntax_tree._nodes.ChoiceAssignment'>
+    PROTECT_ASSIGNMENTS { ASS(king(C),X): person(X) } :- not country(C). <class 'clingo.ast.HeadSetAggregate'>
+    PROTECT_COMPARISONS { ASS(king(C),X): person(X) } :- not country(C). <class 'clingo.ast.HeadSetAggregate'>
+    CLINGO_REWRITE { ASS(king(C),X): person(X) } :- not country(C). <class 'clingo.ast.HeadSetAggregate'>
+    """
+    
+    # For "country"
+    """
+    REWRITE_CHOICE_SOME { king(C) := X: person(X) } :- country(C). <class 'fasp.syntax_tree._nodes.ChoiceAssignment'>
+    NORMALIZE_ASSIGNMENT_AGGREGATES { king(C) := X: person(X) } :- country(C). <class 'fasp.syntax_tree._nodes.ChoiceAssignment'>
+    PROTECT_ASSIGNMENTS { ASS(king(C),X): person(X) } :- country(C). <class 'clingo.ast.HeadSetAggregate'>
+    PROTECT_COMPARISONS { ASS(king(C),X): person(X) } :- country(C). <class 'clingo.ast.HeadSetAggregate'>
+    CLINGO_REWRITE #count { 0,ASS(king(C),X): ASS(king(C),X): person(X) } :- country(C). <class 'clingo.ast.HeadAggregate'>
+    """

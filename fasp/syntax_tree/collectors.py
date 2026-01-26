@@ -6,7 +6,9 @@ from clingo import ast
 
 from fasp.syntax_tree._nodes import (
     FASP_AST,
+    AssignmentAggregateElement,
     AssignmentRule,
+    ChoiceAssignment,
     HeadAggregateAssignment,
     HeadAggregateAssignmentElement,
     HeadSimpleAssignment,
@@ -73,6 +75,17 @@ def _(head: HeadAggregateAssignment) -> set[SymbolSignature]:
             name, arguments = function_arguments(element.assignment.assigned_function)
             evaluable_functions.add(SymbolSignature(name, len(arguments)))
     return evaluable_functions
+
+
+# NOTE: Is this correct?
+# @_get_evaluable_functions_head.register
+# def _(head: ChoiceAssignment) -> set[SymbolSignature]:
+#     evaluable_functions = set()
+#     for element in head.elements:
+#         if isinstance(element, AssignmentAggregateElement):
+#             name, arguments = function_arguments(element.assignment.assigned_function)
+#             evaluable_functions.add(SymbolSignature(name, len(arguments)))
+#     return evaluable_functions
 
 
 class _VariableCollector:
