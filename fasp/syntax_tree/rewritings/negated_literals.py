@@ -24,53 +24,43 @@ class RemoveNegatedLiteralsHead:
         self.moved_to_body: list[BodyLiteralAST] = []
         self.changed = False
 
+    def _transform_statement_rule[
+        T: (
+            ast.StatementRule,
+            AssignmentRule,
+        )
+    ](self, stmt: T) -> T | None:
+        update: dict[str, Any] = {}
+
+        new_body: List[BodyLiteralAST] = []
+        any_changed = False
+
+        for literal in stmt.body:
+            new_literal = self.dispatch(literal)
+            if new_literal is not None:
+                any_changed = True
+                new_body.append(new_literal)
+            else:
+                new_body.append(literal)
+        if not any_changed:
+            return None
+        update["body"] = new_body
+
+        new_body = list(stmt.body) + self.moved_to_body
+
+        return stmt.update(self.lib, **update)
+
     @singledispatchmethod
     def transform_statement(self, stmt: FASP_Statement) -> FASP_Statement | None:
         return stmt
 
     @transform_statement.register
     def _(self, stmt: ast.StatementRule) -> ast.StatementRule | None:
-        update: dict[str, Any] = {}
-
-        new_body: List[BodyLiteralAST] = []
-        any_changed = False
-
-        for literal in stmt.body:
-            new_literal = self.dispatch(literal)
-            if new_literal is not None:
-                any_changed = True
-                new_body.append(new_literal)
-            else:
-                new_body.append(literal)
-        if not any_changed:
-            return None
-        update["body"] = new_body
-
-        new_body = list(stmt.body) + self.moved_to_body
-
-        return stmt.update(self.lib, **update)
+        return self._transform_statement_rule(stmt)
 
     @transform_statement.register
     def _(self, stmt: AssignmentRule) -> AssignmentRule | None:
-        update: dict[str, Any] = {}
-
-        new_body: List[BodyLiteralAST] = []
-        any_changed = False
-
-        for literal in stmt.body:
-            new_literal = self.dispatch(literal)
-            if new_literal is not None:
-                any_changed = True
-                new_body.append(new_literal)
-            else:
-                new_body.append(literal)
-        if not any_changed:
-            return None
-        update["body"] = new_body
-
-        new_body = list(stmt.body) + self.moved_to_body
-
-        return stmt.update(self.lib, **update)
+        return self._transform_statement_rule(stmt)
 
     @singledispatchmethod
     def dispatch(self, node: FASP_AST_T) -> FASP_AST_T | None:
