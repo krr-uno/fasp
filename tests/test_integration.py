@@ -152,12 +152,12 @@ class TestFASPProgramTransformer(unittest.TestCase):
     def test_to_asp_head_aggregate_assignment(self):
         self.assertTransformEqual(
             "#count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
-            "#count { 0,ass(king(f(C)),X): Fking(g(C),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
+            "#count { 0,ass(FUN,X): Fking(g(C),h(X)): person(e(X)), king(f(C))=FUN; ass(FUN2,X): f(X): person(e(X)), king(f(C))=FUN2 } :- country(C).",
         )
 
         self.assertTransformEqual(
             "{king(C) := X: person(X)}:- country(C).",
-            "#count { 0,ASS(king(C),X): Fking(C,X): person(X) } :- country(C).",
+            "#count { 0,ASS(FUN,X): Fking(C,X): person(X), king(C)=FUN } :- country(C).",
         )
 
     def test_fibo(self):
