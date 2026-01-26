@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, auto
 from typing import Iterable, cast
 
 from clingo.ast import RewriteContext, rewrite_statement
@@ -35,16 +35,16 @@ from fasp.util.ast import (
 
 
 class PipelineStage(IntEnum):
-    REWRITE_CHOICE_SOME = 1
-    NORMALIZE_ASSIGNMENT_AGGREGATES = 2
-    PROTECT_ASSIGNMENTS = 3
-    PROTECT_COMPARISONS = 4
-    CLINGO_REWRITE = 5
-    RESTORE_COMPARISONS = 6
-    RESTORE_ASSIGNMENTS = 7
-    NEGATED_LITERALS = 8
-    UNNEST_FUNCTIONS = 9
-    TO_ASP = 10
+    REWRITE_CHOICE_SOME = auto()
+    NORMALIZE_ASSIGNMENT_AGGREGATES = auto()
+    PROTECT_ASSIGNMENTS = auto()
+    PROTECT_COMPARISONS = auto()
+    CLINGO_REWRITE = auto()
+    RESTORE_COMPARISONS = auto()
+    RESTORE_ASSIGNMENTS = auto()
+    NEGATED_LITERALS = auto()
+    UNNEST_FUNCTIONS = auto()
+    TO_ASP = auto()
 
 
 class FASPProgramTransformer:
@@ -58,18 +58,19 @@ class FASPProgramTransformer:
         self.prefix = prefix
 
         self.evaluable_functions: set[SymbolSignature] = set()
-        self.pipeline = [
-            PipelineStage.REWRITE_CHOICE_SOME,
-            PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES,
-            PipelineStage.PROTECT_ASSIGNMENTS,
-            PipelineStage.PROTECT_COMPARISONS,
-            PipelineStage.CLINGO_REWRITE,
-            PipelineStage.RESTORE_COMPARISONS,
-            PipelineStage.RESTORE_ASSIGNMENTS,
-            PipelineStage.NEGATED_LITERALS,
-            PipelineStage.UNNEST_FUNCTIONS,
-            PipelineStage.TO_ASP,
-        ]
+        self.pipeline = list(PipelineStage)
+        # [
+        #     PipelineStage.REWRITE_CHOICE_SOME,
+        #     PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES,
+        #     PipelineStage.PROTECT_ASSIGNMENTS,
+        #     PipelineStage.PROTECT_COMPARISONS,
+        #     PipelineStage.CLINGO_REWRITE,
+        #     PipelineStage.RESTORE_COMPARISONS,
+        #     PipelineStage.RESTORE_ASSIGNMENTS,
+        #     PipelineStage.NEGATED_LITERALS,
+        #     PipelineStage.UNNEST_FUNCTIONS,
+        #     PipelineStage.TO_ASP,
+        # ]
 
         self.PIPELINE_IMPL = {
             PipelineStage.REWRITE_CHOICE_SOME: self._rewrite_choice_some_wrapper,
