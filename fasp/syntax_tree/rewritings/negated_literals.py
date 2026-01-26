@@ -6,8 +6,8 @@ from clingo.core import Library
 
 from fasp.syntax_tree._nodes import (
     FASP_AST_T,
-    FASP_Statement,
     AssignmentRule,
+    FASP_Statement,
 )
 from fasp.util.ast import (
     BodyLiteralAST,
@@ -16,7 +16,10 @@ from fasp.util.ast import (
 
 
 class RemoveNegatedLiteralsHead:
-    def __init__(self, library: Library,) -> None:
+    def __init__(
+        self,
+        library: Library,
+    ) -> None:
         self.lib = library
         self.moved_to_body: list[BodyLiteralAST] = []
         self.changed = False
@@ -83,12 +86,15 @@ class RemoveNegatedLiteralsHead:
         return cond
 
 
-def rewrite_negated_body_literals(library: Library,statement: FASP_Statement) -> FASP_Statement | None:
+def rewrite_negated_body_literals(
+    library: Library, statement: FASP_Statement
+) -> FASP_Statement | None:
     transformer = RemoveNegatedLiteralsHead(library)
     return transformer.transform_statement(statement)
 
 
-def rewrite_negated_body_literals_from_statements(library: ELibrary,
+def rewrite_negated_body_literals_from_statements(
+    library: ELibrary,
     statements: Iterable[FASP_Statement],
 ) -> Iterable[FASP_Statement]:
     new_statements = []

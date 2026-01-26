@@ -1,5 +1,6 @@
 import textwrap
 import unittest
+import sys
 
 from fasp.util.ast import ELibrary
 from fasp.syntax_tree.parsing.parser import parse_string
@@ -9,7 +10,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
         self.elib = ELibrary()
 
-    def assertTransformEqual(self, program: str, expected_program: str | None, *, test_pipeline=10):
+    def assertTransformEqual(self, program: str, expected_program: str | None, *, test_pipeline=sys.maxsize):
         program = textwrap.dedent(program).strip()
         expected_program = textwrap.dedent(expected_program).strip() if expected_program is not None else None
 
@@ -164,24 +165,24 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
             "fibo(X) := Y :- number(X); X>1; FUN+FUN2=Y; fibo(X-1)=FUN; fibo(X-2)=FUN2.",
-            test_pipeline=8,
+            test_pipeline=9,
         )
         self.assertTransformEqual(
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
             "Ffibo(X,Y) :- number(X); X>1; FUN+FUN2=Y; Ffibo(X-1,FUN); Ffibo(X-2,FUN2).",
-            test_pipeline=9,
+            test_pipeline=10,
         )
 
     def test_fibo2(self):
         self.assertTransformEqual(
             "fibo(X) := fibo(X-1) + fibo(X-2) :- number(X); X>1.",
             "fibo(X) := FUN+FUN2 :- number(X); X>1; fibo(X-1)=FUN; fibo(X-2)=FUN2.",
-            test_pipeline=8,
+            test_pipeline=9,
         )
         self.assertTransformEqual(
             "fibo(X) := fibo(X-1) + fibo(X-2) :- number(X); X>1.",
             "Ffibo(X,FUN+FUN2) :- number(X); X>1; Ffibo(X-1,FUN); Ffibo(X-2,FUN2).",
-            test_pipeline=9,
+            test_pipeline=10,
         )
 
     # def test_king0(self):

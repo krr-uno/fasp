@@ -19,10 +19,12 @@ from fasp.syntax_tree.protecting import (
     restore_comparisons,
 )
 from fasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
+from fasp.syntax_tree.rewritings.negated_literals import (
+    rewrite_negated_body_literals_from_statements,
+)
 from fasp.syntax_tree.rewritings.some_assignments import (
     transform_choice_some_to_choice_assignment,
 )
-from fasp.syntax_tree.rewritings.negated_literals import rewrite_negated_body_literals_from_statements
 from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 from fasp.syntax_tree.to_asp import NormalForm2PredicateTransformer
 from fasp.util.ast import (
@@ -144,11 +146,13 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return restore_assignments(self.elib, cast(Iterable[StatementAST], statements))
-    
+
     def _negated_literals_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        return rewrite_negated_body_literals_from_statements(self.elib, cast(Iterable[StatementAST], statements))
+        return rewrite_negated_body_literals_from_statements(
+            self.elib, cast(Iterable[StatementAST], statements)
+        )
 
     def _unnest_functions_wrapper(
         self, statements: Iterable[FASP_Statement]
