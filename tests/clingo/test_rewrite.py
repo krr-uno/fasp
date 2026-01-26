@@ -131,7 +131,8 @@ class TestRewrite(unittest.TestCase):
         statement = ast.parse_statement(library, program)
         self.assertIsInstance(statement, ast.StatementRule)
         self.assertEqual(str(statement), "a(X) :- b.")
-        result = ast.rewrite_statement(rewrite_context, statement)
+        with self.assertRaises(Exception):
+            result = ast.rewrite_statement(rewrite_context, statement)
         self.assertEqual(len(errors), 1)
         self.assertEqual(
             errors[0],
@@ -146,7 +147,7 @@ class TestRewrite(unittest.TestCase):
                 ),
             ),
         )
-        self.assertEqual(len(result), 0)
+
 
     def test_safety_2(self):
         errors = []
@@ -167,7 +168,8 @@ class TestRewrite(unittest.TestCase):
         self.assertIsInstance(statement, ast.StatementRule)
         self.assertEqual(str(statement).strip(), "p(Y) :- b(X); 0*Y+7=X*X.")
         self.assertEqual(len(errors), 0)
-        result = ast.rewrite_statement(rewrite_context, statement)
+        with self.assertRaises(Exception):
+            ast.rewrite_statement(rewrite_context, statement)
         self.assertEqual(len(errors), 1)
         self.assertEqual(
             errors[0],
@@ -182,7 +184,6 @@ class TestRewrite(unittest.TestCase):
                 ),
             ),
         )
-        self.assertEqual(len(result), 0)
 
     def test_pool_1(self):
         program = """\

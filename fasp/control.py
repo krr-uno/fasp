@@ -93,7 +93,9 @@ class Control:
         self,
         assumptions: Sequence[tuple[clingo.symbol.Symbol, bool] | int] = (),
         on_unsat: Callable[[Sequence[int]], None] | None = None,
-        on_stats: Callable[[clingo.stats.Stats, clingo.stats.Stats], None] | None = None,
+        on_stats: (
+            Callable[[clingo.stats.Stats, clingo.stats.Stats], None] | None
+        ) = None,
         on_finish: Callable[[clingo.solve.SolveResult], None] | None = None,
     ) -> Iterable[Model]:
         models: list[Model] = []

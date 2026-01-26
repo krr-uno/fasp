@@ -243,8 +243,8 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
     def test_basic_negated_literals(self):
         self.assertTransformEqual(
-            "a:- not country(C).",
-            "a :- #false: country(C).",
+            "a :- p(C); not country(C).",
+            "a :- p(C); #false: country(C).",
             test_pipeline=PipelineStage.NEGATED_LITERALS
         )
 

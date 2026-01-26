@@ -1,5 +1,4 @@
 from functools import singledispatchmethod
-from turtle import up
 from typing import Any, List, Set
 
 from clingo import ast
