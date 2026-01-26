@@ -68,3 +68,12 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
             "b :- not #false.",
             "b :- not #false."
         )
+    
+    def test_no_change_assignment(self):
+        self.assertCorrectRewrite("a := b.","a := b.")
+    
+    def test_negated_literals_and_aggregates_assignment(self):
+        self.assertCorrectRewrite(
+            "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p; not a.",
+            "score(X) := #sum{f(Y): f(p(Y)), q(X)} :- p; #false: a."
+        )
