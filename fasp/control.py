@@ -66,28 +66,51 @@ class Control:
         """
         return self.clingo_control.ground(parts, context)
 
+    # def solve(
+    #     self,
+    #     assumptions: Sequence[tuple[clingo.symbol.Symbol, bool] | int] = (),
+    #     on_unsat: Callable[[Sequence[int]], None] | None = None,
+    #     on_stats: (
+    #         Callable[[clingo.stats.Stats, clingo.stats.Stats], None] | None
+    #     ) = None,
+    #     on_finish: Callable[[clingo.solve.SolveResult], None] | None = None,
+    #     *,
+    #     async_: bool = False,
+    # ) -> Iterable[Model]:
+    #     with self.clingo_control.solve(
+    #         assumptions,
+    #         None,
+    #         on_unsat,
+    #         on_stats,
+    #         on_finish,
+    #         yield_=True,
+    #         async_=async_,
+    #     ) as handle:
+    #         for model in handle:
+    #             yield Model(model, self.prefix)
+
     def solve(
         self,
         assumptions: Sequence[tuple[clingo.symbol.Symbol, bool] | int] = (),
         on_unsat: Callable[[Sequence[int]], None] | None = None,
-        on_stats: (
-            Callable[[clingo.stats.Stats, clingo.stats.Stats], None] | None
-        ) = None,
+        on_stats: Callable[[clingo.stats.Stats, clingo.stats.Stats], None] | None = None,
         on_finish: Callable[[clingo.solve.SolveResult], None] | None = None,
-        *,
-        async_: bool = False,
     ) -> Iterable[Model]:
-        with self.clingo_control.solve(
-            assumptions,
-            None,
-            on_unsat,
-            on_stats,
-            on_finish,
-            yield_=True,
-            async_=async_,
-        ) as handle:
-            for model in handle:
-                yield Model(model, self.prefix)
+        models: list[Model] = []
+
+        def _on_model(m: clingo.solve.Model) -> bool:
+            models.append(Model(m, self.prefix))
+            return True  # continue solving
+
+        self.clingo_control.solve(
+            assumptions=assumptions,
+            on_model=_on_model,
+            on_unsat=on_unsat,
+            on_stats=on_stats,
+            on_finish=on_finish,
+        )
+
+        return models
 
     def main(self) -> None:
         """
