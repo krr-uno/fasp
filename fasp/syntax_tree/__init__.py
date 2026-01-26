@@ -2,6 +2,7 @@ from typing import Sequence
 
 from clingo import ast
 
+from fasp.integration import FASPProgramTransformer
 from fasp.util.ast import ELibrary
 
 from . import rewritings
@@ -55,4 +56,10 @@ def parse_files(
         List of file names.
     """
     statements = parser.parse_files(library, files)
+    # transformer = FASPProgramTransformer(library, statements, prefix)
+    # rewritten_statements = transformer.transform()
+    # program = ast.Program(library.library)
+    # for statement in rewritten_statements:
+    #     program.add(statement)
+    # return transformer.evaluable_functions, program
     return rewritings.functional2asp(library.library, statements, prefix)

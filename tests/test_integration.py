@@ -152,10 +152,56 @@ class TestFASPProgramTransformer(unittest.TestCase):
     def test_to_asp_head_aggregate_assignment(self):
         self.assertTransformEqual(
             "#count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
-            "#count { 0,ass(king(f(C)),X): Fking(g(C),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
+            "#count { 0,ass(FUN,X): Fking(g(C),h(X)): person(e(X)), king(f(C))=FUN; ass(FUN2,X): f(X): person(e(X)), king(f(C))=FUN2 } :- country(C).",
         )
 
         self.assertTransformEqual(
             "{king(C) := X: person(X)}:- country(C).",
-            "#count { 0,ASS(king(C),X): Fking(C,X): person(X) } :- country(C).",
-        )       
+            "#count { 0,ASS(FUN,X): Fking(C,X): person(X), king(C)=FUN } :- country(C).",
+        )
+
+    def test_fibo(self):
+        self.assertTransformEqual(
+            "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
+            "fibo(X) := Y :- number(X); X>1; FUN+FUN2=Y; fibo(X-1)=FUN; fibo(X-2)=FUN2.",
+            test_pipeline=8,
+        )
+        self.assertTransformEqual(
+            "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
+            "Ffibo(X,Y) :- number(X); X>1; FUN+FUN2=Y; Ffibo(X-1,FUN); Ffibo(X-2,FUN2).",
+            test_pipeline=9,
+        )
+
+    def test_fibo2(self):
+        self.assertTransformEqual(
+            "fibo(X) := fibo(X-1) + fibo(X-2) :- number(X); X>1.",
+            "fibo(X) := FUN+FUN2 :- number(X); X>1; fibo(X-1)=FUN; fibo(X-2)=FUN2.",
+            test_pipeline=8,
+        )
+        self.assertTransformEqual(
+            "fibo(X) := fibo(X-1) + fibo(X-2) :- number(X); X>1.",
+            "Ffibo(X,FUN+FUN2) :- number(X); X>1; Ffibo(X-1,FUN); Ffibo(X-2,FUN2).",
+            test_pipeline=9,
+        )
+
+    # def test_king0(self):
+    #     # self.assertTransformEqual(
+    #     #     "{ f(X) := Y: p(X,Y) } = 1.",
+    #     #     "#count{ 0,ASS(f(X),Y): f(X) := Y: p(X,Y) } = 1.",
+    #     #     test_pipeline=7,
+    #     # )
+    #     self.assertTransformEqual(
+    #         "{ f(X) := Y: p(X,Y) } = N.",
+    #         "{ ASS(f(X),Y): p(X,Y) } = N.",
+    #         test_pipeline=6,
+    #     )
+    #     # self.assertTransformEqual(
+    #     #     "{ f(X) := Y: p(X,Y) } = N.",
+    #     #     "{ f(X) := Y: p(X,Y) } = N.",
+    #     #     test_pipeline=7,
+    #     # )
+    #     # self.assertTransformEqual(
+    #     #     "{ f(X):=Y: p(X,Y) } = N.",
+    #     #     None,
+    #     #     test_pipeline=8,
+    #     # )

@@ -427,3 +427,10 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "#count{ 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)) } :- country(C).",
             "#count{ 0,ass(king(FUN),X): king(FUN3) := FUN4: person(FUN2), f(C)=FUN, e(X)=FUN2, g(C)=FUN3, h(X)=FUN4 } :- country(C)."
         )
+
+    def test_fibo(self):
+        self.assertEqualRewrite(
+            {"fibo/1"},
+            "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
+            "fibo(X) := Y :- number(X); X>1; FUN+FUN2=Y; fibo(X-1)=FUN; fibo(X-2)=FUN2."
+        )
