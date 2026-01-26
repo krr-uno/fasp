@@ -7,41 +7,43 @@ from clingo.core import Library
 from fasp.syntax_tree._nodes import (
     FASP_AST_T,
     FASP_Statement,
+    AssignmentRule,
 )
 from fasp.util.ast import (
     BodyLiteralAST,
+    ELibrary,
 )
 
 
 class RemoveNegatedLiteralsHead:
-    def __init__(self) -> None:
-        self.lib = Library()
+    def __init__(self, library: Library,) -> None:
+        self.lib = library
         self.moved_to_body: list[BodyLiteralAST] = []
         self.changed = False
 
     def transform_statement(self, stmt: FASP_Statement) -> FASP_Statement | None:
 
-        assert isinstance(stmt, ast.StatementRule)
+        if isinstance(stmt, ast.StatementRule):
+            update: dict[str, Any] = {}
 
-        update: dict[str, Any] = {}
+            new_body: List[BodyLiteralAST] = []
+            any_changed = False
 
-        new_body: List[BodyLiteralAST] = []
-        any_changed = False
+            for literal in stmt.body:
+                new_literal = self.dispatch(literal)
+                if new_literal is not None:
+                    any_changed = True
+                    new_body.append(new_literal)
+                else:
+                    new_body.append(literal)
+            if not any_changed:
+                return None
+            update["body"] = new_body
 
-        for literal in stmt.body:
-            new_literal = self.dispatch(literal)
-            if new_literal is not None:
-                any_changed = True
-                new_body.append(new_literal)
-            else:
-                new_body.append(literal)
-        if not any_changed:
-            return None
-        update["body"] = new_body
+            new_body = list(stmt.body) + self.moved_to_body
 
-        new_body = list(stmt.body) + self.moved_to_body
-
-        return stmt.update(self.lib, **update)
+            return stmt.update(self.lib, **update)
+        return stmt
 
     @singledispatchmethod
     def dispatch(self, node: FASP_AST_T) -> FASP_AST_T | None:
@@ -81,16 +83,16 @@ class RemoveNegatedLiteralsHead:
         return cond
 
 
-def rewrite_negated_body_literals(statement: FASP_Statement) -> FASP_Statement | None:
-    transformer = RemoveNegatedLiteralsHead()
+def rewrite_negated_body_literals(library: Library,statement: FASP_Statement) -> FASP_Statement | None:
+    transformer = RemoveNegatedLiteralsHead(library)
     return transformer.transform_statement(statement)
 
 
-def rewrite_negated_body_literals_from_statements(
+def rewrite_negated_body_literals_from_statements(library: ELibrary,
     statements: Iterable[FASP_Statement],
 ) -> Iterable[FASP_Statement]:
     new_statements = []
     for stmt in statements:
-        new_stmt = rewrite_negated_body_literals(stmt)
+        new_stmt = rewrite_negated_body_literals(library.library, stmt)
         new_statements.append(new_stmt or stmt)
     return new_statements

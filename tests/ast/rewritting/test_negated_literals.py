@@ -26,7 +26,7 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
             stmts[1:] if stmts and isinstance(stmts[0], ast.StatementProgram) else stmts
         )
 
-        new_stmts = rewrite_negated_body_literals_from_statements(stmts)
+        new_stmts = rewrite_negated_body_literals_from_statements(self.lib, stmts)
 
         new_stmts_str = []
         for stmt in new_stmts:
