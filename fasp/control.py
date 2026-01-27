@@ -98,21 +98,24 @@ class Control:
         ) = None,
         on_finish: Callable[[clingo.solve.SolveResult], None] | None = None,
     ) -> Iterable[Model]:
-        models: list[Model] = []
+        # models: Iterable[Model] = []
+        # def _on_model(m: clingo.solve.Model) -> bool:
+        #     print("Model found.")
+        #     print(m)
+        #     print("=" * 20)
+        #     models.append(Model(m, self.prefix))
+        #     print("Models:", models)
+        #     return True  # continue solving
 
-        def _on_model(m: clingo.solve.Model) -> bool:
-            models.append(Model(m, self.prefix))
-            return True  # continue solving
-
-        self.clingo_control.solve(
+        with self.clingo_control.start_solve(
             assumptions=assumptions,
-            on_model=_on_model,
             on_unsat=on_unsat,
             on_stats=on_stats,
             on_finish=on_finish,
-        )
-
-        return models
+            yield_=True,
+        ) as handle:
+            for model in handle:
+                yield Model(model, self.prefix)
 
     def main(self) -> None:
         """
