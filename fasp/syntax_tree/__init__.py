@@ -2,7 +2,7 @@ from typing import Sequence
 
 from clingo import ast
 
-from fasp.integration import FASPProgramTransformer
+from fasp.syntax_tree.rewritings.integration import FASPProgramTransformer
 from fasp.util.ast import ELibrary
 
 from . import rewritings

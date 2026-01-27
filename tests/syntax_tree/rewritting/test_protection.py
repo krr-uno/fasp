@@ -8,7 +8,7 @@ from clingo.core import Library
 from fasp.syntax_tree._nodes import FASP_AST
 from fasp.syntax_tree.parsing.parser import parse_string
 
-from fasp.syntax_tree.protecting import (
+from fasp.syntax_tree.rewritings.protecting import (
     _ComparisonProtectorTransformer,
     _ComparisonRestorationTransformer,
     _restore_guard_arguments,

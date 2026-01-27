@@ -11,13 +11,13 @@ from fasp.syntax_tree.collectors import (
     SymbolSignature,
     collect_evaluable_functions,
 )
-from fasp.syntax_tree.protecting import (  # protect_comparisons,; restore_comparisons,
+from fasp.syntax_tree.rewritings.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
 )
 from fasp.syntax_tree.rewritings.aggregates import (
     normalize_assignment_aggregates,
 )
-from fasp.syntax_tree.to_asp import (
+from fasp.syntax_tree.rewritings.to_asp import (
     NormalForm2PredicateTransformer,
     functional_constraints,
 )

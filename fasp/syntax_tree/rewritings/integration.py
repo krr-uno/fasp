@@ -12,7 +12,7 @@ from fasp.syntax_tree.collectors import (
     SymbolSignature,
     collect_evaluable_functions,
 )
-from fasp.syntax_tree.protecting import (
+from fasp.syntax_tree.rewritings.protecting import (
     protect_assignments,
     protect_comparisons,
     restore_assignments,
@@ -26,7 +26,7 @@ from fasp.syntax_tree.rewritings.some_assignments import (
     transform_choice_some_to_choice_assignment,
 )
 from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
-from fasp.syntax_tree.to_asp import NormalForm2PredicateTransformer
+from fasp.syntax_tree.rewritings.to_asp import NormalForm2PredicateTransformer
 from fasp.util.ast import (
     AST,
     ELibrary,

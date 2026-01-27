@@ -20,7 +20,7 @@ from fasp.syntax_tree._nodes import (
 from fasp.syntax_tree.collectors import (
     SymbolSignature,
 )
-from fasp.syntax_tree.protecting import (  # protect_comparisons,; restore_comparisons,
+from fasp.syntax_tree.rewritings.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
 )
 from fasp.util.ast import (
