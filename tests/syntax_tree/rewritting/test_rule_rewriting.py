@@ -442,3 +442,15 @@ class TestRuleRewriteTransformer(unittest.TestCase):
     #         "a :- #false: c.",
     #         "a :- #false: c."
     #     )
+    def test_body_conditional_literal_false(self):
+        self.assertEqualRewrite(
+            {"f/1"},
+            """
+            f(X) := 1 :- p(X).
+            a :- p(C); #false: country(f(b)).
+            """,
+            """
+            f(X) := 1 :- p(X).
+            a :- p(C); #false: country(FUN), f(b)=FUN.
+            """,
+        )

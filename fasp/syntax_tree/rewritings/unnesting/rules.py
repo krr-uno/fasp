@@ -116,11 +116,13 @@ class RuleRewriteTransformer:
                 var_gen,
                 allowed_in_negated_literals=False,
             )
-            print(new_cond, comps, self.evaluable_functions)
+            # print(new_cond, list(map(str,comps)), self.evaluable_functions)
             condition.append(new_cond)
             local_comps.extend(comps)
-        update["condition"] = condition
+        # update["condition"] = condition
         condition.extend(local_comps)
+        if condition not in ([None], [], None):
+            update["condition"] = condition
         return node.update(self.lib, **update)
 
     # Aggregates

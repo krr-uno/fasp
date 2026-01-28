@@ -12,7 +12,7 @@ from fasp.syntax_tree._nodes import (
     HeadSimpleAssignment,
 )
 from fasp.syntax_tree.collectors import SymbolSignature
-from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST
+from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST, is_function, function_arguments
 from fasp.util.iterables import map_none
 
 
@@ -194,25 +194,21 @@ class UnnestFunctionsInLiteralsTransformer:
         outer: bool = True,
         sign: ast.Sign | None = None,
     ) -> ast.TermFunction | ast.TermSymbolic | ast.TermVariable | None:
-        if (
-            isinstance(node, ast.TermSymbolic)
-            and node.symbol.type != symbol.SymbolType.Function
-        ):
+        if not is_function(node):
             return None
 
+        # TODO: Check type: country(f(b)) is showing as Term Symbolic.
+        # print(f"{node}, type:{type(node)}")
         new_node = node.transform(
             self.lib,
             self.unnest,
             outer=False,
             sign=sign,
         )
-        if isinstance(node, ast.TermFunction):
-            name = node.name
-            arguments = node.pool[0].arguments
-        else:
-            name = node.symbol.name
-            arguments = node.symbol.arguments
 
+        name, arguments = function_arguments(node)
+
+        # print(f"New: {new_node}: {is_function(new_node)}")
         if outer or not self._is_evaluable(name, len(arguments)):
             return new_node
 
