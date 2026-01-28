@@ -242,29 +242,32 @@ class TestFASPProgramTransformer(unittest.TestCase):
             test_pipeline=PipelineStage.NEGATED_LITERALS
         )
 
-    # def test_basic_negated_literals2(self):
-    #     self.assertTransformEqual(
-    #         """
-    #         f(X) := 1 :- p(X).
-    #         a :- p(C); #false: country(f(C)).
-    #         """,
-    #         """
-    #         f(X) := 1 :- p(X).
-    #         a :- p(C); #false: country(FUN), f(C)=FUN.
-    #         """,
-    #         test_pipeline=PipelineStage.UNNEST_FUNCTIONS
-    #     )
-    #     self.assertTransformEqual(
-    #         """
-    #         f(X) := 1 :- p(X).
-    #         a :- p(C); #false: country(f(b)).
-    #         """,
-    #         """
-    #         f(X) := 1 :- p(X).
-    #         a :- p(C); #false: country(FUN), f(b)=FUN.
-    #         """,
-    #         test_pipeline=PipelineStage.UNNEST_FUNCTIONS
-    #     )
+    def test_basic_negated_literals2(self):
+        # self.assertTransformEqual(
+        #     """
+        #     f(X) := 1 :- p(X).
+        #     a :- p(C); #false: country(f(C)).
+        #     """,
+        #     """
+        #     f(X) := 1 :- p(X).
+        #     a :- p(C); #false: country(FUN), f(C)=FUN.
+        #     """,
+        #     test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
+        #     # LOG=True
+        # )
+        self.assertTransformEqual(
+            """
+            f(X,1) :- p(X).
+            a :- p(C); #false: country(f(b)).
+            """,
+            """
+            f(X,1) :- p(X).
+            a :- p(C); #false: country(FUN), f(b)=FUN.
+            """,
+            # a :- p(C); #false: country(FUN), f(b)=FUN.
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
+            # LOG=True
+        )
 
         # self.assertTransformEqual(
         #     "a :- p(C); #false: country(C).",

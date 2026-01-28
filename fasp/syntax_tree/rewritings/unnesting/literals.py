@@ -198,7 +198,7 @@ class UnnestFunctionsInLiteralsTransformer:
             return None
 
         # TODO: Check type: country(f(b)) is showing as Term Symbolic.
-        # print(f"{node}, type:{type(node)}")
+        print(f"{node}, type:{type(node)}")
         new_node = node.transform(
             self.lib,
             self.unnest,

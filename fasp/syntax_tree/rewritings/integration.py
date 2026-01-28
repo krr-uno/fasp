@@ -35,14 +35,14 @@ from fasp.util.ast import (
 
 
 class PipelineStage(IntEnum):
-    REWRITE_CHOICE_SOME = auto()
-    NORMALIZE_ASSIGNMENT_AGGREGATES = auto()
-    PROTECT_ASSIGNMENTS = auto()
-    PROTECT_COMPARISONS = auto()
+    # REWRITE_CHOICE_SOME = auto()
+    # NORMALIZE_ASSIGNMENT_AGGREGATES = auto()
+    # PROTECT_ASSIGNMENTS = auto()
+    # PROTECT_COMPARISONS = auto()
     CLINGO_REWRITE = auto()
-    RESTORE_COMPARISONS = auto()
-    RESTORE_ASSIGNMENTS = auto()
-    NEGATED_LITERALS = auto()
+    # RESTORE_COMPARISONS = auto()
+    # RESTORE_ASSIGNMENTS = auto()
+    # NEGATED_LITERALS = auto()
     UNNEST_FUNCTIONS = auto()
     TO_ASP = auto()
 
@@ -73,14 +73,14 @@ class FASPProgramTransformer:
         # ]
 
         self.PIPELINE_IMPL = {
-            PipelineStage.REWRITE_CHOICE_SOME: self._rewrite_choice_some_wrapper,
-            PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES: self._normalize_assignment_aggregates_wrapper,
-            PipelineStage.PROTECT_ASSIGNMENTS: self._protect_assignments_wrapper,
-            PipelineStage.PROTECT_COMPARISONS: self._protect_comparisons_wrapper,
+            # PipelineStage.REWRITE_CHOICE_SOME: self._rewrite_choice_some_wrapper,
+            # PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES: self._normalize_assignment_aggregates_wrapper,
+            # PipelineStage.PROTECT_ASSIGNMENTS: self._protect_assignments_wrapper,
+            # PipelineStage.PROTECT_COMPARISONS: self._protect_comparisons_wrapper,
             PipelineStage.CLINGO_REWRITE: self._clingo_rewrite_wrapper,
-            PipelineStage.RESTORE_COMPARISONS: self._restore_comparisons_wrapper,
-            PipelineStage.RESTORE_ASSIGNMENTS: self._restore_assignments_wrapper,
-            PipelineStage.NEGATED_LITERALS: self._negated_literals_wrapper,
+            # PipelineStage.RESTORE_COMPARISONS: self._restore_comparisons_wrapper,
+            # PipelineStage.RESTORE_ASSIGNMENTS: self._restore_assignments_wrapper,
+            # PipelineStage.NEGATED_LITERALS: self._negated_literals_wrapper,
             PipelineStage.UNNEST_FUNCTIONS: self._unnest_functions_wrapper,
             PipelineStage.TO_ASP: self._to_asp_wrapper,
         }
