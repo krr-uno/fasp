@@ -454,3 +454,9 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             a :- p(C); #false: country(FUN), f(b)=FUN.
             """,
         )
+    def test_no_rewrite_head_set_aggregate(self):
+        self.assertEqualRewrite(
+            {"q/1", "a/0"},
+            ":- { X=country(f(b)) }.",
+            ":- { X=country(f(b)) }.",
+        )

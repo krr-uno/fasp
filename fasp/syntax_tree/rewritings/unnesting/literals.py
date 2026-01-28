@@ -98,6 +98,51 @@ class UnnestFunctionsInLiteralsTransformer:
             [ast.RightGuard(self.lib, ast.Relation.Equal, right)],
         )
 
+    def _symbol_to_term(
+        self,
+        sym: symbol.Symbol,
+        *,
+        loc: Location,
+    ) -> ast.TermFunction | ast.TermSymbolic:
+        """
+        Convert a clingo Symbol into a TermAST (TermFunction or TermSymbolic).
+        """
+
+        if sym.type == symbol.SymbolType.Function:
+            # Recurse on arguments
+            args = [
+                self._symbol_to_term(arg, loc=loc)
+                for arg in sym.arguments
+            ]
+            if args == []:
+                return ast.TermSymbolic(self.lib, loc, sym)
+
+            return ast.TermFunction(
+                self.lib,
+                loc,
+                sym.name,
+                [ast.ArgumentTuple(self.lib, args)],
+                external=False,
+            )
+
+        # Everything else stays symbolic
+        return ast.TermSymbolic(self.lib, loc, sym)
+
+
+    def _contains_evaluable_function(self, sym: symbol.Symbol) -> bool:
+        # if sym.type != symbol.SymbolType.Function:
+        #     return False
+
+        name, arity, _ = sym.signature
+        if self._is_evaluable(name, arity):
+            return True
+
+        return any(
+            arg.type == symbol.SymbolType.Function
+            and self._contains_evaluable_function(arg)
+            for arg in sym.arguments
+        )
+
     @singledispatchmethod
     def unnest(
         self,
@@ -194,11 +239,21 @@ class UnnestFunctionsInLiteralsTransformer:
         outer: bool = True,
         sign: ast.Sign | None = None,
     ) -> ast.TermFunction | ast.TermSymbolic | ast.TermVariable | None:
+        
         if not is_function(node):
             return None
+        
+        # Rehydrate rewritten symbolic functions
+        if (
+            isinstance(node, ast.TermSymbolic)
+            and self._contains_evaluable_function(node.symbol) 
+            and node.symbol.type == symbol.SymbolType.Function
+            # and node.symbol.arguments != []
+        ):
+            # print(f"{node}, {type(node)}")
+            node = self._symbol_to_term(node.symbol, loc=node.location)
+            # print(f"{node}, {type(node)}, {self.evaluable_functions}")
 
-        # TODO: Check type: country(f(b)) is showing as Term Symbolic.
-        print(f"{node}, type:{type(node)}")
         new_node = node.transform(
             self.lib,
             self.unnest,
@@ -238,3 +293,6 @@ class UnnestFunctionsInLiteralsTransformer:
         ast.TermTuple,
     )](self, node: T, outer: bool = True, sign: ast.Sign | None = None) -> T | None:
         return node.transform(self.lib, self.unnest, outer=False, sign=sign)
+
+
+    

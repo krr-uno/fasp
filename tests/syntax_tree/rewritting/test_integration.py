@@ -243,26 +243,26 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_basic_negated_literals2(self):
-        # self.assertTransformEqual(
-        #     """
-        #     f(X) := 1 :- p(X).
-        #     a :- p(C); #false: country(f(C)).
-        #     """,
-        #     """
-        #     f(X) := 1 :- p(X).
-        #     a :- p(C); #false: country(FUN), f(C)=FUN.
-        #     """,
-        #     test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
-        #     # LOG=True
-        # )
         self.assertTransformEqual(
             """
-            f(X,1) :- p(X).
+            f(X) := 1 :- p(X).
+            a :- p(C); #false: country(f(C)).
+            """,
+            """
+            f(X) := 1 :- p(X).
+            a :- p(C); #false: country(FUN), f(C)=FUN.
+            """,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
+            # LOG=True
+        )
+        self.assertTransformEqual(
+            """
+            f(X) := 1 :- p(X).
             a :- p(C); #false: country(f(b)).
             """,
             """
-            f(X,1) :- p(X).
-            a :- p(C); #false: country(FUN), f(b)=FUN.
+            f(X) := 1 :- p(X).
+            a :- p(*); #false: country(FUN), f(b)=FUN.
             """,
             # a :- p(C); #false: country(FUN), f(b)=FUN.
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
