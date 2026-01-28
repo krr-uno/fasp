@@ -12,13 +12,20 @@ from fasp.syntax_tree._nodes import (
     HeadSimpleAssignment,
 )
 from fasp.syntax_tree.collectors import SymbolSignature
-from fasp.util.ast import AST, AST_T, FreshVariableGenerator, TermAST, is_function, function_arguments
+from fasp.util.ast import (
+    AST,
+    AST_T,
+    FreshVariableGenerator,
+    TermAST,
+    function_arguments,
+    is_function,
+)
 from fasp.util.iterables import map_none
 
 
-def unnest_functions[T: (
-    ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
-)](
+def unnest_functions[
+    T: (ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic)
+](
     lib: Library,
     node: T,
     evaluable_functions: Set[SymbolSignature],
@@ -110,10 +117,7 @@ class UnnestFunctionsInLiteralsTransformer:
 
         if sym.type == symbol.SymbolType.Function:
             # Recurse on arguments
-            args = [
-                self._symbol_to_term(arg, loc=loc)
-                for arg in sym.arguments
-            ]
+            args = [self._symbol_to_term(arg, loc=loc) for arg in sym.arguments]
             if args == []:
                 return ast.TermSymbolic(self.lib, loc, sym)
 
@@ -128,12 +132,11 @@ class UnnestFunctionsInLiteralsTransformer:
         # Everything else stays symbolic
         return ast.TermSymbolic(self.lib, loc, sym)
 
-
     def _contains_evaluable_function(self, sym: symbol.Symbol) -> bool:
         # if sym.type != symbol.SymbolType.Function:
         #     return False
 
-        name, arity, _ = sym.signature
+        name, arity = sym.name, sym.arity
         if self._is_evaluable(name, arity):
             return True
 
@@ -239,14 +242,14 @@ class UnnestFunctionsInLiteralsTransformer:
         outer: bool = True,
         sign: ast.Sign | None = None,
     ) -> ast.TermFunction | ast.TermSymbolic | ast.TermVariable | None:
-        
+
         if not is_function(node):
             return None
-        
+
         # Rehydrate rewritten symbolic functions
         if (
             isinstance(node, ast.TermSymbolic)
-            and self._contains_evaluable_function(node.symbol) 
+            and self._contains_evaluable_function(node.symbol)
             and node.symbol.type == symbol.SymbolType.Function
             # and node.symbol.arguments != []
         ):
@@ -286,13 +289,12 @@ class UnnestFunctionsInLiteralsTransformer:
         | ast.TermBinaryOperation
         | ast.TermTuple
     )
-    def _[T: (
-        ast.TermAbsolute,
-        ast.TermUnaryOperation,
-        ast.TermBinaryOperation,
-        ast.TermTuple,
-    )](self, node: T, outer: bool = True, sign: ast.Sign | None = None) -> T | None:
+    def _[
+        T: (
+            ast.TermAbsolute,
+            ast.TermUnaryOperation,
+            ast.TermBinaryOperation,
+            ast.TermTuple,
+        )
+    ](self, node: T, outer: bool = True, sign: ast.Sign | None = None) -> T | None:
         return node.transform(self.lib, self.unnest, outer=False, sign=sign)
-
-
-    

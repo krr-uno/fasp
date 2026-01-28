@@ -12,21 +12,21 @@ from fasp.syntax_tree.collectors import (
     SymbolSignature,
     collect_evaluable_functions,
 )
+from fasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
+from fasp.syntax_tree.rewritings.negated_literals import (
+    rewrite_negated_body_literals_from_statements,
+)
 from fasp.syntax_tree.rewritings.protecting import (
     protect_assignments,
     protect_comparisons,
     restore_assignments,
     restore_comparisons,
 )
-from fasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
-from fasp.syntax_tree.rewritings.negated_literals import (
-    rewrite_negated_body_literals_from_statements,
-)
 from fasp.syntax_tree.rewritings.some_assignments import (
     transform_choice_some_to_choice_assignment,
 )
-from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 from fasp.syntax_tree.rewritings.to_asp import NormalForm2PredicateTransformer
+from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 from fasp.util.ast import (
     AST,
     ELibrary,
