@@ -52,7 +52,10 @@ class NormalForm2PredicateTransformer:
         self.prefix = prefix
 
     def function_to_literal(
-        self, assigned_function: ast.TermFunction, value: TermAST, location: Location
+        self,
+        assigned_function: ast.TermFunction | ast.TermSymbolic,
+        value: TermAST,
+        location: Location,
     ) -> ast.LiteralSymbolic:
 
         name, arguments = function_arguments_ast(self.library, assigned_function)

@@ -205,7 +205,7 @@ class HeadSimpleAssignment(AssignmentAST):
     """
 
     location: Location
-    assigned_function: ast.TermFunction
+    assigned_function: ast.TermFunction | ast.TermSymbolic
     value: util_ast.TermAST
 
     def __str__(self) -> str:

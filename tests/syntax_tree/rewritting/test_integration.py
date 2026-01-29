@@ -275,12 +275,25 @@ class TestFASPProgramTransformer(unittest.TestCase):
         #     test_pipeline=PipelineStage.UNNEST_FUNCTIONS
         # )
 
-    # def test_basic_negated_literals3(self):
-    #     self.assertTransformEqual(
-    #         "a :- p(C); not country(C).",
-    #         "a :- p(C); #false: country(C).",
-    #         test_pipeline=PipelineStage.UNNEST_FUNCTIONS
-    #     )
+    def test_basic_negated_literals3(self):
+        self.assertTransformEqual(
+            "a :- p(C); not country(C).",
+            "a :- p(C); #false: country(C).",
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS
+        )
+    
+    def test_basic_negated_literals4(self):
+        self.assertTransformEqual(
+            """
+            a := 1 :- p(X).
+            a :- p(*); #false: country(a).
+            """,
+            """
+            a := 1 :- p(X).
+            a :- p(*); #false: country(FUN), a=FUN.
+            """,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS
+        )
 
 
     # # Adding not parses it as ChoiceAssignment?

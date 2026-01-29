@@ -516,8 +516,9 @@ def restore_assignment_arguments(
     return cast(TermAST, left), cast(TermAST, right)
 
 
-def _restore_assignment_term_function_to_head_simple_assignment(
-    atom: ast.TermFunction,
+def _restore_assignment_function_to_head_simple_assignment(
+    library: Library,
+    atom: ast.TermFunction | ast.TermSymbolic,
 ) -> Optional[HeadSimpleAssignment]:
     # if not is_function(atom):
     #     return None  # pragma: no cover
@@ -525,27 +526,37 @@ def _restore_assignment_term_function_to_head_simple_assignment(
     _, arguments = function_arguments(atom)
 
     left, right = restore_assignment_arguments(arguments)
-    # assert isinstance(left, ast.TermFunction)
+    if isinstance(left, Symbol) and isinstance(right, Symbol):
+        return HeadSimpleAssignment(
+            atom.location,
+            ast.TermSymbolic(library, atom.location, left),
+            ast.TermSymbolic(
+                library,
+                atom.location,
+                right,
+            ),
+        )
     return HeadSimpleAssignment(
         atom.location,
-        cast(
-            ast.TermFunction, left
-        ),  # QUESTION: HeadSimpleAssignment only allows TermFunction as assigned function.
+        cast(ast.TermFunction, left),
         right,
     )
 
 
 def _restore_assignment_literal_to_head_simple_assignment(
+    library: Library,
     literal: ast.LiteralSymbolic,
-    # assignment_name: str = ASSIGNMENT_NAME,
 ) -> Optional[HeadSimpleAssignment]:
     """
     Restore a protected assignment:
         ASS(left, right)  -->  HeadSimpleAssignment(left, right)
     """
     atom = literal.atom
-    assert isinstance(atom, ast.TermFunction)
-    return _restore_assignment_term_function_to_head_simple_assignment(atom)
+    assert isinstance(atom, ast.TermFunction | ast.TermSymbolic)
+    return _restore_assignment_function_to_head_simple_assignment(library, atom)
+    # elif isinstance(atom, ast.TermSymbolic):
+    #     print(atom)
+    #     raise RuntimeError("Handle Term Symbolic here")
 
 
 class _AssignmentRestorationTransformer:
@@ -573,7 +584,9 @@ class _AssignmentRestorationTransformer:
             if isinstance(
                 lit, ast.LiteralSymbolic
             ) and _is_literal_protected_assignment(lit):
-                head_assign = _restore_assignment_literal_to_head_simple_assignment(lit)
+                head_assign = _restore_assignment_literal_to_head_simple_assignment(
+                    self.library, lit
+                )
                 if head_assign:
                     any_converted = True
                     condition = list(elem.condition)
@@ -609,7 +622,7 @@ class _AssignmentRestorationTransformer:
                     lit, ast.LiteralSymbolic
                 ) and _is_literal_protected_assignment(lit):
                     head_assign = _restore_assignment_literal_to_head_simple_assignment(
-                        lit
+                        self.library, lit
                     )
                     if head_assign is not None:
                         return AssignmentRule(node.location, head_assign, body)
@@ -635,7 +648,7 @@ class _AssignmentRestorationTransformer:
                         any_converted = True
                         new_literal = (
                             _restore_assignment_literal_to_head_simple_assignment(
-                                element.literal
+                                self.library, element.literal
                             )
                             or element.literal
                         )
