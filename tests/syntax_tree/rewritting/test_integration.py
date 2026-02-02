@@ -268,6 +268,19 @@ class TestFASPProgramTransformer(unittest.TestCase):
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
             # LOG=True
         )
+        self.assertTransformEqual(
+            """
+            b := 1 :- p(X).
+            a :- p(C); #false: country(f(b)).
+            """,
+            """
+            b := 1 :- p(X).
+            a :- p(*); #false: country(f(FUN)), b=FUN.
+            """,
+            # a :- p(C); #false: country(FUN), f(b)=FUN.
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
+            # LOG=True
+        )
 
         # self.assertTransformEqual(
         #     "a :- p(C); #false: country(C).",
@@ -281,7 +294,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
             "a :- p(C); #false: country(C).",
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS
         )
-    
+
     def test_basic_negated_literals4(self):
         self.assertTransformEqual(
             """
@@ -303,3 +316,14 @@ class TestFASPProgramTransformer(unittest.TestCase):
             "#count { 0,ASS(king(C),X): ASS(king(C),X): person(X) } :- country(C).",
             test_pipeline=PipelineStage.CLINGO_REWRITE,
         )
+
+    # def test_minimize(self):
+    #     self.assertTransformEqual(
+    #         """
+    #         #minimize{ f(X) : p(X) }
+    #         """,
+    #         """
+    #         #minimize{ FUN : p(X), f(X)=FUN }
+    #         """,
+    #         test_pipeline=PipelineStage.UNNEST_FUNCTIONS
+    #     )
