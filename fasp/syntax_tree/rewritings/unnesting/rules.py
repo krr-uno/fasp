@@ -202,6 +202,32 @@ class RuleRewriteTransformer:
 
     @_rewrite_literal.register
     def _(
+        self,
+        node: ast.OptimizeElement,
+        var_gen: FreshVariableGenerator,
+    ) -> ast.OptimizeElement:
+        transformer = UnnestFunctionsInLiteralsTransformer(
+            self.lib,
+            self.evaluable_functions,
+            var_gen,
+            allowed_in_negated_literals=False,
+        )
+        update: dict[str, Any] = {}
+        tuple = transformer.unnest(node.tuple)
+        if tuple is not None:
+            update["tuple"] = tuple
+        if condition := map_none(
+            lambda c: transformer.unnest(c, outer=False), node.condition
+        ):
+            update["condition"] = condition
+        if extra := transformer.pop_all_unnested_functions():
+            condition = condition or list(node.condition)
+            condition.extend(extra)
+            update["condition"] = condition
+        return node.update(self.lib, **update)
+
+    @_rewrite_literal.register
+    def _(
         self, node: HeadAssignmentAggregate, var_gen: FreshVariableGenerator
     ) -> HeadAssignmentAggregate:
         assert (
@@ -252,3 +278,17 @@ class RuleRewriteTransformer:
         if new_body_literals:
             update["body"] = new_body_literals
         return node.update(self.lib, **update)
+
+    @_rewrite.register(ast.StatementOptimize)
+    def _(
+        self, node: ast.StatementOptimize, var_gen: FreshVariableGenerator
+    ) -> ast.StatementOptimize:
+        new_elements = []
+        for elem in node.elements:
+            new_elem = self._rewrite_literal(elem, var_gen)
+            new_elements.append(new_elem)
+
+        return node.update(
+            self.lib,
+            elements=new_elements,
+        )

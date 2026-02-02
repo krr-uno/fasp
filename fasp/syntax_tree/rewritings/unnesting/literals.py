@@ -296,3 +296,9 @@ class UnnestFunctionsInLiteralsTransformer:
         ast.TermTuple,
     )](self, node: T, outer: bool = True, sign: ast.Sign | None = None) -> T | None:
         return node.transform(self.lib, self.unnest, outer=False, sign=sign)
+
+    @unnest.register
+    def _(
+        self, node: ast.OptimizeTuple, outer: bool = True, sign: ast.Sign | None = None
+    ) -> ast.OptimizeTuple | None:
+        return node.transform(self.lib, self.unnest, outer=False, sign=sign)

@@ -59,18 +59,6 @@ class FASPProgramTransformer:
 
         self.evaluable_functions: set[SymbolSignature] = set()
         self.pipeline = list(PipelineStage)
-        # [
-        #     PipelineStage.REWRITE_CHOICE_SOME,
-        #     PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES,
-        #     PipelineStage.PROTECT_ASSIGNMENTS,
-        #     PipelineStage.PROTECT_COMPARISONS,
-        #     PipelineStage.CLINGO_REWRITE,
-        #     PipelineStage.RESTORE_COMPARISONS,
-        #     PipelineStage.RESTORE_ASSIGNMENTS,
-        #     PipelineStage.NEGATED_LITERALS,
-        #     PipelineStage.UNNEST_FUNCTIONS,
-        #     PipelineStage.TO_ASP,
-        # ]
 
         self.PIPELINE_IMPL = {
             PipelineStage.REWRITE_CHOICE_SOME: self._rewrite_choice_some_wrapper,

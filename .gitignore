@@ -207,3 +207,4 @@ marimo/_lsp/
 __marimo__/
 scratch/
 
+fasp/tools/print_ast.py

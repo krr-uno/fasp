@@ -317,13 +317,16 @@ class TestFASPProgramTransformer(unittest.TestCase):
             test_pipeline=PipelineStage.CLINGO_REWRITE,
         )
 
-    # def test_minimize(self):
-    #     self.assertTransformEqual(
-    #         """
-    #         #minimize{ f(X) : p(X) }
-    #         """,
-    #         """
-    #         #minimize{ FUN : p(X), f(X)=FUN }
-    #         """,
-    #         test_pipeline=PipelineStage.UNNEST_FUNCTIONS
-    #     )
+    def test_minimize(self):
+        self.assertTransformEqual(
+            """
+            #minimize { f(X): p(X) }.
+            """,
+            """
+            :~ p(X). [f(X)]
+            """,
+            # """
+            # #minimize { FUN: p(X), f(X)=FUN }.
+            # """,
+            test_pipeline=PipelineStage.CLINGO_REWRITE
+        )

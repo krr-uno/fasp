@@ -460,3 +460,22 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             ":- { X=country(f(b)) }.",
             ":- { X=country(f(b)) }.",
         )
+
+    def test_statement_optimize(self):
+        self.assertEqualRewrite(
+            {"f/1","a/0"},
+            "#minimize { 1@0,f(X),a: p(X) }.",
+            "#minimize { 1@0,FUN,FUN2: p(X), f(X)=FUN, a=FUN2 }.",
+        )
+
+        self.assertEqualRewrite(
+            {"f/1","a/0", "b/0"},
+            "#maximize { f(X),a: p(X),f(b) }.",
+            "#maximize { FUN,FUN2: p(X), f(FUN3), f(X)=FUN, a=FUN2, b=FUN3 }.",
+        )
+    # def test_weak_constraint(self):
+    #     self.assertEqualRewrite(
+    #         {"f/1","a/0"},
+    #         ":~ p(X). [f(X)]",
+    #         "#minimize { FUN,FUN2: p(X), f(X)=FUN, a=FUN2 }.",
+    #     )
