@@ -411,30 +411,30 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "#sum { f(Y) : p(f(2)) : p(g(Y),Z), q(X), r(X) } >= f(Z).",
-            "#sum { FUN: p(FUN3): p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2, f(2)=FUN3 } >= FUN4 :- f(Z)=FUN4."
+            "#sum { FUN: p(FUN3): p(FUN2,Z), q(X), r(X), f(Y)=FUN, g(Y)=FUN2, f(2)=FUN3 } >= FUN4 :- f(Z)=FUN4.",
         )
 
     def test_head_aggregate_with_assignment(self):
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "#count{ 0,ass(king(C),X): king(C) := X: person(X) } :- country(C).",
-            "#count{ 0,ass(king(C),X): king(C) := X: person(X) } :- country(C)."
+            "#count{ 0,ass(king(C),X): king(C) := X: person(X) } :- country(C).",
         )
 
     def test_head_aggregate_with_assignment2(self):
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1", "e/1"},
             "#count{ 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)) } :- country(C).",
-            "#count{ 0,ass(king(FUN),X): king(FUN3) := FUN4: person(FUN2), f(C)=FUN, e(X)=FUN2, g(C)=FUN3, h(X)=FUN4 } :- country(C)."
+            "#count{ 0,ass(king(FUN),X): king(FUN3) := FUN4: person(FUN2), f(C)=FUN, e(X)=FUN2, g(C)=FUN3, h(X)=FUN4 } :- country(C).",
         )
 
     def test_fibo(self):
         self.assertEqualRewrite(
             {"fibo/1"},
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
-            "fibo(X) := Y :- number(X); X>1; FUN+FUN2=Y; fibo(X-1)=FUN; fibo(X-2)=FUN2."
+            "fibo(X) := Y :- number(X); X>1; FUN+FUN2=Y; fibo(X-1)=FUN; fibo(X-2)=FUN2.",
         )
-    
+
     # # TODO: Fix for such case.
     # def test_body_conditional_literal_false(self):
     #      self.assertEqualRewrite(
@@ -454,6 +454,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             a :- p(C); #false: country(FUN), f(b)=FUN.
             """,
         )
+
     def test_no_rewrite_head_set_aggregate(self):
         self.assertEqualRewrite(
             {"q/1", "a/0"},
@@ -463,16 +464,17 @@ class TestRuleRewriteTransformer(unittest.TestCase):
 
     def test_statement_optimize(self):
         self.assertEqualRewrite(
-            {"f/1","a/0"},
+            {"f/1", "a/0"},
             "#minimize { 1@0,f(X),a: p(X) }.",
             "#minimize { 1@0,FUN,FUN2: p(X), f(X)=FUN, a=FUN2 }.",
         )
 
         self.assertEqualRewrite(
-            {"f/1","a/0", "b/0"},
+            {"f/1", "a/0", "b/0"},
             "#maximize { f(X),a: p(X),f(b) }.",
             "#maximize { FUN,FUN2: p(X), f(FUN3), f(X)=FUN, a=FUN2, b=FUN3 }.",
         )
+
     # def test_weak_constraint(self):
     #     self.assertEqualRewrite(
     #         {"f/1","a/0"},

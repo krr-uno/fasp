@@ -4,7 +4,10 @@ from clingo import ast
 
 from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary
-from fasp.syntax_tree.rewritings.negated_literals import rewrite_negated_body_literals_from_statements
+from fasp.syntax_tree.rewritings.negated_literals import (
+    rewrite_negated_body_literals_from_statements,
+)
+
 
 class TestNegatedLiteralsTransformer(unittest.TestCase):
     def setUp(self):
@@ -12,9 +15,9 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
 
     def apply_negated_literals_transformer(self, program: str):
         """
-        Runs the negated literal transformer on the statement ASTs 
+        Runs the negated literal transformer on the statement ASTs
         for a given string program
-        
+
         :param program: The input ASP program str
         :type program: str
         """
@@ -33,7 +36,7 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
             new_stmts_str.append(str(stmt).strip())
 
         return "\n".join(new_stmts_str).strip()
-    
+
     def assertCorrectRewrite(self, program: str, expected_program: str):
         program = program.strip()
         new_program = self.apply_negated_literals_transformer(program)
@@ -41,39 +44,33 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
         if expected_program is not None:
             expected_program = expected_program.strip()
             self.assertEqual(new_program, expected_program)
-    
+
     def test_empty(self):
-        self.assertCorrectRewrite("a.","a.")
-    
+        self.assertCorrectRewrite("a.", "a.")
+
     def test_no_change(self):
-        self.assertCorrectRewrite("a :- b.","a :- b.")
-    
+        self.assertCorrectRewrite("a :- b.", "a :- b.")
+
     def test_basic(self):
-        self.assertCorrectRewrite("b :- not a; c.","b :- #false: a; c.")
+        self.assertCorrectRewrite("b :- not a; c.", "b :- #false: a; c.")
 
     def test_negated_literals_and_aggregates(self):
         self.assertCorrectRewrite(
             "d :- not a; #count { X: p(X), not b(X) } >= 2.",
-            "d :- #false: a; #count { X: p(X), not b(X) } >= 2."
+            "d :- #false: a; #count { X: p(X), not b(X) } >= 2.",
         )
-    
+
     def test_double_negation(self):
-        self.assertCorrectRewrite(
-            "b :- not not a.",
-            "b :- not not a."
-        )
-    
+        self.assertCorrectRewrite("b :- not not a.", "b :- not not a.")
+
     def test_literal_boolean(self):
-        self.assertCorrectRewrite(
-            "b :- not #false.",
-            "b :- not #false."
-        )
-    
+        self.assertCorrectRewrite("b :- not #false.", "b :- not #false.")
+
     def test_no_change_assignment(self):
-        self.assertCorrectRewrite("a := b.","a := b.")
-    
+        self.assertCorrectRewrite("a := b.", "a := b.")
+
     def test_negated_literals_and_aggregates_assignment(self):
         self.assertCorrectRewrite(
             "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p; not a.",
-            "score(X) := #sum{f(Y): f(p(Y)), q(X)} :- p; #false: a."
+            "score(X) := #sum{f(Y): f(p(Y)), q(X)} :- p; #false: a.",
         )

@@ -148,7 +148,6 @@ class TestRewrite(unittest.TestCase):
             ),
         )
 
-
     def test_safety_2(self):
         errors = []
         library = Library(logger=lambda t, msg: errors.append((t, msg)))
