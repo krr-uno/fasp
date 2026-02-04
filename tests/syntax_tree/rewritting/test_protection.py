@@ -165,7 +165,10 @@ class TestRestoreComparisons(unittest.TestCase):
             self.assertIsInstance(rest, FASP_AST)
 
     def test_basic_comparison_restore(self):
-        self.assertEqualRestore("a=100.", "CMP(a,(GRD(0,100),),0).")
+        self.assertEqualRestore(
+            "a=100.",
+            "CMP(a,(GRD(0,100),),0).",
+            )
 
 
 class TestProtectAssignments(unittest.TestCase):
@@ -304,19 +307,34 @@ class TestRestoreAssignments(unittest.TestCase):
         self.assertEqualRestore(program, expected)
 
     def test_aggregate_assignments(self):
-        self.assertEqualRestore("{ f(X) := (Y,Z) } :- p.", "{ ASS(f(X),(Y,Z)) } :- p.")
+        self.assertEqualRestore(
+            "{ f(X) := (Y,Z) } :- p.",
+            "{ ASS(f(X),(Y,Z)) } :- p.",
+            )
 
     def test_choice_assignments(self):
-        self.assertEqualRestore("f(1;2) := Y :- g(Y).", "ASS(f(1;2),Y) :- g(Y).")
+        self.assertEqualRestore(
+            "f(1;2) := Y :- g(Y).",
+            "ASS(f(1;2),Y) :- g(Y).",
+            )
 
     def test_restore_non_function_atom(self):
-        self.assertEqualRestore("#true.", "#true.")
+        self.assertEqualRestore(
+            "#true.",
+            "#true.",
+            )
 
     def test_no_assignment(self):
-        self.assertEqualRestore("f(X) :- g(Y).", "f(X) :- g(Y).")
+        self.assertEqualRestore(
+            "f(X) :- g(Y).",
+            "f(X) :- g(Y).",
+            )
 
     def test_no_assignment_in_aggregate(self):
-        self.assertEqualRestore("{ f(X) } :- g(Y).", "{ f(X) } :- g(Y).")
+        self.assertEqualRestore(
+            "{ f(X) } :- g(Y).",
+            "{ f(X) } :- g(Y).",
+            )
 
     def test_head_aggregate_Assignment(self):
         self.assertEqualRestore(
