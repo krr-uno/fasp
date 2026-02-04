@@ -1,8 +1,10 @@
 from functools import singledispatchmethod
-from typing import List, Set
+from typing import List, Sequence, Set
 
+from attr import has
 from clingo import ast, symbol
 from clingo.core import Library, Location
+from clingo.symbol import Symbol
 
 from fasp.syntax_tree._nodes import (
     FASP_AST,
@@ -105,46 +107,46 @@ class UnnestFunctionsInLiteralsTransformer:
             [ast.RightGuard(self.lib, ast.Relation.Equal, right)],
         )
 
-    def _symbol_to_term(
-        self,
-        sym: symbol.Symbol,
-        *,
-        loc: Location,
-    ) -> ast.TermFunction | ast.TermSymbolic:
-        """
-        Convert a clingo Symbol into a TermAST (TermFunction or TermSymbolic).
-        """
+    # def _symbol_to_term(
+    #     self,
+    #     sym: symbol.Symbol,
+    #     *,
+    #     loc: Location,
+    # ) -> ast.TermFunction | ast.TermSymbolic:
+    #     """
+    #     Convert a clingo Symbol into a TermAST (TermFunction or TermSymbolic).
+    #     """
 
-        if sym.type == symbol.SymbolType.Function:
-            # Recurse on arguments
-            args = [self._symbol_to_term(arg, loc=loc) for arg in sym.arguments]
-            if args == []:
-                return ast.TermSymbolic(self.lib, loc, sym)
+    #     if sym.type == symbol.SymbolType.Function:
+    #         # Recurse on arguments
+    #         args = [self._symbol_to_term(arg, loc=loc) for arg in sym.arguments]
+    #         if args == []:
+    #             return ast.TermSymbolic(self.lib, loc, sym)
 
-            return ast.TermFunction(
-                self.lib,
-                loc,
-                sym.name,
-                [ast.ArgumentTuple(self.lib, args)],
-                external=False,
-            )
+    #         return ast.TermFunction(
+    #             self.lib,
+    #             loc,
+    #             sym.name,
+    #             [ast.ArgumentTuple(self.lib, args)],
+    #             external=False,
+    #         )
 
-        # Everything else stays symbolic
-        return ast.TermSymbolic(self.lib, loc, sym)
+    #     # Everything else stays symbolic
+    #     return ast.TermSymbolic(self.lib, loc, sym)
 
-    def _contains_evaluable_function(self, sym: symbol.Symbol) -> bool:
-        # if sym.type != symbol.SymbolType.Function:
-        #     return False
+    # def _contains_evaluable_function(self, sym: symbol.Symbol) -> bool:
+    #     # if sym.type != symbol.SymbolType.Function:
+    #     #     return False
 
-        name, arity = sym.name, sym.arity
-        if self._is_evaluable(name, arity):
-            return True
+    #     name, arity = sym.name, sym.arity
+    #     if self._is_evaluable(name, arity):
+    #         return True
 
-        return any(
-            arg.type == symbol.SymbolType.Function
-            and self._contains_evaluable_function(arg)
-            for arg in sym.arguments
-        )
+    #     return any(
+    #         arg.type == symbol.SymbolType.Function
+    #         and self._contains_evaluable_function(arg)
+    #         for arg in sym.arguments
+    #     )
 
     @singledispatchmethod
     def unnest(
@@ -235,38 +237,73 @@ class UnnestFunctionsInLiteralsTransformer:
             return node if is_new_node else None
         return node.update(self.lib, **update)
 
+    def _unnest_symbol_function(
+        self,
+        node: Symbol,
+        sign: ast.Sign | None,
+        location: Location,
+    ) -> tuple[ast.TermFunction | None, str, Sequence[Symbol] | Sequence[ast.Term]]:
+        arguments: list[Symbol | ast.Term] = []
+        has_new_argument = False
+        for arg in node.arguments:
+            new_arg = self.unnest(arg, False, sign, location)
+            if new_arg is not None:
+                arguments.append(new_arg)
+                has_new_argument = True
+            else:
+                arguments.append(arg)
+        if not has_new_argument:
+            return None, node.name, node.arguments
+        new_arguments = [
+            (
+                arg
+                if not isinstance(arg, Symbol)
+                else ast.TermSymbolic(self.lib, location, arg)
+            )
+            for arg in arguments
+        ]
+        new_node = ast.TermFunction(
+            self.lib,
+            location,
+            node.name,
+            [ast.ArgumentTuple(self.lib, new_arguments)],
+            external=False,
+        )
+        return new_node, node.name, new_arguments
+
     @unnest.register
     def _(
         self,
-        node: ast.TermFunction | ast.TermSymbolic,
+        node: ast.TermFunction | ast.TermSymbolic | Symbol,
         outer: bool = True,
         sign: ast.Sign | None = None,
+        location: Location | None = None,
     ) -> ast.TermFunction | ast.TermSymbolic | ast.TermVariable | None:
 
-        if not is_function(node):
+        if not isinstance(node, Symbol) and not is_function(node):
             return None
 
-        # Rehydrate rewritten symbolic functions
-        if (
-            isinstance(node, ast.TermSymbolic)
-            and self._contains_evaluable_function(node.symbol)
-            and node.symbol.type == symbol.SymbolType.Function
-            # and node.symbol.arguments != []
-        ):
-            # print(f"{node}, {type(node)}")
-            node = self._symbol_to_term(node.symbol, loc=node.location)
-            # print(f"{node}, {type(node)}, {self.evaluable_functions}")
+        if isinstance(node, ast.TermSymbolic):
+            return self.unnest(
+                node.symbol, outer=outer, sign=sign, location=node.location
+            )
+        elif isinstance(node, Symbol):
+            assert location is not None, "Location must be provided for Symbol nodes"
+            if node.type != symbol.SymbolType.Function:
+                return None
+            new_node, name, arguments = self._unnest_symbol_function(
+                node, sign, location
+            )
+        else:
+            new_node = node.transform(
+                self.lib,
+                self.unnest,
+                outer=False,
+                sign=sign,
+            )
+            name, arguments = function_arguments(node)
+            location = node.location
 
-        new_node = node.transform(
-            self.lib,
-            self.unnest,
-            outer=False,
-            sign=sign,
-        )
-
-        name, arguments = function_arguments(node)
-
-        # print(f"New: {new_node}: {is_function(new_node)}")
         if outer or not self._is_evaluable(name, len(arguments)):
             return new_node
 
@@ -274,12 +311,12 @@ class UnnestFunctionsInLiteralsTransformer:
 
         if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
             raise RuntimeError(
-                f"Evaluable functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {node.location}."
+                f"Evaluable functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {location}."
             )
-        fresh: ast.TermVariable = self.var_gen.fresh_variable(
-            self.lib, node.location, "FUN"
-        )
-        comp = self._make_comparison(node.location, node, fresh, sign=sign)
+        fresh: ast.TermVariable = self.var_gen.fresh_variable(self.lib, location, "FUN")
+        if isinstance(node, Symbol):
+            node = ast.TermSymbolic(self.lib, location, node)
+        comp = self._make_comparison(location, node, fresh, sign=sign)
         self.unnested_functions.append(comp)
         return fresh
 

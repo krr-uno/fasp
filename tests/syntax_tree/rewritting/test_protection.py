@@ -17,7 +17,6 @@ from fasp.syntax_tree.rewritings.protecting import (
     restore_comparisons,
     protect_assignments,
     restore_assignments,
-    
 )
 from fasp.util.ast import AST, ELibrary
 
@@ -166,11 +165,9 @@ class TestRestoreComparisons(unittest.TestCase):
             self.assertIsInstance(rest, FASP_AST)
 
     def test_basic_comparison_restore(self):
-        self.assertEqualRestore(
-            "a=100.",
-            "CMP(a,(GRD(0,100),),0)."
-            )
-        
+        self.assertEqualRestore("a=100.", "CMP(a,(GRD(0,100),),0).")
+
+
 class TestProtectAssignments(unittest.TestCase):
     """
     Unit tests for assignment-protection transformation.
@@ -187,7 +184,9 @@ class TestProtectAssignments(unittest.TestCase):
 
         statements = parse_string(self.lib, program)
 
-        rewritten = list(protect_assignments(self.lib, statements))[1:]  # :1 to remove #program base.
+        rewritten = list(protect_assignments(self.lib, statements))[
+            1:
+        ]  # :1 to remove #program base.
 
         expected_lines = [line.strip() for line in expected.splitlines()]
 
@@ -223,26 +222,26 @@ class TestProtectAssignments(unittest.TestCase):
         self.assertEqualRewrite(
             "{ f(X) := (Y,Z) } :- p.",
             "{ ASS(f(X),(Y,Z)) } :- p.",
-            )
+        )
 
     def test_pool(self):
         self.assertEqualRewrite(
             "f(1;2) := Y :- g(Y).",
             "ASS(f(1;2),Y) :- g(Y).",
-            )
+        )
 
     def test_aggregate_condition(self):
         self.assertEqualRewrite(
             "{ a := X: p(X); a } = 1 :- #count { X: p(X) } >= 1; s.",
             "{ ASS(a,X): p(X); a } = 1 :- #count { X: p(X) } >= 1; s.",
-            )
+        )
 
     def test_choice_some_aggregate(self):
         with self.assertRaises(AssertionError) as cm:
             self.assertEqualRewrite(
                 "a := #some{X: p(X)} :- p.",
                 "{ ASS(f(X),(ARG(0,Y),)) } :- p.",
-                )
+            )
         self.assertEqual(
             str(cm.exception),
             "ChoiceSomeAssignment seen during assignment protection. Unhandled.",
@@ -252,7 +251,7 @@ class TestProtectAssignments(unittest.TestCase):
         self.assertEqualRewrite(
             "#count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
             "#count { 0,ass(king(f(C)),X): ASS(king(g(C)),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
-            )
+        )
 
 
 class TestRestoreAssignments(unittest.TestCase):
@@ -305,35 +304,20 @@ class TestRestoreAssignments(unittest.TestCase):
         self.assertEqualRestore(program, expected)
 
     def test_aggregate_assignments(self):
-        self.assertEqualRestore(
-            "{ f(X) := (Y,Z) } :- p.", 
-            "{ ASS(f(X),(Y,Z)) } :- p."
-            )
+        self.assertEqualRestore("{ f(X) := (Y,Z) } :- p.", "{ ASS(f(X),(Y,Z)) } :- p.")
 
     def test_choice_assignments(self):
-        self.assertEqualRestore(
-            "f(1;2) := Y :- g(Y).", 
-            "ASS(f(1;2),Y) :- g(Y)."
-            )
-    
+        self.assertEqualRestore("f(1;2) := Y :- g(Y).", "ASS(f(1;2),Y) :- g(Y).")
+
     def test_restore_non_function_atom(self):
-        self.assertEqualRestore(
-            "#true.",
-            "#true."
-            )
-    
+        self.assertEqualRestore("#true.", "#true.")
+
     def test_no_assignment(self):
-        self.assertEqualRestore(
-            "f(X) :- g(Y).", 
-            "f(X) :- g(Y)."
-            )
+        self.assertEqualRestore("f(X) :- g(Y).", "f(X) :- g(Y).")
 
     def test_no_assignment_in_aggregate(self):
-        self.assertEqualRestore(
-            "{ f(X) } :- g(Y).", 
-            "{ f(X) } :- g(Y)."
-            )
-    
+        self.assertEqualRestore("{ f(X) } :- g(Y).", "{ f(X) } :- g(Y).")
+
     def test_head_aggregate_Assignment(self):
         self.assertEqualRestore(
             "#count { 0,ass(king(C),X): king(C) := X: person(X) } :- country(C).",

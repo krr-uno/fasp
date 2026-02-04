@@ -379,10 +379,8 @@ def create_body_literal(
 
 
 def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
-    return (
-        isinstance(node, ast.TermFunction)
-        or isinstance(node, ast.TermSymbolic)
-        and node.symbol.type == SymbolType.Function
+    return isinstance(node, ast.TermFunction) or (
+        isinstance(node, ast.TermSymbolic) and node.symbol.type == SymbolType.Function
     )
 
 

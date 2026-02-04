@@ -92,9 +92,13 @@ class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
         self.assertEqualUnnestingTerm("f(a)", ["f/1"], None, outer=True)
         self.assertEqualUnnestingTerm("f(a)", [], None)
 
-    def test_symbolic_literal(self):
+    def test_symbolic_literal1(self):
         self.assertEqualUnnestingLiteral("a(a)", ["a/0"], "a(FUN)")
+
+    def test_symbolic_literal2(self):
         self.assertEqualUnnestingLiteral("a", [], None)
+
+    def test_symbolic_literal3(self):
         self.assertEqualUnnestingLiteral("p(f(a))", ["f/1"], "p(FUN)")
         self.assertEqualUnnestingLiteral("p(f(a))", ["p/1"], None)
 
