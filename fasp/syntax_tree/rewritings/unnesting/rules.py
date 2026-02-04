@@ -292,3 +292,47 @@ class RuleRewriteTransformer:
             self.lib,
             elements=new_elements,
         )
+
+    @_rewrite.register(ast.StatementWeakConstraint)
+    def _(
+        self, node: ast.StatementWeakConstraint, var_gen: FreshVariableGenerator
+    ) -> ast.StatementWeakConstraint:
+        transformer = UnnestFunctionsInLiteralsTransformer(
+            self.lib,
+            self.evaluable_functions,
+            var_gen,
+            allowed_in_negated_literals=False,
+        )
+        update: dict[str, Any] = {}
+        tuple = transformer.unnest(node.tuple)
+        if tuple is not None:
+            update["tuple"] = tuple
+        comps_1 = transformer.pop_all_unnested_functions()
+
+        new_body_literals: List[BodyLiteralAST] = []
+        are_new_body_literals = False
+        for lit in node.body:
+            new_lit = transformer.unnest(lit)
+            if new_lit is None:
+                new_body_literals.append(lit)
+            else:
+                new_body_literals.append(new_lit)
+                are_new_body_literals = True
+        new_body_literals_from_comps: List[BodyLiteralAST] = []
+        if are_new_body_literals:
+            new_body_literals_from_comps.extend(new_body_literals)
+        else:
+            new_body_literals_from_comps.extend(node.body)
+        comps_2 = transformer.pop_all_unnested_functions()
+        if comps_1:
+            new_body_literals_from_comps.extend(
+                map(lambda c: ast.BodySimpleLiteral(self.lib, c), comps_1)
+            )
+
+        if comps_2:
+            new_body_literals_from_comps.extend(
+                map(lambda c: ast.BodySimpleLiteral(self.lib, c), comps_2)
+            )
+        update["body"] = new_body_literals_from_comps
+
+        return node.update(self.lib, **update)

@@ -350,13 +350,14 @@ class TestFASPProgramTransformer(unittest.TestCase):
     def test_minimize(self):
         self.assertTransformEqual(
             """
-            #minimize { f(X): p(X) }.
+            a := 1 :- p(X).
+            #maximize { 1@0,f(X),a: p(X), f(a) }.
             """,
+            # :~ p(X); f(a). [-1@0,f(X),a]
+            # The maximize statement is changed into a weak constraint after clingo rewrite
             """
-            :~ p(X). [f(X)]
+            a := 1 :- p(X).
+            :~ p(X); f(FUN2); a=FUN; a=FUN2. [-1@0,f(X),FUN]
             """,
-            # """
-            # #minimize { FUN: p(X), f(X)=FUN }.
-            # """,
-            test_pipeline=PipelineStage.CLINGO_REWRITE,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS
         )
