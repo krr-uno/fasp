@@ -2,7 +2,7 @@ from typing import Iterable, Sequence
 
 from clingo import ast
 
-from fasp.syntax_tree.rewritings.integration import FASPProgramTransformer
+from fasp.syntax_tree.rewritings.integration import FASPProgramTransformer, transform_to_clingo_statements
 from fasp.util.ast import ELibrary
 
 from . import rewritings
@@ -81,4 +81,5 @@ def rewrite_statement(
     statement
         The statement to rewrite.
     """
-    pass
+    rewritten_statements = transform_to_clingo_statements(ELibrary(),[statement], prefix="F", ctx=ctx)
+    return rewritten_statements

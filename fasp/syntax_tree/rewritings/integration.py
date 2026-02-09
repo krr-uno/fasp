@@ -1,7 +1,7 @@
 from enum import IntEnum, auto
 from typing import Iterable, cast
 
-from clingo.ast import RewriteContext, rewrite_statement
+from clingo.ast import RewriteContext, rewrite_statement, Statement
 
 from fasp.syntax_tree._nodes import (
     FASP_AST,
@@ -49,13 +49,14 @@ class PipelineStage(IntEnum):
 
 class FASPProgramTransformer:
     def __init__(
-        self, elib: ELibrary, statement_asts: Iterable[AST], prefix: str = "F"
+        self, elib: ELibrary, statement_asts: Iterable[FASP_Statement], *, prefix: str = "F", ctx:RewriteContext | None = None
     ):
         self.elib = elib
         self.library = elib.library
 
-        self.statement_asts = cast(Iterable[FASP_Statement], statement_asts)
+        self.statement_asts = statement_asts
         self.prefix = prefix
+        self.ctx = ctx
 
         self.evaluable_functions: set[SymbolSignature] = set()
         self.pipeline = list(PipelineStage)
@@ -139,7 +140,7 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
 
-        ctx = RewriteContext(self.library)
+        ctx = self.ctx if self.ctx is not None else RewriteContext(self.library)
 
         out = []
 
@@ -207,3 +208,32 @@ class FASPProgramTransformer:
         for stmt in statements:
             out.append(to_asp_transformer.rewrite(stmt))
         return out
+
+
+def transform_to_clingo_statements(
+    elib: ELibrary,
+    statement_asts: Iterable[FASP_Statement],
+    *,
+    prefix: str = "F",
+    ctx: RewriteContext | None = None,
+    stop_at: PipelineStage = PipelineStage.TO_ASP,
+    LOG: bool = False,
+) -> Iterable[Statement]:
+    """Create a FASPProgramTransformer, run transform() and return
+    an iterable of clingo.ast.Statement (ast.Statement).
+
+    This asserts that the final transformed statements are instances
+    of clingo.ast.Statement and returns them as a list.
+    """
+
+    transformer = FASPProgramTransformer(elib, statement_asts, prefix=prefix, ctx=ctx)
+    transformed = transformer.transform(stop_at=stop_at, LOG=LOG)
+
+    out: list[Statement] = []
+    for stmt in transformed:
+        assert isinstance(
+            stmt, Statement
+        ), f"Expected clingo.ast.Statement, got {type(stmt)}"
+        out.append(stmt)
+
+    return out
