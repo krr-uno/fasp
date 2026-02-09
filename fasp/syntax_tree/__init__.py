@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Iterable, Sequence
 
 from clingo import ast
 
@@ -63,3 +63,22 @@ def parse_files(
     #     program.add(statement)
     # return transformer.evaluable_functions, program
     return rewritings.functional2asp(library.library, statements, prefix)
+
+
+
+def rewrite_statement(
+    ctx: ast.RewriteContext,
+    statement: FASP_Statement,
+) -> Iterable[ast.Statement]:
+    """
+    Rewrite a statement in the FASP AST to a list of statements in the clingo
+    AST.
+
+    Parameters
+    ----------
+    ctx
+        The rewrite context.
+    statement
+        The statement to rewrite.
+    """
+    pass
