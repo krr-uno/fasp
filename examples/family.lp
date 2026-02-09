@@ -16,4 +16,6 @@ female(Y) :- mother(_)=Y.
 
 orphan(X) :- person(X), not father(X)=_, not mother(X)=_.
 
+% orphan(X) :- person(X), #false: father(X)=_; #false: mother(X)=_.
+
 n_orphan := #count{X : orphan(X)}.

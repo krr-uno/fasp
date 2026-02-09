@@ -92,3 +92,21 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
             "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p; not a.",
             "score(X) := #sum{f(Y): f(p(Y)), q(X)} :- p; #false: a.",
         )
+
+    def test_negated_literals_with_variables(self):
+        self.assertCorrectRewrite(
+            "a :- not p(X).",
+            "a :- #false: p(X).",
+        )
+
+    def test_negated_literals_with_anonymous_variables(self):
+        self.assertCorrectRewrite(
+            "a :- not p(_).",
+            "a :- #false: p(_).",
+        )
+
+    def test_orphan(self):
+        self.assertCorrectRewrite(
+            "orphan(X) :- person(X); not father(X)=_, not mother(X)=_.",
+            "orphan(X) :- person(X); #false: father(X)=_; #false: mother(X)=_.",
+        )
