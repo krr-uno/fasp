@@ -311,6 +311,7 @@ class RuleRewriteTransformer:
 
         new_body_literals: List[BodyLiteralAST] = []
         are_new_body_literals = False
+
         for lit in node.body:
             new_lit = transformer.unnest(lit)
             if new_lit is None:
@@ -318,12 +319,15 @@ class RuleRewriteTransformer:
             else:
                 new_body_literals.append(new_lit)
                 are_new_body_literals = True
+
         new_body_literals_from_comps: List[BodyLiteralAST] = []
+
         if are_new_body_literals:
             new_body_literals_from_comps.extend(new_body_literals)
         else:
             new_body_literals_from_comps.extend(node.body)
         comps_2 = transformer.pop_all_unnested_functions()
+
         if comps_1:
             new_body_literals_from_comps.extend(
                 map(lambda c: ast.BodySimpleLiteral(self.lib, c), comps_1)
@@ -333,6 +337,7 @@ class RuleRewriteTransformer:
             new_body_literals_from_comps.extend(
                 map(lambda c: ast.BodySimpleLiteral(self.lib, c), comps_2)
             )
+
         update["body"] = new_body_literals_from_comps
 
         return node.update(self.lib, **update)

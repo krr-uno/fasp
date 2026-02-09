@@ -339,7 +339,6 @@ class TestFASPProgramTransformer(unittest.TestCase):
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
         )
 
-    # # Adding not parses it as ChoiceAssignment?
     def test_negated_literals(self):
         self.assertTransformEqual(
             "{king(C) := X: person(X)}:- country(C).",
@@ -359,5 +358,32 @@ class TestFASPProgramTransformer(unittest.TestCase):
             a := 1 :- p(X).
             :~ p(X); f(FUN2); a=FUN; a=FUN2. [-1@0,f(X),FUN]
             """,
-            test_pipeline=PipelineStage.UNNEST_FUNCTIONS
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
+        )
+
+    def test_weak_constraint(self):
+        self.assertTransformEqual(
+            """
+            a := 1 :- p(X).
+            :~ p(X); f(FUN2); a=FUN; a=FUN2. [-1@0,f(X),FUN]
+            """,
+            """
+            a := 1 :- p(X).
+            :~ p(X); f(a). [-1@0,f(X),a]
+            """,
+            test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
+            # Clingo Rewrite removes FUN variables.
+        )
+
+    def test_weak_constraint2(self):
+        self.assertTransformEqual(
+            """
+            a := 1 :- p(X).
+            :~ p(X); f(FUN2); a=FUN; a=FUN2. [-1@0,f(X),FUN]
+            """,
+            """
+            a := 1 :- p(X).
+            :~ p(X); f(FUN2); a=FUN; a=FUN2. [-1@0,f(X),FUN]
+            """,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
         )
