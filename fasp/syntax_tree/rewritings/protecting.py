@@ -146,8 +146,6 @@ class _ComparisonProtectorTransformer:
         return node
 
     def rewrite(self, node: FASP_Statement) -> FASP_Statement:
-        if not isinstance(node, ast.StatementRule):
-            return node
         return node.transform(self.library, self.dispatch) or node
 
 
@@ -289,8 +287,6 @@ class _ComparisonRestorationTransformer:
         return node
 
     def rewrite(self, node: StatementAST) -> StatementAST:
-        if not isinstance(node, ast.StatementRule):
-            return node
         return node.transform(self.library, self.dispatch) or node
 
 

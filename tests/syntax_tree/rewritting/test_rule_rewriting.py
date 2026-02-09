@@ -474,7 +474,13 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "#maximize { f(X),a: p(X),f(b) }.",
             "#maximize { FUN,FUN2: p(X), f(FUN3), f(X)=FUN, a=FUN2, b=FUN3 }.",
         )
-    
+
+        self.assertEqualRewrite(
+            {"f/1", "a/0"},
+            "#minimize { f(X)@f(X),f(X),a: p(X)}.",
+            "#minimize { FUN@FUN2,FUN3,FUN4: p(X), f(X)=FUN, f(X)=FUN2, f(X)=FUN3, a=FUN4 }.",
+        )
+
     def test_weak_constraint(self):
         self.assertEqualRewrite(
             {"f/1","a/0"},
@@ -493,4 +499,18 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             {"f/1","b/0"},
             ":~ p(X); f(a). [b]",
             ":~ p(X); f(a); b=FUN. [FUN]",
+        )
+
+    def test_weak_constraint3(self):
+        self.assertEqualRewrite(
+            {"f/1","a/0"},
+            ":~ p(X); f(a). [b]",
+            ":~ p(X); f(FUN); a=FUN. [b]",
+        )
+
+    def test_weak_constraint4(self):
+        self.assertEqualRewrite(
+            {"f/1","a/0", "b/0"},
+            ":~ p(X); f(a). [b@a]",
+            ":~ p(X); f(FUN3); b=FUN; a=FUN2; a=FUN3. [FUN@FUN2]",
         )
