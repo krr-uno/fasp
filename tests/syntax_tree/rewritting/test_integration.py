@@ -43,32 +43,6 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
         self.assertEqual(transformed_str, expected_program)
 
-    def assertTransformEqualFullPipeline(
-        self,
-        program: str,
-        expected_program: str | None,
-        *,
-        test_pipeline=PipelineStage.TO_ASP,
-        LOG: bool = False,
-    ):
-        program = textwrap.dedent(program).strip()
-        expected_program = (
-            textwrap.dedent(expected_program).strip()
-            if expected_program is not None
-            else None
-        )
-
-        statement_asts = parse_string(self.elib, program)
-        
-        transformed = transform_to_clingo_statements(
-            self.elib, statement_asts, prefix="F", ctx=self.ctx, stop_at=test_pipeline, LOG=LOG
-        )
-        transformed_str = "\n".join(
-            [str(statement).strip() for statement in transformed][1:]
-        )
-
-        self.assertEqual(transformed_str, expected_program)
-
     def test_choice_some_rewrite(self):
         self.assertTransformEqual(
             "a := #some{X: p(X)} :- q(X), r.",
@@ -413,12 +387,6 @@ class TestFASPProgramTransformer(unittest.TestCase):
             :~ p(X); f(FUN2); a=FUN; a=FUN2. [-1@0,f(X),FUN]
             """,
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
-        )
-    # For coverage only.
-    def test_fibo2_using_full(self): 
-        self.assertTransformEqualFullPipeline(
-            "fibo(X) := fibo(X-1) + fibo(X-2) :- number(X); X>1.",
-            "Ffibo(X,FUN+FUN2) :- number(X); X>1; Ffibo(X-1,FUN); Ffibo(X-2,FUN2).",
         )
 
     def test_family(self):

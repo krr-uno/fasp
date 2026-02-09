@@ -64,21 +64,21 @@ def _functional2asp(
     )
 
 
-def functional2asp(
-    library: Library, statements: Iterable[FASP_Statement], prefix: str = "F"
-) -> tuple[set[SymbolSignature], ast.Program]:
-    """
-    Transform a program in functional normal form into a regular program.
+# def functional2asp(
+#     library: Library, statements: Iterable[FASP_Statement], prefix: str = "F"
+# ) -> tuple[set[SymbolSignature], ast.Program]:
+#     """
+#     Transform a program in functional normal form into a regular program.
 
-    Args:
-        program (Iterable[ast.AST]): The program to transform.
+#     Args:
+#         program (Iterable[ast.AST]): The program to transform.
 
-    Returns:
-        Iterable[ast.AST]: The transformed program.
-    """
-    # statements = normalize_ast(library, statements)
-    evaluable_functions, statements = _functional2asp(library, statements, prefix)
-    program = ast.Program(library)
-    for statement in statements:
-        program.add(statement)
-    return evaluable_functions, program
+#     Returns:
+#         Iterable[ast.AST]: The transformed program.
+#     """
+#     # statements = normalize_ast(library, statements)
+#     evaluable_functions, statements = _functional2asp(library, statements, prefix)
+#     program = ast.Program(library)
+#     for statement in statements:
+#         program.add(statement)
+#     return evaluable_functions, program
