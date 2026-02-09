@@ -31,6 +31,23 @@ EXAMPLES = [
             """,
         ],
     ),
+    Example(
+        [EXAMPLES_PATH / "aggregate_assignment.lp"],
+        [
+            """\
+            intersection_count=2
+            """,
+        ],
+    ),
+    Example(
+        [EXAMPLES_PATH / "family.lp"],
+        [
+            """\
+            female(eve) male(adam) orphan(adam) orphan(eve) person(abel) person(adam) person(cain) person(eve)
+            father(abel)=adam father(cain)=adam mother(abel)=eve mother(cain)=eve n_orphan=2
+            """,
+        ],
+    ),
 ]
 
 EXAMPLES = [
