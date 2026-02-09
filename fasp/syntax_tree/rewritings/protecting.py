@@ -190,12 +190,22 @@ class RightGuard:
         """
         if isinstance(self.term, Symbol):  # pragma: no cover
             term = ast.TermSymbolic(library, location, self.term)
+        
+        # EXPLANATION OF CHANGE: 
+        # tests.syntax_tree.rewritting.test_integration.TestFASPProgramTransformer.test_family_right
+        # fails if this is removed because clingo rewrite changes the following in the test:
+        #
+        # `person(X) :- father(X)=_` into 
+        # `person(X) :- father(X)=__A_0`.
+
+        elif isinstance(self.term, ast.TermVariable) and str(self.term).startswith("__"):
+            term = ast.TermVariable(library, location, "_")
         else:
             term = self.term
         return ast.RightGuard(library, self.relation, term)
 
 
-def _restore_guard_arguments(term: ast.TermFunction | Symbol) -> RightGuard:
+def _restore_guard_arguments(library: Library, term: ast.TermFunction | Symbol) -> RightGuard:
     _, arguments = function_arguments(term)
     relation_int = arguments[0]
     term2 = arguments[1]
@@ -208,13 +218,28 @@ def _restore_guard_arguments(term: ast.TermFunction | Symbol) -> RightGuard:
         relation_int.type == SymbolType.Number
     ), f"Expected a number, got {relation_int}: {relation_int.type}"
     # term2 = arguments[1]
+
+
+    # EXPLANATION OF CHANGE: 
+    # tests.syntax_tree.rewritting.test_integration.TestFASPProgramTransformer.test_family
+    # fails if this is removed because clingo rewrite changes the following in the test:
+    # 
+    # `orphan(X) :- person(X), not father(X)=_, not mother(X)=_.` into 
+    # `orphan(X) :- person(X), not father(X)=*, not mother(X)=*.`
+    # and the guard term becomes `GRD(...., *)` instead of `GRD(...., _)` and then the restoration fails because of the Projection.
+
+
+    if isinstance(term2, ast.Projection) and str(term2) == "*":
+        term2 = ast.TermVariable(library, term2.location, "_")
+
+
     assert not isinstance(
         term2, ast.Projection
     ), f"Expected a non-tuple term, got {term2}: {type(term2)}"
     return RightGuard(INT_TO_RELATION[relation_int.number], term2)
 
 
-def restore_comparison_arguments(
+def restore_comparison_arguments(library: Library,
     arguments: Sequence[ArgumentAST] | Sequence[Symbol],
 ) -> tuple[ast.Sign, ArgumentAST | Symbol, list[RightGuard]]:
     assert (
@@ -235,7 +260,7 @@ def restore_comparison_arguments(
     sign = INT_TO_SIGN[sign.number]
     _, right = function_arguments(right)
     right = [
-        _restore_guard_arguments(g)
+        _restore_guard_arguments(library,g)
         for g in cast(Sequence[ast.TermFunction] | Sequence[Symbol], right)
     ]
     return sign, left, right
@@ -251,10 +276,29 @@ def restore_comparison(
     function_name, arguments = function_arguments(atom)
     if function_name != comparison_name:  # pragma: no cover
         return literal
-    sign, left, right = restore_comparison_arguments(arguments)
+    sign, left, right = restore_comparison_arguments(library, arguments)
     ast_right = [r.to_ast(library, literal.location) for r in right]
     if isinstance(left, Symbol):  # pragma: no cover
         left = ast.TermSymbolic(library, literal.location, left)
+    
+    if isinstance(left, ast.TermFunction):
+        new_arguments: list[TermAST] = []
+        arguments_changed = False
+        for term in left.pool[0].arguments:
+            if isinstance(term, ast.TermVariable) and str(term).startswith("__"):
+                new_arguments.append(ast.TermVariable(library, term.location, "_"))
+                arguments_changed = True
+            else:
+                assert not isinstance(term, ast.Projection)
+                new_arguments.append(term)
+        if arguments_changed:
+            left = ast.TermFunction(
+                library,
+                left.location,
+                left.name,
+                [ast.ArgumentTuple(library, new_arguments)],
+            )
+        
     assert not isinstance(
         left, ast.Projection
     ), f"Expected a non-projection term, got {left}: {type(left)}"

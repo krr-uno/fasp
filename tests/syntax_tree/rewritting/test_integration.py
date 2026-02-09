@@ -15,6 +15,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
         self.elib = ELibrary()
         self.ctx = RewriteContext(self.elib.library)
+        self.maxDiff = None  # Show full diff on assertion failure
 
     def assertTransformEqual(
         self,
@@ -418,4 +419,67 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqualFullPipeline(
             "fibo(X) := fibo(X-1) + fibo(X-2) :- number(X); X>1.",
             "Ffibo(X,FUN+FUN2) :- number(X); X>1; Ffibo(X-1,FUN); Ffibo(X-2,FUN2).",
+        )
+
+    def test_family(self):
+        self.assertTransformEqual(
+            "orphan(X) :- person(X), not father(X)=_, not mother(X)=_.",
+            "orphan(X) :- person(X); #false: father(X)=_; #false: mother(X)=_.",
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
+        )
+
+        self.assertTransformEqual(
+            "orphan(X) :- person(X), not father(X)=A, not mother(X)=A.",
+            "orphan(X) :- person(X); #false: father(X)=A; #false: mother(X)=A.",
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
+        )
+    
+    def test_family_right(self):
+        self.assertTransformEqual(
+            "person(X) :- father(X)=_.",
+            "person(X) :- father(X)=_.",
+            test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
+        )
+
+    def test_family_full(self):
+        self.assertTransformEqual(
+            """
+            father(cain):=adam.
+            father(abel):=adam.
+            mother(cain):=eve.
+            mother(abel):=eve.
+
+            % person(father(X)).
+            % person(mother(X)).
+            person(Y) :- father(_)=Y.
+            person(Y) :- mother(_)=Y.
+            person(X) :- father(X)=_.
+            person(X) :- mother(X)=_.
+            % male(father(X)).
+            % female(mother(X)).
+            male(Y) :- father(_)=Y.
+            female(Y) :- mother(_)=Y.
+
+            orphan(X) :- person(X), not father(X)=_, not mother(X)=_.
+
+            n_orphan := #count{X : orphan(X)}.
+            """,
+            """
+            Ffather(cain,adam).
+            Ffather(abel,adam).
+            Fmother(cain,eve).
+            Fmother(abel,eve).
+            % person(mother(X)).
+            #program base.
+            person(Y) :- Ffather(_,Y).
+            person(Y) :- Fmother(_,Y).
+            person(X) :- Ffather(X,_).
+            person(X) :- Fmother(X,_).
+            % male(father(X)).
+            % female(mother(X)).
+            male(Y) :- Ffather(_,Y).
+            female(Y) :- Fmother(_,Y).
+            orphan(X) :- person(X); #false: Ffather(X,_); #false: Fmother(X,_).
+            Fn_orphan(W) :- W = #count { X: orphan(X) }.""",
+            test_pipeline=PipelineStage.TO_ASP,
         )

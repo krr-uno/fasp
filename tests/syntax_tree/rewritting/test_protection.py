@@ -22,7 +22,7 @@ from fasp.util.ast import AST, ELibrary
 
 
 def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
-    right = _restore_guard_arguments(term)
+    right = _restore_guard_arguments(library, term)
     return ast.RightGuard(library, right.relation, right.term)
 
 
