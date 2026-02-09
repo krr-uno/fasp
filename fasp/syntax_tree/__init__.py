@@ -2,7 +2,10 @@ from typing import Iterable, Sequence
 
 from clingo import ast
 
-from fasp.syntax_tree.rewritings.integration import FASPProgramTransformer, transform_to_clingo_statements
+from fasp.syntax_tree.rewritings.integration import (
+    FASPProgramTransformer,
+    transform_to_clingo_statements,
+)
 from fasp.util.ast import ELibrary
 
 from . import rewritings
@@ -60,11 +63,12 @@ def parse_files(
     rewritten_statements = transformer.transform()
     program = ast.Program(library.library)
     for statement in rewritten_statements:
-        assert not isinstance(statement, AssignmentRule), "Assignment rules should have been rewritten by the transformer"
+        assert not isinstance(
+            statement, AssignmentRule
+        ), "Assignment rules should have been rewritten by the transformer"
         program.add(statement)
     return transformer.evaluable_functions, program
     # return rewritings.functional2asp(library.library, statements, prefix)
-
 
 
 def rewrite_statement(
@@ -86,7 +90,9 @@ def rewrite_statement(
         The statement to rewrite.
     """
     lib = library if library is not None else ELibrary()
-    rewritten_statements = transform_to_clingo_statements(lib, [statement], prefix=prefix, ctx=ctx)
+    rewritten_statements = transform_to_clingo_statements(
+        lib, [statement], prefix=prefix, ctx=ctx
+    )
     return rewritten_statements
 
 

@@ -190,22 +190,26 @@ class RightGuard:
         """
         if isinstance(self.term, Symbol):  # pragma: no cover
             term = ast.TermSymbolic(library, location, self.term)
-        
-        # EXPLANATION OF CHANGE: 
+
+        # EXPLANATION OF CHANGE:
         # tests.syntax_tree.rewritting.test_integration.TestFASPProgramTransformer.test_family_right
         # fails if this is removed because clingo rewrite changes the following in the test:
         #
-        # `person(X) :- father(X)=_` into 
+        # `person(X) :- father(X)=_` into
         # `person(X) :- father(X)=__A_0`.
 
-        elif isinstance(self.term, ast.TermVariable) and str(self.term).startswith("__"):
+        elif isinstance(self.term, ast.TermVariable) and str(self.term).startswith(
+            "__"
+        ):
             term = ast.TermVariable(library, location, "_")
         else:
             term = self.term
         return ast.RightGuard(library, self.relation, term)
 
 
-def _restore_guard_arguments(library: Library, term: ast.TermFunction | Symbol) -> RightGuard:
+def _restore_guard_arguments(
+    library: Library, term: ast.TermFunction | Symbol
+) -> RightGuard:
     _, arguments = function_arguments(term)
     relation_int = arguments[0]
     term2 = arguments[1]
@@ -219,19 +223,16 @@ def _restore_guard_arguments(library: Library, term: ast.TermFunction | Symbol) 
     ), f"Expected a number, got {relation_int}: {relation_int.type}"
     # term2 = arguments[1]
 
-
-    # EXPLANATION OF CHANGE: 
+    # EXPLANATION OF CHANGE:
     # tests.syntax_tree.rewritting.test_integration.TestFASPProgramTransformer.test_family
     # fails if this is removed because clingo rewrite changes the following in the test:
-    # 
-    # `orphan(X) :- person(X), not father(X)=_, not mother(X)=_.` into 
+    #
+    # `orphan(X) :- person(X), not father(X)=_, not mother(X)=_.` into
     # `orphan(X) :- person(X), not father(X)=*, not mother(X)=*.`
     # and the guard term becomes `GRD(...., *)` instead of `GRD(...., _)` and then the restoration fails because of the Projection.
 
-
     if isinstance(term2, ast.Projection) and str(term2) == "*":
         term2 = ast.TermVariable(library, term2.location, "_")
-
 
     assert not isinstance(
         term2, ast.Projection
@@ -239,7 +240,8 @@ def _restore_guard_arguments(library: Library, term: ast.TermFunction | Symbol) 
     return RightGuard(INT_TO_RELATION[relation_int.number], term2)
 
 
-def restore_comparison_arguments(library: Library,
+def restore_comparison_arguments(
+    library: Library,
     arguments: Sequence[ArgumentAST] | Sequence[Symbol],
 ) -> tuple[ast.Sign, ArgumentAST | Symbol, list[RightGuard]]:
     assert (
@@ -260,7 +262,7 @@ def restore_comparison_arguments(library: Library,
     sign = INT_TO_SIGN[sign.number]
     _, right = function_arguments(right)
     right = [
-        _restore_guard_arguments(library,g)
+        _restore_guard_arguments(library, g)
         for g in cast(Sequence[ast.TermFunction] | Sequence[Symbol], right)
     ]
     return sign, left, right
@@ -280,7 +282,7 @@ def restore_comparison(
     ast_right = [r.to_ast(library, literal.location) for r in right]
     if isinstance(left, Symbol):  # pragma: no cover
         left = ast.TermSymbolic(library, literal.location, left)
-    
+
     if isinstance(left, ast.TermFunction):
         new_arguments: list[TermAST] = []
         arguments_changed = False
@@ -298,7 +300,7 @@ def restore_comparison(
                 left.name,
                 [ast.ArgumentTuple(library, new_arguments)],
             )
-        
+
     assert not isinstance(
         left, ast.Projection
     ), f"Expected a non-projection term, got {left}: {type(left)}"

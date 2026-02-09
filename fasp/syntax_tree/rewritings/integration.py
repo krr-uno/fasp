@@ -1,7 +1,7 @@
 from enum import IntEnum, auto
 from typing import Iterable, cast
 
-from clingo.ast import RewriteContext, rewrite_statement, Statement
+from clingo.ast import RewriteContext, Statement, rewrite_statement
 
 from fasp.syntax_tree._nodes import (
     FASP_AST,
@@ -49,7 +49,12 @@ class PipelineStage(IntEnum):
 
 class FASPProgramTransformer:
     def __init__(
-        self, elib: ELibrary, statement_asts: Iterable[FASP_Statement], *, prefix: str = "F", ctx:RewriteContext | None = None
+        self,
+        elib: ELibrary,
+        statement_asts: Iterable[FASP_Statement],
+        *,
+        prefix: str = "F",
+        ctx: RewriteContext | None = None,
     ):
         self.elib = elib
         self.library = elib.library
