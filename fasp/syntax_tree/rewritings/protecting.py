@@ -231,8 +231,8 @@ def _restore_guard_arguments(
     # `orphan(X) :- person(X), not father(X)=*, not mother(X)=*.`
     # and the guard term becomes `GRD(...., *)` instead of `GRD(...., _)` and then the restoration fails because of the Projection.
 
-    if isinstance(term2, ast.Projection) and str(term2) == "*":
-        term2 = ast.TermVariable(library, term2.location, "_")
+    if isinstance(term2, ast.Projection):
+        term2 = ast.TermVariable(library, term2.location, "_", anonymous=True)
 
     assert not isinstance(
         term2, ast.Projection
