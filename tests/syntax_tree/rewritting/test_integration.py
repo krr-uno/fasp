@@ -408,6 +408,12 @@ class TestFASPProgramTransformer(unittest.TestCase):
             "person(X) :- father(X)=_.",
             test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
         )
+    def test_family_left(self):
+        self.assertTransformEqual(
+            "person(Y) :- father(_)=Y.",
+            "person(Y) :- father(_)=Y.",
+            test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
+        )
 
     def test_family_full(self):
         self.assertTransformEqual(

@@ -283,6 +283,15 @@ def restore_comparison(
     if isinstance(left, Symbol):  # pragma: no cover
         left = ast.TermSymbolic(library, literal.location, left)
 
+    # EXPLANATION OF CHANGE:
+    # tests.syntax_tree.rewritting.test_integration.TestFASPProgramTransformer.test_family_left
+    # fails if this is removed because clingo rewrite changes the following in the test:
+    #
+    # `person(Y) :- father(_)=Y.` into
+    # `person(Y) :- father(__A_0)=Y.`.
+
+    # BEGIN: ######################################
+
     if isinstance(left, ast.TermFunction):
         new_arguments: list[TermAST] = []
         arguments_changed = False
@@ -300,6 +309,7 @@ def restore_comparison(
                 left.name,
                 [ast.ArgumentTuple(library, new_arguments)],
             )
+    # END: ######################################
 
     assert not isinstance(
         left, ast.Projection
