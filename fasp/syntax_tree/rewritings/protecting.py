@@ -190,18 +190,6 @@ class RightGuard:
         """
         if isinstance(self.term, Symbol):  # pragma: no cover
             term = ast.TermSymbolic(library, location, self.term)
-
-        # EXPLANATION OF CHANGE:
-        # tests.syntax_tree.rewritting.test_integration.TestFASPProgramTransformer.test_family_right
-        # fails if this is removed because clingo rewrite changes the following in the test:
-        #
-        # `person(X) :- father(X)=_` into
-        # `person(X) :- father(X)=__A_0`.
-
-        elif isinstance(self.term, ast.TermVariable) and str(self.term).startswith(
-            "__"
-        ):
-            term = ast.TermVariable(library, location, "_")
         else:
             term = self.term
         return ast.RightGuard(library, self.relation, term)
@@ -279,7 +267,33 @@ def restore_comparison(
     if function_name != comparison_name:  # pragma: no cover
         return literal
     sign, left, right = restore_comparison_arguments(library, arguments)
-    ast_right = [r.to_ast(library, literal.location) for r in right]
+
+    # EXPLANATION OF CHANGE:
+    # tests.syntax_tree.rewritting.test_integration.TestFASPProgramTransformer.test_family_right
+    # fails if this is removed because clingo rewrite changes the following in the test:
+    #
+    # `person(X) :- father(X)=_` into
+    # `person(X) :- father(X)=__A_0`.
+
+    # BEGIN: ######################################
+    # ast_right = [r.to_ast(library, literal.location) for r in right]
+    ast_right: list[ast.RightGuard] = []
+
+    for r in right:
+        new_r = r.to_ast(library, literal.location)
+        if isinstance(new_r.term, ast.TermVariable) and new_r.term.anonymous == True:
+            new_r = (
+                new_r.update(
+                    library,
+                    term=ast.TermVariable(
+                        library, new_r.term.location, "_", anonymous=True
+                    ),
+                )
+                or new_r
+            )
+        ast_right.append(new_r)
+    # END: ######################################
+
     if isinstance(left, Symbol):  # pragma: no cover
         left = ast.TermSymbolic(library, literal.location, left)
 
@@ -296,8 +310,10 @@ def restore_comparison(
         new_arguments: list[TermAST] = []
         arguments_changed = False
         for term in left.pool[0].arguments:
-            if isinstance(term, ast.TermVariable) and str(term).startswith("__"):
-                new_arguments.append(ast.TermVariable(library, term.location, "_"))
+            if isinstance(term, ast.TermVariable) and term.anonymous:
+                new_arguments.append(
+                    ast.TermVariable(library, term.location, "_", anonymous=True)
+                )
                 arguments_changed = True
             else:
                 assert not isinstance(term, ast.Projection)
