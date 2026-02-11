@@ -72,6 +72,7 @@ from clingo.ast import (
 )
 from clingo.core import Library, Location
 
+from fasp.syntax_tree.types import SymbolSignature
 from fasp.util import ast as util_ast
 
 
@@ -187,6 +188,32 @@ class AssignmentAST:
                 d[key] = new_value
         d.pop("type", None)
         return self.__class__(**d)
+
+
+@dataclass
+class ShowFDirective(AssignmentAST):
+    """
+    A #showf directive, optionally with a signature.
+
+    Examples:
+        #showf.
+        #showf p/1.
+    """
+
+    location: Location
+    signature: SymbolSignature | None
+
+    def __str__(self) -> str:  # pragma: no cover
+        if self.signature is None:
+            return "#showf."
+        return f"#showf {self.signature}."
+
+    def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        return {
+            "type": "ShowFDirective",
+            "location": self.location,
+            "signature": self.signature,
+        }
 
 
 @dataclass

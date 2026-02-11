@@ -8,7 +8,6 @@ from fasp.syntax_tree._nodes import (
     FASP_Statement,
 )
 from fasp.syntax_tree.collectors import (
-    SymbolSignature,
     collect_evaluable_functions,
 )
 from fasp.syntax_tree.rewritings.aggregates import (
@@ -21,6 +20,7 @@ from fasp.syntax_tree.rewritings.to_asp import (
     NormalForm2PredicateTransformer,
     functional_constraints,
 )
+from fasp.syntax_tree.types import SymbolSignature
 from fasp.util.ast import (
     StatementAST,
 )

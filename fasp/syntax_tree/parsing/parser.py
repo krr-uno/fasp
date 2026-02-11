@@ -25,6 +25,8 @@ from fasp.syntax_tree._nodes import (
     HeadAggregateAssignmentElement,
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
+    ShowFDirective,
+    SymbolSignature,
 )
 from fasp.util.ast import (
     AST,
@@ -211,12 +213,16 @@ class TreeSitterParser:
         Parse source code into an AST.
         """
         src_bytes = bytes(src, "utf8")
-        nodes = self._tree_parse_get_assignment_rules(src_bytes)
-        assigment_rules = []
+        nodes = self._tree_parse_get_custom_statements(src_bytes)
+        assigment_rules: list[AssignmentRule] = []
+        showf_directives: list[ShowFDirective] = []
         parsing_errors = []
         for node in nodes:
             try:
-                assigment_rules.append(self._parse_assignment_rule(node))
+                if node.type == "assignment_rule":
+                    assigment_rules.append(self._parse_assignment_rule(node))
+                elif node.type in {"showf", "showf_signature", "show_term"}:
+                    showf_directives.append(self._parse_showf(node))
             except ParsingException as e:
                 parsing_errors.extend(e.errors)
         src_array = bytearray(src_bytes)
@@ -226,9 +232,13 @@ class TreeSitterParser:
         src_bytes = bytes(src_array)
         src2 = src_bytes.decode("utf-8")
         statements = clingo_parse_string(self.library, src2)
+        if statements:
+            if not type(statements[0]) == ast.StatementShowSignature:
+                statements = statements[1:]
         if parsing_errors:
             raise ParsingException(parsing_errors)
-        return _ast_merge(assigment_rules, statements[1:])
+
+        return _ast_merge(_ast_merge(assigment_rules, showf_directives), statements)
 
     def _parse_assignment_rule(self, node: Node) -> AST:
         self._check_errors(node)
@@ -253,6 +263,30 @@ class TreeSitterParser:
             head,
             body,
         )
+
+    def _parse_showf(self, node: Node) -> ShowFDirective:
+        signature = None
+        # if node.type in {"showf", "showf_signature"}:
+        #     self._check_errors(node)
+        #     unparsed_signature = node.child_by_field_name("signature")
+        #     if unparsed_signature:
+        #         signature = self._clingo_parse_signature(
+        #             unparsed_signature.text.decode("utf-8")
+        #         )
+        # elif node.type == "show_term":
+
+        if node.type == "show_term":
+
+            # Tree-sitter treats unknown #showf as a show_term with errors.
+            # Parse defensively from raw text and do not call _check_errors.
+            text = node.text.decode("utf-8").strip()
+            if text.endswith("."):
+                text = text[:-1].strip()
+            if text.startswith("#showf"):
+                tail = text[len("#showf") :].strip()
+                if tail:
+                    signature = self._clingo_parse_signature(tail)
+        return ShowFDirective(self._location_from_node(node), signature)
 
     def _check_errors(self, node: Node) -> None:
         if node.has_error:
@@ -498,21 +532,33 @@ class TreeSitterParser:
         elements = self._clingo_parse_choice_elements(f" p: {src}")
         return elements[0].condition
 
+    def _clingo_parse_signature(self, src: str) -> AST:
+        statement = ast.parse_statement(self.library.library, f"#show {src}.")
+        return SymbolSignature(statement.name, statement.arity)
+
     def _tree_parse(self, src: bytes) -> Tree:
         """
         Parse source code into a Tree-sitter parse tree.
         """
         return PARSER.parse(src)
 
-    def _tree_parse_get_assignment_rules(self, src: bytes) -> list[Node]:
+    def _tree_parse_get_custom_statements(self, src: bytes) -> list[Node]:
         """
-        Return all assignment_rule nodes in the parse tree.
+        Return all custom (non-clingo) statements in the parse tree.
         """
         tree = self._tree_parse(src)
         # self._debug_print_tree(tree.root_node)
 
         return [
-            node for node in tree.root_node.children if node.type == "assignment_rule"
+            node
+            for node in tree.root_node.children
+            if (
+                node.type in {"assignment_rule", "showf", "showf_signature"}
+                or (
+                    node.type == "show_term"
+                    and node.text.decode("utf-8").lstrip().startswith("#showf")
+                )
+            )
         ]
 
     # def _debug_print_tree(self, node, indent=0):

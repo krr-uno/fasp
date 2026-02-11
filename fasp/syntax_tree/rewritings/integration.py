@@ -9,7 +9,6 @@ from fasp.syntax_tree._nodes import (
     FASP_Statement,
 )
 from fasp.syntax_tree.collectors import (
-    SymbolSignature,
     collect_evaluable_functions,
 )
 from fasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
@@ -27,6 +26,7 @@ from fasp.syntax_tree.rewritings.some_assignments import (
 )
 from fasp.syntax_tree.rewritings.to_asp import NormalForm2PredicateTransformer
 from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
+from fasp.syntax_tree.types import SymbolSignature
 from fasp.util.ast import (
     AST,
     ELibrary,

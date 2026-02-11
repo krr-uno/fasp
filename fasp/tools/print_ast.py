@@ -101,7 +101,8 @@ if __name__ == "__main__":
         # t(1).
         # """
         src = "1 { f(X) := 1 : p(X); f(X) := 2 : q(X) } 3."
-        src = "a :- p(C); #false: country(f(b))."
+        src = "#show f/1." \
+        " p(X)."
     print("Source:\n", src)
     asts = parse_string(lib, src)
     print("\n--- Parsed ASTs ---\n")

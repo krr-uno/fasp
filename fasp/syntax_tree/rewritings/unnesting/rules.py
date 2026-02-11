@@ -12,11 +12,12 @@ from fasp.syntax_tree._nodes import (
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from fasp.syntax_tree.collectors import SymbolSignature, collect_variables
+from fasp.syntax_tree.collectors import collect_variables
 from fasp.syntax_tree.rewritings.unnesting.literals import (
     UnnestFunctionsInLiteralsTransformer,
     unnest_functions,
 )
+from fasp.syntax_tree.types import SymbolSignature
 from fasp.util.ast import (
     BodyLiteralAST,
     FreshVariableGenerator,

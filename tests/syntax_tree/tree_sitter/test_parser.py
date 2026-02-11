@@ -4,7 +4,7 @@ import unittest
 
 from clingo import ast
 
-from fasp.syntax_tree import AssignmentRule, HeadSimpleAssignment
+from fasp.syntax_tree import AssignmentRule, HeadSimpleAssignment, ShowFDirective
 
 # from fasp.ast.rewrittings.assigments import ParsingException
 from fasp.util.ast import ParsingException
@@ -352,6 +352,20 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqualParse(
             "#count{ 0,ass(king(C),X): king(C) := X: person(X) } :- country(C)."
         )
+
+    def test_showf_directive_1(self):
+        rules = self.parser.parse("#showf.")
+        self.assertEqual(len(rules), 1)
+        self.assertIsInstance(rules[0], ShowFDirective)
+        self.assertEqual(str(rules[0]), "#showf.")
+
+    def test_showf_directive_signature(self):
+        rules = self.parser.parse("""
+                                  #showf p/1.
+                                  """)
+        self.assertEqual(len(rules), 1)
+        self.assertIsInstance(rules[0], ShowFDirective)
+        self.assertEqual(str(rules[0]), "#showf p/1.")
 
     # def test_tree_parse_error_assigned_is_not_function(self):
     #     code = textwrap.dedent(

@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from functools import singledispatch
 from typing import Any, Iterable
 
@@ -13,29 +12,13 @@ from fasp.syntax_tree._nodes import (
     HeadAggregateAssignmentElement,
     HeadSimpleAssignment,
 )
+from fasp.syntax_tree.types import SymbolSignature
 from fasp.util.ast import function_arguments
 
 
 def collect_variables(node: FASP_AST) -> set[str]:
     collector = _VariableCollector()
     return collector.collect(node)
-
-
-@dataclass(frozen=True, slots=True, order=True)
-class SymbolSignature:
-    """
-    Represents a function symbol with its name and arity.
-
-    Attributes:
-        name (str): The name of the function.
-        arity (int): The number of arguments the function takes.
-    """
-
-    name: str
-    arity: int
-
-    def __str__(self) -> str:
-        return f"{self.name}/{self.arity}"
 
 
 def collect_evaluable_functions(program: Iterable[FASP_AST]) -> set[SymbolSignature]:
