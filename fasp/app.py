@@ -15,14 +15,31 @@ class FaspApp(App):
         self._order = Flag()
         self._library = library
         self._clingo_options = clingo_options
+        self._prefix = "F"
+        self._print_rewrite = Flag()
 
     def register_options(self, options: AppOptions) -> None:
         options.add_flag(
             "fasp", "order", "Print atoms in models in order.", self._order
         )
 
+        options.add(
+            "fasp",
+            "prefix",
+            "Set prefix for rewritten function predicates (default: F).",
+            self._set_prefix,
+            argument="<prefix>",
+        )
+
+        options.add_flag(
+            "fasp", "print-rewrite", "Print rewritten ASP program.", self._print_rewrite
+        )
+
+    def _set_prefix(self, prefix: str) -> None:
+        self._prefix = prefix
+
     def main(self, clingo_control: ClingoControl, files: Sequence[str]) -> None:
-        prefix = "F"
+        prefix = self._prefix
         control = Control(
             self._library,
             self._clingo_options,
@@ -31,6 +48,9 @@ class FaspApp(App):
         )
         try:
             control.parse_files(files)
+            if self._print_rewrite.value:
+                print(control.get_rewritten_program())
+                return
         except ParsingException as e:  # pragma: no cover
             for error in e.errors:
                 sys.stderr.write(str(error) + "\n")

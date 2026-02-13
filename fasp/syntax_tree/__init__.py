@@ -44,7 +44,7 @@ def parse_files(
     library: ELibrary,
     files: Sequence[str],
     prefix: str = "F",
-) -> tuple[set[SymbolSignature], ast.Program]:
+) -> tuple[str, ast.Program]:
     """
     Parse the programs in the given files and return an abstract syntax tree for
     each statement via a callback.
@@ -62,12 +62,14 @@ def parse_files(
     transformer = FASPProgramTransformer(library, statements, prefix=prefix)
     rewritten_statements = transformer.transform()
     program = ast.Program(library.library)
+    rewritten_program = ""
     for statement in rewritten_statements:
         assert not isinstance(
             statement, AssignmentRule
         ), "Assignment rules should have been rewritten by the transformer"
         program.add(statement)
-    return transformer.evaluable_functions, program
+        rewritten_program += str(statement) + "\n"
+    return rewritten_program, program
     # return rewritings.functional2asp(library.library, statements, prefix)
 
 

@@ -24,6 +24,7 @@ class Control:
             library.library, options
         )
         self.prefix = prefix
+        self._rewritten_program: Optional[str]
 
     def parse_files(self, files: Sequence[str]) -> None:
         """
@@ -34,12 +35,13 @@ class Control:
         file
             The path of the file to load.
         """
-        _, program = parse_files(
+        rewritten_program, program = parse_files(
             self.library,
             files,
             self.prefix,
         )
         self.clingo_control.join(program)
+        self._rewritten_program = rewritten_program
 
     def ground(
         self,
@@ -125,3 +127,17 @@ class Control:
         for i, model in enumerate(self.solve()):
             sys.stdout.write(f"Answer {i + 1}:\n")
             sys.stdout.write(str(model) + "\n")
+
+    def get_rewritten_program(self) -> str:
+        """
+        Get the rewritten ASP program as a string.
+
+        Returns
+        -------
+        str
+            The rewritten ASP program.
+        """
+        if self._rewritten_program is None:
+            return "No program has been parsed yet."  # pragma: no cover
+            raise ValueError("No program has been parsed yet.")
+        return self._rewritten_program
