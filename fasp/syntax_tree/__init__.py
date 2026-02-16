@@ -41,40 +41,6 @@ _ALL__ = [
 ]
 
 
-def parse_files(
-    library: ELibrary,
-    files: Sequence[str],
-    prefix: str = "F",
-) -> tuple[str, ast.Program]:
-    """
-    Parse the programs in the given files and return an abstract syntax tree for
-    each statement via a callback.
-
-    The function follows clingo's handling of files on the command line. Filename
-    `"-"` is treated as stdin and if an empty list is given, then the parser will
-    read from stdin.
-
-    Parameters
-    ----------
-    files
-        List of file names.
-    """
-    statements = parser.parse_files(library, files)
-    rewrite_ctx = RewriteContext(library, prefix)
-    transformer = FASPProgramTransformer(rewrite_ctx, statements)
-    rewritten_statements = transformer.transform()
-    program = ast.Program(library.library)
-    rewritten_program = ""
-    for statement in rewritten_statements:
-        assert not isinstance(
-            statement, AssignmentRule
-        ), "Assignment rules should have been rewritten by the transformer"
-        program.add(statement)
-        rewritten_program += str(statement) + "\n"
-    return rewritten_program, program
-    # return rewritings.functional2asp(library.library, statements, prefix)
-
-
 ### Please change to
 
 # def rewrite_statement(

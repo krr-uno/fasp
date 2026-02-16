@@ -2,12 +2,15 @@ import sys
 from typing import Any, Callable, Iterable, Optional, Sequence, Tuple
 
 import clingo
+from clingo import ast
 from clingo.symbol import Symbol
 
 from fasp.solve import Model
+from fasp.syntax_tree._context import RewriteContext
+from fasp.syntax_tree.parsing import parser
 from fasp.util.ast import ELibrary
 
-from .syntax_tree import parse_files
+from .syntax_tree import rewrite_statements
 
 
 class Control:
@@ -35,13 +38,14 @@ class Control:
         file
             The path of the file to load.
         """
-        rewritten_program, program = parse_files(
-            self.library,
-            files,
-            self.prefix,
-        )
+        rewrite_ctx = RewriteContext(self.library, self.prefix)
+        statements = parser.parse_files(self.library, files)
+        statements = rewrite_statements(rewrite_ctx, statements)
+        program = ast.Program(self.library.library)
+        for statement in statements:
+            program.add(statement)
         self.clingo_control.join(program)
-        self._rewritten_program = rewritten_program
+        self._rewritten_program = "\n".join(str(s) for s in statements)
 
     def ground(
         self,
