@@ -10,25 +10,25 @@ from fasp.syntax_tree.rewritings.integration import (
     transform_to_clingo_statements,
 )
 from fasp.syntax_tree import rewrite_statement, rewrite_statements
-from clingo.ast import RewriteContext
+from fasp.syntax_tree._context import RewriteContext
 
 
 class TestSyntaxTree(unittest.TestCase):
     def setUp(self):
         self.elib = ELibrary()
-        self.ctx = RewriteContext(self.elib.library)
+        self.ctx = RewriteContext(self.elib)
 
     def applyRewrite(self, program: str):
         statement_asts = parse_string(self.elib, program)[1:]
         rewritten_statements:list[ast.Statement] = []
         for stmt in statement_asts:
-            rewritten_statements.extend(rewrite_statement(self.ctx, stmt, library=self.elib, prefix="F"))
+            rewritten_statements.extend(rewrite_statement(self.ctx, stmt))
 
         return rewritten_statements
     
     def applyRewriteList(self, program: str):
         statement_asts = parse_string(self.elib, program)[1:]
-        rewritten_statements = rewrite_statements(self.ctx, statement_asts, library=self.elib, prefix="F")
+        rewritten_statements = rewrite_statements(self.ctx, statement_asts)
         return rewritten_statements
     
     def assertRewriteEqual(self, program: str, expected: str, mode: int = 1):

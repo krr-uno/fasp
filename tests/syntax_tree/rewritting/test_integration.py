@@ -8,13 +8,13 @@ from fasp.syntax_tree.rewritings.integration import (
     PipelineStage,
     transform_to_clingo_statements,
 )
-from clingo.ast import RewriteContext
+from fasp.syntax_tree._context import RewriteContext
 
 
 class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
         self.elib = ELibrary()
-        self.ctx = RewriteContext(self.elib.library)
+        self.ctx = RewriteContext(self.elib, prefix="F")
         self.maxDiff = None  # Show full diff on assertion failure
 
     def assertTransformEqual(
@@ -33,7 +33,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
         statement_asts = parse_string(self.elib, program)
-        transformer = FASPProgramTransformer(self.elib, statement_asts, prefix="F", ctx=self.ctx)
+        transformer = FASPProgramTransformer(self.ctx, statement_asts)
         transformed = transformer.transform(stop_at=test_pipeline, LOG=LOG)
 
         

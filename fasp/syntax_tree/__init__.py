@@ -9,6 +9,7 @@ from fasp.syntax_tree.rewritings.integration import (
 from fasp.util.ast import ELibrary
 
 from . import rewritings
+from ._context import RewriteContext
 from ._nodes import (
     FASP_AST,
     FASP_AST_T,
@@ -59,7 +60,8 @@ def parse_files(
         List of file names.
     """
     statements = parser.parse_files(library, files)
-    transformer = FASPProgramTransformer(library, statements, prefix=prefix)
+    rewrite_ctx = RewriteContext(library, prefix)
+    transformer = FASPProgramTransformer(rewrite_ctx, statements)
     rewritten_statements = transformer.transform()
     program = ast.Program(library.library)
     rewritten_program = ""
@@ -82,12 +84,10 @@ def parse_files(
 
 # ELibrary and prefix are part of RewriteContext
 
+
 def rewrite_statement(
-    ctx: ast.RewriteContext,
+    ctx: RewriteContext,
     statement: FASP_Statement,
-    *,
-    library: ELibrary | None = None,
-    prefix: str = "F",
 ) -> Iterable[ast.Statement]:
     """
     Rewrite a statement in the FASP AST to a list of statements in the clingo
@@ -100,19 +100,13 @@ def rewrite_statement(
     statement
         The statement to rewrite.
     """
-    lib = library if library is not None else ELibrary()
-    rewritten_statements = transform_to_clingo_statements(
-        lib, [statement], prefix=prefix, ctx=ctx
-    )
+    rewritten_statements = transform_to_clingo_statements(ctx, [statement])
     return rewritten_statements
 
 
 def rewrite_statements(
-    ctx: ast.RewriteContext,
+    ctx: RewriteContext,
     statements: Iterable[FASP_Statement],
-    *,
-    library: ELibrary | None = None,
-    prefix: str = "F",
 ) -> Iterable[ast.Statement]:
     """Rewrite an iterable of FASP statements to clingo AST statements.
 
@@ -127,5 +121,4 @@ def rewrite_statements(
     prefix
         Prefix to use for generated predicate names.
     """
-    lib = library if library is not None else ELibrary()
-    return transform_to_clingo_statements(lib, statements, prefix=prefix, ctx=ctx)
+    return transform_to_clingo_statements(ctx, statements)

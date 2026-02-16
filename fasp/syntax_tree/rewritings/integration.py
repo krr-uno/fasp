@@ -1,8 +1,9 @@
 from enum import IntEnum, auto
 from typing import Iterable, cast
 
-from clingo.ast import RewriteContext, Statement, rewrite_statement
+from clingo.ast import Statement, rewrite_statement
 
+from fasp.syntax_tree._context import RewriteContext as FASPRewriteContext
 from fasp.syntax_tree._nodes import (
     FASP_AST,
     AssignmentRule,
@@ -50,18 +51,18 @@ class PipelineStage(IntEnum):
 class FASPProgramTransformer:
     def __init__(
         self,
-        elib: ELibrary,
+        ctx: FASPRewriteContext,
         statement_asts: Iterable[FASP_Statement],
-        *,
-        prefix: str = "F",
-        ctx: RewriteContext | None = None,
+        # *,
+        # prefix: str = "F",
+        # ctx: RewriteContext | None = None,
     ):
-        self.elib = elib
-        self.library = elib.library
+        self.ctx = ctx
+        self.elib = self.ctx.elib
+        self.library = self.elib.library
 
         self.statement_asts = statement_asts
-        self.prefix = prefix
-        self.ctx = ctx
+        self.prefix = self.ctx.prefix
 
         self.evaluable_functions: set[SymbolSignature] = set()
         self.pipeline = list(PipelineStage)
@@ -145,7 +146,8 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
 
-        ctx = self.ctx if self.ctx is not None else RewriteContext(self.library)
+        ctx = self.ctx.ctx
+        # ctx = self.ctx if self.ctx is not None else RewriteContext(self.library)
 
         out = []
 
@@ -216,11 +218,9 @@ class FASPProgramTransformer:
 
 
 def transform_to_clingo_statements(
-    elib: ELibrary,
+    ctx: FASPRewriteContext,
     statement_asts: Iterable[FASP_Statement],
     *,
-    prefix: str = "F",
-    ctx: RewriteContext | None = None,
     stop_at: PipelineStage = PipelineStage.TO_ASP,
     LOG: bool = False,
 ) -> Iterable[Statement]:
@@ -231,7 +231,7 @@ def transform_to_clingo_statements(
     of clingo.ast.Statement and returns them as a list.
     """
 
-    transformer = FASPProgramTransformer(elib, statement_asts, prefix=prefix, ctx=ctx)
+    transformer = FASPProgramTransformer(ctx, statement_asts)
     transformed = transformer.transform(stop_at=stop_at, LOG=LOG)
 
     out: list[Statement] = []
