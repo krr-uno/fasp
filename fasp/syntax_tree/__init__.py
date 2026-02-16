@@ -73,6 +73,15 @@ def parse_files(
     # return rewritings.functional2asp(library.library, statements, prefix)
 
 
+### Please change to
+
+# def rewrite_statement(
+#     ctx: fasp.syntax_tree._context.RewriteContext,
+#     statement: FASP_Statement,
+# ) -> Iterable[ast.Statement]:
+
+# ELibrary and prefix are part of RewriteContext
+
 def rewrite_statement(
     ctx: ast.RewriteContext,
     statement: FASP_Statement,
