@@ -1,6 +1,7 @@
 import sys
 from typing import Sequence
 
+from click import argument
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.control import Control as ClingoControl
 
@@ -16,7 +17,16 @@ class FaspApp(App):
         self._library = library
         self._clingo_options = clingo_options
         self._prefix = "F"
-        self._print_rewrite = Flag()
+        self._print_rewrite = False
+        self._check_command_line_arguments(clingo_options)
+
+    def _check_command_line_arguments(self, arguments: Sequence[str]) -> None:
+        for i, arg in enumerate(arguments):
+            if arg.startswith("--mode="):
+                if arg == "--mode=rewrite":
+                    self._print_rewrite = True
+                elif len(arguments) > i + 1 and arguments[i + 1] == "rewrite":
+                    self._print_rewrite = True
 
     def register_options(self, options: AppOptions) -> None:
         options.add_flag(
@@ -29,10 +39,6 @@ class FaspApp(App):
             "Set prefix for rewritten function predicates (default: F).",
             self._set_prefix,
             argument="<prefix>",
-        )
-
-        options.add_flag(
-            "fasp", "print-rewrite", "Print rewritten ASP program.", self._print_rewrite
         )
 
     def _set_prefix(self, prefix: str) -> None:
@@ -48,7 +54,7 @@ class FaspApp(App):
         )
         try:
             control.parse_files(files)
-            if self._print_rewrite.value:
+            if self._print_rewrite:
                 print(control.get_rewritten_program())
                 return
         except ParsingException as e:  # pragma: no cover

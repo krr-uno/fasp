@@ -78,7 +78,7 @@ class TestControl(unittest.TestCase):
 
     #     # Ensure outputs are equal even when prefix changes
     #     self.assertEqual(output_default, output_custom)
-        
+
 
     def execute_app_with_args(self, files, extra_args):
         args = [str(file) for file in files] + extra_args + ["0"]
@@ -95,13 +95,13 @@ class TestControl(unittest.TestCase):
         # Rewrite with default prefix (F)
         rewrite_default, _ = self.execute_app_with_args(
             [example_file],
-            ["--print-rewrite"]
+            ["--mode=rewrite"]
         )
 
         # Rewrite with custom prefix (G)
         rewrite_custom, _ = self.execute_app_with_args(
             [example_file],
-            ["--print-rewrite", "--prefix=G"]
+            ["--mode=", "rewrite", "--prefix=G"]
         )
 
         print("Default rewrite:\n", rewrite_default)
