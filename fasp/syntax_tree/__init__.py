@@ -9,6 +9,7 @@ from fasp.syntax_tree.rewritings.integration import (
 from fasp.util.ast import ELibrary
 
 from . import rewritings
+from ._context import RewriteContext
 from ._nodes import (
     FASP_AST,
     FASP_AST_T,
@@ -41,43 +42,19 @@ _ALL__ = [
 ]
 
 
-def parse_files(
-    library: ELibrary,
-    files: Sequence[str],
-    prefix: str = "F",
-) -> tuple[set[SymbolSignature], ast.Program]:
-    """
-    Parse the programs in the given files and return an abstract syntax tree for
-    each statement via a callback.
+### Please change to
 
-    The function follows clingo's handling of files on the command line. Filename
-    `"-"` is treated as stdin and if an empty list is given, then the parser will
-    read from stdin.
+# def rewrite_statement(
+#     ctx: fasp.syntax_tree._context.RewriteContext,
+#     statement: FASP_Statement,
+# ) -> Iterable[ast.Statement]:
 
-    Parameters
-    ----------
-    files
-        List of file names.
-    """
-    statements = parser.parse_files(library, files)
-    transformer = FASPProgramTransformer(library, statements, prefix=prefix)
-    rewritten_statements = transformer.transform()
-    program = ast.Program(library.library)
-    for statement in rewritten_statements:
-        assert not isinstance(
-            statement, AssignmentRule
-        ), "Assignment rules should have been rewritten by the transformer"
-        program.add(statement)
-    return transformer.evaluable_functions, program
-    # return rewritings.functional2asp(library.library, statements, prefix)
+# ELibrary and prefix are part of RewriteContext
 
 
 def rewrite_statement(
-    ctx: ast.RewriteContext,
+    ctx: RewriteContext,
     statement: FASP_Statement,
-    *,
-    library: ELibrary | None = None,
-    prefix: str = "F",
 ) -> Iterable[ast.Statement]:
     """
     Rewrite a statement in the FASP AST to a list of statements in the clingo
@@ -90,19 +67,13 @@ def rewrite_statement(
     statement
         The statement to rewrite.
     """
-    lib = library if library is not None else ELibrary()
-    rewritten_statements = transform_to_clingo_statements(
-        lib, [statement], prefix=prefix, ctx=ctx
-    )
+    rewritten_statements = transform_to_clingo_statements(ctx, [statement])
     return rewritten_statements
 
 
 def rewrite_statements(
-    ctx: ast.RewriteContext,
+    ctx: RewriteContext,
     statements: Iterable[FASP_Statement],
-    *,
-    library: ELibrary | None = None,
-    prefix: str = "F",
 ) -> Iterable[ast.Statement]:
     """Rewrite an iterable of FASP statements to clingo AST statements.
 
@@ -117,5 +88,4 @@ def rewrite_statements(
     prefix
         Prefix to use for generated predicate names.
     """
-    lib = library if library is not None else ELibrary()
-    return transform_to_clingo_statements(lib, statements, prefix=prefix, ctx=ctx)
+    return transform_to_clingo_statements(ctx, statements)
