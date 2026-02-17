@@ -266,26 +266,13 @@ class TreeSitterParser:
 
     def _parse_showf(self, node: Node) -> ShowFDirective:
         signature = None
-        # if node.type in {"showf", "showf_signature"}:
-        #     self._check_errors(node)
-        #     unparsed_signature = node.child_by_field_name("signature")
-        #     if unparsed_signature:
-        #         signature = self._clingo_parse_signature(
-        #             unparsed_signature.text.decode("utf-8")
-        #         )
-        # elif node.type == "show_term":
-
-        if node.type == "show_term":
-
-            # Tree-sitter treats unknown #showf as a show_term with errors.
-            # Parse defensively from raw text and do not call _check_errors.
-            text = node.text.decode("utf-8").strip()
-            if text.endswith("."):
-                text = text[:-1].strip()
-            if text.startswith("#showf"):
-                tail = text[len("#showf") :].strip()
-                if tail:
-                    signature = self._clingo_parse_signature(tail)
+        if node.type in {"showf", "showf_signature"}:
+            self._check_errors(node)
+            unparsed_signature = node.child_by_field_name("signature")
+            if unparsed_signature:
+                signature = self._clingo_parse_signature(
+                    unparsed_signature.text.decode("utf-8")
+                )
         return ShowFDirective(self._location_from_node(node), signature)
 
     def _check_errors(self, node: Node) -> None:
