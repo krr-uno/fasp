@@ -104,9 +104,6 @@ class TestControl(unittest.TestCase):
             ["--mode=", "rewrite", "--prefix=G"]
         )
 
-        print("Default rewrite:\n", rewrite_default)
-        print("Custom rewrite:\n", rewrite_custom)
-
         # Both rewrites should be non-empty
         self.assertTrue(rewrite_default.strip())
         self.assertTrue(rewrite_custom.strip())
