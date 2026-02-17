@@ -221,7 +221,7 @@ class TreeSitterParser:
             try:
                 if node.type == "assignment_rule":
                     assigment_rules.append(self._parse_assignment_rule(node))
-                elif node.type in {"showf", "showf_signature", "show_term"}:
+                elif node.type in {"showf", "showf_signature"}:
                     showf_directives.append(self._parse_showf(node))
             except ParsingException as e:
                 parsing_errors.extend(e.errors)
