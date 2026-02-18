@@ -48,6 +48,23 @@ EXAMPLES = [
             """,
         ],
     ),
+    Example(
+        [EXAMPLES_PATH / "fib.lp"],
+        [
+            """\
+            fibo(0)=1 fibo(1)=1 fibo(10)=89 fibo(2)=2 fibo(3)=3 fibo(4)=5 fibo(5)=8 fibo(6)=13 fibo(7)=21 fibo(8)=34 fibo(9)=55
+            """,
+        ],
+    ),
+       Example(
+        [EXAMPLES_PATH / "hamiltonian.lp"],
+        [
+            """\
+            female(eve) male(adam) orphan(adam) orphan(eve) person(abel) person(adam) person(cain) person(eve)
+            father(abel)=adam father(cain)=adam mother(abel)=eve mother(cain)=eve n_orphan=2
+            """,
+        ],
+    ),
 ]
 
 EXAMPLES = [
