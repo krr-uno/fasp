@@ -15,7 +15,7 @@ from fasp.util.ast import (
 )
 
 
-class RemoveNegatedLiteralsHead:
+class RemoveNegatedLiteralsTransformers:
     def __init__(
         self,
         library: Library,
@@ -101,7 +101,7 @@ class RemoveNegatedLiteralsHead:
 def rewrite_negated_body_literals(
     library: Library, statement: FASP_Statement
 ) -> FASP_Statement | None:
-    transformer = RemoveNegatedLiteralsHead(library)
+    transformer = RemoveNegatedLiteralsTransformers(library)
     return transformer.transform_statement(statement)
 
 
