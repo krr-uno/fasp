@@ -22,6 +22,7 @@ from fasp.syntax_tree.rewritings.protecting import (
     restore_assignments,
     restore_comparisons,
 )
+from fasp.syntax_tree.rewritings.showf import showf_to_show_transformer
 from fasp.syntax_tree.rewritings.some_assignments import (
     transform_choice_some_to_choice_assignment,
 )
@@ -36,6 +37,7 @@ from fasp.util.ast import (
 
 
 class PipelineStage(IntEnum):
+    SHOWF = auto()
     REWRITE_CHOICE_SOME = auto()
     NORMALIZE_ASSIGNMENT_AGGREGATES = auto()
     PROTECT_ASSIGNMENTS = auto()
@@ -68,6 +70,7 @@ class FASPProgramTransformer:
         self.pipeline = list(PipelineStage)
 
         self.PIPELINE_IMPL = {
+            PipelineStage.SHOWF: self._showf_to_show_wrapper,
             PipelineStage.REWRITE_CHOICE_SOME: self._rewrite_choice_some_wrapper,
             PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES: self._normalize_assignment_aggregates_wrapper,
             PipelineStage.PROTECT_ASSIGNMENTS: self._protect_assignments_wrapper,
@@ -215,6 +218,11 @@ class FASPProgramTransformer:
         for stmt in statements:
             out.append(to_asp_transformer.rewrite(stmt))
         return out
+
+    def _showf_to_show_wrapper(
+        self, statements: Iterable[FASP_Statement]
+    ) -> Iterable[FASP_Statement]:
+        return showf_to_show_transformer(self.ctx, statements)
 
 
 def transform_to_clingo_statements(
