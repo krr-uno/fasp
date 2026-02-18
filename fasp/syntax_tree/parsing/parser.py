@@ -266,13 +266,12 @@ class TreeSitterParser:
 
     def _parse_showf(self, node: Node) -> ShowFDirective:
         signature = None
-        if node.type in {"showf", "showf_signature"}:
-            self._check_errors(node)
-            unparsed_signature = node.child_by_field_name("signature")
-            if unparsed_signature:
-                signature = self._clingo_parse_signature(
-                    unparsed_signature.text.decode("utf-8")
-                )
+        self._check_errors(node)
+        unparsed_signature = node.child_by_field_name("signature")
+        if unparsed_signature:
+            signature = self._clingo_parse_signature(
+                unparsed_signature.text.decode("utf-8")
+            )
         return ShowFDirective(self._location_from_node(node), signature)
 
     def _check_errors(self, node: Node) -> None:
