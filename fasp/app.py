@@ -35,7 +35,7 @@ class FaspApp(App):
 
         options.add(
             "fasp",
-            "prefix",
+            "prefix-fun",
             "Set prefix for rewritten function predicates (default: F).",
             self._set_prefix,
             argument="<prefix>",

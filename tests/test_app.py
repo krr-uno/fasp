@@ -101,7 +101,7 @@ class TestControl(unittest.TestCase):
         # Rewrite with custom prefix (G)
         rewrite_custom, _ = self.execute_app_with_args(
             [example_file],
-            ["--mode=", "rewrite", "--prefix=G"]
+            ["--mode=", "rewrite", "--prefix-fun=G"]
         )
 
         # Both rewrites should be non-empty
