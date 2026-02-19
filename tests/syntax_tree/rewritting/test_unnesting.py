@@ -501,3 +501,19 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "p :- q(FUN); not r(FUN2).",
             [{"a=FUN", "q(X)=FUN2"}],
         )
+
+    def test_conditional_literal(self):
+        self.assertEqualUnnesting(
+            "p :- q(X): r(f(X)).",
+            ["f/1"],
+            "p :- q(X): r(FUN).",
+            [{"f(X)=FUN"}],
+        )
+    def test_conditional_literal_nothing(self):
+        print("TEST: test_conditional_literal_nothing")
+        self.assertEqualUnnesting(
+            "p :- q(X): r(f(X)).",
+            [],
+            "p :- q(X): r(f(X)).",
+            [set()],
+        )

@@ -486,3 +486,15 @@ class TestFASPProgramTransformer(unittest.TestCase):
             """,
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
         )
+
+
+    def test_min_distance(self):
+        self.assertTransformEqual(
+            """
+            dist(X,Y) := M+1 :- dist(X,Z)=M; edge(Z,Y); #false: edge(W,Y), dist(X,W)=N, N<M.
+            """,
+            """
+            dist(X,Y) := 1*M+1 :- dist(X,Z)=M; edge(Z,Y); #false: edge(W,Y), dist(X,W)=N, N<M.
+            """,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
+        )

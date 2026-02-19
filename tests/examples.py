@@ -72,6 +72,29 @@ EXAMPLES = [
         ],
     ),
     Example(
+        [EXAMPLES_PATH / "hamiltonian2.lp"],
+        [
+            "next(a)=c next(b)=a next(c)=f next(d)=e next(e)=b next(f)=d",
+            "next(a)=c next(b)=e next(c)=b next(d)=a next(e)=f next(f)=d",
+            "next(a)=d next(b)=a next(c)=b next(d)=e next(e)=f next(f)=c",
+            "next(a)=d next(b)=c next(c)=a next(d)=f next(e)=b next(f)=e",
+            "next(a)=b next(b)=c next(c)=f next(d)=a next(e)=d next(f)=e",
+            "next(a)=b next(b)=e next(c)=a next(d)=f next(e)=d next(f)=c",
+        ],
+    ),
+    Example(
+        [EXAMPLES_PATH / "min_distance_edge_agg.lp"],
+        [
+            "dist(1, 1)=0 dist(1, 2)=1 dist(1, 3)=1 dist(1, 4)=2 dist(2, 2)=0 dist(2, 3)=1 dist(2, 4)=2 dist(3, 3)=0 dist(3, 4)=1 dist(4, 4)=0 dist(5, 5)=0 dist(5, 6)=1 dist(5, 7)=2 dist(6, 6)=0 dist(6, 7)=1 dist(7, 7)=0",
+        ],
+    ),
+    Example(
+        [EXAMPLES_PATH / "min_distance_edge.lp"],
+        [
+            "dist(1, 1)=0 dist(1, 2)=1 dist(1, 3)=1 dist(1, 4)=2 dist(2, 2)=0 dist(2, 3)=1 dist(2, 4)=2 dist(3, 3)=0 dist(3, 4)=1 dist(4, 4)=0 dist(5, 5)=0 dist(5, 6)=1 dist(5, 7)=2 dist(6, 6)=0 dist(6, 7)=1 dist(7, 7)=0",
+        ],
+    ),
+    Example(
         [TEST_EXAMPLES_PATH / "showf.lp"],
         [
             """\

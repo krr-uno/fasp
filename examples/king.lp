@@ -1,10 +1,9 @@
 country(france).
 country(usa).
-person(felipe).
+monarchy(spain).
+citizen(felipe, spain).
+citizen(juan, spain).
 
-{king(C,X) : person(X)}:- country(C).
-{king(C) := X : person(X)}:- country(C).
+{king(C) := X : citizen(X,C)} = 1:- monarchy(C).
 
-:- king(C1,X), king(C2, X), C1 != C2.
-
-% { f(X):=Y: p(X,Y) } = N.
+#showf king/1.

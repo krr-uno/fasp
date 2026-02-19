@@ -102,13 +102,14 @@ class RuleRewriteTransformer:
         self,
         node: ast.BodyConditionalLiteral,
         var_gen: FreshVariableGenerator,
-    ) -> ast.BodyConditionalLiteral:
+    ) -> ast.BodyConditionalLiteral | None:
         update = {}
         literal = self.body_literal_transformer.unnest(node.literal)
         if literal is not None:
             update["literal"] = literal
         condition = []
         local_comps: List[ast.LiteralComparison] = []
+        is_new_condition = False
         for cond in node.condition:
             new_cond, comps = unnest_functions(
                 self.lib,
@@ -117,14 +118,16 @@ class RuleRewriteTransformer:
                 var_gen,
                 allowed_in_negated_literals=False,
             )
-            # print(new_cond, list(map(str,comps)), self.evaluable_functions)
-            condition.append(new_cond)
-            local_comps.extend(comps)
-        # update["condition"] = condition
-        condition.extend(local_comps)
-        if condition not in ([None], [], None):
+            if new_cond is not None:
+                is_new_condition = True
+                condition.append(new_cond)
+                local_comps.extend(comps)
+            else:
+                condition.append(cond)
+        if is_new_condition or local_comps:
+            condition.extend(local_comps)
             update["condition"] = condition
-        return node.update(self.lib, **update)
+        return node.update(self.lib, **update) if update else None
 
     # Aggregates
     @_rewrite_literal.register

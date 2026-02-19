@@ -7,3 +7,5 @@ dist(X,Y):=M+1 :- dist(X,Z)=M, edge(Z,Y); #false: edge(W,Y), dist(X,W)=N, N<M.
 
 % nested version
 % dist(X,Y):=dist(X,Z)+1 :- edge(Z,Y); #false: edge(W,Y), dist(X,W)<dist(X,Z).
+
+#showf dist/2.

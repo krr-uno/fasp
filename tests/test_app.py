@@ -41,7 +41,6 @@ class TestControl(unittest.TestCase):
             else:
                 models[-1] += "\n" + line
         self.assertIsNotNone(result, "Expected SATISFIABLE or UNSATISFIABLE in output")
-        print(result, expected_models)
         self.assertEqual(result, "SATISFIABLE" if expected_models else "UNSATISFIABLE")
         self.assertCountEqual(models, expected_models)
 

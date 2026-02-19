@@ -514,3 +514,17 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             ":~ p(X); f(a). [b@a]",
             ":~ p(X); f(FUN3); b=FUN; a=FUN2; a=FUN3. [FUN@FUN2]",
         )
+
+    def test_conditional_literal(self):
+        self.assertEqualRewrite(
+            {"f/1"},
+            "p :- q(X): r(f(X)).",
+            "p :- q(X): r(FUN), f(X)=FUN.",
+        )
+    def test_conditional_literal_nothing(self):
+        print("TEST: test_conditional_literal_nothing")
+        self.assertEqualRewrite(
+            set(),
+            "p :- q(X): r(f(X)).",
+            "p :- q(X): r(f(X)).",
+        )
