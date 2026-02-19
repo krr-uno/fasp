@@ -3,6 +3,7 @@ import textwrap
 from typing import NamedTuple
 
 EXAMPLES_PATH = Path(__file__).parent.parent / "examples"
+TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 
 
 class Example(NamedTuple):
@@ -62,6 +63,14 @@ EXAMPLES = [
             """\
             female(eve) male(adam) orphan(adam) orphan(eve) person(abel) person(adam) person(cain) person(eve)
             father(abel)=adam father(cain)=adam mother(abel)=eve mother(cain)=eve n_orphan=2
+            """,
+        ],
+    ),
+    Example(
+        [TEST_EXAMPLES_PATH / "showf.lp"],
+        [
+            """\
+            a=1
             """,
         ],
     ),

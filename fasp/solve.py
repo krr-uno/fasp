@@ -71,10 +71,14 @@ class Model:
 
     def function_symbols(
         self,
+        shown: bool = False,
+        atoms: bool = False,
+        terms: bool = False,
+        theory: bool = False,
     ) -> Sequence[FunctionSymbol]:
         return [
             FunctionSymbol.from_symbol(symbol)
-            for symbol in self.clingo_model.symbols(atoms=True)
+            for symbol in self.clingo_model.symbols(shown, atoms, terms, theory)
             if symbol.type == SymbolType.Function
             and symbol.name.startswith(self.prefix)
         ]
@@ -93,7 +97,7 @@ class Model:
         A string representation of the model.
         """
         predicate_atoms = [str(atom) for atom in self.predicate_symbols(shown=True)]
-        function_atoms = [str(atom) for atom in self.function_symbols()]
+        function_atoms = [str(atom) for atom in self.function_symbols(shown=True)]
         if ordered:
             predicate_atoms.sort()
             function_atoms.sort()
