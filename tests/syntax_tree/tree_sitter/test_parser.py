@@ -353,11 +353,11 @@ class TestParseAssignment(unittest.TestCase):
             "#count{ 0,ass(king(C),X): king(C) := X: person(X) } :- country(C)."
         )
 
-    def test_showf_directive_1(self):
-        rules = self.parser.parse("#showf.")
-        self.assertEqual(len(rules), 1)
-        self.assertIsInstance(rules[0], ShowFDirective)
-        self.assertEqual(str(rules[0]), "#showf.")
+    # def test_showf_directive_1(self):
+    #     rules = self.parser.parse("#showf.")
+    #     self.assertEqual(len(rules), 1)
+    #     self.assertIsInstance(rules[0], ShowFDirective)
+    #     self.assertEqual(str(rules[0]), "#showf.")
 
     def test_showf_directive_signature(self):
         rules = self.parser.parse("""

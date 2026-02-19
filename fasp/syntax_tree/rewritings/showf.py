@@ -1,6 +1,6 @@
 from typing import Iterable
 
-from clingo.ast import StatementShow, StatementShowSignature, TermFunction
+from clingo.ast import StatementShowSignature
 
 from fasp.syntax_tree._context import RewriteContext
 from fasp.syntax_tree._nodes import FASP_Statement, ShowFDirective
@@ -29,15 +29,15 @@ def showf_to_show_transformer(
                         value=True,
                     )
                 )
-            else:
-                out.append(
-                    StatementShow(
-                        library,
-                        stmt.location,
-                        TermFunction(library, stmt.location, prefix + "NONE", []),
-                        [],
-                    )
-                )
+            # else:
+            #     out.append(
+            #         StatementShow(
+            #             library,
+            #             stmt.location,
+            #             TermFunction(library, stmt.location, prefix + "NONE", []),
+            #             [],
+            #         )
+            #     )
         else:
             out.append(stmt)
     return out

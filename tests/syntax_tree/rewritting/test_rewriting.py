@@ -90,10 +90,10 @@ class TestSyntacticChecker(unittest.TestCase):
             Ff3(X,a) :- p(X).
             Ff4(X,5) :- p(X).
             Ff3(X,a(b,5)) :- p(X).
-            :- Ff(_); 1 > #count { V: Ff(V) }.
-            :- Ff2(X0,_); 1 > #count { V: Ff2(X0,V) }.
-            :- Ff3(X0,_); 1 > #count { V: Ff3(X0,V) }.
-            :- Ff4(X0,_); 1 > #count { V: Ff4(X0,V) }.
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            :- Ff2(X0,_); 1 < #count { V: Ff2(X0,V) }.
+            :- Ff3(X0,_); 1 < #count { V: Ff3(X0,V) }.
+            :- Ff4(X0,_); 1 < #count { V: Ff4(X0,V) }.
         """
         ).strip()
         self.assertEqualRewrite(program, expected)
@@ -113,9 +113,9 @@ class TestSyntacticChecker(unittest.TestCase):
             Ff1(a,X) :- X=1; not g=h.
             Ff1(5,X) :- X=1; not g=h.
             Ff2(a,b,X) :- X=1; not g=h.
-            :- Ff0(_); 1 > #count { V: Ff0(V) }.
-            :- Ff1(X0,_); 1 > #count { V: Ff1(X0,V) }.
-            :- Ff2(X0,X1,_); 1 > #count { V: Ff2(X0,X1,V) }.
+            :- Ff0(_); 1 < #count { V: Ff0(V) }.
+            :- Ff1(X0,_); 1 < #count { V: Ff1(X0,V) }.
+            :- Ff2(X0,X1,_); 1 < #count { V: Ff2(X0,X1,V) }.
         """
         ).strip()
         self.assertEqualRewrite(program, expected)

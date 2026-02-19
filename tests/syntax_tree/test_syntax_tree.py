@@ -1,3 +1,4 @@
+from math import exp
 import textwrap
 import unittest
 
@@ -25,32 +26,37 @@ class TestSyntaxTree(unittest.TestCase):
             rewritten_statements.extend(rewrite_statement(self.ctx, stmt))
 
         return rewritten_statements
-    
+
     def applyRewriteList(self, program: str):
         statement_asts = parse_string(self.elib, program)[1:]
         rewritten_statements = rewrite_statements(self.ctx, statement_asts)
         return rewritten_statements
-    
+
     def assertRewriteEqual(self, program: str, expected: str, mode: int = 1):
         if mode == 1:
             rewritten_statements = self.applyRewrite(program)
         else:
             rewritten_statements = self.applyRewriteList(program)
-
-        rewritten_program_str = "\n".join(str(stmt) for stmt in rewritten_statements)
+        rewritten_program_str = "\n".join(str(stmt).strip() for stmt in rewritten_statements)
         self.assertEqual(
             rewritten_program_str.strip(),
             textwrap.dedent(expected).strip(),
         )
-    
+
     def test_rewrite_statement(self):
         program = "f(1) := Y :- g(Y)."
-        expected = "Ff(1,Y) :- g(Y)."
+        expected = """\
+            Ff(1,Y) :- g(Y).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """
         self.assertRewriteEqual(program, expected, mode = 1)
-    
+
     def test_rewrite_statements(self):
         program = "f(1) := Y :- g(Y)."
-        expected = "Ff(1,Y) :- g(Y)."
+        expected = """\
+            Ff(1,Y) :- g(Y).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """
         self.assertRewriteEqual(program, expected, mode = 2)
-        
-        
+
+

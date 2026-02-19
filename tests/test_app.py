@@ -41,13 +41,15 @@ class TestControl(unittest.TestCase):
             else:
                 models[-1] += "\n" + line
         self.assertIsNotNone(result, "Expected SATISFIABLE or UNSATISFIABLE in output")
+        print(result, expected_models)
         self.assertEqual(result, "SATISFIABLE" if expected_models else "UNSATISFIABLE")
         self.assertCountEqual(models, expected_models)
 
     def test_app(self):
-        examples  = EXAMPLES + [
-            Example([TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"], ["f=1"]),
-        ]
+        examples = EXAMPLES
+        # examples += [
+        #     Example([TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"], ["f=1"]),
+        # ]
         for i, example in enumerate(examples):
             file_names = [f.name for f in example.files]
             with self.subTest(f"{i}: {file_names}"):

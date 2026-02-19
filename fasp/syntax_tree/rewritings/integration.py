@@ -26,7 +26,10 @@ from fasp.syntax_tree.rewritings.showf import showf_to_show_transformer
 from fasp.syntax_tree.rewritings.some_assignments import (
     transform_choice_some_to_choice_assignment,
 )
-from fasp.syntax_tree.rewritings.to_asp import NormalForm2PredicateTransformer
+from fasp.syntax_tree.rewritings.to_asp import (
+    NormalForm2PredicateTransformer,
+    functional_constraints,
+)
 from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 from fasp.syntax_tree.types import SymbolSignature
 from fasp.util.ast import (
@@ -250,5 +253,9 @@ def transform_to_clingo_statements(
             stmt, Statement
         ), f"Expected clingo.ast.Statement, got {type(stmt)}"
         out.append(stmt)
-
+    out.extend(
+        functional_constraints(
+            ctx.elib.library, transformer.evaluable_functions, ctx.prefix
+        )
+    )
     return out

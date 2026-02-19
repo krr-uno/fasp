@@ -301,7 +301,7 @@ def _functional_constraint(
         ast.LeftGuard(
             library,
             ast.TermSymbolic(library, location, Number(library, 1)),
-            ast.Relation.Greater,
+            ast.Relation.Less,
         ),
         ast.AggregateFunction.Count,
         [
