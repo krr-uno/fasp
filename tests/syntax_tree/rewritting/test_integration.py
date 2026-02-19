@@ -477,12 +477,12 @@ class TestFASPProgramTransformer(unittest.TestCase):
             """,
             test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
         )
-        # self.assertTransformEqual(
-        #     """
-        #     next(X) := #some{Y: edge(X,Y)} :- vertex(X).
-        #     """,
-        #     """
-        #     #count{ 0,ASS(next(X),Y): next(X) := Y: edge(X,Y) } = 1 :- vertex(X); #count { Y: edge(X,Y) } >= 1.
-        #     """,
-        #     test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
-        # )
+        self.assertTransformEqual(
+            """
+            next(X) := #some{Y: edge(X,Y)} :- vertex(X).
+            """,
+            """
+            #count{ 0,Fnext(X,Y): next(X) := Y: edge(X,Y) } = 1 :- vertex(X); #count { Y: edge(X,Y) } >= 1.
+            """,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
+        )
