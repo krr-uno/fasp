@@ -26,26 +26,30 @@ class TestControl(unittest.TestCase):
         models = []
         is_first_line = True
         output, _ = self.execute_app(files)
+        result = None
         for line in output.strip().splitlines():
             line = line.strip()
             if line.startswith("Answer"):
                 is_first_line = True
+                continue
+            if line in {"SATISFIABLE", "UNSATISFIABLE"}:
+                result = line
                 continue
             if is_first_line:
                 is_first_line = False
                 models.append(line)
             else:
                 models[-1] += "\n" + line
+        self.assertIsNotNone(result, "Expected SATISFIABLE or UNSATISFIABLE in output")
+        self.assertEqual(result, "SATISFIABLE" if expected_models else "UNSATISFIABLE")
         self.assertCountEqual(models, expected_models)
 
     def test_app(self):
-        EXAMPLES.append(Example([TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"], ["f=1"]))
-        for i, example in enumerate(EXAMPLES):
+        examples  = EXAMPLES + [
+            Example([TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"], ["f=1"]),
+        ]
+        for i, example in enumerate(examples):
             file_names = [f.name for f in example.files]
-            if not example.models:
-                example.models = ["UNSATISFIABLE"]
-            else:
-                example.models = [m+"\nSATISFIABLE" for m in example.models]
             with self.subTest(f"{i}: {file_names}"):
                 self.assert_models(example.files, example.models)
 

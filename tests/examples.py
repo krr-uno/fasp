@@ -1,6 +1,9 @@
+from ast import Name
 from pathlib import Path
+from tarfile import data_filter
 import textwrap
 from typing import NamedTuple
+
 
 EXAMPLES_PATH = Path(__file__).parent.parent / "examples"
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
@@ -60,10 +63,12 @@ EXAMPLES = [
        Example(
         [EXAMPLES_PATH / "hamiltonian.lp"],
         [
-            """\
-            female(eve) male(adam) orphan(adam) orphan(eve) person(abel) person(adam) person(cain) person(eve)
-            father(abel)=adam father(cain)=adam mother(abel)=eve mother(cain)=eve n_orphan=2
-            """,
+            "next(a)=c next(b)=a next(c)=f next(d)=e next(e)=b next(f)=d",
+            "next(a)=c next(b)=e next(c)=b next(d)=a next(e)=f next(f)=d",
+            "next(a)=d next(b)=a next(c)=b next(d)=e next(e)=f next(f)=c",
+            "next(a)=d next(b)=c next(c)=a next(d)=f next(e)=b next(f)=e",
+            "next(a)=b next(b)=c next(c)=f next(d)=a next(e)=d next(f)=e",
+            "next(a)=b next(b)=e next(c)=a next(d)=f next(e)=d next(f)=c",
         ],
     ),
     Example(
@@ -73,6 +78,10 @@ EXAMPLES = [
             a=1
             """,
         ],
+    ),
+        Example(
+        [TEST_EXAMPLES_PATH / "unsat.lp"],
+        [],
     ),
 ]
 
