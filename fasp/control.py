@@ -28,6 +28,7 @@ class Control:
         )
         self.prefix = prefix
         self._rewritten_program: Optional[str]
+        self._result: Optional[clingo.solve.SolveResult] = None
 
     def parse_files(self, files: Sequence[str]) -> None:
         """
@@ -72,29 +73,6 @@ class Control:
         """
         return self.clingo_control.ground(parts, context)
 
-    # def solve(
-    #     self,
-    #     assumptions: Sequence[tuple[clingo.symbol.Symbol, bool] | int] = (),
-    #     on_unsat: Callable[[Sequence[int]], None] | None = None,
-    #     on_stats: (
-    #         Callable[[clingo.stats.Stats, clingo.stats.Stats], None] | None
-    #     ) = None,
-    #     on_finish: Callable[[clingo.solve.SolveResult], None] | None = None,
-    #     *,
-    #     async_: bool = False,
-    # ) -> Iterable[Model]:
-    #     with self.clingo_control.solve(
-    #         assumptions,
-    #         None,
-    #         on_unsat,
-    #         on_stats,
-    #         on_finish,
-    #         yield_=True,
-    #         async_=async_,
-    #     ) as handle:
-    #         for model in handle:
-    #             yield Model(model, self.prefix)
-
     def solve(
         self,
         assumptions: Sequence[tuple[clingo.symbol.Symbol, bool] | int] = (),
@@ -104,15 +82,6 @@ class Control:
         ) = None,
         on_finish: Callable[[clingo.solve.SolveResult], None] | None = None,
     ) -> Iterable[Model]:
-        # models: Iterable[Model] = []
-        # def _on_model(m: clingo.solve.Model) -> bool:
-        #     print("Model found.")
-        #     print(m)
-        #     print("=" * 20)
-        #     models.append(Model(m, self.prefix))
-        #     print("Models:", models)
-        #     return True  # continue solving
-
         with self.clingo_control.start_solve(
             assumptions=assumptions,
             on_unsat=on_unsat,
@@ -122,6 +91,7 @@ class Control:
         ) as handle:
             for model in handle:
                 yield Model(model, self.prefix)
+            self._result = handle.get()
 
     def main(self) -> None:
         """
@@ -131,6 +101,11 @@ class Control:
         for i, model in enumerate(self.solve()):
             sys.stdout.write(f"Answer {i + 1}:\n")
             sys.stdout.write(str(model) + "\n")
+        if self._result is not None:
+            if self._result.satisfiable:
+                sys.stdout.write("SATISFIABLE\n")
+            elif self._result.unsatisfiable:
+                sys.stdout.write("UNSATISFIABLE\n")
 
     def get_rewritten_program(self) -> str:
         """
