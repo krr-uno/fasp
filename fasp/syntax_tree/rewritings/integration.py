@@ -180,7 +180,9 @@ class FASPProgramTransformer:
     def _restore_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        return restore_assignments(self.elib, cast(Iterable[StatementAST], statements))
+        return restore_assignments(
+            self.elib, cast(Iterable[StatementAST], statements), self.ctx.prefix
+        )
 
     def _negated_literals_wrapper(
         self, statements: Iterable[FASP_Statement]

@@ -25,6 +25,7 @@ from fasp.util.ast import (
     StatementAST,
     TermAST,
     function_arguments,
+    function_arguments_ast,
     is_function,
 )
 
@@ -632,9 +633,10 @@ class _AssignmentRestorationTransformer:
     Transformer to restore ASS(...) symbolic literals to HeadSimpleAssignment
     """
 
-    def __init__(self, library: ELibrary):
+    def __init__(self, library: ELibrary, prefix: str = "F"):
         self.elib = library
         self.library = library.library
+        self.prefix = prefix
 
     def _restore_set_aggregate_head(
         self, head: ast.HeadSetAggregate
@@ -671,6 +673,44 @@ class _AssignmentRestorationTransformer:
             return None
 
         return ChoiceAssignment(head.location, head.left, new_elements, head.right)
+
+    def _construct_prefixed_tuple_from_protected_assignment_tuple(
+        self, library: Library, term: ast.TermFunction, prefix: str
+    ) -> ast.TermFunction:
+        # Construct a new TermFunction for a protected assignment tuple.
+        # Example: ASS(next(X), Y) with prefix 'F' -> Fnext(X, Y)
+
+        # Extract the ASS(...) arguments as term ASTs
+        _, arguments = function_arguments_ast(library, term)
+        assert (
+            len(arguments) == 2
+        ), f"Expected 2 arguments in ASS(...), got: {arguments}"
+
+        left = arguments[0]
+        right = arguments[1]
+
+        # left should be a function-like term providing the inner name and its args
+        assert not isinstance(
+            left, ast.Projection
+        ), f"Expected non-projection left term in ASS(...), got {left}: {type(left)}"
+        assert not isinstance(
+            right, ast.Projection
+        ), f"Expected non-projection right term in ASS(...), got {right}: {type(right)}"
+
+        assert isinstance(left, ast.TermFunction)
+        # Get inner function name and its argument list
+        inner_name, inner_args = function_arguments_ast(library, left)
+
+        new_name = prefix + inner_name
+
+        # Build combined argument list: inner_args + [right]
+        new_arg_list = []
+        for a in inner_args:
+            new_arg_list.append(a)
+        new_arg_list.append(right)
+
+        new_pool = ast.ArgumentTuple(library, new_arg_list)
+        return ast.TermFunction(library, term.location, new_name, [new_pool])
 
     def rewrite(self, node: StatementAST) -> FASP_Statement:
         """
@@ -709,7 +749,24 @@ class _AssignmentRestorationTransformer:
             elif isinstance(head, ast.HeadAggregate):
                 new_elements: Any = []
                 any_converted = False
+                tuple_converted = False
+
                 for element in head.elements:
+                    new_tuple: list[TermAST] = []
+                    for tup in element.tuple:
+                        if (
+                            isinstance(tup, ast.TermFunction)
+                            and tup.name == ASSIGNMENT_NAME
+                        ):
+                            tuple_converted = True
+                            # new_tuple = None
+                            rewritten_tuple = self._construct_prefixed_tuple_from_protected_assignment_tuple(
+                                self.library, tup, self.prefix
+                            )
+                            new_tuple.append(rewritten_tuple)
+                        else:
+                            new_tuple.append(tup)
+
                     if isinstance(
                         element.literal, ast.LiteralSymbolic
                     ) and _is_literal_protected_assignment(element.literal):
@@ -724,7 +781,7 @@ class _AssignmentRestorationTransformer:
                         new_elements.append(
                             HeadAggregateAssignmentElement(
                                 element.location,
-                                element.tuple,
+                                new_tuple if tuple_converted else element.tuple,
                                 new_literal,
                                 element.condition,
                             )
@@ -749,12 +806,12 @@ class _AssignmentRestorationTransformer:
 
 
 def restore_assignments(
-    library: ELibrary, statements: Iterable[StatementAST]
+    library: ELibrary, statements: Iterable[StatementAST], prefix: str = "F"
 ) -> Iterable[FASP_Statement]:
     """
     Apply the restoration transformer to all statements.
     """
-    transformer = _AssignmentRestorationTransformer(library)
+    transformer = _AssignmentRestorationTransformer(library, prefix=prefix)
     return (transformer.rewrite(statement) for statement in statements)
 
 
