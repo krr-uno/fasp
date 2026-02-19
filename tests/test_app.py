@@ -42,6 +42,10 @@ class TestControl(unittest.TestCase):
         EXAMPLES.append(Example([TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"], ["f=1"]))
         for i, example in enumerate(EXAMPLES):
             file_names = [f.name for f in example.files]
+            if not example.models:
+                example.models = ["UNSATISFIABLE"]
+            else:
+                example.models = [m+"\nSATISFIABLE" for m in example.models]
             with self.subTest(f"{i}: {file_names}"):
                 self.assert_models(example.files, example.models)
 

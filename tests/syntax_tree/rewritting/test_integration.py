@@ -36,7 +36,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         transformer = FASPProgramTransformer(self.ctx, statement_asts)
         transformed = transformer.transform(stop_at=test_pipeline, LOG=LOG)
 
-        
+
         transformed_str = "\n".join(
             [str(statement).strip() for statement in transformed][1:]
         )
@@ -401,7 +401,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
             "orphan(X) :- person(X); #false: father(X)=A; #false: mother(X)=A.",
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
         )
-    
+
     def test_family_right(self):
         self.assertTransformEqual(
             "person(X) :- father(X)=_.",
@@ -456,4 +456,33 @@ class TestFASPProgramTransformer(unittest.TestCase):
             orphan(X) :- person(X); #false: Ffather(X,_); #false: Fmother(X,_).
             Fn_orphan(W) :- W = #count { X: orphan(X) }.""",
             test_pipeline=PipelineStage.TO_ASP,
+        )
+
+    def test_hamiltonian(self):
+        self.assertTransformEqual(
+            """
+            next(X) := #some{Y: edge(X,Y)} :- vertex(X).
+            """,
+            """
+            { next(X) := Y: edge(X,Y) } = 1 :- #count { Y: edge(X,Y) } >= 1; vertex(X).
+            """,
+            test_pipeline=PipelineStage.REWRITE_CHOICE_SOME,
+        )
+        self.assertTransformEqual(
+            """
+            next(X) := #some{Y: edge(X,Y)} :- vertex(X).
+            """,
+            """
+            #count{ 0,ASS(next(X),Y): next(X) := Y: edge(X,Y) } = 1 :- vertex(X); #count { Y: edge(X,Y) } >= 1.
+            """,
+            test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
+        )
+        self.assertTransformEqual(
+            """
+            next(X) := #some{Y: edge(X,Y)} :- vertex(X).
+            """,
+            """
+            #count{ 0,ASS(next(X),Y): next(X) := Y: edge(X,Y) } = 1 :- vertex(X); #count { Y: edge(X,Y) } >= 1.
+            """,
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
         )
