@@ -3,9 +3,6 @@ edge(5,6). edge(6,7).
 node(1..7).
 
 dist(X,X):=0 :- node(X).
-dist(X,Y):=M+1 :- dist(X,Z)=M, edge(Z,Y); #false: edge(W,Y), dist(X,W)=N, N<M.
-
-% nested version
-% dist(X,Y):=dist(X,Z)+1 :- edge(Z,Y); #false: edge(W,Y), dist(X,W)<dist(X,Z).
+dist(X,Y):=dist(X,Z)+1 :- edge(Z,Y); #false: edge(W,Y), dist(X,W)<dist(X,Z).
 
 #showf dist/2.
