@@ -151,22 +151,25 @@ class FASPProgramTransformer:
     def _clingo_rewrite_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-
         ctx = self.ctx.ctx
-        # ctx = self.ctx if self.ctx is not None else RewriteContext(self.library)
-
+        self.ctx.elib.ignore_info = True
         out = []
-
-        # clingo_statements = map(fasp_to_clingo_statement, statements)
+        errors = []
         for stmt in statements:
             assert not isinstance(stmt, AssignmentRule)
-            rewritten_list = rewrite_statement(ctx, stmt)
-            # print(list(map(str, rewritten_list)))
+            try:
+                rewritten_list = rewrite_statement(ctx, stmt)
+            except RuntimeError as e:
+                errors.append((stmt, e))
+                continue
             if rewritten_list:
                 for new_stmt in rewritten_list:
                     out.append(new_stmt)
             else:
                 out.append(stmt)
+        self.ctx.elib.ignore_info = False
+        if errors:
+            raise RuntimeError("rewriting failed", errors)
         return out
 
     def _restore_comparisons_wrapper(

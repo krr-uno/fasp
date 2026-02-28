@@ -2,6 +2,7 @@ import sys
 from typing import Sequence
 
 from click import argument
+from clingo import core
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.control import Control as ClingoControl
 
@@ -62,6 +63,10 @@ class FaspApp(App):
                 sys.stderr.write(str(error) + "\n")
             sys.stderr.write("*** ERROR: (fasp): parsing failed")
             return
+        except RuntimeError as e:
+            if "rewriting failed" == e.args[0]:
+                return
+            raise e
         control.main()
 
 
@@ -93,6 +98,9 @@ def fasp_main(
 
 
 def main(options: Sequence[str] = ()) -> int:
-    with ELibrary() as library:
+    def logger(ty: core.MessageType, message: str) -> None:
+        sys.stderr.write(message + "\n")
+
+    with ELibrary(logger=logger) as library:
         return fasp_main(library, list(options))
     return 1  # pragma: no cover

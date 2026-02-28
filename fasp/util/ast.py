@@ -463,6 +463,7 @@ class ELibrary:
         message_limit: int = 25,
     ) -> None:
         self.error_messages: list[tuple[MessageType, str]] = []
+        self.last_error_reported = 0
         self.shared = shared
         self.slotted = slotted
         self.log_level = log_level
@@ -475,11 +476,36 @@ class ELibrary:
             self.logger_function,
             message_limit,
         )
+        self.original_statements: dict[str, list[ast.Statement]] = {}
+        self.ignore_info = False
+
+    def add_original_statement(self, statement: ast.Statement) -> None:
+        file = statement.location.begin.file
+        if file not in self.original_statements:
+            self.original_statements[file] = []
+        self.original_statements[file].append(statement)
 
     def logger_function(self, msg_type: MessageType, message: str) -> None:
-        if self.logger is not None:  # pragma: no cover
-            self.logger(msg_type, message)
         self.error_messages.append((msg_type, message))
+        message = self.process_message(msg_type, message)
+        # print(">>>>>>>>>>>>", message, self.ignore_info, msg_type, MessageType.Info, MessageType.OperationUndefined)
+        if self.logger is not None and (
+            msg_type not in {MessageType.Info, MessageType.OperationUndefined}
+            or not self.ignore_info
+        ):  # pragma: no cover
+            self.logger(msg_type, message)
+
+    def process_message(self, msg_type: MessageType, message: str) -> str:
+        if "unsafe variable" in message:
+            lines = message.split("\n")
+            lines[0] = lines[0][9:-3]
+            lines.pop(1)
+            message = "\n".join(lines)
+        if "undefined predicate F" in message:
+            message = message.replace(
+                "undefined predicate F", "undefined intensional function "
+            )
+        return message
 
     def __enter__(self) -> typing.Self:
         return self

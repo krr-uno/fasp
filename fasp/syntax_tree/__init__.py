@@ -88,4 +88,6 @@ def rewrite_statements(
     prefix
         Prefix to use for generated predicate names.
     """
+    # for stmt in statements:
+    #     ctx.elib.add_original_statement(stmt)
     return transform_to_clingo_statements(ctx, statements)

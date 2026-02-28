@@ -158,6 +158,13 @@ class TestFASPProgramTransformer(unittest.TestCase):
             test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
         )
 
+    def test_head_aggregate_assignment2(self):
+        self.assertTransformEqual(
+            "{king(spain) := felipe}.",
+            "#count{ 0,Fking(spain,felipe): king(spain) := felipe  }.",
+            test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
+        )
+
     def test_no_change(self):
         self.assertTransformEqual(
             "f(X) :- g(X).",
