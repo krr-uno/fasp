@@ -755,7 +755,12 @@ class _AssignmentRestorationTransformer:
                     new_tuple: list[TermAST] = []
                     for tup in element.tuple:
                         if (
-                            (isinstance(tup, ast.TermFunction) and tup.name == ASSIGNMENT_NAME) or (isinstance(tup,ast.TermSymbolic) and tup.symbol.type == SymbolType.Function and tup.symbol.name == ASSIGNMENT_NAME)
+                            isinstance(tup, ast.TermFunction)
+                            and tup.name == ASSIGNMENT_NAME
+                        ) or (
+                            isinstance(tup, ast.TermSymbolic)
+                            and tup.symbol.type == SymbolType.Function
+                            and tup.symbol.name == ASSIGNMENT_NAME
                         ):
                             tuple_converted = True
                             # new_tuple = None
