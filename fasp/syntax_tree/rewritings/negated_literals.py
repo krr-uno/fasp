@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import Any, Iterable, List
+from typing import Any, Iterable
 
 from clingo import ast
 from clingo.core import Library
@@ -9,6 +9,7 @@ from fasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
 )
+from fasp.syntax_tree.until import transform_iterable
 from fasp.util.ast import (
     BodyLiteralAST,
     ELibrary,
@@ -21,7 +22,6 @@ class RemoveNegatedLiteralsTransformers:
         library: Library,
     ) -> None:
         self.lib = library
-        self.moved_to_body: list[BodyLiteralAST] = []
         self.changed = False
 
     def _transform_statement_rule[T: (
@@ -29,22 +29,10 @@ class RemoveNegatedLiteralsTransformers:
         AssignmentRule,
     )](self, stmt: T) -> T | None:
         update: dict[str, Any] = {}
-
-        new_body: List[BodyLiteralAST] = []
-        any_changed = False
-
-        for literal in stmt.body:
-            new_literal = self.dispatch(literal)
-            if new_literal is not None:
-                any_changed = True
-                new_body.append(new_literal)
-            else:
-                new_body.append(literal)
-        if not any_changed:
+        new_body = transform_iterable(stmt.body, self.dispatch)
+        if new_body is None:
             return None
         update["body"] = new_body
-
-        new_body = list(stmt.body) + self.moved_to_body
 
         return stmt.update(self.lib, **update)
 
