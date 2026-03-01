@@ -10,7 +10,6 @@ from fasp.syntax_tree._nodes import (
 )
 from fasp.syntax_tree.until import transform_iterable
 from fasp.util.ast import (
-    BodyLiteralAST,
     ELibrary,
 )
 
