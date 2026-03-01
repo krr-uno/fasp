@@ -4,6 +4,8 @@ import typing
 from typing import (
     AbstractSet,
     Any,
+    Callable,
+    Iterable,
     NamedTuple,
     Optional,
     Sequence,
@@ -582,3 +584,31 @@ def parse_string(library: ELibrary, code: str) -> list[StatementAST]:
     finally:
         library.error_messages = saved_errors
     return parsed
+
+
+def transform_iterable[T, R](
+    library: Library, iterable: Iterable[T], fun: Callable[[Library, T], R | None]
+) -> list[T | R] | None:
+    """
+    Apply a function to each element of an iterable.
+    If all elements are transformed to None, return None. Otherwise, return an iterable of the transformed elements, where elements that were transformed to None are replaced by the original element.
+
+    Args:
+        iterable (Iterable[T]): The input iterable of elements of type T.
+        fun (Callable[[Library, T], R | None]): A function that takes a Library and an element of type T and returns a transformed element of type R or None.
+
+    Returns:
+        list[T | R] | None: A list of transformed elements, or None if all elements were transformed to None.
+    """
+    result: list[T | R] = []
+    all_none = True
+    for element in iterable:
+        new_element = fun(library, element)
+        if new_element is not None:
+            all_none = False
+            result.append(new_element)
+        else:
+            result.append(element)
+    if all_none:
+        return None
+    return result

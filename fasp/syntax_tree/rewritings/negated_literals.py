@@ -8,10 +8,7 @@ from fasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
 )
-from fasp.syntax_tree.until import transform_iterable
-from fasp.util.ast import (
-    ELibrary,
-)
+from fasp.util.ast import ELibrary, transform_iterable
 
 
 def _rewrite_body_literal(
@@ -38,9 +35,7 @@ def _rewrite_body_literal(
 def _rewrite_statement(library: Library, statement: FASP_Statement) -> FASP_Statement:
     if not isinstance(statement, ast.StatementRule | AssignmentRule):
         return statement
-    new_body = transform_iterable(
-        statement.body, lambda lit: _rewrite_body_literal(library, lit)
-    )
+    new_body = transform_iterable(library, statement.body, _rewrite_body_literal)
     if new_body is None:
         return statement
     return statement.update(library, body=new_body)
