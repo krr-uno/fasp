@@ -125,3 +125,11 @@ class TestControl(unittest.TestCase):
 
         # Rewrites must differ
         self.assertNotEqual(rewrite_default, rewrite_custom)
+    
+    def test_unsafe_app(self):
+        example_file = TEST_EXAMPLES_PATH / "unsafe.lp"
+
+        # NOTE: No Error raised? app.py line:67-68
+        execute, _ = self.execute_app(
+            [example_file]       
+        )
