@@ -675,7 +675,7 @@ class _AssignmentRestorationTransformer:
         return ChoiceAssignment(head.location, head.left, new_elements, head.right)
 
     def _construct_prefixed_tuple_from_protected_assignment_tuple(
-        self, library: Library, term: ast.TermFunction, prefix: str
+        self, library: Library, term: ast.TermFunction | ast.TermSymbolic, prefix: str
     ) -> ast.TermFunction:
         # Construct a new TermFunction for a protected assignment tuple.
         # Example: ASS(next(X), Y) with prefix 'F' -> Fnext(X, Y)
@@ -697,7 +697,7 @@ class _AssignmentRestorationTransformer:
             right, ast.Projection
         ), f"Expected non-projection right term in ASS(...), got {right}: {type(right)}"
 
-        assert isinstance(left, ast.TermFunction)
+        assert isinstance(left, ast.TermFunction | ast.TermSymbolic)
         # Get inner function name and its argument list
         inner_name, inner_args = function_arguments_ast(library, left)
 
@@ -755,8 +755,7 @@ class _AssignmentRestorationTransformer:
                     new_tuple: list[TermAST] = []
                     for tup in element.tuple:
                         if (
-                            isinstance(tup, ast.TermFunction)
-                            and tup.name == ASSIGNMENT_NAME
+                            (isinstance(tup, ast.TermFunction) and tup.name == ASSIGNMENT_NAME) or (isinstance(tup,ast.TermSymbolic) and tup.symbol.type == SymbolType.Function and tup.symbol.name == ASSIGNMENT_NAME)
                         ):
                             tuple_converted = True
                             # new_tuple = None

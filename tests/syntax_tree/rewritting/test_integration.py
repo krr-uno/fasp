@@ -161,7 +161,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
     def test_head_aggregate_assignment2(self):
         self.assertTransformEqual(
             "{king(spain) := felipe}.",
-            "#count{ 0,Fking(spain,felipe): king(spain) := felipe  }.",
+            "#count{ 0,Fking(spain,felipe): king(spain) := felipe }.",
             test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
         )
 
@@ -505,3 +505,12 @@ class TestFASPProgramTransformer(unittest.TestCase):
             """,
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
         )
+
+    def test_unsafe(self):
+        with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
+            self.assertTransformEqual(
+                """
+                p(X) :- q(Y).
+                """,
+                ""
+            )
