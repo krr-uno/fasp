@@ -60,7 +60,7 @@ EXAMPLES = [
             """,
         ],
     ),
-       Example(
+    Example(
         [EXAMPLES_PATH / "hamiltonian.lp"],
         [
             "next(a)=c next(b)=a next(c)=f next(d)=e next(e)=b next(f)=d",
@@ -102,7 +102,7 @@ EXAMPLES = [
             """,
         ],
     ),
-        Example(
+    Example(
         [TEST_EXAMPLES_PATH / "unsat.lp"],
         [],
     ),

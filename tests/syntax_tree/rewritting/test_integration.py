@@ -36,7 +36,6 @@ class TestFASPProgramTransformer(unittest.TestCase):
         transformer = FASPProgramTransformer(self.ctx, statement_asts)
         transformed = transformer.transform(stop_at=test_pipeline, LOG=LOG)
 
-
         transformed_str = "\n".join(
             [str(statement).strip() for statement in transformed][1:]
         )
@@ -415,6 +414,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
             "person(X) :- father(X)=_.",
             test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
         )
+
     def test_family_left(self):
         self.assertTransformEqual(
             "person(Y) :- father(_)=Y.",
@@ -493,7 +493,6 @@ class TestFASPProgramTransformer(unittest.TestCase):
             """,
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
         )
-
 
     def test_min_distance(self):
         self.assertTransformEqual(

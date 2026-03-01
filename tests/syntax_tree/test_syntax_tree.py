@@ -21,7 +21,7 @@ class TestSyntaxTree(unittest.TestCase):
 
     def applyRewrite(self, program: str):
         statement_asts = parse_string(self.elib, program)[1:]
-        rewritten_statements:list[ast.Statement] = []
+        rewritten_statements: list[ast.Statement] = []
         for stmt in statement_asts:
             rewritten_statements.extend(rewrite_statement(self.ctx, stmt))
 
@@ -37,7 +37,9 @@ class TestSyntaxTree(unittest.TestCase):
             rewritten_statements = self.applyRewrite(program)
         else:
             rewritten_statements = self.applyRewriteList(program)
-        rewritten_program_str = "\n".join(str(stmt).strip() for stmt in rewritten_statements)
+        rewritten_program_str = "\n".join(
+            str(stmt).strip() for stmt in rewritten_statements
+        )
         self.assertEqual(
             rewritten_program_str.strip(),
             textwrap.dedent(expected).strip(),
@@ -49,7 +51,7 @@ class TestSyntaxTree(unittest.TestCase):
             Ff(1,Y) :- g(Y).
             :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
             """
-        self.assertRewriteEqual(program, expected, mode = 1)
+        self.assertRewriteEqual(program, expected, mode=1)
 
     def test_rewrite_statements(self):
         program = "f(1) := Y :- g(Y)."
@@ -57,6 +59,4 @@ class TestSyntaxTree(unittest.TestCase):
             Ff(1,Y) :- g(Y).
             :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
             """
-        self.assertRewriteEqual(program, expected, mode = 2)
-
-
+        self.assertRewriteEqual(program, expected, mode=2)

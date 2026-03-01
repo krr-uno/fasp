@@ -49,19 +49,19 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
         self.assertCorrectRewrite(
             "a.",
             "a.",
-            )
+        )
 
     def test_no_change(self):
         self.assertCorrectRewrite(
             "a :- b.",
             "a :- b.",
-            )
+        )
 
     def test_basic(self):
         self.assertCorrectRewrite(
             "b :- not a; c.",
             "b :- #false: a; c.",
-            )
+        )
 
     def test_negated_literals_and_aggregates(self):
         self.assertCorrectRewrite(
@@ -73,19 +73,19 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
         self.assertCorrectRewrite(
             "b :- not not a.",
             "b :- not not a.",
-            )
+        )
 
     def test_literal_boolean(self):
         self.assertCorrectRewrite(
             "b :- not #false.",
             "b :- not #false.",
-            )
+        )
 
     def test_no_change_assignment(self):
         self.assertCorrectRewrite(
             "a := b.",
             "a := b.",
-            )
+        )
 
     def test_negated_literals_and_aggregates_assignment(self):
         self.assertCorrectRewrite(

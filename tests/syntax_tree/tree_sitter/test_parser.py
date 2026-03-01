@@ -360,9 +360,11 @@ class TestParseAssignment(unittest.TestCase):
     #     self.assertEqual(str(rules[0]), "#showf.")
 
     def test_showf_directive_signature(self):
-        rules = self.parser.parse("""
+        rules = self.parser.parse(
+            """
                                   #showf p/1.
-                                  """)
+                                  """
+        )
         self.assertEqual(len(rules), 1)
         self.assertIsInstance(rules[0], ShowFDirective)
         self.assertEqual(str(rules[0]), "#showf p/1.")
