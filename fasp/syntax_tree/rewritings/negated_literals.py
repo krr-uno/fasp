@@ -14,7 +14,7 @@ from fasp.util.ast import (
 )
 
 
-def _rewrite_negated_body_literal(
+def _rewrite_body_literal(
     library: Library, literal: ast.BodyLiteral
 ) -> None | ast.BodyConditionalLiteral:
     if (
@@ -43,13 +43,11 @@ def _rewrite_negated_body_literal(
     )
 
 
-def rewrite_negated_body_literals(
-    library: Library, statement: FASP_Statement
-) -> FASP_Statement:
+def _rewrite_statement(library: Library, statement: FASP_Statement) -> FASP_Statement:
     if not isinstance(statement, ast.StatementRule | AssignmentRule):
         return statement
     new_body = transform_iterable(
-        statement.body, lambda lit: _rewrite_negated_body_literal(library, lit)
+        statement.body, lambda lit: _rewrite_body_literal(library, lit)
     )
     if new_body is None:
         return statement
@@ -60,4 +58,4 @@ def rewrite_negated_body_literals_from_statements(
     library: ELibrary,
     statements: Iterable[FASP_Statement],
 ) -> Iterable[FASP_Statement]:
-    return [rewrite_negated_body_literals(library.library, stmt) for stmt in statements]
+    return [_rewrite_statement(library.library, stmt) for stmt in statements]
