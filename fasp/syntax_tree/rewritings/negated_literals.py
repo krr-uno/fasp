@@ -27,19 +27,11 @@ def _rewrite_body_literal(
     lit = literal.literal
 
     # Build #false
-    false_lit = ast.LiteralBoolean(
-        library,
-        lit.location,
-        ast.Sign.NoSign,
-        False,
-    )
+    false_lit = ast.LiteralBoolean(library, lit.location, ast.Sign.NoSign, False)
 
     # Create conditional literal: #false : r(X)
     return ast.BodyConditionalLiteral(
-        library,
-        lit.location,
-        false_lit,
-        [lit.update(library, sign=ast.Sign.NoSign)],
+        library, lit.location, false_lit, [lit.update(library, sign=ast.Sign.NoSign)]
     )
 
 
