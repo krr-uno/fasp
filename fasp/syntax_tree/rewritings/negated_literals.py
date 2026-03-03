@@ -4,7 +4,6 @@ from clingo import ast
 from clingo.core import Library
 
 from fasp.syntax_tree._nodes import (
-    FASP_AST_T,
     AssignmentRule,
     FASP_Statement,
 )

@@ -1,7 +1,6 @@
 import sys
 from typing import Sequence
 
-from click import argument
 from clingo import core
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.control import Control as ClingoControl

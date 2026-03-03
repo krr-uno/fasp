@@ -10,7 +10,6 @@ from fasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,
-    ChoiceSomeAssignment,
     FASP_Statement,
     HeadAggregateAssignment,
     HeadAggregateAssignmentElement,

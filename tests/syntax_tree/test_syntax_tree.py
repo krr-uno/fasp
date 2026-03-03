@@ -1,15 +1,9 @@
-from math import exp
 import textwrap
 import unittest
 
 from clingo import ast
 from fasp.util.ast import ELibrary
 from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.syntax_tree.rewritings.integration import (
-    FASPProgramTransformer,
-    PipelineStage,
-    transform_to_clingo_statements,
-)
 from fasp.syntax_tree import rewrite_statement, rewrite_statements
 from fasp.syntax_tree._context import RewriteContext
 

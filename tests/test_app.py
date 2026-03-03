@@ -6,7 +6,7 @@ import io, contextlib
 
 from fasp.app import main
 
-from .examples import EXAMPLES, Example
+from .examples import EXAMPLES
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 

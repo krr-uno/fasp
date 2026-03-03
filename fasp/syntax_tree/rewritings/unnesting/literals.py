@@ -1,22 +1,16 @@
 from functools import singledispatchmethod
 from typing import List, Sequence, Set
 
-from attr import has
 from clingo import ast, symbol
 from clingo.core import Library, Location
 from clingo.symbol import Symbol
 
 from fasp.syntax_tree._nodes import (
-    FASP_AST,
     FASP_AST_T,
-    AssignmentAST,
-    HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
 from fasp.syntax_tree.types import SymbolSignature
 from fasp.util.ast import (
-    AST,
-    AST_T,
     FreshVariableGenerator,
     TermAST,
     function_arguments,

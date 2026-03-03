@@ -23,22 +23,21 @@ from ._nodes import (
     HeadSimpleAssignment,
     ShowFDirective,
 )
-from .parsing import parser
 from .types import SymbolSignature
 
 _ALL__ = [
-    "FASP_AST",
-    "FASP_AST_T",
-    "AssignmentAggregateElement",
-    "AssignmentAST",
-    "AssignmentRule",
-    "ChoiceAssignment",
-    "FASP_Statement",
-    "HeadAggregateAssignment",
-    "HeadAssignment",
-    "HeadSimpleAssignment",
-    "SymbolSignature",
-    "parse_files",
+    FASP_AST,
+    FASP_AST_T,
+    AssignmentAggregateElement,
+    AssignmentAST,
+    AssignmentRule,
+    ChoiceAssignment,
+    FASP_Statement,
+    HeadAssignmentAggregate,
+    HeadAssignment,
+    HeadSimpleAssignment,
+    SymbolSignature,
+    ShowFDirective,
 ]
 
 

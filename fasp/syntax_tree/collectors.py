@@ -5,9 +5,7 @@ from clingo import ast
 
 from fasp.syntax_tree._nodes import (
     FASP_AST,
-    AssignmentAggregateElement,
     AssignmentRule,
-    ChoiceAssignment,
     HeadAggregateAssignment,
     HeadAggregateAssignmentElement,
     HeadSimpleAssignment,

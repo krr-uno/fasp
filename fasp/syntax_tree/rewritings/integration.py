@@ -5,7 +5,6 @@ from clingo.ast import Statement, rewrite_statement
 
 from fasp.syntax_tree._context import RewriteContext as FASPRewriteContext
 from fasp.syntax_tree._nodes import (
-    FASP_AST,
     AssignmentRule,
     FASP_Statement,
 )
@@ -33,8 +32,6 @@ from fasp.syntax_tree.rewritings.to_asp import (
 from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 from fasp.syntax_tree.types import SymbolSignature
 from fasp.util.ast import (
-    AST,
-    ELibrary,
     StatementAST,
 )
 

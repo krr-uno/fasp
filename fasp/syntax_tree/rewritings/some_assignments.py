@@ -11,7 +11,7 @@ from fasp.syntax_tree._nodes import (
     FASP_Statement,
     HeadSimpleAssignment,
 )
-from fasp.util.ast import BodyLiteralAST, TermAST
+from fasp.util.ast import BodyLiteralAST
 
 
 def _transform_choice_some_to_choice_assignment[T: (
