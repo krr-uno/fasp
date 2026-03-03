@@ -134,7 +134,6 @@ class FASPProgramTransformer:
     ) -> Iterable[FASP_Statement]:
         return protect_assignments(self.elib, statements)
 
-
     def _protect_comparisons_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
