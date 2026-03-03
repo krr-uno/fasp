@@ -135,7 +135,7 @@ class ShowFDirective(AssignmentAST):
     """
 
     location: Location
-    signature: SymbolSignature | None
+    signature: SymbolSignature
 
     def __str__(self) -> str:  # pragma: no cover
         if self.signature is None:
