@@ -479,11 +479,11 @@ class ELibrary:
         self.original_statements: dict[str, list[ast.Statement]] = {}
         self.ignore_info = False
 
-    def add_original_statement(self, statement: ast.Statement) -> None:
-        file = statement.location.begin.file
-        if file not in self.original_statements:
-            self.original_statements[file] = []
-        self.original_statements[file].append(statement)
+    # def add_original_statement(self, statement: ast.Statement) -> None:
+    #     file = statement.location.begin.file
+    #     if file not in self.original_statements:
+    #         self.original_statements[file] = []
+    #     self.original_statements[file].append(statement)
 
     def logger_function(self, msg_type: MessageType, message: str) -> None:
         self.error_messages.append((msg_type, message))

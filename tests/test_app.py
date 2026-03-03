@@ -125,11 +125,37 @@ class TestControl(unittest.TestCase):
 
         # Rewrites must differ
         self.assertNotEqual(rewrite_default, rewrite_custom)
-    
-    def test_unsafe_app(self):
+
+    def test_app_syntax_error(self):
+        example_file = TEST_EXAMPLES_PATH / "syntax_error.lp"
+
+        # NOTE: No Error raised? app.py line:67-68
+        out, err = self.execute_app(
+            [example_file]
+        )
+        self.assertIn("syntax error", err)
+        self.assertIn("*** ERROR: (fasp): parsing failed", err)
+
+    def test_app_unsafe(self):
         example_file = TEST_EXAMPLES_PATH / "unsafe.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        execute, _ = self.execute_app(
-            [example_file]       
+        out, err = self.execute_app(
+            [example_file]
+        )
+        self.assertIn("rewriting failed", err)
+        self.assertIn("UNKNOWN", out)
+        self.assertIn("*** ERROR: (fasp): rewriting failed", err)
+
+    def test_app_undefined_function(self):
+        example_file = TEST_EXAMPLES_PATH / "undefined_function.lp"
+
+        # NOTE: No Error raised? app.py line:67-68
+        out, err = self.execute_app(
+            [example_file]
+        )
+        self.assertIn("undefined intensional function a/1", err)
+        self.assert_models(
+            [example_file],
+            [""],
         )
