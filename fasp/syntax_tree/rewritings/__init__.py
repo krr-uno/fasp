@@ -1,6 +1,7 @@
 from itertools import chain
 from typing import Iterable
 
+from clingo import ast
 from clingo.core import Library
 
 from fasp.syntax_tree._nodes import (
@@ -20,9 +21,6 @@ from fasp.syntax_tree.rewritings.to_asp import (
     functional_constraints,
 )
 from fasp.syntax_tree.types import SymbolSignature
-from fasp.util.ast import (
-    StatementAST,
-)
 
 # def normalize_ast(
 #     library: Library, statements: Iterable[FASP_Statement]
@@ -39,7 +37,7 @@ from fasp.util.ast import (
 
 def _functional2asp(
     library: Library, statements: Iterable[FASP_Statement], prefix: str = "F"
-) -> tuple[set[SymbolSignature], list[StatementAST]]:
+) -> tuple[set[SymbolSignature], list[ast.Statement]]:
     """
     Transform a program in functional normal form into a regular program.
 

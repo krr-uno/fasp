@@ -19,9 +19,7 @@ from fasp.syntax_tree.rewritings.unnesting.literals import (
 )
 from fasp.syntax_tree.types import SymbolSignature
 from fasp.util.ast import (
-    BodyLiteralAST,
     FreshVariableGenerator,
-    HeadLiteralAST,
 )
 from fasp.util.iterables import map_none
 
@@ -60,8 +58,8 @@ class RuleRewriteTransformer:
 
     @singledispatchmethod
     def _rewrite_literal[T: (
-        BodyLiteralAST,
-        HeadLiteralAST,
+        ast.BodyLiteral,
+        ast.HeadLiteral,
     )](self, node: T, var_gen: FreshVariableGenerator) -> T | None:
         """Default: return node unchanged."""
         return node.transform(self.lib, self._rewrite_literal, var_gen)
@@ -256,7 +254,7 @@ class RuleRewriteTransformer:
         else:
             new_head = self._rewrite_literal(node.head, var_gen)
 
-        new_body_literals: List[BodyLiteralAST] = []
+        new_body_literals: List[ast.BodyLiteral] = []
 
         are_new_body_literals = False
         for lit in node.body:
@@ -313,7 +311,7 @@ class RuleRewriteTransformer:
             update["tuple"] = tuple
         comps_1 = transformer.pop_all_unnested_functions()
 
-        new_body_literals: List[BodyLiteralAST] = []
+        new_body_literals: List[ast.BodyLiteral] = []
         are_new_body_literals = False
 
         for lit in node.body:
@@ -324,7 +322,7 @@ class RuleRewriteTransformer:
                 new_body_literals.append(new_lit)
                 are_new_body_literals = True
 
-        new_body_literals_from_comps: List[BodyLiteralAST] = []
+        new_body_literals_from_comps: List[ast.BodyLiteral] = []
 
         if are_new_body_literals:
             new_body_literals_from_comps.extend(new_body_literals)

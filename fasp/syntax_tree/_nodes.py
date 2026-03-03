@@ -233,7 +233,7 @@ class HeadSimpleAssignment(AssignmentAST):
 
     location: Location
     assigned_function: ast.TermFunction | ast.TermSymbolic
-    value: util_ast.TermAST
+    value: ast.TermOrProjection
 
     def __str__(self) -> str:
         return f"{str(self.assigned_function)} := {str(self.value)}"
@@ -323,13 +323,13 @@ class AssignmentAggregateElement(AssignmentAST):
         Source code location.
     assignment : HeadSimpleAssignment
         The assignment part of the element (e.g., `f(X) := 1`).
-    condition : Sequence[util_ast.LiteralAST]
+    condition : Sequence[ast.Literal]
         Optional literals serving as conditions (e.g., `p(X)`).
     """
 
     location: Location
     assignment: HeadSimpleAssignment
-    condition: Sequence[util_ast.LiteralAST]
+    condition: Sequence[ast.Literal]
 
     def __str__(self) -> str:
         if self.condition:
@@ -448,19 +448,19 @@ class HeadAggregateAssignmentElement(AssignmentAST):
     ----------
     location : Location
         Source code location.
-    tuple : Sequence[util_ast.TermAST]
+    tuple : Sequence[ast.Term]
         tuple
     assignment : HeadSimpleAssignment
         The assignment part of the element (e.g., `f(X) := 1`).
-    condition : Sequence[util_ast.LiteralAST]
+    condition : Sequence[ast.Literal]
         Optional literals serving as conditions (e.g., `p(X)`).
 
     """
 
     location: Location
-    tuple: Sequence[util_ast.TermAST]
+    tuple: Sequence[ast.Term]
     assignment: HeadSimpleAssignment
-    condition: Sequence[util_ast.LiteralAST]
+    condition: Sequence[ast.Literal]
 
     def __str__(self) -> str:
         _tuple = ""
@@ -566,7 +566,7 @@ class AssignmentRule(AssignmentAST):
 
     location: Location
     head: HeadAssignment
-    body: Sequence[util_ast.BodyLiteralAST]
+    body: Sequence[ast.BodyLiteral]
 
     def __str__(self) -> str:  # pragma: no cover
         if not self.body:
@@ -606,7 +606,7 @@ class AssignmentRule(AssignmentAST):
     #     return self.__class__(library, self.location, new_head, new_body)
 
 
-FASP_Statement = util_ast.StatementAST | AssignmentRule
+FASP_Statement = ast.Statement | AssignmentRule
 FASP_AST = util_ast.AST | AssignmentAST
 
 FASP_AST_T = TypeVar(

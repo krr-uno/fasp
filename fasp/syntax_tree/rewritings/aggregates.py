@@ -9,7 +9,6 @@ from fasp.syntax_tree._nodes import (
 )
 from fasp.syntax_tree.collectors import collect_variables
 from fasp.util.ast import (
-    BodyLiteralAST,
     FreshVariableGenerator,
 )
 
@@ -55,7 +54,7 @@ def normalize_assignment_aggregates(
     )
 
     # Preserve the original body and append the equality-to-aggregate literal.
-    new_body: list[BodyLiteralAST] = list(stm.body) + [body_agg]
+    new_body: list[ast.BodyLiteral] = list(stm.body) + [body_agg]
 
     # Return the rewritten rule.
     return stm.update(head=new_head, body=new_body)

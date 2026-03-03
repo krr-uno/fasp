@@ -33,7 +33,6 @@ from fasp.util.ast import (
     ELibrary,
     ParsingException,
     SyntacticError,
-    TermAST,
 )
 from fasp.util.ast import parse_string as clingo_parse_string
 
@@ -292,7 +291,7 @@ class TreeSitterParser:
             message = f"{node.text.decode('utf-8').replace('\n', ' ').strip()}"
             raise ParsingException([SyntacticError(location, message, None)])
 
-    def _preparse_assignment(self, node: Node) -> tuple[TermAST, str]:
+    def _preparse_assignment(self, node: Node) -> tuple[ast.Term, str]:
         unparsed_function = node.children[0].text.decode("utf-8")
         unparsed_value = "".join(
             map(lambda x: x.text.decode("utf-8"), node.children[2:])

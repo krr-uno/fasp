@@ -18,11 +18,8 @@ from fasp.syntax_tree._nodes import (
 from fasp.util.ast import (
     AST,
     AST_T,
-    ArgumentAST,
     ELibrary,
     FunctionLikeAST,
-    StatementAST,
-    TermAST,
     function_arguments,
     function_arguments_ast,
     is_function,
@@ -176,7 +173,7 @@ class RightGuard:
     """
 
     relation: ast.Relation
-    term: TermAST | Symbol
+    term: ast.Term | Symbol
 
     def to_ast(self, library: Library, location: Location) -> ast.RightGuard:
         """
@@ -230,8 +227,8 @@ def _restore_guard_arguments(
 
 def restore_comparison_arguments(
     library: Library,
-    arguments: Sequence[ArgumentAST] | Sequence[Symbol],
-) -> tuple[ast.Sign, ArgumentAST | Symbol, list[RightGuard]]:
+    arguments: Sequence[ast.TermOrProjection] | Sequence[Symbol],
+) -> tuple[ast.Sign, ast.TermOrProjection | Symbol, list[RightGuard]]:
     assert (
         len(arguments) == 3
     ), f"Expected 3 arguments, got {len(arguments)}: {arguments}"
@@ -307,7 +304,7 @@ def restore_comparison(
     # BEGIN: ######################################
 
     if isinstance(left, ast.TermFunction):
-        new_arguments: list[TermAST] = []
+        new_arguments: list[ast.Term] = []
         arguments_changed = False
         for term in left.pool[0].arguments:
             if isinstance(term, ast.TermVariable) and term.anonymous:
@@ -358,13 +355,13 @@ class _ComparisonRestorationTransformer:
     ) -> ast.LiteralBoolean | ast.LiteralComparison:
         return node
 
-    def rewrite(self, node: StatementAST) -> StatementAST:
+    def rewrite(self, node: ast.Statement) -> ast.Statement:
         return node.transform(self.library, self.dispatch) or node
 
 
 def restore_comparisons(
-    library: Library, statements: Iterable[StatementAST]
-) -> Iterable[StatementAST]:
+    library: Library, statements: Iterable[ast.Statement]
+) -> Iterable[ast.Statement]:
     """
     Protect comparisons in a Clingo AST.
 
@@ -453,7 +450,7 @@ class _AssignmentProtectorTransformer:
     #         "ChoiceSomeAssignment seen during assignment protection. Unhandled."
     #     )
 
-    def rewrite(self, node: FASP_Statement) -> StatementAST:
+    def rewrite(self, node: FASP_Statement) -> ast.Statement:
         if not isinstance(node, AssignmentRule):
             return node
 
@@ -529,12 +526,12 @@ class _AssignmentProtectorTransformer:
         # Raises assertion error from dispatch
         self.dispatch(head)
         # Should not happen
-        return cast(StatementAST, node)  # pragma: no cover
+        return cast(ast.Statement, node)  # pragma: no cover
 
 
 def protect_assignments(
     library: ELibrary, statements: Iterable[FASP_Statement]
-) -> Iterable[StatementAST]:
+) -> Iterable[ast.Statement]:
     """
     Protect assignments in a FASP AST (assignment-heads etc).
 
@@ -568,22 +565,6 @@ def _is_literal_protected_assignment(
     return False
 
 
-def restore_assignment_arguments(
-    arguments: Sequence[ArgumentAST | Symbol],
-) -> tuple[TermAST, TermAST]:
-    """
-    Extract (left, right) from ASS(left, right)
-    """
-    assert len(arguments) == 2, f"Expected 2 arguments in ASS(...), got: {arguments}"
-    left, right = arguments
-
-    # Ensure they are not Projections
-    assert not isinstance(left, ast.Projection)
-    assert not isinstance(right, ast.Projection)
-
-    return cast(TermAST, left), cast(TermAST, right)
-
-
 def _restore_assignment_function_to_head_simple_assignment(
     library: Library,
     atom: ast.TermFunction | ast.TermSymbolic,
@@ -593,22 +574,20 @@ def _restore_assignment_function_to_head_simple_assignment(
 
     _, arguments = function_arguments(atom)
 
-    left, right = restore_assignment_arguments(arguments)
-    if isinstance(left, Symbol) and isinstance(right, Symbol):
-        return HeadSimpleAssignment(
-            atom.location,
-            ast.TermSymbolic(library, atom.location, left),
-            ast.TermSymbolic(
-                library,
-                atom.location,
-                right,
-            ),
-        )
-    return HeadSimpleAssignment(
-        atom.location,
-        cast(ast.TermFunction, left),
-        right,
-    )
+    assert len(arguments) == 2, f"Expected 2 arguments in ASS(...), got: {arguments}"
+    left, right = arguments
+
+    # Ensure they are not Projections
+    assert not isinstance(right, ast.Projection)
+
+    if isinstance(left, Symbol):
+        left = ast.TermSymbolic(library, atom.location, left)
+    if isinstance(right, Symbol):
+        right = ast.TermSymbolic(library, atom.location, right)
+    assert isinstance(
+        left, ast.TermFunction | ast.TermSymbolic
+    ), f"Expected TermFunction or TermSymbolic for left argument, got: {type(left)}"
+    return HeadSimpleAssignment(atom.location, left, right)
 
 
 def _restore_assignment_literal_to_head_simple_assignment(
@@ -711,7 +690,7 @@ class _AssignmentRestorationTransformer:
         new_pool = ast.ArgumentTuple(library, new_arg_list)
         return ast.TermFunction(library, term.location, new_name, [new_pool])
 
-    def rewrite(self, node: StatementAST) -> FASP_Statement:
+    def rewrite(self, node: ast.Statement) -> FASP_Statement:
         """
         If node is an ast.StatementRule with protected assignment head(s), reconstruct an AssignmentRule.
         Otherwise return node unchanged.
@@ -751,7 +730,7 @@ class _AssignmentRestorationTransformer:
                 tuple_converted = False
 
                 for element in head.elements:
-                    new_tuple: list[TermAST] = []
+                    new_tuple: list[ast.Term] = []
                     for tup in element.tuple:
                         if (
                             isinstance(tup, ast.TermFunction)
@@ -809,7 +788,7 @@ class _AssignmentRestorationTransformer:
 
 
 def restore_assignments(
-    library: ELibrary, statements: Iterable[StatementAST], prefix: str = "F"
+    library: ELibrary, statements: Iterable[ast.Statement], prefix: str = "F"
 ) -> Iterable[FASP_Statement]:
     """
     Apply the restoration transformer to all statements.

@@ -1,7 +1,7 @@
 from enum import IntEnum, auto
 from typing import Iterable, cast
 
-from clingo.ast import Statement, rewrite_statement
+from clingo import ast
 
 from fasp.syntax_tree._context import RewriteContext as FASPRewriteContext
 from fasp.syntax_tree._nodes import (
@@ -31,9 +31,6 @@ from fasp.syntax_tree.rewritings.to_asp import (
 )
 from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 from fasp.syntax_tree.types import SymbolSignature
-from fasp.util.ast import (
-    StatementAST,
-)
 
 
 class PipelineStage(IntEnum):
@@ -155,7 +152,7 @@ class FASPProgramTransformer:
         for stmt in statements:
             assert not isinstance(stmt, AssignmentRule)
             try:
-                rewritten_list = rewrite_statement(ctx, stmt)
+                rewritten_list = ast.rewrite_statement(ctx, stmt)
             except RuntimeError as e:
                 errors.append((stmt, e))
                 continue
@@ -177,21 +174,21 @@ class FASPProgramTransformer:
 
         for stmt in stmts:
             assert not isinstance(stmt, AssignmentRule)
-        result = restore_comparisons(self.library, cast(Iterable[StatementAST], stmts))
+        result = restore_comparisons(self.library, cast(Iterable[ast.Statement], stmts))
         return result
 
     def _restore_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return restore_assignments(
-            self.elib, cast(Iterable[StatementAST], statements), self.ctx.prefix
+            self.elib, cast(Iterable[ast.Statement], statements), self.ctx.prefix
         )
 
     def _negated_literals_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return rewrite_negated_body_literals_from_statements(
-            self.elib, cast(Iterable[StatementAST], statements)
+            self.elib, cast(Iterable[ast.Statement], statements)
         )
 
     def _unnest_functions_wrapper(
@@ -219,7 +216,7 @@ class FASPProgramTransformer:
         to_asp_transformer = NormalForm2PredicateTransformer(
             self.library, self.evaluable_functions, self.prefix
         )
-        out: list[StatementAST] = []
+        out: list[ast.Statement] = []
         for stmt in statements:
             out.append(to_asp_transformer.rewrite(stmt))
         return out
@@ -236,7 +233,7 @@ def transform_to_clingo_statements(
     *,
     stop_at: PipelineStage = PipelineStage.TO_ASP,
     LOG: bool = False,
-) -> Iterable[Statement]:
+) -> Iterable[ast.Statement]:
     """Create a FASPProgramTransformer, run transform() and return
     an iterable of clingo.ast.Statement (ast.Statement).
 
@@ -247,10 +244,10 @@ def transform_to_clingo_statements(
     transformer = FASPProgramTransformer(ctx, statement_asts)
     transformed = transformer.transform(stop_at=stop_at, LOG=LOG)
 
-    out: list[Statement] = []
+    out: list[ast.Statement] = []
     for stmt in transformed:
         assert isinstance(
-            stmt, Statement
+            stmt, ast.Statement
         ), f"Expected clingo.ast.Statement, got {type(stmt)}"
         out.append(stmt)
     out.extend(
