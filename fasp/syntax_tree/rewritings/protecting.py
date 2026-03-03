@@ -577,7 +577,6 @@ def _restore_assignment_function_to_head_simple_assignment(
     assert len(arguments) == 2, f"Expected 2 arguments in ASS(...), got: {arguments}"
     left, right = arguments
 
-    # Ensure they are not Projections
     assert not isinstance(right, ast.Projection)
 
     if isinstance(left, Symbol):
