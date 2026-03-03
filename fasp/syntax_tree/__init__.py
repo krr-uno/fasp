@@ -1,14 +1,11 @@
-from typing import Iterable, Sequence
+from typing import Iterable
 
 from clingo import ast
 
 from fasp.syntax_tree.rewritings.integration import (
-    FASPProgramTransformer,
     transform_to_clingo_statements,
 )
-from fasp.util.ast import ELibrary
 
-from . import rewritings
 from ._context import RewriteContext
 from ._nodes import (
     FASP_AST,
