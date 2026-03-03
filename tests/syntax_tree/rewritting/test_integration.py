@@ -6,7 +6,6 @@ from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.syntax_tree.rewritings.integration import (
     FASPProgramTransformer,
     PipelineStage,
-    transform_to_clingo_statements,
 )
 from fasp.syntax_tree._context import RewriteContext
 
@@ -164,6 +163,13 @@ class TestFASPProgramTransformer(unittest.TestCase):
             test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
         )
 
+    def test_head_aggregate_assignment2(self):
+        self.assertTransformEqual(
+            "{king(spain) := felipe}.",
+            "#count { 0,Fking(spain,felipe): Fking(spain,felipe) }.",
+            test_pipeline=PipelineStage.TO_ASP,
+        )
+
     def test_no_change(self):
         self.assertTransformEqual(
             "f(X) :- g(X).",
@@ -236,27 +242,12 @@ class TestFASPProgramTransformer(unittest.TestCase):
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
         )
 
-    # def test_king0(self):
-    #     # self.assertTransformEqual(
-    #     #     "{ f(X) := Y: p(X,Y) } = 1.",
-    #     #     "#count{ 0,ASS(f(X),Y): f(X) := Y: p(X,Y) } = 1.",
-    #     #     test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
-    #     # )
-    #     self.assertTransformEqual(
-    #         "{ f(X) := Y: p(X,Y) } = N.",
-    #         "{ ASS(f(X),Y): p(X,Y) } = N.",
-    #         test_pipeline=PipelineStage.RESTORE_COMPARISONS,
-    #     )
-    #     # self.assertTransformEqual(
-    #     #     "{ f(X) := Y: p(X,Y) } = N.",
-    #     #     "{ f(X) := Y: p(X,Y) } = N.",
-    #     #     test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
-    #     # )
-    #     # self.assertTransformEqual(
-    #     #     "{ f(X):=Y: p(X,Y) } = N.",
-    #     #     None,
-    #     #     test_pipeline=PipelineStage.NEGATED_LITERALS,
-    #     # )
+    def test_king0(self):
+        self.assertTransformEqual(
+            "{ f(X) := Y: p(X,Y) } = 1.",
+            "#count{ 0,Ff(X,Y): f(X) := Y: p(X,Y) } = 1.",
+            test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
+        )
 
     def test_basic_negated_literals(self):
         self.assertTransformEqual(
@@ -276,7 +267,6 @@ class TestFASPProgramTransformer(unittest.TestCase):
             a :- p(C); #false: country(FUN), f(C)=FUN.
             """,
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
-            # LOG=True
         )
 
     def test_basic_negated_literals2b(self):
@@ -289,9 +279,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
             f(X) := 1 :- p(X).
             a :- p(*); #false: country(FUN), f(b)=FUN.
             """,
-            # a :- p(C); #false: country(FUN), f(b)=FUN.
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
-            # LOG=True
         )
         self.assertTransformEqual(
             """
@@ -302,9 +290,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
             b := 1 :- p(X).
             a :- p(*); #false: country(f(FUN)), b=FUN.
             """,
-            # a :- p(C); #false: country(FUN), f(b)=FUN.
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
-            # LOG=True
         )
         self.assertTransformEqual(
             """
@@ -315,16 +301,14 @@ class TestFASPProgramTransformer(unittest.TestCase):
             b := 1 :- p(X).
             a :- p(*); #false: country(f(FUN,c)), b=FUN.
             """,
-            # a :- p(C); #false: country(FUN), f(b)=FUN.
             test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
-            # LOG=True
         )
 
-        # self.assertTransformEqual(
-        #     "a :- p(C); #false: country(C).",
-        #     "a :- p(C); #false: country(C).",
-        #     test_pipeline=PipelineStage.UNNEST_FUNCTIONS
-        # )
+        self.assertTransformEqual(
+            "a :- p(C); #false: country(C).",
+            "a :- p(C); #false: country(C).",
+            test_pipeline=PipelineStage.UNNEST_FUNCTIONS
+        )
 
     def test_basic_negated_literals3(self):
         self.assertTransformEqual(
@@ -359,8 +343,6 @@ class TestFASPProgramTransformer(unittest.TestCase):
             a := 1 :- p(X).
             #maximize { 1@0,f(X),a: p(X), f(a) }.
             """,
-            # :~ p(X); f(a). [-1@0,f(X),a]
-            # The maximize statement is changed into a weak constraint after clingo rewrite
             """
             a := 1 :- p(X).
             :~ p(X); f(FUN2); a=FUN; a=FUN2. [-1@0,f(X),FUN]
