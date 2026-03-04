@@ -6,6 +6,7 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number, Symbol, SymbolType
 
+from fasp.syntax_tree._context import RewriteContext
 from fasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
@@ -385,34 +386,20 @@ class AssignmentProtector:
     def __init__(self, library: Library, assignment_name: str = ASSIGNMENT_NAME):
         self.library = library
         self.assignment_name = assignment_name
-        position = Position(library, "<aux>", 0, 0)
-        self.location = Location(position, position)
 
     def protect_head_simple_assignment(
         self, node: HeadSimpleAssignment
     ) -> ast.LiteralSymbolic:
         left = node.assigned_function
-        # right = node.value
-        location = node.location
-
         # Build ASS(left, right)
         atom = ast.TermFunction(
             self.library,
-            location,
+            node.location,
             ASSIGNMENT_NAME,
             [ast.ArgumentTuple(self.library, [left, node.value])],
         )
 
-        return ast.LiteralSymbolic(self.library, location, ast.Sign.NoSign, atom)
-
-    # def protect_assignment_element(
-    #     self, node: AssignmentAggregateElement
-    # ) -> ast.LiteralSymbolic:
-    #     """
-    #     For an AssignmentAggregateElement the 'assignment' field is a HeadSimpleAssignment
-    #     and we protect it similarly.
-    #     """
-    #     return self.protect_head_simple_assignment(node.assignment)
+        return ast.LiteralSymbolic(self.library, node.location, ast.Sign.NoSign, atom)
 
 
 class _AssignmentProtectorTransformer:
@@ -420,10 +407,10 @@ class _AssignmentProtectorTransformer:
     A transformer to protect assignments in FASP ASTs.
     """
 
-    def __init__(self, library: ELibrary):
-        self.elib = library
-        self.library = library.library
-
+    def __init__(self, context: RewriteContext):
+        self.context = context
+        self.elib = context.lib
+        self.library = context.lib.library
         self.protect_assignment = AssignmentProtector(self.library)
 
     @singledispatchmethod
@@ -530,19 +517,19 @@ class _AssignmentProtectorTransformer:
 
 
 def protect_assignments(
-    library: ELibrary, statements: Iterable[FASP_Statement]
+    context: RewriteContext, statements: Iterable[FASP_Statement]
 ) -> Iterable[ast.Statement]:
     """
     Protect assignments in a FASP AST (assignment-heads etc).
 
     Args:
-        library (ELibrary): Clingo library with assignment node support.
+        context (FASPRewriteContext): FASP rewrite context.
         statements (Iterable[FASP_Statement]): Statements.
 
     Returns:
         Iterable[FASP_Statement]: Protected AST statements with assignments encoded as ASS(...).
     """
-    transformer = _AssignmentProtectorTransformer(library)
+    transformer = _AssignmentProtectorTransformer(context)
     return (transformer.rewrite(statement) for statement in statements)
 
 
