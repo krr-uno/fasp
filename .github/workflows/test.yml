@@ -17,13 +17,13 @@ jobs:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
         # os: ['ubuntu-latest']
         python-version: ["3.13"]
+        runAll:
+          - ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') }}
         exclude:
           - os: 'windows-latest'
-            python-version: "3.13"
-            if: github.event_name == 'push' && !(github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+            runAll: false
           - os: 'macos-latest'
-            python-version: "3.13"
-            if: github.event_name == 'push' && !(github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+            runAll: false
 
     defaults:
       run:
