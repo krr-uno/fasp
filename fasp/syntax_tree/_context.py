@@ -16,6 +16,7 @@ class RewriteContext:
         self,
         lib: ELibrary = ELibrary(),
         prefix_function: str = "F",
+        *,
         prefix_variable: str = "FUN",
         prefix_variable_agg: str = "AGG",
         prefix_protect_comparison: str = "CMP",

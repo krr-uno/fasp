@@ -21,7 +21,7 @@ from fasp.syntax_tree.rewritings.protecting import (
     restore_assignments,
     restore_comparisons,
 )
-from fasp.syntax_tree.rewritings.showf import showf_to_show_transformer
+from fasp.syntax_tree.rewritings.showf import rewrite_showf
 from fasp.syntax_tree.rewritings.some_assignments import (
     transform_choice_some_to_choice_assignment,
 )
@@ -231,7 +231,7 @@ class FASPProgramTransformer:
     def _showf_to_show_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        return showf_to_show_transformer(self.ctx, statements)
+        return [rewrite_showf(self.ctx, stmt) for stmt in statements]
 
 
 def transform_to_clingo_statements(
