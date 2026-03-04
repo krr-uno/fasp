@@ -11,9 +11,11 @@ from fasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,
+    ChoiceSomeAssignment,
     FASP_Statement,
     HeadAggregateAssignment,
     HeadAggregateAssignmentElement,
+    HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
 from fasp.util.ast import (
@@ -394,118 +396,95 @@ def protect_head_simple_assignment(
     )
 
 
-class _AssignmentProtectorTransformer:
-    """
-    A transformer to protect assignments in FASP ASTs.
-    """
-
-    def __init__(self, context: RewriteContext):
-        self.context = context
-        self.elib = context.lib
-        self.library = context.lib.library
-        # self.protect_assignment = AssignmentProtector(self.context)
-
-    @singledispatchmethod
-    def dispatch(self, node: AST_T) -> AST_T:
-        raise AssertionError(
-            f"{(node).__class__.__name__} seen during assignment protection. Unhandled."
-        )
-        # if hasattr(node, "transform"):
-        # # Recurse into children via their transform method.
-        #     return node.transform(self.library, self.dispatch) or node
-        # return node
-
-    @dispatch.register
-    def _(self, node: HeadSimpleAssignment) -> ast.LiteralSymbolic:
-        return protect_head_simple_assignment(self.context, node)
-
-    # @dispatch.register
-    # def _(self, node: AssignmentAggregateElement) -> ast.LiteralSymbolic:
-    #     return self.protect_assignment.protect_assignment_element(node)
-
-    # @dispatch.register
-    # def _(self, node: ChoiceSomeAssignment) -> None:
-    #     raise AssertionError(
-    #         "ChoiceSomeAssignment seen during assignment protection. Unhandled."
-    #     )
-
-    def rewrite(self, node: FASP_Statement) -> ast.Statement:
-        if not isinstance(node, AssignmentRule):
-            return node
-
-        head = getattr(node, "head", None)
-        body = list(getattr(node, "body", []))
-        if isinstance(head, HeadSimpleAssignment):
-            lit = self.dispatch(head)
+def protect_choice_assignment(
+    context: RewriteContext, head: ChoiceAssignment
+) -> ast.HeadSetAggregate:
+    new_elements = []
+    for element in head.elements:
+        if isinstance(element, AssignmentAggregateElement):
+            lit = protect_head_simple_assignment(context, element.assignment)
             assert isinstance(lit, ast.LiteralSymbolic)
-
-            new_head = ast.HeadSimpleLiteral(self.library, lit)
-            return ast.StatementRule(self.library, node.location, new_head, body)
-
-        if isinstance(head, ChoiceAssignment):
-            new_elements = []
-            for element in head.elements:
-                if isinstance(element, AssignmentAggregateElement):
-                    lit = self.dispatch(element.assignment)
-                    assert isinstance(lit, ast.LiteralSymbolic)
-                    set_element = ast.SetAggregateElement(
-                        self.library,
-                        element.location,
-                        lit,
-                        element.condition,
-                    )
-                    new_elements.append(set_element)
-                else:
-                    new_elements.append(element)
-
-            new_head = ast.HeadSetAggregate(
-                self.library,
-                head.location,
-                head.left,
-                new_elements,
-                head.right,
+            set_element = ast.SetAggregateElement(
+                context.lib.library,
+                element.location,
+                lit,
+                element.condition,
             )
-            return ast.StatementRule(
-                self.library,
-                node.location,
-                new_head,
-                body,
-            )
-        if isinstance(head, HeadAggregateAssignment):
-            new_head_aggregate_elements = []
-            for element in head.elements:
-                if isinstance(element, HeadAggregateAssignmentElement):
-                    lit = self.dispatch(element.assignment)
-                    assert isinstance(lit, ast.LiteralSymbolic)
-                    new_head_aggregate_element = ast.HeadAggregateElement(
-                        self.library,
-                        element.location,
-                        element.tuple,
-                        lit,
-                        element.condition,
-                    )
-                    new_head_aggregate_elements.append(new_head_aggregate_element)
-                else:
-                    new_head_aggregate_elements.append(element)
-            new_head = ast.HeadAggregate(
-                self.library,
-                head.location,
-                head.left,
-                head.function,
-                new_head_aggregate_elements,
-                head.right,
-            )
-            return ast.StatementRule(
-                self.library,
-                node.location,
-                new_head,
-                body,
-            )
+            new_elements.append(set_element)
+        else:
+            new_elements.append(element)
 
-        # Raises assertion error from dispatch
-        self.dispatch(head)
-        # Should not happen
-        return cast(ast.Statement, node)  # pragma: no cover
+    return ast.HeadSetAggregate(
+        context.lib.library,
+        head.location,
+        head.left,
+        new_elements,
+        head.right,
+    )
+
+
+def protect_head_aggregate_assignment(
+    context: RewriteContext, node: HeadAggregateAssignment
+) -> ast.HeadAggregate:
+    new_head_aggregate_elements = []
+    for element in node.elements:
+        if isinstance(element, HeadAggregateAssignmentElement):
+            lit = protect_head_simple_assignment(context, element.assignment)
+            assert isinstance(lit, ast.LiteralSymbolic)
+            new_head_aggregate_element = ast.HeadAggregateElement(
+                context.lib.library,
+                element.location,
+                element.tuple,
+                lit,
+                element.condition,
+            )
+            new_head_aggregate_elements.append(new_head_aggregate_element)
+        else:
+            new_head_aggregate_elements.append(element)
+    return ast.HeadAggregate(
+        context.lib.library,
+        node.location,
+        node.left,
+        node.function,
+        new_head_aggregate_elements,
+        node.right,
+    )
+
+
+def rewrite(context: RewriteContext, node: FASP_Statement) -> ast.Statement:
+    if not isinstance(node, AssignmentRule):
+        return node
+
+    head = node.head
+    body = node.body
+    assert not isinstance(
+        head, ChoiceSomeAssignment
+    ), "ChoiceSomeAssignment seen during assignment protection. Unhandled."
+    assert not isinstance(
+        head, HeadAssignmentAggregate
+    ), "HeadAssignmentAggregate seen during assignment protection. Unhandled."
+
+    if isinstance(head, HeadSimpleAssignment):
+        lit = protect_head_simple_assignment(context, head)
+        assert isinstance(lit, ast.LiteralSymbolic)
+
+        new_head = ast.HeadSimpleLiteral(context.lib.library, lit)
+        return ast.StatementRule(context.lib.library, node.location, new_head, body)
+
+    if isinstance(head, ChoiceAssignment):
+        return ast.StatementRule(
+            context.lib.library,
+            node.location,
+            protect_choice_assignment(context, head),
+            body,
+        )
+
+    return ast.StatementRule(
+        context.lib.library,
+        node.location,
+        protect_head_aggregate_assignment(context, head),
+        body,
+    )
 
 
 def protect_assignments(
@@ -521,8 +500,9 @@ def protect_assignments(
     Returns:
         Iterable[FASP_Statement]: Protected AST statements with assignments encoded as ASS(...).
     """
-    transformer = _AssignmentProtectorTransformer(context)
-    return (transformer.rewrite(statement) for statement in statements)
+    # transformer = _AssignmentProtectorTransformer(context)
+    # return (transformer.rewrite(statement) for statement in statements)
+    return (rewrite(context, statement) for statement in statements)
 
 
 # RESTORATION: Rule with ASS(left, right) --> AssignmentRule
