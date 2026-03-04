@@ -60,13 +60,10 @@ class FASPProgramTransformer:
         self,
         ctx: FASPRewriteContext,
         statement_asts: Iterable[FASP_Statement],
-        # *,
-        # prefix: str = "F",
-        # ctx: RewriteContext | None = None,
     ):
         self.ctx = ctx
-        self.elib = self.ctx.lib
-        self.library = self.elib.library
+        self.lib = self.ctx.lib
+        self.library = self.lib.library
 
         self.statement_asts = statement_asts
         self.prefix = self.ctx.prefix_function
@@ -140,7 +137,7 @@ class FASPProgramTransformer:
     def _protect_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        return protect_assignments(self.elib, statements)
+        return protect_assignments(self.lib, statements)
 
     def _protect_comparisons_wrapper(
         self, statements: Iterable[FASP_Statement]
@@ -186,7 +183,7 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return restore_assignments(
-            self.elib,
+            self.lib,
             cast(Iterable[ast.Statement], statements),
             self.ctx.prefix_function,
         )
@@ -195,7 +192,7 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return rewrite_negated_body_literals_from_statements(
-            self.elib, cast(Iterable[ast.Statement], statements)
+            self.lib, cast(Iterable[ast.Statement], statements)
         )
 
     def _unnest_functions_wrapper(

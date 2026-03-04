@@ -17,5 +17,3 @@ def rewrite_showf(ctx: RewriteContext, statement: FASP_Statement) -> FASP_Statem
         sign=False,
         value=True,
     )
-
-
