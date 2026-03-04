@@ -20,10 +20,12 @@ class RewriteContext:
         prefix_variable: str = "FUN",
         prefix_variable_agg: str = "AGG",
         prefix_protect_comparison: str = "CMP",
+        prefix_protect_assignment: str = "ASS",
     ):
         self.lib = lib
         self.prefix_function = prefix_function
         self.prefix_variable = prefix_variable
         self.prefix_variable_agg = prefix_variable_agg
         self.prefix_protect_comparison = prefix_protect_comparison
+        self.prefix_protect_assignment = prefix_protect_assignment
         self.ctx = ClingoRewriteContext(self.lib.library)

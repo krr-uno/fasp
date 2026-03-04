@@ -377,31 +377,21 @@ def restore_comparisons(
     return (transformer.rewrite(statement) for statement in statements)
 
 
-# #########################################################################
-class AssignmentProtector:
-    """
-    A class to protect assignments in FASP ASTs.
-    """
+def protect_head_simple_assignment(
+    context: RewriteContext, node: HeadSimpleAssignment
+) -> ast.LiteralSymbolic:
+    left = node.assigned_function
+    # Build ASS(left, right)
+    atom = ast.TermFunction(
+        context.lib.library,
+        node.location,
+        context.prefix_protect_assignment,
+        [ast.ArgumentTuple(context.lib.library, [left, node.value])],
+    )
 
-    def __init__(self, context: RewriteContext, assignment_name: str = ASSIGNMENT_NAME):
-        self.context = context
-        self.assignment_name = assignment_name
-
-    def protect_head_simple_assignment(
-        self, node: HeadSimpleAssignment
-    ) -> ast.LiteralSymbolic:
-        left = node.assigned_function
-        # Build ASS(left, right)
-        atom = ast.TermFunction(
-            self.context.lib.library,
-            node.location,
-            ASSIGNMENT_NAME,
-            [ast.ArgumentTuple(self.context.lib.library, [left, node.value])],
-        )
-
-        return ast.LiteralSymbolic(
-            self.context.lib.library, node.location, ast.Sign.NoSign, atom
-        )
+    return ast.LiteralSymbolic(
+        context.lib.library, node.location, ast.Sign.NoSign, atom
+    )
 
 
 class _AssignmentProtectorTransformer:
@@ -413,7 +403,7 @@ class _AssignmentProtectorTransformer:
         self.context = context
         self.elib = context.lib
         self.library = context.lib.library
-        self.protect_assignment = AssignmentProtector(self.context)
+        # self.protect_assignment = AssignmentProtector(self.context)
 
     @singledispatchmethod
     def dispatch(self, node: AST_T) -> AST_T:
@@ -427,7 +417,7 @@ class _AssignmentProtectorTransformer:
 
     @dispatch.register
     def _(self, node: HeadSimpleAssignment) -> ast.LiteralSymbolic:
-        return self.protect_assignment.protect_head_simple_assignment(node)
+        return protect_head_simple_assignment(self.context, node)
 
     # @dispatch.register
     # def _(self, node: AssignmentAggregateElement) -> ast.LiteralSymbolic:
