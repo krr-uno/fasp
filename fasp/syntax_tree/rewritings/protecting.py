@@ -383,8 +383,8 @@ class AssignmentProtector:
     A class to protect assignments in FASP ASTs.
     """
 
-    def __init__(self, library: Library, assignment_name: str = ASSIGNMENT_NAME):
-        self.library = library
+    def __init__(self, context: RewriteContext, assignment_name: str = ASSIGNMENT_NAME):
+        self.context = context
         self.assignment_name = assignment_name
 
     def protect_head_simple_assignment(
@@ -393,13 +393,15 @@ class AssignmentProtector:
         left = node.assigned_function
         # Build ASS(left, right)
         atom = ast.TermFunction(
-            self.library,
+            self.context.lib.library,
             node.location,
             ASSIGNMENT_NAME,
-            [ast.ArgumentTuple(self.library, [left, node.value])],
+            [ast.ArgumentTuple(self.context.lib.library, [left, node.value])],
         )
 
-        return ast.LiteralSymbolic(self.library, node.location, ast.Sign.NoSign, atom)
+        return ast.LiteralSymbolic(
+            self.context.lib.library, node.location, ast.Sign.NoSign, atom
+        )
 
 
 class _AssignmentProtectorTransformer:
@@ -411,7 +413,7 @@ class _AssignmentProtectorTransformer:
         self.context = context
         self.elib = context.lib
         self.library = context.lib.library
-        self.protect_assignment = AssignmentProtector(self.library)
+        self.protect_assignment = AssignmentProtector(self.context)
 
     @singledispatchmethod
     def dispatch(self, node: AST_T) -> AST_T:
