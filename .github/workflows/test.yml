@@ -17,12 +17,17 @@ jobs:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
         # os: ['ubuntu-latest']
         python-version: ["3.13"]
+        exclude:
+          - os: 'windows-latest'
+            python-version: "3.13"
+            if: github.event_name == 'push' && !(github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+          - os: 'macos-latest'
+            python-version: "3.13"
+            if: github.event_name == 'push' && !(github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
 
     defaults:
       run:
         shell: bash -l {0}
-
-    if: !(matrix.os == 'windows-latest' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')) && !(matrix.os == 'macos-latest' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'))
 
     steps:
     - name: Conda
