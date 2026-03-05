@@ -104,18 +104,18 @@ class FASPProgramTransformer:
         Parse the program string, collect variables,
         then run the pipeline and return transformed statements.
         """
-        parsed_statements = self.statement_asts
-
-        # start pipeline with parsed_statements
-        current: Iterable[FASP_Statement] = parsed_statements
-        for stage in self.pipeline:
-            current = list(self.PIPELINE_IMPL[stage](current))
-            if LOG:
-                self.log_info(current, stage)  # pragma: no cover
-            if stage >= stop_at:
-                break
-
-        return current
+        statements = self._showf_to_show_wrapper(self.statement_asts)
+        statements = self._rewrite_choice_some_wrapper(statements)
+        statements = self._normalize_assignment_aggregates_wrapper(statements)
+        statements = self._protect_assignments_wrapper(statements)
+        statements = self._protect_comparisons_wrapper(statements)
+        statements = self._clingo_rewrite_wrapper(statements)
+        statements = self._restore_comparisons_wrapper(statements)
+        statements = self._restore_assignments_wrapper(statements)
+        statements = self._negated_literals_wrapper(statements)
+        statements = self._unnest_functions_wrapper(statements)
+        statements = self._to_asp_wrapper(statements)
+        return statements
 
     def _rewrite_choice_some_wrapper(
         self, statements: Iterable[FASP_Statement]
