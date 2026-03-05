@@ -18,7 +18,7 @@ jobs:
         # os: ['ubuntu-latest']
         python-version: ["3.13"]
         runAll:
-          - ${{ ithub.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')) }}
+          - ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')) }}
         exclude:
           - os: 'windows-latest'
             runAll: false
