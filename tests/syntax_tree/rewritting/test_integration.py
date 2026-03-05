@@ -13,7 +13,7 @@ from fasp.syntax_tree._context import RewriteContext
 class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
         self.elib = ELibrary()
-        self.ctx = RewriteContext(self.elib, prefix="F")
+        self.ctx = RewriteContext(self.elib, prefix_function="F")
         self.maxDiff = None  # Show full diff on assertion failure
 
     def assertTransformEqual(

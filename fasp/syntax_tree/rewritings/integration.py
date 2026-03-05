@@ -21,7 +21,7 @@ from fasp.syntax_tree.rewritings.protecting import (
     restore_assignments,
     restore_comparisons,
 )
-from fasp.syntax_tree.rewritings.showf import showf_to_show_transformer
+from fasp.syntax_tree.rewritings.showf import rewrite_showf
 from fasp.syntax_tree.rewritings.some_assignments import (
     transform_choice_some_to_choice_assignment,
 )
@@ -47,21 +47,26 @@ class PipelineStage(IntEnum):
     TO_ASP = auto()
 
 
+# class Statement:
+
+#     def __init__(self, original: FASP_Statement):
+#         self.original = original
+#         self.has_assignments = isinstance(original, AssignmentRule)
+#         self.rewritten: list[FASP_Statement] = []
+
+
 class FASPProgramTransformer:
     def __init__(
         self,
         ctx: FASPRewriteContext,
         statement_asts: Iterable[FASP_Statement],
-        # *,
-        # prefix: str = "F",
-        # ctx: RewriteContext | None = None,
     ):
         self.ctx = ctx
-        self.elib = self.ctx.elib
-        self.library = self.elib.library
+        self.lib = self.ctx.lib
+        self.library = self.lib.library
 
         self.statement_asts = statement_asts
-        self.prefix = self.ctx.prefix
+        self.prefix = self.ctx.prefix_function
 
         self.evaluable_functions: set[SymbolSignature] = set()
         self.pipeline = list(PipelineStage)
@@ -132,8 +137,7 @@ class FASPProgramTransformer:
     def _protect_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        return protect_assignments(self.elib, statements)
-
+        return protect_assignments(self.ctx, statements)
 
     def _protect_comparisons_wrapper(
         self, statements: Iterable[FASP_Statement]
@@ -144,7 +148,7 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         ctx = self.ctx.ctx
-        self.ctx.elib.ignore_info = True
+        self.ctx.lib.ignore_info = True
         out = []
         errors = []
         for stmt in statements:
@@ -159,7 +163,7 @@ class FASPProgramTransformer:
                     out.append(new_stmt)
             else:
                 out.append(stmt)
-        self.ctx.elib.ignore_info = False
+        self.ctx.lib.ignore_info = False
         if errors:
             raise RuntimeError("rewriting failed", errors)
         return out
@@ -179,14 +183,16 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return restore_assignments(
-            self.elib, cast(Iterable[ast.Statement], statements), self.ctx.prefix
+            self.lib,
+            cast(Iterable[ast.Statement], statements),
+            self.ctx.prefix_function,
         )
 
     def _negated_literals_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return rewrite_negated_body_literals_from_statements(
-            self.elib, cast(Iterable[ast.Statement], statements)
+            self.lib, cast(Iterable[ast.Statement], statements)
         )
 
     def _unnest_functions_wrapper(
@@ -222,7 +228,7 @@ class FASPProgramTransformer:
     def _showf_to_show_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        return showf_to_show_transformer(self.ctx, statements)
+        return [rewrite_showf(self.ctx, stmt) for stmt in statements]
 
 
 def transform_to_clingo_statements(
@@ -250,7 +256,7 @@ def transform_to_clingo_statements(
         out.append(stmt)
     out.extend(
         functional_constraints(
-            ctx.elib.library, transformer.evaluable_functions, ctx.prefix
+            ctx.lib.library, transformer.evaluable_functions, ctx.prefix_function
         )
     )
     return out
