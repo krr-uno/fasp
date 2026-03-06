@@ -1,6 +1,9 @@
-from typing import Tuple, Iterable
+from typing import Iterable, Tuple
+
 from clingo import ast
+
 from casp.util.ast import HeadLiteralAST, TermAST
+
 
 # Utility to negate a Relation
 def negate_operator(op: ast.Relation) -> ast.Relation:
@@ -19,21 +22,28 @@ def negate_operator(op: ast.Relation) -> ast.Relation:
     elif op == rel.GreaterEqual:
         return rel.Less
     else:
-        raise ValueError(f"Unknown relation: {op}")  #pragma: no cover
+        raise ValueError(f"Unknown relation: {op}")  # pragma: no cover
 
 
 def is_constraint(rule_head: HeadLiteralAST) -> bool:
     """
-        Given a rule head, returns true if it is a constraint head (#false), else returns False.
+    Given a rule head, returns true if it is a constraint head (#false), else returns False.
     """
-    if isinstance(rule_head, ast.HeadSimpleLiteral) and isinstance(rule_head.literal, ast.LiteralBoolean) and rule_head.literal.sign == ast.Sign.NoSign and  rule_head.literal.value == False:
+    if (
+        isinstance(rule_head, ast.HeadSimpleLiteral)
+        and isinstance(rule_head.literal, ast.LiteralBoolean)
+        and rule_head.literal.sign == ast.Sign.NoSign
+        and rule_head.literal.value == False
+    ):
         return True
     return False
 
 
-def extract_comparison_terms(comp: ast.LiteralComparison) -> Tuple[Iterable[TermAST], ast.Relation, Iterable[TermAST]] | None:
+def extract_comparison_terms(
+    comp: ast.LiteralComparison,
+) -> Tuple[Iterable[TermAST], ast.Relation, Iterable[TermAST]] | None:
     """
-        Extracts (lhs_terms, op, rhs_terms) from a LiteralComparison
+    Extracts (lhs_terms, op, rhs_terms) from a LiteralComparison
     """
     # NOTE: Need to check if this is the correct way to extract terms
     lhs_terms = [comp.left]
@@ -44,7 +54,7 @@ def extract_comparison_terms(comp: ast.LiteralComparison) -> Tuple[Iterable[Term
         rhs_terms.append(guard.term)
     assert op is not None
     return (lhs_terms, op, rhs_terms)
-    
+
     # if op is not None:
     #     return (lhs_terms, op, rhs_terms)
     # return None

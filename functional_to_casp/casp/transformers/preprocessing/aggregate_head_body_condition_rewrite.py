@@ -1,19 +1,21 @@
 from functools import singledispatchmethod
+
 import clingo.ast as ast
 import clingo.core as core
 
-from casp.util.ast import HeadLiteralAST,StatementAST
+from casp.util.ast import HeadLiteralAST, StatementAST
+
 
 class AggregateHeadBodyConditionTransformer:
     """Move inline head-aggregate conditions into the surrounding body."""
 
     def __init__(self, lib: core.Library):
         self._lib = lib
-    
+
     @singledispatchmethod
     def rewrite_rule(self, rule: StatementAST) -> StatementAST | None:
         return rule
-    
+
     @rewrite_rule.register
     def _(self, rule: ast.StatementRule) -> ast.StatementRule | None:
         head = rule.head
@@ -28,9 +30,7 @@ class AggregateHeadBodyConditionTransformer:
         for element in head.elements:
             if element.condition:
                 for lit in element.condition:
-                    lifted_literals.append(
-                        ast.BodySimpleLiteral(self._lib, lit)
-                    )   
+                    lifted_literals.append(ast.BodySimpleLiteral(self._lib, lit))
                 updated_elements.append(element.update(self._lib, condition=[]))
             else:
                 updated_elements.append(element)
@@ -47,4 +47,3 @@ class AggregateHeadBodyConditionTransformer:
         left = getattr(head, "left", getattr(head, "left_guard", None))
         right = getattr(head, "right", getattr(head, "right_guard", None))
         return left is None and right is None
-

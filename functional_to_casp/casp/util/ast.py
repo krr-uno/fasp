@@ -1,18 +1,7 @@
-import re
-import sys
-import typing
 from typing import (
-    AbstractSet,
-    Any,
-    NamedTuple,
-    Optional,
-    Sequence,
-    TypeIs,
     TypeVar,
-    cast,
 )
 
-from clingo import ast
 from clingo.ast import (
     ArgumentTuple,
     BodyAggregate,
@@ -79,8 +68,7 @@ from clingo.ast import (
     TheoryTermVariable,
     UnparsedElement,
 )
-from clingo.core import Library, Location, LogLevel, MessageType, Position
-from clingo.symbol import Symbol, SymbolType
+from clingo.symbol import Symbol
 
 StatementAST = (
     StatementRule
@@ -252,7 +240,6 @@ FunctionLikeAST = TermFunction | TermSymbolic | TermTuple | Symbol
 
 #     def __str__(self) -> str:  # pragma: no cover
 #         return f"{self.location}: error: syntax error, {self.message}"
-
 
 
 # class SyntacticCheckVisitor:

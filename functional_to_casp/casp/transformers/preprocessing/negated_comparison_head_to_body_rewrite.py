@@ -3,8 +3,9 @@ from functools import singledispatchmethod
 from clingo import ast
 from clingo.core import Library
 
-from casp.util.util import negate_operator, extract_comparison_terms
 from casp.util.ast import StatementAST
+from casp.util.util import extract_comparison_terms, negate_operator
+
 
 class NegatedComparisonHeadToBodyTransformer:
     """
@@ -16,6 +17,7 @@ class NegatedComparisonHeadToBodyTransformer:
         same but produce a 1-literal head.
       - Otherwise, leave the rule unchanged.
     """
+
     def __init__(self, lib: Library):
         self.lib = lib
 
@@ -33,7 +35,7 @@ class NegatedComparisonHeadToBodyTransformer:
             remaining = []
             for elem in head.elements:
                 # Handle HeadConditionalLiteral
-                lit = elem.literal if hasattr(elem, 'literal') else elem
+                lit = elem.literal if hasattr(elem, "literal") else elem
                 if isinstance(lit, ast.LiteralComparison):
                     extracted = extract_comparison_terms(lit)
                     # if extracted:
@@ -42,14 +44,22 @@ class NegatedComparisonHeadToBodyTransformer:
                     lhs_terms = tuple(lhs_terms)
                     rhs_terms = tuple(rhs_terms)
                     neg_op = negate_operator(op)
-                    lhs = lhs_terms[0] if len(lhs_terms) == 1 else ast.TermTuple(self.lib, lit.location, lhs_terms)
-                    rhs = rhs_terms[0] if len(rhs_terms) == 1 else ast.TermTuple(self.lib, lit.location, rhs_terms)
+                    lhs = (
+                        lhs_terms[0]
+                        if len(lhs_terms) == 1
+                        else ast.TermTuple(self.lib, lit.location, lhs_terms)
+                    )
+                    rhs = (
+                        rhs_terms[0]
+                        if len(rhs_terms) == 1
+                        else ast.TermTuple(self.lib, lit.location, rhs_terms)
+                    )
                     comp = ast.LiteralComparison(
                         self.lib,
                         lit.location,
                         ast.Sign.NoSign,
                         lhs,
-                        [ast.RightGuard(self.lib, neg_op, rhs)]
+                        [ast.RightGuard(self.lib, neg_op, rhs)],
                     )
                     body.append(ast.BodySimpleLiteral(self.lib, comp))
                     # else:
@@ -60,31 +70,47 @@ class NegatedComparisonHeadToBodyTransformer:
             return ast.StatementRule(self.lib, rule.location, new_head, body)
 
         # --- Case 2: Single-literal head ---
-        if isinstance(head, ast.HeadSimpleLiteral) and isinstance(getattr(head, 'literal', None), ast.LiteralComparison):
+        if isinstance(head, ast.HeadSimpleLiteral) and isinstance(
+            getattr(head, "literal", None), ast.LiteralComparison
+        ):
             comp_lit = head.literal
-            assert isinstance(comp_lit, ast.LiteralComparison) # For mypy: typecheck
+            assert isinstance(comp_lit, ast.LiteralComparison)  # For mypy: typecheck
             extracted = extract_comparison_terms(comp_lit)
             if extracted:
                 lhs_terms, op, rhs_terms = extracted
                 lhs_terms = tuple(lhs_terms)
                 rhs_terms = tuple(rhs_terms)
                 neg_op = negate_operator(op)
-                lhs = lhs_terms[0] if len(lhs_terms) == 1 else ast.TermTuple(self.lib, comp_lit.location, lhs_terms)
-                rhs = rhs_terms[0] if len(rhs_terms) == 1 else ast.TermTuple(self.lib, comp_lit.location, rhs_terms)
+                lhs = (
+                    lhs_terms[0]
+                    if len(lhs_terms) == 1
+                    else ast.TermTuple(self.lib, comp_lit.location, lhs_terms)
+                )
+                rhs = (
+                    rhs_terms[0]
+                    if len(rhs_terms) == 1
+                    else ast.TermTuple(self.lib, comp_lit.location, rhs_terms)
+                )
                 comp = ast.LiteralComparison(
                     self.lib,
                     comp_lit.location,
                     ast.Sign.NoSign,
                     lhs,
-                    [ast.RightGuard(self.lib, neg_op, rhs)]
+                    [ast.RightGuard(self.lib, neg_op, rhs)],
                 )
                 body.append(ast.BodySimpleLiteral(self.lib, comp))
                 # produce a rule with an empty head (constraint if body non-empty)
-                empty_head = ast.HeadSimpleLiteral(self.lib, ast.LiteralBoolean(self.lib, comp_lit.location, ast.Sign.NoSign, False))
+                empty_head = ast.HeadSimpleLiteral(
+                    self.lib,
+                    ast.LiteralBoolean(
+                        self.lib, comp_lit.location, ast.Sign.NoSign, False
+                    ),
+                )
                 return ast.StatementRule(self.lib, rule.location, empty_head, body)
 
         # --- Default: leave unchanged ---
         return None
+
 
 # import clingo.ast as ast
 # from fasp.patternFinders.ast_utils import ASTUtils

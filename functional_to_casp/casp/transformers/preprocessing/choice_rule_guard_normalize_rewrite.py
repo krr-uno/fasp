@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from functools import singledispatchmethod
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
-from clingo.symbol import Number
 import clingo.ast as ast
 import clingo.core as core
+from clingo.symbol import Number
 
 from casp.util.ast import HeadLiteralAST, StatementAST
 
@@ -26,13 +26,17 @@ class ChoiceGuardTransformer:
         if not self._is_choice_head(head):
             return None
 
-        assert isinstance(head, (ast.HeadSetAggregate, ast.HeadAggregate))  # Redunant for mypy: typecheck
+        assert isinstance(
+            head, (ast.HeadSetAggregate, ast.HeadAggregate)
+        )  # Redunant for mypy: typecheck
         left_guard = head.left
         right_guard = head.right
 
         left_guard, left_changed = self._normalize_guard(left_guard, is_left=True)
         right_guard, right_changed = self._normalize_guard(right_guard, is_left=False)
-        left_guard, right_guard, collapse_changed = self._collapse_equal_bounds(left_guard, right_guard)
+        left_guard, right_guard, collapse_changed = self._collapse_equal_bounds(
+            left_guard, right_guard
+        )
 
         if not any([left_changed, right_changed, collapse_changed]):
             return None
@@ -43,14 +47,18 @@ class ChoiceGuardTransformer:
     @staticmethod
     def _is_choice_head(head: HeadLiteralAST) -> bool:
         return isinstance(head, (ast.HeadSetAggregate, ast.HeadAggregate))
-    
-    def _normalize_guard[T: (
-        ast.LeftGuard,
-        ast.RightGuard,
-        )](self, guard: Optional[T], is_left: bool = True) -> Tuple[Optional[T], bool] :
+
+    def _normalize_guard[
+        T: (
+            ast.LeftGuard,
+            ast.RightGuard,
+        )
+    ](
+        self, guard: Optional[T], is_left: bool = True
+    ) -> Tuple[Optional[T], bool]:
         if guard is None:
             return None, False
-        if guard.relation != ast.Relation.Less: 
+        if guard.relation != ast.Relation.Less:
             return guard, False
         term_symbol = getattr(guard.term, "symbol", None)
         if term_symbol is None:
@@ -58,7 +66,9 @@ class ChoiceGuardTransformer:
         delta = 1 if is_left else -1
         new_symbol = Number(self._lib, term_symbol.number + delta)
         new_term = guard.term.update(self._lib, symbol=new_symbol)
-        new_guard = guard.update(self._lib, relation=ast.Relation.LessEqual, term=new_term)
+        new_guard = guard.update(
+            self._lib, relation=ast.Relation.LessEqual, term=new_term
+        )
         return new_guard, True
 
     def _collapse_equal_bounds(
@@ -78,7 +88,6 @@ class ChoiceGuardTransformer:
         l_sym = getattr(left.term, "symbol", None)
         r_sym = getattr(right.term, "symbol", None)
         return l_sym is not None and r_sym is not None and l_sym == r_sym
-
 
 
 # import clingo
@@ -110,7 +119,7 @@ class ChoiceGuardTransformer:
 
 #                     # Add 1 and create a new clingo.Symbol with the updated value
 #                     new_left_value = clingo.Number(left_value + 1)
-                    
+
 #                     # Update the term and comparison operator directly
 #                     left_guard.term = clingo.ast.SymbolicTerm(
 #                         location=left_guard.term.location,  # Use the existing location
@@ -132,7 +141,7 @@ class ChoiceGuardTransformer:
 
 #                     # Subtract 1 and create a new clingo.Symbol with the updated value
 #                     new_right_value = clingo.Number(right_value - 1)
-                    
+
 #                     # Update the term and comparison operator directly
 #                     right_guard.term = clingo.ast.SymbolicTerm(
 #                         location=right_guard.term.location,  # Use the existing location
