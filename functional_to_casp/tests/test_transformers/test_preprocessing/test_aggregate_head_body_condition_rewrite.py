@@ -4,11 +4,11 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from functional_to_casp.transformers.preprocessing.aggregate_head_body_condition_rewrite import (
+from casp.transformers.preprocessing.aggregate_head_body_condition_rewrite import (
     AggregateHeadBodyConditionTransformer,
 )
 
-from functional_to_casp.util.ast import AST
+from casp.util.ast import AST
 class AggregateHeadBodyConditionTransformerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.lib = Library()
@@ -22,12 +22,8 @@ class AggregateHeadBodyConditionTransformerTest(unittest.TestCase):
 
         rewritten: list[str] = []
         for node in nodes:
-            if isinstance(node, ast.StatementRule):
-                # transformer returns None when nothing changes
-                new_node = self.transformer.rewrite_rule(node) or node
-                rewritten.append(str(new_node).strip())
-            else:
-                rewritten.append(str(node).strip())
+            new_node = self.transformer.rewrite_rule(node) or node
+            rewritten.append(str(new_node).strip())
         rewritten =rewritten[1:]
         return "\n".join(line for line in rewritten if line)
 
@@ -56,18 +52,20 @@ class AggregateHeadBodyConditionTransformerTest(unittest.TestCase):
             """,
         )
 
-    # def test_guarded_head_aggregate_remains_unchanged(self) -> None:
-    #     program = """
-    #         1 { a(X): cond(X) } 1 :- base(X).
-    #     """
-    #     self.assertRewriteEqual(program, program)
+    def test_guarded_head_aggregate_remains_unchanged(self) -> None:
+        program = """
+            1 <= { a(X): cond(X) } <= 1 :- base(X).
+        """
+        self.assertRewriteEqual(program, program)
 
-    # def test_head_without_conditions_is_unchanged(self) -> None:
-    #     program = """
-    #         { a(X): cond(X) } :- base(X).
-    #     """
-    #     self.assertRewriteEqual(program, program)
+    def test_head_without_conditions_is_unchanged(self) -> None:
+        program = """
+            { a(X) } :- base(X).
+        """
+        self.assertRewriteEqual(program, program)
 
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_head_without_aggregate_is_unchanged(self) -> None:
+        program = """
+            a(X) :- base(X).
+        """
+        self.assertRewriteEqual(program, program)

@@ -2,7 +2,7 @@ from functools import singledispatchmethod
 import clingo.ast as ast
 import clingo.core as core
 
-from functional_to_casp.util.ast import HeadLiteralAST,StatementAST
+from casp.util.ast import HeadLiteralAST,StatementAST
 
 class AggregateHeadBodyConditionTransformer:
     """Move inline head-aggregate conditions into the surrounding body."""
@@ -44,9 +44,6 @@ class AggregateHeadBodyConditionTransformer:
 
     @staticmethod
     def _is_guardless_head_aggregate(head: HeadLiteralAST) -> bool:
-        aggregate_types = (ast.HeadAggregate, ast.HeadSetAggregate)
-        if not isinstance(head, aggregate_types):
-            return False
         left = getattr(head, "left", getattr(head, "left_guard", None))
         right = getattr(head, "right", getattr(head, "right_guard", None))
         return left is None and right is None

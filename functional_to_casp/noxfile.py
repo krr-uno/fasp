@@ -8,7 +8,7 @@ nox.options.sessions = "typecheck", "test", "format"
 # nox.options.sessions = "test", "format"
 nox.options.default_venv_backend = None
 
-PROJECT_NAME = "fasp"
+PROJECT_NAME = "casp"
 
 @nox.session(python=PYTHON_VERSIONS)
 # @nox.session
@@ -17,25 +17,14 @@ def test(session):
     if session.python:
         session.install("clingo")
         session.install("coverage")
-    # tests = [
-    #     "tests/ast",
-    # ]
-    # session.run("coverage", "run", "-m", "unittest", "discover", "-v")
+    
     session.run(
         "coverage",
         "run",
         "-m",
         "unittest",
         "discover",
-        # "tests/ast/test_protection.py",
-        # "tests/ast/test_rewriting_aggregates.py",
-        # "tests/ast/tree_sitter/test_parser.py",
-        # "tests/clingo/test_rewrite.py",
-        # "tests/ast/test_rewriting.py",
-        # "tests/ast/test_syntax_checking.py",
-        # "tests/examples.py",
-        # "tests/test_control.py",
-        # "tests/util/test_ast.py",
+        # "-s", "tests",
         "-v",
     )
     coverage_omit = ["tests/*"]

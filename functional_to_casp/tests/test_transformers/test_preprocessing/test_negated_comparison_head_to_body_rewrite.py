@@ -4,13 +4,13 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from functional_to_casp.transformers.preprocessing.choice_rule_guard_normalize_rewrite import ChoiceGuardTransformer
-from functional_to_casp.util.ast import AST
+from casp.transformers.preprocessing.negated_comparison_head_to_body_rewrite import NegatedComparisonHeadToBodyTransformer
+from casp.util.ast import AST
 
 class ChoiceGuardTransformerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.lib = Library()
-        self.transformer = ChoiceGuardTransformer(self.lib)
+        self.transformer = NegatedComparisonHeadToBodyTransformer(self.lib)
 
     def _apply(self, program: str) -> str:
         program = textwrap.dedent(program).strip()
@@ -18,11 +18,8 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
         ast.parse_string(self.lib, program, nodes.append)
         rewritten: list[str] = []
         for node in nodes:
-            if isinstance(node, ast.StatementRule):
-                new_node = self.transformer.rewrite_rule(node) or node
-                rewritten.append(str(new_node).strip())
-            else:
-                rewritten.append(str(node).strip())
+            new_node = self.transformer.rewrite_rule(node) or node
+            rewritten.append(str(new_node).strip())
         # Remove the program declaration if present
         rewritten = rewritten[1:]
         return "\n".join(rewritten)
@@ -36,55 +33,47 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
     # TESTS
     # -----------------------------------------------------------
 
-    def test_no_guards_unchanged(self) -> None:
-        self.assertRewriteEqual(
-            """
-            { p(X): q(X) } :- r(X).
-            """,
-            """
-            { p(X): q(X) } :- r(X).
-            """
-        )
+    def test_disjunction_head_with_comparison(self):
+        program = """
+        a | b<3 :- c.
+        """
+        expected = """
+        a :- c; b>=3.
+        """
+        self.assertRewriteEqual(program, expected)
 
-    def test_left_guard_normalization(self) -> None:
-        self.assertRewriteEqual(
-            """
-            2 < { p(X): q(X) } :- r(X).
-            """,
-            """
-            3 <= { p(X): q(X) } :- r(X).
-            """
-        )
-
-    def test_right_guard_normalization(self) -> None:
-        self.assertRewriteEqual(
-            """
-            { p(X): q(X) } < 5 :- r(X).
-            """,
-            """
-            { p(X): q(X) } <= 4 :- r(X).
-            """
-        )
-
-    def test_both_guards_normalization(self) -> None:
-        self.assertRewriteEqual(
-            """
-            2 < { p(X): q(X) } < 5 :- r(X).
-            """,
-            """
-            3 <= { p(X): q(X) } <= 4 :- r(X).
-            """
-        )
-
-    def test_collapse_equal_bounds(self) -> None:
-        self.assertRewriteEqual(
-            """
-            3 < { p(X): q(X) } < 5 :- r(X).
-            """,
-            """
-            { p(X): q(X) } = 4 :- r(X).
-            """
-        )
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_single_literal_head_with_comparison(self):
+        program = """
+        b<3 :- c.
+        """
+        expected = """
+        :- c; b>=3.
+        """
+        self.assertRewriteEqual(program, expected)
+    def test_rule_unchanged(self):
+        program = """
+        a :- c.
+        """
+        expected = """
+        a :- c.
+        """
+        self.assertRewriteEqual(program, expected)    
+    
+    def test_negate_operator_all_cases(self):
+        program = """
+        a=1 :- d.
+        a!=1 :- d.
+        a<1 :- d.
+        a<=1 :- d.
+        a>1 :- d.
+        a>=1 :- d.
+        """
+        expected = """
+        :- d; a!=1.
+        :- d; a=1.
+        :- d; a>=1.
+        :- d; a>1.
+        :- d; a<=1.
+        :- d; a<1.
+        """
+        self.assertRewriteEqual(program, expected)

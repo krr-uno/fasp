@@ -1,7 +1,10 @@
+from functools import singledispatchmethod
+
 from clingo import ast
 from clingo.core import Library
 
-from functional_to_casp.util.util import negate_operator, extract_comparison_terms
+from casp.util.util import negate_operator, extract_comparison_terms
+from casp.util.ast import StatementAST
 
 class NegatedComparisonHeadToBodyTransformer:
     """
@@ -16,7 +19,12 @@ class NegatedComparisonHeadToBodyTransformer:
     def __init__(self, lib: Library):
         self.lib = lib
 
-    def rewrite_rule(self, rule: ast.StatementRule) -> ast.StatementRule | None:
+    @singledispatchmethod
+    def rewrite_rule(self, rule: StatementAST) -> StatementAST | None:
+        return rule
+
+    @rewrite_rule.register
+    def _(self, rule: ast.StatementRule) -> ast.StatementRule | None:
         head = rule.head
         body = list(rule.body)
 
@@ -28,23 +36,24 @@ class NegatedComparisonHeadToBodyTransformer:
                 lit = elem.literal if hasattr(elem, 'literal') else elem
                 if isinstance(lit, ast.LiteralComparison):
                     extracted = extract_comparison_terms(lit)
-                    if extracted:
-                        lhs_terms, op, rhs_terms = extracted
-                        lhs_terms = tuple(lhs_terms)
-                        rhs_terms = tuple(rhs_terms)
-                        neg_op = negate_operator(op)
-                        lhs = lhs_terms[0] if len(lhs_terms) == 1 else ast.TermTuple(self.lib, lit.location, lhs_terms)
-                        rhs = rhs_terms[0] if len(rhs_terms) == 1 else ast.TermTuple(self.lib, lit.location, rhs_terms)
-                        comp = ast.LiteralComparison(
-                            self.lib,
-                            lit.location,
-                            ast.Sign.NoSign,
-                            lhs,
-                            [ast.RightGuard(self.lib, neg_op, rhs)]
-                        )
-                        body.append(ast.BodySimpleLiteral(self.lib, comp))
-                    else:
-                        remaining.append(elem)
+                    # if extracted:
+                    # NOTE: Can `extracted` be None? If yes, then need to put this block in an if clause?
+                    lhs_terms, op, rhs_terms = extracted
+                    lhs_terms = tuple(lhs_terms)
+                    rhs_terms = tuple(rhs_terms)
+                    neg_op = negate_operator(op)
+                    lhs = lhs_terms[0] if len(lhs_terms) == 1 else ast.TermTuple(self.lib, lit.location, lhs_terms)
+                    rhs = rhs_terms[0] if len(rhs_terms) == 1 else ast.TermTuple(self.lib, lit.location, rhs_terms)
+                    comp = ast.LiteralComparison(
+                        self.lib,
+                        lit.location,
+                        ast.Sign.NoSign,
+                        lhs,
+                        [ast.RightGuard(self.lib, neg_op, rhs)]
+                    )
+                    body.append(ast.BodySimpleLiteral(self.lib, comp))
+                    # else:
+                    #     remaining.append(elem)
                 else:
                     remaining.append(elem)
             new_head = ast.HeadDisjunction(self.lib, head.location, remaining)

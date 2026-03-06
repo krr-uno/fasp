@@ -7,7 +7,7 @@ from clingo.symbol import Number
 import clingo.ast as ast
 import clingo.core as core
 
-from functional_to_casp.util.ast import HeadLiteralAST, StatementAST
+from casp.util.ast import HeadLiteralAST, StatementAST
 
 
 class ChoiceGuardTransformer:
@@ -26,7 +26,7 @@ class ChoiceGuardTransformer:
         if not self._is_choice_head(head):
             return None
 
-        assert isinstance(head, (ast.HeadSetAggregate, ast.HeadAggregate))  # Redunant for typecheck
+        assert isinstance(head, (ast.HeadSetAggregate, ast.HeadAggregate))  # Redunant for mypy: typecheck
         left_guard = head.left
         right_guard = head.right
 
@@ -50,7 +50,7 @@ class ChoiceGuardTransformer:
         )](self, guard: Optional[T], is_left: bool = True) -> Tuple[Optional[T], bool] :
         if guard is None:
             return None, False
-        if guard.relation != ast.Relation.Less:
+        if guard.relation != ast.Relation.Less: 
             return guard, False
         term_symbol = getattr(guard.term, "symbol", None)
         if term_symbol is None:

@@ -4,8 +4,8 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from functional_to_casp.transformers.preprocessing.notaggregate_constraint_rewrite import NotAggregateConstraintTransformer
-from functional_to_casp.util.ast import AST
+from casp.transformers.preprocessing.notaggregate_constraint_rewrite import NotAggregateConstraintTransformer
+from casp.util.ast import AST
 
 class NotAggregateConstraintTransformerTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -18,11 +18,8 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
         ast.parse_string(self.lib, program, nodes.append)
         rewritten: list[str] = []
         for node in nodes:
-            if isinstance(node, ast.StatementRule):
-                new_node = self.transformer.rewrite_rule(node) or node
-                rewritten.append(str(new_node).strip())
-            else:
-                rewritten.append(str(node).strip())
+            new_node = self.transformer.rewrite_rule(node) or node
+            rewritten.append(str(new_node).strip())
         # Remove the program declaration if present
         rewritten = rewritten[1:]
         return "\n".join(rewritten)
@@ -55,7 +52,17 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
             :- 1 <= #count { X: a(X) }.
             """
         )
-
+    
+    def test_constraint_without_left_aggregate_unchanged(self) -> None:
+        self.assertRewriteEqual(
+            """
+            :- not #count { X: a(X) } >= 1.
+            """,
+            """
+            :- not #count { X: a(X) } >= 1.
+            """
+        )
+    
     def test_negated_body_aggregate_constraint(self) -> None:
         self.assertRewriteEqual(
             """
@@ -75,6 +82,3 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
             :- 1 > #count { X: a(X) }; b(X).
             """
         )
-
-if __name__ == "__main__":
-    unittest.main()

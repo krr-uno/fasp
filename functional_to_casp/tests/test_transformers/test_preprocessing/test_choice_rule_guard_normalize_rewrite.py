@@ -4,11 +4,11 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from functional_to_casp.transformers.preprocessing.choice_rule_guard_normalize_rewrite import (
+from casp.transformers.preprocessing.choice_rule_guard_normalize_rewrite import (
     ChoiceGuardTransformer,
 )
 
-from functional_to_casp.util.ast import AST
+from casp.util.ast import AST
 
 
 class ChoiceGuardTransformerTest(unittest.TestCase):
@@ -24,11 +24,8 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
 
         rewritten: list[str] = []
         for node in nodes:
-            if isinstance(node, ast.StatementRule):
-                new_node = self.transformer.rewrite_rule(node) or node
-                rewritten.append(str(new_node).strip())
-            else:
-                rewritten.append(str(node).strip())
+            new_node = self.transformer.rewrite_rule(node) or node
+            rewritten.append(str(new_node).strip())
 
         rewritten = rewritten[1:]
         return "\n".join(line for line in rewritten if line)
@@ -90,6 +87,15 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
             """
             3 <= { a(X) } <= 5.
             """)
+    
+    def test_variable_in_guard_with_less_than_relation_unchanged(self) -> None:
+        self.assertRewriteEqual(
+            """
+            Y <= { a(X) } < X.
+            """, 
+            """
+            Y <= { a(X) } < X.
+            """)
 
     def test_non_choice_head_is_unchanged(self) -> None:
         self.assertRewriteEqual(
@@ -100,7 +106,3 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
             p(X) :- q(X).
             """
             )
-
-
-if __name__ == "__main__":
-    unittest.main()
