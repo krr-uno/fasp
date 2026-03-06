@@ -41,7 +41,7 @@ def is_constraint(rule_head: HeadLiteralAST) -> bool:
 
 def extract_comparison_terms(
     comp: ast.LiteralComparison,
-) -> Tuple[Iterable[TermAST], ast.Relation, Iterable[TermAST]] | None:
+) -> Tuple[Iterable[TermAST], ast.Relation, Iterable[TermAST]]:
     """
     Extracts (lhs_terms, op, rhs_terms) from a LiteralComparison
     """
