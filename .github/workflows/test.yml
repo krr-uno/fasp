@@ -46,5 +46,41 @@ jobs:
         conda install --name clingo6 --file envs/requirements.txt
         pip install -r requirements.txt
 
-    - name: run tests
+    - name: Run fasp tests
+      run: nox
+
+
+  functional_to_casp:
+    name: functional_to_casp tests
+    if: github.ref == 'refs/heads/ravi/casp'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+    - name: Conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        python-version: "3.13"
+        channels: conda-forge
+        channel-priority: strict
+        activate-environment: clingo6
+        auto-update-conda: true
+
+    - name: Conda install clingo
+      run: |
+        conda install --name clingo6 -c potassco/label/dev-20 clingo
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        conda install --name clingo6 --file envs/requirements.txt
+        pip install -r requirements.txt
+
+    - name: Run functional_to_casp nox
+      working-directory: functional_to_casp
       run: nox
