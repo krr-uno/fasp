@@ -4,6 +4,8 @@ import typing
 from typing import (
     AbstractSet,
     Any,
+    Callable,
+    Iterable,
     NamedTuple,
     Optional,
     Sequence,
@@ -13,227 +15,109 @@ from typing import (
 )
 
 from clingo import ast
-from clingo.ast import (
-    ArgumentTuple,
-    BodyAggregate,
-    BodyAggregateElement,
-    BodyConditionalLiteral,
-    BodySetAggregate,
-    BodySimpleLiteral,
-    BodyTheoryAtom,
-    Edge,
-    HeadAggregate,
-    HeadAggregateElement,
-    HeadConditionalLiteral,
-    HeadDisjunction,
-    HeadSetAggregate,
-    HeadSimpleLiteral,
-    HeadTheoryAtom,
-    LeftGuard,
-    LiteralBoolean,
-    LiteralComparison,
-    LiteralSymbolic,
-    OptimizeElement,
-    OptimizeTuple,
-    ProgramPart,
-    Projection,
-    RightGuard,
-    SetAggregateElement,
-    StatementComment,
-    StatementConst,
-    StatementDefined,
-    StatementEdge,
-    StatementExternal,
-    StatementHeuristic,
-    StatementInclude,
-    StatementOptimize,
-    StatementParts,
-    StatementProgram,
-    StatementProject,
-    StatementProjectSignature,
-    StatementRule,
-    StatementScript,
-    StatementShow,
-    StatementShowNothing,
-    StatementShowSignature,
-    StatementTheory,
-    StatementWeakConstraint,
-    TermAbsolute,
-    TermBinaryOperation,
-    TermFormatString,
-    TermFunction,
-    TermSymbolic,
-    TermTuple,
-    TermUnaryOperation,
-    TermVariable,
-    TheoryAtomDefinition,
-    TheoryAtomElement,
-    TheoryGuardDefinition,
-    TheoryOperatorDefinition,
-    TheoryRightGuard,
-    TheoryTermDefinition,
-    TheoryTermFunction,
-    TheoryTermSymbolic,
-    TheoryTermTuple,
-    TheoryTermUnparsed,
-    TheoryTermVariable,
-    UnparsedElement,
-)
 from clingo.core import Library, Location, LogLevel, MessageType, Position
 from clingo.symbol import Symbol, SymbolType
 
-StatementAST = (
-    StatementRule
-    | StatementTheory
-    | StatementOptimize
-    | StatementWeakConstraint
-    | StatementShow
-    | StatementShowNothing
-    | StatementShowSignature
-    | StatementProject
-    | StatementProjectSignature
-    | StatementDefined
-    | StatementExternal
-    | StatementEdge
-    | StatementHeuristic
-    | StatementScript
-    | StatementInclude
-    | StatementProgram
-    | StatementParts
-    | StatementConst
-    | StatementComment
-)
-
-TermAST = (
-    TermVariable
-    | TermSymbolic
-    | TermAbsolute
-    | TermUnaryOperation
-    | TermBinaryOperation
-    | TermTuple
-    | TermFunction
-    | TermFormatString
-)
-ArgumentAST = TermAST | Projection
-LiteralAST = LiteralBoolean | LiteralComparison | LiteralSymbolic
-
-BodyLiteralAST = (
-    BodySimpleLiteral
-    | BodyAggregate
-    | BodySetAggregate
-    | BodyTheoryAtom
-    | BodyConditionalLiteral
-)
-
-HeadLiteralAST = (
-    HeadSimpleLiteral
-    | HeadDisjunction
-    | HeadAggregate
-    | HeadSetAggregate
-    | HeadTheoryAtom
-    | HeadConditionalLiteral
-)
-
 AST = (
-    StatementAST
-    | TermAST
-    | LiteralAST
-    | ArgumentTuple
-    | BodyLiteralAST
-    | BodyAggregateElement
-    | Edge
-    | HeadAggregateElement
-    | HeadLiteralAST
-    | LeftGuard
-    | OptimizeElement
-    | OptimizeTuple
-    | ProgramPart
-    | Projection
-    | RightGuard
-    | SetAggregateElement
-    | TheoryAtomDefinition
-    | TheoryAtomElement
-    | TheoryGuardDefinition
-    | TheoryOperatorDefinition
-    | TheoryRightGuard
-    | TheoryTermDefinition
-    | TheoryTermFunction
-    | TheoryTermSymbolic
-    | TheoryTermTuple
-    | TheoryTermUnparsed
-    | TheoryTermVariable
-    | UnparsedElement
+    ast.Statement
+    | ast.Term
+    | ast.Literal
+    | ast.ArgumentTuple
+    | ast.BodyLiteral
+    | ast.BodyAggregateElement
+    | ast.Edge
+    | ast.HeadAggregateElement
+    | ast.HeadLiteral
+    | ast.LeftGuard
+    | ast.OptimizeElement
+    | ast.OptimizeTuple
+    | ast.ProgramPart
+    | ast.Projection
+    | ast.RightGuard
+    | ast.SetAggregateElement
+    | ast.TheoryAtomDefinition
+    | ast.TheoryAtomElement
+    | ast.TheoryGuardDefinition
+    | ast.TheoryOperatorDefinition
+    | ast.TheoryRightGuard
+    | ast.TheoryTermDefinition
+    | ast.TheoryTermFunction
+    | ast.TheoryTermSymbolic
+    | ast.TheoryTermTuple
+    | ast.TheoryTermUnparsed
+    | ast.TheoryTermVariable
+    | ast.UnparsedElement
 )
 
 
 AST_T = TypeVar(
     "AST_T",
-    ArgumentTuple,
-    BodyAggregate,
-    BodyAggregateElement,
-    BodyConditionalLiteral,
-    BodySetAggregate,
-    BodySimpleLiteral,
-    BodyTheoryAtom,
-    Edge,
-    HeadAggregate,
-    HeadAggregateElement,
-    HeadConditionalLiteral,
-    HeadDisjunction,
-    HeadSetAggregate,
-    HeadSimpleLiteral,
-    HeadTheoryAtom,
-    LeftGuard,
-    LiteralBoolean,
-    LiteralComparison,
-    LiteralSymbolic,
-    OptimizeElement,
-    OptimizeTuple,
-    ProgramPart,
-    Projection,
-    RightGuard,
-    SetAggregateElement,
-    StatementComment,
-    StatementConst,
-    StatementDefined,
-    StatementEdge,
-    StatementExternal,
-    StatementHeuristic,
-    StatementInclude,
-    StatementOptimize,
-    StatementParts,
-    StatementProgram,
-    StatementProject,
-    StatementProjectSignature,
-    StatementRule,
-    StatementScript,
-    StatementShow,
-    StatementShowNothing,
-    StatementShowSignature,
-    StatementTheory,
-    StatementWeakConstraint,
-    TermAbsolute,
-    TermBinaryOperation,
-    TermFunction,
-    TermSymbolic,
-    TermTuple,
-    TermUnaryOperation,
-    TermVariable,
-    TheoryAtomDefinition,
-    TheoryAtomElement,
-    TheoryGuardDefinition,
-    TheoryOperatorDefinition,
-    TheoryRightGuard,
-    TheoryTermDefinition,
-    TheoryTermFunction,
-    TheoryTermSymbolic,
-    TheoryTermTuple,
-    TheoryTermUnparsed,
-    TheoryTermVariable,
-    UnparsedElement,
+    ast.ArgumentTuple,
+    ast.BodyAggregate,
+    ast.BodyAggregateElement,
+    ast.BodyConditionalLiteral,
+    ast.BodySetAggregate,
+    ast.BodySimpleLiteral,
+    ast.BodyTheoryAtom,
+    ast.Edge,
+    ast.HeadAggregate,
+    ast.HeadAggregateElement,
+    ast.HeadConditionalLiteral,
+    ast.HeadDisjunction,
+    ast.HeadSetAggregate,
+    ast.HeadSimpleLiteral,
+    ast.HeadTheoryAtom,
+    ast.LeftGuard,
+    ast.LiteralBoolean,
+    ast.LiteralComparison,
+    ast.LiteralSymbolic,
+    ast.OptimizeElement,
+    ast.OptimizeTuple,
+    ast.ProgramPart,
+    ast.Projection,
+    ast.RightGuard,
+    ast.SetAggregateElement,
+    ast.StatementComment,
+    ast.StatementConst,
+    ast.StatementDefined,
+    ast.StatementEdge,
+    ast.StatementExternal,
+    ast.StatementHeuristic,
+    ast.StatementInclude,
+    ast.StatementOptimize,
+    ast.StatementParts,
+    ast.StatementProgram,
+    ast.StatementProject,
+    ast.StatementProjectSignature,
+    ast.StatementRule,
+    ast.StatementScript,
+    ast.StatementShow,
+    ast.StatementShowNothing,
+    ast.StatementShowSignature,
+    ast.StatementTheory,
+    ast.StatementWeakConstraint,
+    ast.TermAbsolute,
+    ast.TermBinaryOperation,
+    ast.TermFunction,
+    ast.TermSymbolic,
+    ast.TermTuple,
+    ast.TermUnaryOperation,
+    ast.TermVariable,
+    ast.TheoryAtomDefinition,
+    ast.TheoryAtomElement,
+    ast.TheoryGuardDefinition,
+    ast.TheoryOperatorDefinition,
+    ast.TheoryRightGuard,
+    ast.TheoryTermDefinition,
+    ast.TheoryTermFunction,
+    ast.TheoryTermSymbolic,
+    ast.TheoryTermTuple,
+    ast.TheoryTermUnparsed,
+    ast.TheoryTermVariable,
+    ast.UnparsedElement,
 )
 
-FunctionLikeAST = TermFunction | TermSymbolic | TermTuple | Symbol
+FunctionLikeAST = ast.TermFunction | ast.TermSymbolic | ast.TermTuple | Symbol
 
 
 class SyntacticError(NamedTuple):
@@ -329,9 +213,9 @@ class SyntacticCheckVisitor:
 
 def create_literal(
     library: Library,
-    atom: TermAST,
+    atom: ast.Term,
     sign: ast.Sign = ast.Sign.NoSign,
-) -> LiteralAST:
+) -> ast.Literal:
     if hasattr(atom, "location"):
         location = atom.location
     else:  # pragma: no cover
@@ -342,7 +226,7 @@ def create_literal(
 
 # def create_head_literal(
 #     library: Library,
-#     atom: TermAST,
+#     atom: ast.Term,
 #     sign: ast.Sign = ast.Sign.NoSign,
 # ) -> HeadSimpleLiteral:
 #     """
@@ -350,7 +234,7 @@ def create_literal(
 
 #     Args:
 #         library (Library): The library to use for creating the literal.
-#         atom (TermAST): The term AST to create the literal from.
+#         atom (ast.Term): The term AST to create the literal from.
 #         sign (ast.Sign): The sign of the literal.
 
 #     Returns:
@@ -361,15 +245,15 @@ def create_literal(
 
 def create_body_literal(
     library: Library,
-    atom: TermAST,
+    atom: ast.Term,
     sign: ast.Sign = ast.Sign.NoSign,
-) -> BodySimpleLiteral:
+) -> ast.BodySimpleLiteral:
     """
     Create a body literal from a term AST.
 
     Args:
         library (Library): The library to use for creating the literal.
-        atom (TermAST): The term AST to create the literal from.
+        atom (ast.Term): The term AST to create the literal from.
         sign (ast.Sign): The sign of the literal.
 
     Returns:
@@ -386,7 +270,7 @@ def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
 
 def function_arguments(
     node: FunctionLikeAST,
-) -> tuple[str, Sequence[ArgumentAST] | Sequence[Symbol]]:
+) -> tuple[str, Sequence[ast.TermOrProjection] | Sequence[Symbol]]:
     if isinstance(node, ast.TermTuple):
         name = ""
         assert len(node.pool) == 1 and isinstance(
@@ -414,10 +298,10 @@ def function_arguments(
 def function_arguments_ast(
     library: Library,
     node: ast.TermFunction | ast.TermSymbolic,
-) -> tuple[str, Sequence[TermAST]]:
+) -> tuple[str, Sequence[ast.Term]]:
     name, arguments = function_arguments(node)
-    if arguments and isinstance(arguments[0], TermAST):
-        return name, cast(Sequence[TermAST], arguments)
+    if arguments and isinstance(arguments[0], ast.Term):
+        return name, cast(Sequence[ast.Term], arguments)
     return name, [
         ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
     ]
@@ -479,11 +363,11 @@ class ELibrary:
         self.original_statements: dict[str, list[ast.Statement]] = {}
         self.ignore_info = False
 
-    def add_original_statement(self, statement: ast.Statement) -> None:
-        file = statement.location.begin.file
-        if file not in self.original_statements:
-            self.original_statements[file] = []
-        self.original_statements[file].append(statement)
+    # def add_original_statement(self, statement: ast.Statement) -> None:
+    #     file = statement.location.begin.file
+    #     if file not in self.original_statements:
+    #         self.original_statements[file] = []
+    #     self.original_statements[file].append(statement)
 
     def logger_function(self, msg_type: MessageType, message: str) -> None:
         self.error_messages.append((msg_type, message))
@@ -550,7 +434,7 @@ def _process_error(
     )
 
 
-def parse_string(library: ELibrary, code: str) -> list[StatementAST]:
+def parse_string(library: ELibrary, code: str) -> list[ast.Statement]:
     """
     Parse a string into a list of AST statements.
 
@@ -559,7 +443,7 @@ def parse_string(library: ELibrary, code: str) -> list[StatementAST]:
         code (str): The code string to parse.
 
     Returns:
-        list[StatementAST]: The list of parsed AST statements.
+        list[ast.Statement]: The list of parsed AST statements.
 
     Raises:
         Raises ParsingError if parsing fails.
@@ -582,3 +466,31 @@ def parse_string(library: ELibrary, code: str) -> list[StatementAST]:
     finally:
         library.error_messages = saved_errors
     return parsed
+
+
+def transform_iterable[T, R](
+    library: Library, iterable: Iterable[T], fun: Callable[[Library, T], R | None]
+) -> list[T | R] | None:
+    """
+    Apply a function to each element of an iterable.
+    If all elements are transformed to None, return None. Otherwise, return an iterable of the transformed elements, where elements that were transformed to None are replaced by the original element.
+
+    Args:
+        iterable (Iterable[T]): The input iterable of elements of type T.
+        fun (Callable[[Library, T], R | None]): A function that takes a Library and an element of type T and returns a transformed element of type R or None.
+
+    Returns:
+        list[T | R] | None: A list of transformed elements, or None if all elements were transformed to None.
+    """
+    result: list[T | R] = []
+    all_none = True
+    for element in iterable:
+        new_element = fun(library, element)
+        if new_element is not None:
+            all_none = False
+            result.append(new_element)
+        else:
+            result.append(element)
+    if all_none:
+        return None
+    return result

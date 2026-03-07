@@ -4,72 +4,6 @@ from dataclasses import dataclass
 from typing import Any, Self, TypeVar
 
 from clingo import ast
-from clingo.ast import (
-    ArgumentTuple,
-    BodyAggregate,
-    BodyAggregateElement,
-    BodyConditionalLiteral,
-    BodySetAggregate,
-    BodySimpleLiteral,
-    BodyTheoryAtom,
-    Edge,
-    HeadAggregate,
-    HeadAggregateElement,
-    HeadConditionalLiteral,
-    HeadDisjunction,
-    HeadSetAggregate,
-    HeadSimpleLiteral,
-    HeadTheoryAtom,
-    LeftGuard,
-    LiteralBoolean,
-    LiteralComparison,
-    LiteralSymbolic,
-    OptimizeElement,
-    OptimizeTuple,
-    ProgramPart,
-    Projection,
-    RightGuard,
-    SetAggregateElement,
-    StatementComment,
-    StatementConst,
-    StatementDefined,
-    StatementEdge,
-    StatementExternal,
-    StatementHeuristic,
-    StatementInclude,
-    StatementOptimize,
-    StatementParts,
-    StatementProgram,
-    StatementProject,
-    StatementProjectSignature,
-    StatementRule,
-    StatementScript,
-    StatementShow,
-    StatementShowNothing,
-    StatementShowSignature,
-    StatementTheory,
-    StatementWeakConstraint,
-    TermAbsolute,
-    TermBinaryOperation,
-    TermFormatString,
-    TermFunction,
-    TermSymbolic,
-    TermTuple,
-    TermUnaryOperation,
-    TermVariable,
-    TheoryAtomDefinition,
-    TheoryAtomElement,
-    TheoryGuardDefinition,
-    TheoryOperatorDefinition,
-    TheoryRightGuard,
-    TheoryTermDefinition,
-    TheoryTermFunction,
-    TheoryTermSymbolic,
-    TheoryTermTuple,
-    TheoryTermUnparsed,
-    TheoryTermVariable,
-    UnparsedElement,
-)
 from clingo.core import Library, Location
 
 from fasp.syntax_tree.types import SymbolSignature
@@ -201,7 +135,7 @@ class ShowFDirective(AssignmentAST):
     """
 
     location: Location
-    signature: SymbolSignature | None
+    signature: SymbolSignature
 
     def __str__(self) -> str:  # pragma: no cover
         if self.signature is None:
@@ -233,7 +167,7 @@ class HeadSimpleAssignment(AssignmentAST):
 
     location: Location
     assigned_function: ast.TermFunction | ast.TermSymbolic
-    value: util_ast.TermAST
+    value: ast.TermOrProjection
 
     def __str__(self) -> str:
         return f"{str(self.assigned_function)} := {str(self.value)}"
@@ -323,13 +257,13 @@ class AssignmentAggregateElement(AssignmentAST):
         Source code location.
     assignment : HeadSimpleAssignment
         The assignment part of the element (e.g., `f(X) := 1`).
-    condition : Sequence[util_ast.LiteralAST]
+    condition : Sequence[ast.Literal]
         Optional literals serving as conditions (e.g., `p(X)`).
     """
 
     location: Location
     assignment: HeadSimpleAssignment
-    condition: Sequence[util_ast.LiteralAST]
+    condition: Sequence[ast.Literal]
 
     def __str__(self) -> str:
         if self.condition:
@@ -375,9 +309,9 @@ class ChoiceAssignment(AssignmentAST):
     """
 
     location: Location
-    left: LeftGuard | None
+    left: ast.LeftGuard | None
     elements: Sequence[AssignmentAggregateElement | ast.SetAggregateElement]
-    right: RightGuard | None
+    right: ast.RightGuard | None
 
     def __str__(self) -> str:  # pragma: no cover
         left = str(self.left) if self.left else ""
@@ -448,19 +382,19 @@ class HeadAggregateAssignmentElement(AssignmentAST):
     ----------
     location : Location
         Source code location.
-    tuple : Sequence[util_ast.TermAST]
+    tuple : Sequence[ast.Term]
         tuple
     assignment : HeadSimpleAssignment
         The assignment part of the element (e.g., `f(X) := 1`).
-    condition : Sequence[util_ast.LiteralAST]
+    condition : Sequence[ast.Literal]
         Optional literals serving as conditions (e.g., `p(X)`).
 
     """
 
     location: Location
-    tuple: Sequence[util_ast.TermAST]
+    tuple: Sequence[ast.Term]
     assignment: HeadSimpleAssignment
-    condition: Sequence[util_ast.LiteralAST]
+    condition: Sequence[ast.Literal]
 
     def __str__(self) -> str:
         _tuple = ""
@@ -514,10 +448,10 @@ class HeadAggregateAssignment(AssignmentAST):
     """
 
     location: Location
-    left: LeftGuard | None
+    left: ast.LeftGuard | None
     function: ast.AggregateFunction
     elements: Sequence[HeadAggregateAssignmentElement | ast.HeadAggregateElement]
-    right: RightGuard | None
+    right: ast.RightGuard | None
 
     def __str__(self) -> str:  # pragma: no cover
         left = str(self.left) if self.left else ""
@@ -566,7 +500,7 @@ class AssignmentRule(AssignmentAST):
 
     location: Location
     head: HeadAssignment
-    body: Sequence[util_ast.BodyLiteralAST]
+    body: Sequence[ast.BodyLiteral]
 
     def __str__(self) -> str:  # pragma: no cover
         if not self.body:
@@ -606,7 +540,7 @@ class AssignmentRule(AssignmentAST):
     #     return self.__class__(library, self.location, new_head, new_body)
 
 
-FASP_Statement = util_ast.StatementAST | AssignmentRule
+FASP_Statement = ast.Statement | AssignmentRule
 FASP_AST = util_ast.AST | AssignmentAST
 
 FASP_AST_T = TypeVar(
@@ -614,68 +548,68 @@ FASP_AST_T = TypeVar(
     AssignmentAST,
     HeadSimpleAssignment,
     HeadAssignmentAggregate,
-    ArgumentTuple,
-    BodyAggregate,
-    BodyAggregateElement,
-    BodyConditionalLiteral,
-    BodySetAggregate,
-    BodySimpleLiteral,
-    BodyTheoryAtom,
-    Edge,
-    HeadAggregate,
-    HeadAggregateElement,
-    HeadConditionalLiteral,
-    HeadDisjunction,
-    HeadSetAggregate,
-    HeadSimpleLiteral,
-    HeadTheoryAtom,
-    LeftGuard,
-    LiteralBoolean,
-    LiteralComparison,
-    LiteralSymbolic,
-    OptimizeElement,
-    OptimizeTuple,
-    ProgramPart,
-    Projection,
-    RightGuard,
-    SetAggregateElement,
-    StatementComment,
-    StatementConst,
-    StatementDefined,
-    StatementEdge,
-    StatementExternal,
-    StatementHeuristic,
-    StatementInclude,
-    StatementOptimize,
-    StatementParts,
-    StatementProgram,
-    StatementProject,
-    StatementProjectSignature,
-    StatementRule,
-    StatementScript,
-    StatementShow,
-    StatementShowNothing,
-    StatementShowSignature,
-    StatementTheory,
-    StatementWeakConstraint,
-    TermFormatString,
-    TermAbsolute,
-    TermBinaryOperation,
-    TermFunction,
-    TermSymbolic,
-    TermTuple,
-    TermUnaryOperation,
-    TermVariable,
-    TheoryAtomDefinition,
-    TheoryAtomElement,
-    TheoryGuardDefinition,
-    TheoryOperatorDefinition,
-    TheoryRightGuard,
-    TheoryTermDefinition,
-    TheoryTermFunction,
-    TheoryTermSymbolic,
-    TheoryTermTuple,
-    TheoryTermUnparsed,
-    TheoryTermVariable,
-    UnparsedElement,
+    ast.ArgumentTuple,
+    ast.BodyAggregate,
+    ast.BodyAggregateElement,
+    ast.BodyConditionalLiteral,
+    ast.BodySetAggregate,
+    ast.BodySimpleLiteral,
+    ast.BodyTheoryAtom,
+    ast.Edge,
+    ast.HeadAggregate,
+    ast.HeadAggregateElement,
+    ast.HeadConditionalLiteral,
+    ast.HeadDisjunction,
+    ast.HeadSetAggregate,
+    ast.HeadSimpleLiteral,
+    ast.HeadTheoryAtom,
+    ast.LeftGuard,
+    ast.LiteralBoolean,
+    ast.LiteralComparison,
+    ast.LiteralSymbolic,
+    ast.OptimizeElement,
+    ast.OptimizeTuple,
+    ast.ProgramPart,
+    ast.Projection,
+    ast.RightGuard,
+    ast.SetAggregateElement,
+    ast.StatementComment,
+    ast.StatementConst,
+    ast.StatementDefined,
+    ast.StatementEdge,
+    ast.StatementExternal,
+    ast.StatementHeuristic,
+    ast.StatementInclude,
+    ast.StatementOptimize,
+    ast.StatementParts,
+    ast.StatementProgram,
+    ast.StatementProject,
+    ast.StatementProjectSignature,
+    ast.StatementRule,
+    ast.StatementScript,
+    ast.StatementShow,
+    ast.StatementShowNothing,
+    ast.StatementShowSignature,
+    ast.StatementTheory,
+    ast.StatementWeakConstraint,
+    ast.TermFormatString,
+    ast.TermAbsolute,
+    ast.TermBinaryOperation,
+    ast.TermFunction,
+    ast.TermSymbolic,
+    ast.TermTuple,
+    ast.TermUnaryOperation,
+    ast.TermVariable,
+    ast.TheoryAtomDefinition,
+    ast.TheoryAtomElement,
+    ast.TheoryGuardDefinition,
+    ast.TheoryOperatorDefinition,
+    ast.TheoryRightGuard,
+    ast.TheoryTermDefinition,
+    ast.TheoryTermFunction,
+    ast.TheoryTermSymbolic,
+    ast.TheoryTermTuple,
+    ast.TheoryTermUnparsed,
+    ast.TheoryTermVariable,
+    ast.UnparsedElement,
 )

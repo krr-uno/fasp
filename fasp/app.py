@@ -1,7 +1,6 @@
 import sys
 from typing import Sequence
 
-from click import argument
 from clingo import core
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.control import Control as ClingoControl
@@ -58,15 +57,17 @@ class FaspApp(App):
             if self._print_rewrite:
                 print(control.get_rewritten_program())
                 return
-        except ParsingException as e:  # pragma: no cover
+        except ParsingException as e:
             for error in e.errors:
                 sys.stderr.write(str(error) + "\n")
-            sys.stderr.write("*** ERROR: (fasp): parsing failed")
+            sys.stderr.write("*** ERROR: (fasp): parsing failed\n")
             return
         except RuntimeError as e:
             if "rewriting failed" == e.args[0]:
+                sys.stdout.write("UNKNOWN\n")
+                sys.stderr.write("*** ERROR: (fasp): rewriting failed\n")
                 return
-            raise e
+            raise e  # pragma: no cover
         control.main()
 
 

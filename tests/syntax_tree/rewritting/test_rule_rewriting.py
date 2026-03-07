@@ -483,34 +483,34 @@ class TestRuleRewriteTransformer(unittest.TestCase):
 
     def test_weak_constraint(self):
         self.assertEqualRewrite(
-            {"f/1","a/0"},
+            {"f/1", "a/0"},
             ":~ p(X). [f(a)]",
             ":~ p(X); a=FUN; f(FUN)=FUN2. [FUN2]",
         )
 
     def test_weak_constraint2(self):
         self.assertEqualRewrite(
-            {"f/1","a/0"},
+            {"f/1", "a/0"},
             ":~ p(X); f(a). [b]",
             ":~ p(X); f(FUN); a=FUN. [b]",
         )
 
         self.assertEqualRewrite(
-            {"f/1","b/0"},
+            {"f/1", "b/0"},
             ":~ p(X); f(a). [b]",
             ":~ p(X); f(a); b=FUN. [FUN]",
         )
 
     def test_weak_constraint3(self):
         self.assertEqualRewrite(
-            {"f/1","a/0"},
+            {"f/1", "a/0"},
             ":~ p(X); f(a). [b]",
             ":~ p(X); f(FUN); a=FUN. [b]",
         )
 
     def test_weak_constraint4(self):
         self.assertEqualRewrite(
-            {"f/1","a/0", "b/0"},
+            {"f/1", "a/0", "b/0"},
             ":~ p(X); f(a). [b@a]",
             ":~ p(X); f(FUN3); b=FUN; a=FUN2; a=FUN3. [FUN@FUN2]",
         )
@@ -521,6 +521,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
             "p :- q(X): r(f(X)).",
             "p :- q(X): r(FUN), f(X)=FUN.",
         )
+
     def test_conditional_literal_nothing(self):
         print("TEST: test_conditional_literal_nothing")
         self.assertEqualRewrite(

@@ -6,7 +6,7 @@ import io, contextlib
 
 from fasp.app import main
 
-from .examples import EXAMPLES, Example
+from .examples import EXAMPLES
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 
@@ -88,7 +88,6 @@ class TestControl(unittest.TestCase):
     #     # Ensure outputs are equal even when prefix changes
     #     self.assertEqual(output_default, output_custom)
 
-
     def execute_app_with_args(self, files, extra_args):
         args = [str(file) for file in files] + extra_args + ["0"]
         output_io = io.StringIO()
@@ -103,14 +102,12 @@ class TestControl(unittest.TestCase):
 
         # Rewrite with default prefix (F)
         rewrite_default, _ = self.execute_app_with_args(
-            [example_file],
-            ["--mode=rewrite"]
+            [example_file], ["--mode=rewrite"]
         )
 
         # Rewrite with custom prefix (G)
         rewrite_custom, _ = self.execute_app_with_args(
-            [example_file],
-            ["--mode=", "rewrite", "--prefix-fun=G"]
+            [example_file], ["--mode=", "rewrite", "--prefix-fun=G"]
         )
 
         # Both rewrites should be non-empty
@@ -125,11 +122,37 @@ class TestControl(unittest.TestCase):
 
         # Rewrites must differ
         self.assertNotEqual(rewrite_default, rewrite_custom)
-    
-    def test_unsafe_app(self):
+
+    def test_app_syntax_error(self):
+        example_file = TEST_EXAMPLES_PATH / "syntax_error.lp"
+
+        # NOTE: No Error raised? app.py line:67-68
+        out, err = self.execute_app(
+            [example_file]
+        )
+        self.assertIn("syntax error", err)
+        self.assertIn("*** ERROR: (fasp): parsing failed", err)
+
+    def test_app_unsafe(self):
         example_file = TEST_EXAMPLES_PATH / "unsafe.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        execute, _ = self.execute_app(
-            [example_file]       
+        out, err = self.execute_app(
+            [example_file]
+        )
+        self.assertIn("rewriting failed", err)
+        self.assertIn("UNKNOWN", out)
+        self.assertIn("*** ERROR: (fasp): rewriting failed", err)
+
+    def test_app_undefined_function(self):
+        example_file = TEST_EXAMPLES_PATH / "undefined_function.lp"
+
+        # NOTE: No Error raised? app.py line:67-68
+        out, err = self.execute_app(
+            [example_file]
+        )
+        self.assertIn("undefined intensional function a/1", err)
+        self.assert_models(
+            [example_file],
+            [""],
         )

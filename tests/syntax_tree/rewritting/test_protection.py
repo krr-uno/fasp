@@ -2,11 +2,11 @@ import textwrap
 import unittest
 
 from clingo import ast
-from clingo.ast import RewriteContext
 from clingo.core import Library
 
 from fasp.syntax_tree._nodes import FASP_AST
 from fasp.syntax_tree.parsing.parser import parse_string
+from fasp.syntax_tree._context import RewriteContext
 
 from fasp.syntax_tree.rewritings.protecting import (
     _ComparisonProtectorTransformer,
@@ -34,7 +34,7 @@ class TestProtectComparisons(unittest.TestCase):
         Set up the test case with a library instance.
         """
         self.lib = Library()
-        self.rewrite_context = RewriteContext(self.lib)
+        self.rewrite_context = ast.RewriteContext(self.lib)
 
     def assertEqualRewrite(self, program, expected):
         """
@@ -106,7 +106,7 @@ class TestRestoreComparisons(unittest.TestCase):
         Set up the test case with a library instance.
         """
         self.lib = Library()
-        self.rewrite_context = RewriteContext(self.lib)
+        self.rewrite_context = ast.RewriteContext(self.lib)
 
     def test_restore(self):
         cmp = ast.parse_literal(self.lib, "a=100")
@@ -168,7 +168,7 @@ class TestRestoreComparisons(unittest.TestCase):
         self.assertEqualRestore(
             "a=100.",
             "CMP(a,(GRD(0,100),),0).",
-            )
+        )
 
 
 class TestProtectAssignments(unittest.TestCase):
@@ -179,6 +179,7 @@ class TestProtectAssignments(unittest.TestCase):
 
     def setUp(self):
         self.lib = ELibrary()
+        self.context = RewriteContext(self.lib)
 
     def assertEqualRewrite(self, program: str, expected: str):
         """
@@ -187,7 +188,7 @@ class TestProtectAssignments(unittest.TestCase):
 
         statements = parse_string(self.lib, program)
 
-        rewritten = list(protect_assignments(self.lib, statements))[
+        rewritten = list(protect_assignments(self.context, statements))[
             1:
         ]  # :1 to remove #program base.
 
@@ -264,6 +265,7 @@ class TestRestoreAssignments(unittest.TestCase):
 
     def setUp(self):
         self.lib = ELibrary()
+        self.context = RewriteContext(self.lib)
 
     def assertEqualRestore(self, program: str, expected: str):
         """
@@ -273,7 +275,7 @@ class TestRestoreAssignments(unittest.TestCase):
         statements = parse_string(self.lib, program)
 
         # Protect assignments
-        protected = list(protect_assignments(self.lib, statements))
+        protected = list(protect_assignments(self.context, statements))
 
         protected_str = "\n".join(str(stmt).strip() for stmt in protected[1:])
         exp_protected_str = textwrap.dedent(expected).strip()
@@ -310,31 +312,31 @@ class TestRestoreAssignments(unittest.TestCase):
         self.assertEqualRestore(
             "{ f(X) := (Y,Z) } :- p.",
             "{ ASS(f(X),(Y,Z)) } :- p.",
-            )
+        )
 
     def test_choice_assignments(self):
         self.assertEqualRestore(
             "f(1;2) := Y :- g(Y).",
             "ASS(f(1;2),Y) :- g(Y).",
-            )
+        )
 
     def test_restore_non_function_atom(self):
         self.assertEqualRestore(
             "#true.",
             "#true.",
-            )
+        )
 
     def test_no_assignment(self):
         self.assertEqualRestore(
             "f(X) :- g(Y).",
             "f(X) :- g(Y).",
-            )
+        )
 
     def test_no_assignment_in_aggregate(self):
         self.assertEqualRestore(
             "{ f(X) } :- g(Y).",
             "{ f(X) } :- g(Y).",
-            )
+        )
 
     def test_head_aggregate_Assignment(self):
         self.assertEqualRestore(

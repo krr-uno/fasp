@@ -1,11 +1,10 @@
 from enum import IntEnum, auto
 from typing import Iterable, cast
 
-from clingo.ast import Statement, rewrite_statement
+from clingo import ast
 
 from fasp.syntax_tree._context import RewriteContext as FASPRewriteContext
 from fasp.syntax_tree._nodes import (
-    FASP_AST,
     AssignmentRule,
     FASP_Statement,
 )
@@ -22,7 +21,7 @@ from fasp.syntax_tree.rewritings.protecting import (
     restore_assignments,
     restore_comparisons,
 )
-from fasp.syntax_tree.rewritings.showf import showf_to_show_transformer
+from fasp.syntax_tree.rewritings.showf import rewrite_showf
 from fasp.syntax_tree.rewritings.some_assignments import (
     transform_choice_some_to_choice_assignment,
 )
@@ -32,11 +31,6 @@ from fasp.syntax_tree.rewritings.to_asp import (
 )
 from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 from fasp.syntax_tree.types import SymbolSignature
-from fasp.util.ast import (
-    AST,
-    ELibrary,
-    StatementAST,
-)
 
 
 class PipelineStage(IntEnum):
@@ -53,21 +47,26 @@ class PipelineStage(IntEnum):
     TO_ASP = auto()
 
 
+# class Statement:
+
+#     def __init__(self, original: FASP_Statement):
+#         self.original = original
+#         self.has_assignments = isinstance(original, AssignmentRule)
+#         self.rewritten: list[FASP_Statement] = []
+
+
 class FASPProgramTransformer:
     def __init__(
         self,
         ctx: FASPRewriteContext,
         statement_asts: Iterable[FASP_Statement],
-        # *,
-        # prefix: str = "F",
-        # ctx: RewriteContext | None = None,
     ):
         self.ctx = ctx
-        self.elib = self.ctx.elib
-        self.library = self.elib.library
+        self.lib = self.ctx.lib
+        self.library = self.lib.library
 
         self.statement_asts = statement_asts
-        self.prefix = self.ctx.prefix
+        self.prefix = self.ctx.prefix_function
 
         self.evaluable_functions: set[SymbolSignature] = set()
         self.pipeline = list(PipelineStage)
@@ -138,10 +137,7 @@ class FASPProgramTransformer:
     def _protect_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        result = protect_assignments(self.elib, statements)
-
-        return cast(Iterable[FASP_Statement], result)
-        # return protect_assignments(self.elib, statements)
+        return protect_assignments(self.ctx, statements)
 
     def _protect_comparisons_wrapper(
         self, statements: Iterable[FASP_Statement]
@@ -152,13 +148,13 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         ctx = self.ctx.ctx
-        self.ctx.elib.ignore_info = True
+        self.ctx.lib.ignore_info = True
         out = []
         errors = []
         for stmt in statements:
             assert not isinstance(stmt, AssignmentRule)
             try:
-                rewritten_list = rewrite_statement(ctx, stmt)
+                rewritten_list = ast.rewrite_statement(ctx, stmt)
             except RuntimeError as e:
                 errors.append((stmt, e))
                 continue
@@ -167,7 +163,7 @@ class FASPProgramTransformer:
                     out.append(new_stmt)
             else:
                 out.append(stmt)
-        self.ctx.elib.ignore_info = False
+        self.ctx.lib.ignore_info = False
         if errors:
             raise RuntimeError("rewriting failed", errors)
         return out
@@ -180,21 +176,23 @@ class FASPProgramTransformer:
 
         for stmt in stmts:
             assert not isinstance(stmt, AssignmentRule)
-        result = restore_comparisons(self.library, cast(Iterable[StatementAST], stmts))
+        result = restore_comparisons(self.library, cast(Iterable[ast.Statement], stmts))
         return result
 
     def _restore_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return restore_assignments(
-            self.elib, cast(Iterable[StatementAST], statements), self.ctx.prefix
+            self.lib,
+            cast(Iterable[ast.Statement], statements),
+            self.ctx.prefix_function,
         )
 
     def _negated_literals_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         return rewrite_negated_body_literals_from_statements(
-            self.elib, cast(Iterable[StatementAST], statements)
+            self.lib, cast(Iterable[ast.Statement], statements)
         )
 
     def _unnest_functions_wrapper(
@@ -222,7 +220,7 @@ class FASPProgramTransformer:
         to_asp_transformer = NormalForm2PredicateTransformer(
             self.library, self.evaluable_functions, self.prefix
         )
-        out: list[StatementAST] = []
+        out: list[ast.Statement] = []
         for stmt in statements:
             out.append(to_asp_transformer.rewrite(stmt))
         return out
@@ -230,7 +228,7 @@ class FASPProgramTransformer:
     def _showf_to_show_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        return showf_to_show_transformer(self.ctx, statements)
+        return [rewrite_showf(self.ctx, stmt) for stmt in statements]
 
 
 def transform_to_clingo_statements(
@@ -239,7 +237,7 @@ def transform_to_clingo_statements(
     *,
     stop_at: PipelineStage = PipelineStage.TO_ASP,
     LOG: bool = False,
-) -> Iterable[Statement]:
+) -> Iterable[ast.Statement]:
     """Create a FASPProgramTransformer, run transform() and return
     an iterable of clingo.ast.Statement (ast.Statement).
 
@@ -250,15 +248,15 @@ def transform_to_clingo_statements(
     transformer = FASPProgramTransformer(ctx, statement_asts)
     transformed = transformer.transform(stop_at=stop_at, LOG=LOG)
 
-    out: list[Statement] = []
+    out: list[ast.Statement] = []
     for stmt in transformed:
         assert isinstance(
-            stmt, Statement
+            stmt, ast.Statement
         ), f"Expected clingo.ast.Statement, got {type(stmt)}"
         out.append(stmt)
     out.extend(
         functional_constraints(
-            ctx.elib.library, transformer.evaluable_functions, ctx.prefix
+            ctx.lib.library, transformer.evaluable_functions, ctx.prefix_function
         )
     )
     return out

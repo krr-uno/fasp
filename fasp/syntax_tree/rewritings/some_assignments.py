@@ -1,4 +1,4 @@
-from typing import List, Sequence
+from typing import List
 
 from clingo import ast, symbol
 from clingo.core import Library
@@ -11,13 +11,11 @@ from fasp.syntax_tree._nodes import (
     FASP_Statement,
     HeadSimpleAssignment,
 )
-from fasp.util.ast import BodyLiteralAST, TermAST
 
 
-def _transform_choice_some_to_choice_assignment[T: (
-    ast.StatementRule,
-    AssignmentRule,
-)](library: Library, rule: T) -> T | None:
+def transform_choice_some_to_choice_assignment(
+    library: Library, stm: FASP_Statement
+) -> FASP_Statement:
     """
     Transform a ChoiceSomeAssignment head into a ChoiceAssignment head
     with a corresponding #count aggregate prepended to the body.
@@ -31,14 +29,12 @@ def _transform_choice_some_to_choice_assignment[T: (
 
     Returns None if no transformation is done.
     """
-    if not isinstance(rule, AssignmentRule):
-        return None  # unchanged
+    if not isinstance(stm, AssignmentRule) or not isinstance(
+        head := stm.head, ChoiceSomeAssignment
+    ):
+        return stm
 
-    head = rule.head
-    if not isinstance(head, ChoiceSomeAssignment):
-        return None  # unchanged
-
-    body: Sequence[BodyLiteralAST] = rule.body
+    body = stm.body
 
     # Convert BodyAggregateElements -> AssignmentAggregateElements
     new_elements: List[AssignmentAggregateElement] = []
@@ -64,19 +60,16 @@ def _transform_choice_some_to_choice_assignment[T: (
             )
         )
 
-    # Create right guard = 1
-    right = ast.RightGuard(
-        library,
-        ast.Relation.Equal,
-        ast.TermSymbolic(library, head.location, symbol.Number(library, 1)),
-    )
-
     # Construct new ChoiceAssignment head
     new_head = ChoiceAssignment(
         location=head.location,
         elements=new_elements,
         left=None,
-        right=right,
+        right=ast.RightGuard(
+            library,
+            ast.Relation.Equal,
+            ast.TermSymbolic(library, head.location, symbol.Number(library, 1)),
+        ),
     )
 
     # Construct #count aggregate for the body
@@ -94,18 +87,6 @@ def _transform_choice_some_to_choice_assignment[T: (
         ),
     )
 
-    new_body: list[BodyLiteralAST] = [count_aggregate, *body]
+    new_body: list[ast.BodyLiteral] = [count_aggregate, *body]
 
-    return rule.update(library, head=new_head, body=new_body)
-
-
-def transform_choice_some_to_choice_assignment(
-    library: Library, stm: FASP_Statement
-) -> FASP_Statement:
-    # if elif for mypy
-    if isinstance(stm, ast.StatementRule):
-        return _transform_choice_some_to_choice_assignment(library, stm) or stm
-    elif isinstance(stm, AssignmentRule):
-        return _transform_choice_some_to_choice_assignment(library, stm) or stm
-    else:
-        return stm
+    return stm.update(library, head=new_head, body=new_body)

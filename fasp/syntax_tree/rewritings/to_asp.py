@@ -17,15 +17,10 @@ from fasp.syntax_tree._nodes import (
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from fasp.syntax_tree.rewritings.protecting import (  # protect_comparisons,; restore_comparisons,
-    COMPARISON_NAME,
-)
 from fasp.syntax_tree.types import (
     SymbolSignature,
 )
 from fasp.util.ast import (
-    StatementAST,
-    TermAST,
     create_body_literal,
     create_literal,
     function_arguments_ast,
@@ -54,7 +49,7 @@ class NormalForm2PredicateTransformer:
     def function_to_literal(
         self,
         assigned_function: ast.TermFunction | ast.TermSymbolic,
-        value: TermAST,
+        value: ast.TermOrProjection,
         location: Location,
     ) -> ast.LiteralSymbolic:
 
@@ -252,9 +247,9 @@ class NormalForm2PredicateTransformer:
         assert isinstance(node, ast.StatementRule)
         return node
 
-    def rewrite(self, node: FASP_Statement) -> StatementAST:
+    def rewrite(self, node: FASP_Statement) -> ast.Statement:
         result = self._dispatch(node) or node
-        return cast(StatementAST, result)
+        return cast(ast.Statement, result)
 
 
 def _functional_constraint(

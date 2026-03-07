@@ -1,24 +1,17 @@
 from functools import singledispatchmethod
 from typing import List, Sequence, Set
 
-from attr import has
 from clingo import ast, symbol
 from clingo.core import Library, Location
 from clingo.symbol import Symbol
 
 from fasp.syntax_tree._nodes import (
-    FASP_AST,
     FASP_AST_T,
-    AssignmentAST,
-    HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
 from fasp.syntax_tree.types import SymbolSignature
 from fasp.util.ast import (
-    AST,
-    AST_T,
     FreshVariableGenerator,
-    TermAST,
     function_arguments,
     is_function,
 )
@@ -85,7 +78,7 @@ class UnnestFunctionsInLiteralsTransformer:
     def _is_evaluable(self, name: str, arity: int) -> bool:
         return SymbolSignature(name, arity) in self.evaluable_functions
 
-    def _is_evaluable_term(self, term: TermAST) -> bool:
+    def _is_evaluable_term(self, term: ast.Term) -> bool:
         if isinstance(term, ast.TermFunction):
             return self._is_evaluable(term.name, len(term.pool[0].arguments))
         if (
@@ -96,7 +89,11 @@ class UnnestFunctionsInLiteralsTransformer:
         return False
 
     def _make_comparison(
-        self, loc: Location, left: TermAST, right: TermAST, sign: ast.Sign | None = None
+        self,
+        loc: Location,
+        left: ast.Term,
+        right: ast.Term,
+        sign: ast.Sign | None = None,
     ) -> ast.LiteralComparison:
         return ast.LiteralComparison(
             self.lib,
