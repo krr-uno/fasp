@@ -3,11 +3,12 @@ from functools import singledispatchmethod
 from clingo import ast
 from clingo.core import Library
 
+from casp.transformers.preprocessing.base import PreprocessingTransformer
 from casp.util.ast import BodyLiteralAST, StatementAST
 from casp.util.util import is_constraint, negate_operator
 
 
-class NotAggregateConstraintTransformer:
+class NotAggregateConstraintTransformer(PreprocessingTransformer):
     """
     For each ast.StatementRule:
       - Scan its body for ast.BodyAggregate with ast.sign=ast.Sign.Single (negation).

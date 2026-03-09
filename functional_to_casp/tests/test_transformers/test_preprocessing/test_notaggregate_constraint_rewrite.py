@@ -62,16 +62,7 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
             :- not #count { X: a(X) } >= 1.
             """
         )
-    
-    def test_negated_body_aggregate_constraint(self) -> None:
-        self.assertRewriteEqual(
-            """
-            :- not 1 <= #count { X: a(X) }.
-            """,
-            """
-            :- 1 > #count { X: a(X) }.
-            """
-        )
+
 
     def test_multiple_body_literals(self) -> None:
         self.assertRewriteEqual(

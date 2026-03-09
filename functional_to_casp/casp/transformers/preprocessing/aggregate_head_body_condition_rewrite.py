@@ -3,10 +3,11 @@ from functools import singledispatchmethod
 import clingo.ast as ast
 import clingo.core as core
 
+from casp.transformers.preprocessing.base import PreprocessingTransformer
 from casp.util.ast import HeadLiteralAST, StatementAST
 
 
-class AggregateHeadBodyConditionTransformer:
+class AggregateHeadBodyConditionTransformer(PreprocessingTransformer):
     """Move inline head-aggregate conditions into the surrounding body."""
 
     def __init__(self, lib: core.Library):

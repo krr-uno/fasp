@@ -1,8 +1,9 @@
 from typing import Iterable, Tuple
 
 from clingo import ast
+from clingo.core import Library
 
-from casp.util.ast import HeadLiteralAST, TermAST
+from casp.util.ast import HeadLiteralAST, StatementAST, TermAST
 
 
 # Utility to negate a Relation
@@ -58,3 +59,33 @@ def extract_comparison_terms(
     # if op is not None:
     #     return (lhs_terms, op, rhs_terms)
     # return None
+
+
+def split_multiple_aggregate_elements(
+    lib: Library, node: StatementAST
+) -> Iterable[StatementAST]:
+    # Only process StatementRule
+    if not isinstance(node, ast.StatementRule):
+        return [node]
+    head = node.head
+    # Only process HeadSetAggregate with no guards
+    if (
+        isinstance(head, ast.HeadSetAggregate)
+        and head.left is None
+        and head.right is None
+    ):
+        elements = list(head.elements)
+        if len(elements) > 1:
+            new_rules = []
+            for elem in elements:
+                # Create a new HeadSetAggregate with a single element
+                new_head = ast.HeadSetAggregate(
+                    lib, head.location, head.left, [elem], head.right  # single element
+                )
+                # Create a new StatementRule with the new head
+                new_rule = ast.StatementRule(
+                    lib, node.location, new_head, list(node.body)
+                )
+                new_rules.append(new_rule)
+            return new_rules
+    return [node]

@@ -7,10 +7,11 @@ import clingo.ast as ast
 import clingo.core as core
 from clingo.symbol import Number
 
+from casp.transformers.preprocessing.base import PreprocessingTransformer
 from casp.util.ast import HeadLiteralAST, StatementAST
 
 
-class ChoiceGuardTransformer:
+class ChoiceGuardTransformer(PreprocessingTransformer):
     """Normalize guards in head choice aggregates for clingo 6 ASTs."""
 
     def __init__(self, lib: core.Library):

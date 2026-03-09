@@ -3,11 +3,12 @@ from functools import singledispatchmethod
 from clingo import ast
 from clingo.core import Library
 
+from casp.transformers.preprocessing.base import PreprocessingTransformer
 from casp.util.ast import StatementAST
 from casp.util.util import extract_comparison_terms, negate_operator
 
 
-class NegatedComparisonHeadToBodyTransformer:
+class NegatedComparisonHeadToBodyTransformer(PreprocessingTransformer):
     """
     For each StatementRule:
       - If the head is a HeadDisjunction, pull out any LiteralComparison,
