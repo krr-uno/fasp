@@ -74,12 +74,17 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
             """
         )
 
-    # TODO: Need to Add this.
+    # TODO: Need to fix this?
     # def test_negation(self) -> None:
     #     self.assertRewriteEqual(
     #         ":- not #count{ C : assign(N,C), color(C) } = 1, node(N).",
     #         "#false :- 1 != #count { C: assign(N,C), color(C) }; node(N)."
     #     )
+    def test_negation(self) -> None:
+        self.assertRewriteEqual(
+            ":- not 1 = #count{ C : assign(N,C), color(C) }, node(N).",
+            ":- 1 != #count { C: assign(N,C), color(C) }; node(N)."
+        )
 
     def test_split_head_aggregates_semicolon(self) -> None:
         self.assertRewriteEqual(
