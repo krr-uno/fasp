@@ -89,3 +89,26 @@ def split_multiple_aggregate_elements(
                 new_rules.append(new_rule)
             return new_rules
     return [node]
+
+
+def collapse_equal_bounds(
+    lib: Library,
+    left: ast.LeftGuard | None,
+    right: ast.RightGuard | None,
+) -> Tuple[ast.LeftGuard | None, ast.RightGuard | None, bool]:
+    # If only right exists and is equality, move to left
+    if left is None and right is not None and right.relation == ast.Relation.Equal:
+        new_left = ast.LeftGuard(lib, right.term, right.relation)
+        return new_left, None, True
+    if left is None or right is None:
+        return left, right, False
+    if not same_bound_symbol(left, right):
+        return left, right, False
+    new_left = left.update(lib, relation=ast.Relation.Equal)
+    return new_left, None, True
+
+
+def same_bound_symbol(left: ast.LeftGuard, right: ast.RightGuard) -> bool:
+    l_sym = getattr(left.term, "symbol", None)
+    r_sym = getattr(right.term, "symbol", None)
+    return l_sym is not None and r_sym is not None and l_sym == r_sym

@@ -88,14 +88,14 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
     # Put guards on the left. In the next step assume that if there is a single equality guard, it is on the left. => DONE
 
     # # TODO: Need to fix this?
-    # def test_negation(self) -> None:
-    #     self.assertRewriteEqual(
-    #         ":- not #count{ C : assign(N,C), color(C) } = 1, node(N).",
-    #         "#false :- 1 != #count { C: assign(N,C), color(C) }; node(N)."
-    #     )
-
-
     def test_negation(self) -> None:
+        self.assertRewriteEqual(
+            ":- not #count{ C : assign(N,C), color(C) } = 1, node(N).",
+            ":- node(N); 1 != #count { C: assign(N,C), color(C) }."
+        )
+
+
+    def test_negation_2(self) -> None:
         self.assertRewriteEqual(
             ":- not 1 = #count{ C : assign(N,C), color(C) }, node(N).",
             ":- node(N); 1 != #count { C: assign(N,C), color(C) }.",

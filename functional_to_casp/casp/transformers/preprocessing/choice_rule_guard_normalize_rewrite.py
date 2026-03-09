@@ -7,6 +7,7 @@ import clingo.ast as ast
 import clingo.core as core
 from clingo.symbol import Number
 
+import casp.util.util as util
 from casp.transformers.preprocessing.base import PreprocessingTransformer
 from casp.util.ast import HeadLiteralAST, StatementAST
 
@@ -29,14 +30,14 @@ class ChoiceGuardTransformer(PreprocessingTransformer):
 
         assert isinstance(
             head, (ast.HeadSetAggregate, ast.HeadAggregate)
-        )  # Redunant for mypy: typecheck
+        )  # Redundant for mypy: typecheck
         left_guard = head.left
         right_guard = head.right
 
         left_guard, left_changed = self._normalize_guard(left_guard, is_left=True)
         right_guard, right_changed = self._normalize_guard(right_guard, is_left=False)
-        left_guard, right_guard, collapse_changed = self._collapse_equal_bounds(
-            left_guard, right_guard
+        left_guard, right_guard, collapse_changed = util.collapse_equal_bounds(
+            self._lib, left_guard, right_guard
         )
 
         if not any([left_changed, right_changed, collapse_changed]):
@@ -71,21 +72,3 @@ class ChoiceGuardTransformer(PreprocessingTransformer):
             self._lib, relation=ast.Relation.LessEqual, term=new_term
         )
         return new_guard, True
-
-    def _collapse_equal_bounds(
-        self,
-        left: ast.LeftGuard | None,
-        right: ast.RightGuard | None,
-    ) -> Tuple[ast.LeftGuard | None, ast.RightGuard | None, bool]:
-        if left is None or right is None:
-            return left, right, False
-        if not self._same_bound_symbol(left, right):
-            return left, right, False
-        new_left = left.update(self._lib, relation=ast.Relation.Equal)
-        return new_left, None, True
-
-    @staticmethod
-    def _same_bound_symbol(left: ast.LeftGuard, right: ast.RightGuard) -> bool:
-        l_sym = getattr(left.term, "symbol", None)
-        r_sym = getattr(right.term, "symbol", None)
-        return l_sym is not None and r_sym is not None and l_sym == r_sym

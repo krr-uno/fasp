@@ -5,7 +5,7 @@ from clingo.core import Library
 
 from casp.transformers.preprocessing.base import PreprocessingTransformer
 from casp.util.ast import BodyLiteralAST, StatementAST
-from casp.util.util import is_constraint, negate_operator
+from casp.util.util import collapse_equal_bounds, is_constraint, negate_operator
 
 
 class NotAggregateConstraintTransformer(PreprocessingTransformer):
@@ -30,6 +30,18 @@ class NotAggregateConstraintTransformer(PreprocessingTransformer):
 
             new_body: list[BodyLiteralAST] = []
             for lit in rule.body:
+                # For cases like `:- not #agg{} = N...` into `:- not N = #agg{}...`
+                if isinstance(lit, ast.BodyAggregate):
+                    left_guard, right_guard, collapse_changed = collapse_equal_bounds(
+                        self.lib, lit.left, lit.right
+                    )
+
+                    if collapse_changed:
+                        lit = lit.update(
+                            self.lib, **{"left": left_guard, "right": right_guard}
+                        )
+
+                # Process normalized constraints
                 if (
                     isinstance(lit, ast.BodyAggregate)
                     and lit.sign == ast.Sign.Single
