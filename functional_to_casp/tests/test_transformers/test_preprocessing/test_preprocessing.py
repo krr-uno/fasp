@@ -74,12 +74,18 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
             """
         )
 
-    # TODO: Need to fix this?
+    # When we consider FASP programs, use steps until clingo_rewrite. This latter.
+    # Apply clingo rewrite before any step.
+    # Put guards on the left. In the next step assume that if there is a single equality guard, it is on the left.
+
+    # # TODO: Need to fix this?
     # def test_negation(self) -> None:
     #     self.assertRewriteEqual(
     #         ":- not #count{ C : assign(N,C), color(C) } = 1, node(N).",
     #         "#false :- 1 != #count { C: assign(N,C), color(C) }; node(N)."
     #     )
+
+
     def test_negation(self) -> None:
         self.assertRewriteEqual(
             ":- not 1 = #count{ C : assign(N,C), color(C) }, node(N).",
@@ -119,4 +125,3 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
             """
         )
 
-    
