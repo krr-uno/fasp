@@ -35,10 +35,10 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
     def test_non_constraint_rule_unchanged(self) -> None:
         self.assertRewriteEqual(
             """
-            p(X) :- not 1 <= #count { X: a(X) }.
+            p(X) :- p(X); not 1 <= #count { X: a(X) }.
             """,
             """
-            p(X) :- not 1 <= #count { X: a(X) }.
+            p(X) :- p(X); not 1 <= #count { X: a(X) }.
             """
         )
 
@@ -64,19 +64,28 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
             { assign(N,C) : color(C),a(X) } :- node(N).
             """,
             """
-            1 = { assign(N,C): color(C) } :- node(N).
-            2 = { assign(N,C): color(C) } :- node(N).
-            3 = { assign(N,C): color(C) } :- node(N).
-            4 = { assign(N,C): color(C) } :- node(N).
+            1 = #count { 0,assign(N,C): assign(N,C): color(C) } :- node(N).
+            2 = #count { 0,assign(N,C): assign(N,C): color(C) } :- node(N).
             3 = #count { 0,assign(N,C): assign(N,C): color(C) } :- node(N).
-            a :- not #count { C: assign(N,C), color(C) } = 1; node(N).
-            { assign(N,C) } :- node(N); color(C); a(X).
-            """
+            4 = #count { 0,assign(N,C): assign(N,C): color(C) } :- node(N).
+            3 = #count { 0,assign(N,C): assign(N,C): color(C) } :- node(N).
+            a :- node(N); not #count { C: assign(N,C), color(C) } = 1.
+            #count { 0,assign(N,C): assign(N,C) } :- node(N); color(C); a(*).
+            """,
+            # """
+            # 1 = { assign(N,C): color(C) } :- node(N).
+            # 2 = { assign(N,C): color(C) } :- node(N).
+            # 3 = { assign(N,C): color(C) } :- node(N).
+            # 4 = { assign(N,C): color(C) } :- node(N).
+            # 3 = #count { 0,assign(N,C): assign(N,C): color(C) } :- node(N).
+            # a :- not #count { C: assign(N,C), color(C) } = 1; node(N).
+            # { assign(N,C) } :- node(N); color(C); a(X).
+            # """
         )
 
     # When we consider FASP programs, use steps until clingo_rewrite. This latter.
-    # Apply clingo rewrite before any step.
-    # Put guards on the left. In the next step assume that if there is a single equality guard, it is on the left.
+    # Apply clingo rewrite before any step. => DONE
+    # Put guards on the left. In the next step assume that if there is a single equality guard, it is on the left. => DONE
 
     # # TODO: Need to fix this?
     # def test_negation(self) -> None:
@@ -89,7 +98,8 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
     def test_negation(self) -> None:
         self.assertRewriteEqual(
             ":- not 1 = #count{ C : assign(N,C), color(C) }, node(N).",
-            ":- 1 != #count { C: assign(N,C), color(C) }; node(N)."
+            ":- node(N); 1 != #count { C: assign(N,C), color(C) }.",
+            # ":- 1 != #count { C: assign(N,C), color(C) }; node(N)."
         )
 
     def test_split_head_aggregates_semicolon(self) -> None:
@@ -98,9 +108,13 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
             { a(X,Y) : b(X); c(X,Y) : d(X) } :- e(Y).
             """,
             """
-            { a(X,Y) } :- e(Y); b(X).
-            { c(X,Y) } :- e(Y); d(X).
-            """
+            #count { 0,a(X,Y): a(X,Y) } :- e(Y); b(X).
+            #count { 0,c(X,Y): c(X,Y) } :- e(Y); d(X).
+            """,
+            # """
+            # { a(X,Y) } :- e(Y); b(X).
+            # { c(X,Y) } :- e(Y); d(X).
+            # """
         )
 
     def test_split_head_aggregates_semicolon_and_comma(self) -> None:
@@ -109,19 +123,27 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
             { a(X,Y) : b(X); c(X,Y,Z) : d(X),e(Z) } :- e(Y).
             """,
             """
-            { a(X,Y) } :- e(Y); b(X).
-            { c(X,Y,Z) } :- e(Y); d(X); e(Z).
-            """
+            #count { 0,a(X,Y): a(X,Y) } :- e(Y); b(X).
+            #count { 0,c(X,Y,Z): c(X,Y,Z) } :- e(Y); d(X); e(Z).
+            """,
+            # """
+            # { a(X,Y) } :- e(Y); b(X).
+            # { c(X,Y,Z) } :- e(Y); d(X); e(Z).
+            # """
         )
 
-    def test_split_head_aggregates_disjunction(self) -> None:
-        self.assertRewriteEqual(
-            """
-            { a(X,Y); c(X,Y,Z) : d(X),e(Z) } :- e(Y).
-            """,
-            """
-            { a(X,Y) } :- e(Y).
-            { c(X,Y,Z) } :- e(Y); d(X); e(Z).
-            """
+    def test_unsafe_raises_error(self) -> None:
+        with self.assertRaises(RuntimeError) as cm:
+            self.assertRewriteEqual(
+                """
+                { a(X,Y); c(X,Y,Z) : d(X),e(Z) } :- e(Y).
+                """,
+                """
+                { a(X,Y) } :- e(Y).
+                { c(X,Y,Z) } :- e(Y); d(X); e(Z).
+                """
+            )
+        self.assertIn(
+            "rewriting failed", str(cm.exception)
         )
 

@@ -14,6 +14,7 @@ __all__ = [
 
 from typing import Iterable, List
 
+from clingo.ast import RewriteContext, rewrite_statement
 from clingo.core import Library
 
 import casp.util.util as util
@@ -35,11 +36,24 @@ def processPipelinetransformers(
     for ast_node in statements:
         initial_asts.extend(util.split_multiple_aggregate_elements(lib, ast_node))
     current_asts = initial_asts
+
+    rewrite_context = RewriteContext(lib)
+    errors = []
+    next_asts: List[StatementAST] = []
+    for stmt in current_asts:
+        try:
+            out = rewrite_statement(rewrite_context, stmt)
+            next_asts.extend(out)
+        except RuntimeError as e:
+            errors.append((stmt, e))
+    if errors:
+        raise RuntimeError("clingo rewriting failed", errors)
+    current_asts = next_asts
+
     for tr in transformers:
         next_asts = []
         for stmt in current_asts:
             out = tr.rewrite_rule(stmt)
             next_asts.append(out or stmt)
-
         current_asts = next_asts
     return current_asts
