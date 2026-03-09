@@ -59,16 +59,16 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
             1 <  { assign(N,C) : color(C) } <= 2 :- node(N).
             3 <= { assign(N,C) : color(C) } <  4 :- node(N).
             4    { assign(N,C) : color(C) }    4 :- node(N).
-                 { assign(N,C) : color(C) } =  5 :- node(N).
+            3<=   #count { 0,assign(N,C): assign(N,C): color(C) } < 4:- node(N).
             a :- not #count{ C : assign(N,C), color(C) } = 1, node(N).
             { assign(N,C) : color(C),a(X) } :- node(N).
             """,
             """
-            { assign(N,C): color(C) } = 1 :- node(N).
-            { assign(N,C): color(C) } = 2 :- node(N).
-            { assign(N,C): color(C) } = 3 :- node(N).
-            { assign(N,C): color(C) } = 4 :- node(N).
-            { assign(N,C): color(C) } = 5 :- node(N).
+            1 = { assign(N,C): color(C) } :- node(N).
+            2 = { assign(N,C): color(C) } :- node(N).
+            3 = { assign(N,C): color(C) } :- node(N).
+            4 = { assign(N,C): color(C) } :- node(N).
+            3 = #count { 0,assign(N,C): assign(N,C): color(C) } :- node(N).
             a :- not #count { C: assign(N,C), color(C) } = 1; node(N).
             { assign(N,C) } :- node(N); color(C); a(X).
             """

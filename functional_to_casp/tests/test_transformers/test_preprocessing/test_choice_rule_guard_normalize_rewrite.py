@@ -75,7 +75,7 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
             2 < { a(X) } < 4.
             """,
             """
-            { a(X) } = 3.
+            3 = { a(X) }.
             """,
         )
 
