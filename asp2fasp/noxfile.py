@@ -8,7 +8,7 @@ nox.options.sessions = "typecheck", "test", "format"
 # nox.options.sessions = "test", "format"
 nox.options.default_venv_backend = None
 
-PROJECT_NAME = "casp"
+PROJECT_NAME = "asp2fasp"
 
 @nox.session(python=PYTHON_VERSIONS)
 # @nox.session

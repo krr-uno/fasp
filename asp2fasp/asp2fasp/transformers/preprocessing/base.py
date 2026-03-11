@@ -1,4 +1,4 @@
-from casp.util.ast import StatementAST
+from asp2fasp.util.ast import StatementAST
 
 
 class PreprocessingTransformer:

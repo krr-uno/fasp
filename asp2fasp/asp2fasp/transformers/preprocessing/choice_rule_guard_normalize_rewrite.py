@@ -7,9 +7,9 @@ import clingo.ast as ast
 import clingo.core as core
 from clingo.symbol import Number
 
-import casp.util.util as util
-from casp.transformers.preprocessing.base import PreprocessingTransformer
-from casp.util.ast import HeadLiteralAST, StatementAST
+import asp2fasp.util.util as util
+from asp2fasp.transformers.preprocessing.base import PreprocessingTransformer
+from asp2fasp.util.ast import HeadLiteralAST, StatementAST
 
 
 class ChoiceGuardTransformer(PreprocessingTransformer):

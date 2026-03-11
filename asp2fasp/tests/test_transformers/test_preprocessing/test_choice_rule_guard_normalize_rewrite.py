@@ -4,11 +4,11 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from casp.transformers.preprocessing.choice_rule_guard_normalize_rewrite import (
+from asp2fasp.transformers.preprocessing.choice_rule_guard_normalize_rewrite import (
     ChoiceGuardTransformer,
 )
 
-from casp.util.ast import AST
+from asp2fasp.util.ast import AST
 
 
 class ChoiceGuardTransformerTest(unittest.TestCase):

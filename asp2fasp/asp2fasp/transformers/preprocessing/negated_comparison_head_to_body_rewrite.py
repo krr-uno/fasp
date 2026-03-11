@@ -3,9 +3,9 @@ from functools import singledispatchmethod
 from clingo import ast
 from clingo.core import Library
 
-from casp.transformers.preprocessing.base import PreprocessingTransformer
-from casp.util.ast import StatementAST
-from casp.util.util import extract_comparison_terms, negate_operator
+from asp2fasp.transformers.preprocessing.base import PreprocessingTransformer
+from asp2fasp.util.ast import StatementAST
+from asp2fasp.util.util import extract_comparison_terms, negate_operator
 
 
 class NegatedComparisonHeadToBodyTransformer(PreprocessingTransformer):

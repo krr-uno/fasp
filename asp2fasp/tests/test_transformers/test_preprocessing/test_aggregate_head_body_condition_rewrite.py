@@ -4,11 +4,11 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from casp.transformers.preprocessing.aggregate_head_body_condition_rewrite import (
+from asp2fasp.transformers.preprocessing.aggregate_head_body_condition_rewrite import (
     AggregateHeadBodyConditionTransformer,
 )
 
-from casp.util.ast import AST
+from asp2fasp.util.ast import AST
 class AggregateHeadBodyConditionTransformerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.lib = Library()

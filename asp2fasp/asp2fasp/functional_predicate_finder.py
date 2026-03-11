@@ -1,10 +1,10 @@
 from collections import namedtuple
 
-import casp.util.util as util
-from casp.util.ast import StatementAST
+import asp2fasp.util.util as util
+from asp2fasp.util.ast import StatementAST
 
-# from functional_to_casp.casp.patternFinders.ast_utils import ASTUtils
-# from functional_to_casp.casp.patternFinders import (InequalityConstraintFinder, AggregatePatternFinder)
+# from asp2fasp.casp.patternFinders.ast_utils import ASTUtils
+# from asp2fasp.casp.patternFinders import (InequalityConstraintFinder, AggregatePatternFinder)
 
 FPredicate = namedtuple(
     "FPredicate", ["name", "arity", "arguments", "values", "condition"]

@@ -17,9 +17,9 @@ from typing import Iterable, List
 from clingo.ast import RewriteContext, rewrite_statement
 from clingo.core import Library
 
-import casp.util.util as util
-from casp.transformers.preprocessing.base import PreprocessingTransformer
-from casp.util.ast import StatementAST
+import asp2fasp.util.util as util
+from asp2fasp.transformers.preprocessing.base import PreprocessingTransformer
+from asp2fasp.util.ast import StatementAST
 
 
 def processPipelinetransformers(

@@ -3,7 +3,7 @@ from typing import Iterable, Tuple
 from clingo import ast
 from clingo.core import Library
 
-from casp.util.ast import HeadLiteralAST, StatementAST, TermAST
+from asp2fasp.util.ast import HeadLiteralAST, StatementAST, TermAST
 
 
 # Utility to negate a Relation
