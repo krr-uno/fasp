@@ -12,7 +12,7 @@ from funasp.util.ast import ELibrary, ParsingException
 
 class FaspApp(App):
     def __init__(self, library: ELibrary, clingo_options: Sequence[str]) -> None:
-        super().__init__("fasp", __version__)
+        super().__init__("funasp", __version__)
         self._order = Flag()
         self._library = library
         self._clingo_options = clingo_options
