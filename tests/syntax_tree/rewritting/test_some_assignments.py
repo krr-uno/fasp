@@ -3,7 +3,7 @@ import unittest
 from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.util.ast import ELibrary
 from fasp.syntax_tree.rewritings.some_assignments import (
-    transform_choice_some_to_choice_assignment,
+    rewrite_some_choices,
 )
 
 
@@ -23,7 +23,7 @@ class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
         stmts = stmts[1:]
         out: list[str] = []
         for stmt in stmts:
-            transformed = transform_choice_some_to_choice_assignment(
+            transformed = rewrite_some_choices(
                 self.lib.library, stmt
             )
             stmt = transformed or stmt

@@ -13,9 +13,7 @@ from fasp.syntax_tree._nodes import (
 )
 
 
-def transform_choice_some_to_choice_assignment(
-    library: Library, stm: FASP_Statement
-) -> FASP_Statement:
+def rewrite_some_choices(library: Library, stm: FASP_Statement) -> FASP_Statement:
     """
     Transform a ChoiceSomeAssignment head into a ChoiceAssignment head
     with a corresponding #count aggregate prepended to the body.
