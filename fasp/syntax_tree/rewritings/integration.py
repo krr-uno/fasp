@@ -16,6 +16,7 @@ from fasp.syntax_tree.rewritings.negated_literals import (
     rewrite_negated_body_literals_from_statements,
 )
 from fasp.syntax_tree.rewritings.protecting import (
+    protect_assignment,
     protect_assignments,
     protect_comparisons,
     restore_assignments,
@@ -58,7 +59,7 @@ class PipelineStage(IntEnum):
 
 def _clingo_rewrite_wrapper(
     context: FASPRewriteContext, statements: Iterable[ast.Statement]
-) -> Iterable[ast.Statement]:
+) -> list[ast.Statement]:
     """
     Wrapper for clingo's statement rewriting to handle errors.
     """
@@ -94,28 +95,35 @@ def transform_to_clingo_statements(
     """
     library = context.lib.library
     context.ctx
-    statements = [rewrite_showf(context, stmt) for stmt in statements]
-    statements = [rewrite_some_choices(library, stmt) for stmt in statements]
-    statements = [normalize_assignment_aggregates(library, stmt) for stmt in statements]
-    statements = protect_assignments(context, statements)
-    statements = protect_comparisons(library, statements)
-    statements = _clingo_rewrite_wrapper(context, statements)
-    statements = restore_comparisons(library, statements)
-    statements = restore_assignments(
+    new_statements: list[ast.Statement] = []
+    for stmt in statements:
+        stm = rewrite_showf(context, stmt)
+        stm = rewrite_some_choices(library, stm)
+        stm = normalize_assignment_aggregates(library, stm)
+        stm = protect_assignment(context, stm)
+        new_statements.append(stm)
+    new_statements = protect_comparisons(library, new_statements)
+    new_statements = _clingo_rewrite_wrapper(context, new_statements)
+    new_statements = restore_comparisons(library, new_statements)
+    new_statements2 = restore_assignments(
         context.lib,
-        statements,
+        new_statements,
         context.prefix_function,
     )
-    statements = rewrite_negated_body_literals_from_statements(context.lib, statements)
-    evaluable_functions = collect_evaluable_functions(statements)
-    transformer = RuleRewriteTransformer(library, evaluable_functions)
-    statements = [transformer.transform_rule(stmt) or stmt for stmt in statements]
-    statements = to_asp(
-        library, statements, evaluable_functions, context.prefix_function
+    new_statements2 = rewrite_negated_body_literals_from_statements(
+        context.lib, new_statements2
     )
-    statements.extend(
+    evaluable_functions = collect_evaluable_functions(new_statements2)
+    transformer = RuleRewriteTransformer(library, evaluable_functions)
+    new_statements2 = [
+        transformer.transform_rule(stmt) or stmt for stmt in new_statements2
+    ]
+    new_statements2 = to_asp(
+        library, new_statements2, evaluable_functions, context.prefix_function
+    )
+    new_statements2.extend(
         functional_constraints(
             context.lib.library, evaluable_functions, context.prefix_function
         )
     )
-    return statements
+    return new_statements2

@@ -151,7 +151,7 @@ class _ComparisonProtectorTransformer:
 
 def protect_comparisons(
     library: Library, statements: Iterable[ast.Statement]
-) -> Iterable[ast.Statement]:
+) -> list[ast.Statement]:
     """
     Protect comparisons in a Clingo AST.
 
@@ -162,7 +162,7 @@ def protect_comparisons(
         Iterable[AST]: The protected AST statements.
     """
     transformer = _ComparisonProtectorTransformer(library)
-    return (transformer.rewrite(statement) for statement in statements)
+    return [transformer.rewrite(statement) for statement in statements]
 
 
 @dataclass
@@ -364,7 +364,7 @@ class _ComparisonRestorationTransformer:
 
 def restore_comparisons(
     library: Library, statements: Iterable[ast.Statement]
-) -> Iterable[ast.Statement]:
+) -> list[ast.Statement]:
     """
     Protect comparisons in a Clingo AST.
 
@@ -376,7 +376,7 @@ def restore_comparisons(
     """
     transformer = _ComparisonRestorationTransformer(library)
 
-    return (transformer.rewrite(statement) for statement in statements)
+    return [transformer.rewrite(statement) for statement in statements]
 
 
 def protect_head_simple_assignment(
@@ -451,7 +451,7 @@ def protect_head_aggregate_assignment(
     )
 
 
-def rewrite(context: RewriteContext, node: FASP_Statement) -> ast.Statement:
+def protect_assignment(context: RewriteContext, node: FASP_Statement) -> ast.Statement:
     if not isinstance(node, AssignmentRule):
         return node
 
@@ -502,7 +502,7 @@ def protect_assignments(
     """
     # transformer = _AssignmentProtectorTransformer(context)
     # return (transformer.rewrite(statement) for statement in statements)
-    return (rewrite(context, statement) for statement in statements)
+    return (protect_assignment(context, statement) for statement in statements)
 
 
 # RESTORATION: Rule with ASS(left, right) --> AssignmentRule
