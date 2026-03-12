@@ -323,3 +323,15 @@ def functional_constraints(
         list[ast.AST]: A list of constraints for the functional normal form.
     """
     return (_functional_constraint(library, fun, prefix) for fun in evaluable_functions)
+
+
+def to_asp(
+    library: Library,
+    statements: Iterable[FASP_Statement],
+    evaluable_functions: AbstractSet[SymbolSignature],
+    prefix: str = "F",
+) -> Iterable[FASP_Statement]:
+    to_asp_transformer = NormalForm2PredicateTransformer(
+        library, evaluable_functions, prefix
+    )
+    return [to_asp_transformer.rewrite(stmt) for stmt in statements]

@@ -1,5 +1,5 @@
 from enum import IntEnum, auto
-from typing import Iterable, cast
+from typing import Iterable
 
 from clingo import ast
 
@@ -28,6 +28,7 @@ from fasp.syntax_tree.rewritings.some_assignments import (
 from fasp.syntax_tree.rewritings.to_asp import (
     NormalForm2PredicateTransformer,
     functional_constraints,
+    to_asp,
 )
 from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 from fasp.syntax_tree.types import SymbolSignature
@@ -71,20 +72,6 @@ class FASPProgramTransformer:
         self.evaluable_functions: set[SymbolSignature] = set()
         self.pipeline = list(PipelineStage)
 
-        self.PIPELINE_IMPL = {
-            PipelineStage.SHOWF: self._showf_to_show_wrapper,
-            PipelineStage.REWRITE_CHOICE_SOME: self._rewrite_choice_some_wrapper,
-            PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES: self._normalize_assignment_aggregates_wrapper,
-            PipelineStage.PROTECT_ASSIGNMENTS: self._protect_assignments_wrapper,
-            PipelineStage.PROTECT_COMPARISONS: self._protect_comparisons_wrapper,
-            PipelineStage.CLINGO_REWRITE: self._clingo_rewrite_wrapper,
-            PipelineStage.RESTORE_COMPARISONS: self._restore_comparisons_wrapper,
-            PipelineStage.RESTORE_ASSIGNMENTS: self._restore_assignments_wrapper,
-            PipelineStage.NEGATED_LITERALS: self._negated_literals_wrapper,
-            PipelineStage.UNNEST_FUNCTIONS: self._unnest_functions_wrapper,
-            PipelineStage.TO_ASP: self._to_asp_wrapper,
-        }
-
     def log_info(
         self, statements: Iterable[FASP_Statement], stage: PipelineStage
     ) -> Iterable[FASP_Statement]:  # pragma: no cover
@@ -96,57 +83,40 @@ class FASPProgramTransformer:
 
     def transform(
         self,
-        *,
-        stop_at: PipelineStage = PipelineStage.TO_ASP,
-        LOG: bool = False,
     ) -> Iterable[FASP_Statement]:
         """
         Parse the program string, collect variables,
         then run the pipeline and return transformed statements.
         """
-        statements = self._showf_to_show_wrapper(self.statement_asts)
-        statements = self._rewrite_choice_some_wrapper(statements)
-        statements = self._normalize_assignment_aggregates_wrapper(statements)
-        statements = self._protect_assignments_wrapper(statements)
-        statements = self._protect_comparisons_wrapper(statements)
-        statements = self._clingo_rewrite_wrapper(statements)
-        statements = self._restore_comparisons_wrapper(statements)
-        statements = self._restore_assignments_wrapper(statements)
-        statements = self._negated_literals_wrapper(statements)
-        statements = self._unnest_functions_wrapper(statements)
-        statements = self._to_asp_wrapper(statements)
-        return statements
-
-    def _rewrite_choice_some_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-        out = [
+        statements = [rewrite_showf(self.ctx, stmt) for stmt in self.statement_asts]
+        statements = [
             transform_choice_some_to_choice_assignment(self.library, stmt)
             for stmt in statements
         ]
-        return out
-
-    def _normalize_assignment_aggregates_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-        out = [
+        statements = [
             normalize_assignment_aggregates(self.library, stmt) for stmt in statements
         ]
-        return out
-
-    def _protect_assignments_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-        return protect_assignments(self.ctx, statements)
-
-    def _protect_comparisons_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-        return protect_comparisons(self.library, statements)
+        statements = protect_assignments(self.ctx, statements)
+        statements = protect_comparisons(self.library, statements)
+        statements = self._clingo_rewrite_wrapper(statements)
+        statements = restore_comparisons(self.library, statements)
+        statements = restore_assignments(
+            self.lib,
+            statements,
+            self.ctx.prefix_function,
+        )
+        statements = rewrite_negated_body_literals_from_statements(self.lib, statements)
+        self.evaluable_functions = collect_evaluable_functions(statements)
+        transformer = RuleRewriteTransformer(self.library, self.evaluable_functions)
+        statements = [transformer.transform_rule(stmt) or stmt for stmt in statements]
+        statements = to_asp(
+            self.library, statements, self.evaluable_functions, self.prefix
+        )
+        return statements
 
     def _clingo_rewrite_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
+        self, statements: Iterable[ast.Statement]
+    ) -> Iterable[ast.Statement]:
         ctx = self.ctx.ctx
         self.ctx.lib.ignore_info = True
         out = []
@@ -168,75 +138,10 @@ class FASPProgramTransformer:
             raise RuntimeError("rewriting failed", errors)
         return out
 
-    def _restore_comparisons_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-
-        stmts = list(statements)
-
-        for stmt in stmts:
-            assert not isinstance(stmt, AssignmentRule)
-        result = restore_comparisons(self.library, cast(Iterable[ast.Statement], stmts))
-        return result
-
-    def _restore_assignments_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-        return restore_assignments(
-            self.lib,
-            cast(Iterable[ast.Statement], statements),
-            self.ctx.prefix_function,
-        )
-
-    def _negated_literals_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-        return rewrite_negated_body_literals_from_statements(
-            self.lib, cast(Iterable[ast.Statement], statements)
-        )
-
-    def _unnest_functions_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-        stmts = list(statements)
-        stmts2 = list(stmts)
-        self.evaluable_functions = collect_evaluable_functions(stmts2)
-
-        transformer = RuleRewriteTransformer(self.library, self.evaluable_functions)
-        out: list[FASP_Statement] = []
-        for stmt in stmts:
-            unnested_statement = transformer.transform_rule(stmt)
-            out.append(
-                cast(FASP_Statement, unnested_statement) if unnested_statement else stmt
-            )
-        return out
-
-    def _to_asp_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-        # Collect evaluable functions again
-        self.evaluable_functions = collect_evaluable_functions(statements)
-
-        to_asp_transformer = NormalForm2PredicateTransformer(
-            self.library, self.evaluable_functions, self.prefix
-        )
-        out: list[ast.Statement] = []
-        for stmt in statements:
-            out.append(to_asp_transformer.rewrite(stmt))
-        return out
-
-    def _showf_to_show_wrapper(
-        self, statements: Iterable[FASP_Statement]
-    ) -> Iterable[FASP_Statement]:
-        return [rewrite_showf(self.ctx, stmt) for stmt in statements]
-
 
 def transform_to_clingo_statements(
     ctx: FASPRewriteContext,
     statement_asts: Iterable[FASP_Statement],
-    *,
-    stop_at: PipelineStage = PipelineStage.TO_ASP,
-    LOG: bool = False,
 ) -> Iterable[ast.Statement]:
     """Create a FASPProgramTransformer, run transform() and return
     an iterable of clingo.ast.Statement (ast.Statement).
@@ -246,7 +151,7 @@ def transform_to_clingo_statements(
     """
 
     transformer = FASPProgramTransformer(ctx, statement_asts)
-    transformed = transformer.transform(stop_at=stop_at, LOG=LOG)
+    transformed = transformer.transform()
 
     out: list[ast.Statement] = []
     for stmt in transformed:

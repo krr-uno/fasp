@@ -145,13 +145,13 @@ class _ComparisonProtectorTransformer:
     ) -> ast.LiteralBoolean | ast.LiteralSymbolic:
         return node
 
-    def rewrite(self, node: FASP_Statement) -> FASP_Statement:
+    def rewrite(self, node: ast.Statement) -> ast.Statement:
         return node.transform(self.library, self.dispatch) or node
 
 
 def protect_comparisons(
-    library: Library, statements: Iterable[FASP_Statement]
-) -> Iterable[FASP_Statement]:
+    library: Library, statements: Iterable[ast.Statement]
+) -> Iterable[ast.Statement]:
     """
     Protect comparisons in a Clingo AST.
 
@@ -747,12 +747,12 @@ class _AssignmentRestorationTransformer:
 
 def restore_assignments(
     library: ELibrary, statements: Iterable[ast.Statement], prefix: str = "F"
-) -> Iterable[FASP_Statement]:
+) -> Sequence[FASP_Statement]:
     """
     Apply the restoration transformer to all statements.
     """
     transformer = _AssignmentRestorationTransformer(library, prefix=prefix)
-    return (transformer.rewrite(statement) for statement in statements)
+    return [transformer.rewrite(statement) for statement in statements]
 
 
 # #########################################################################

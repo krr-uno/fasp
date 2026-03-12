@@ -7,6 +7,7 @@ from clingo.core import Library
 from fasp.syntax_tree._nodes import (
     FASP_AST,
     AssignmentRule,
+    FASP_Statement,
     HeadAggregateAssignment,
     HeadAggregateAssignmentElement,
     HeadAssignmentAggregate,
@@ -38,7 +39,7 @@ class RuleRewriteTransformer:
         self.lib = lib
         self.evaluable_functions = evaluable_functions
 
-    def transform_rule(self, node: FASP_AST) -> FASP_AST:
+    def transform_rule(self, node: FASP_Statement) -> FASP_Statement:
         """
         Entrypoint for rewriting an entire statement.
         """
@@ -238,8 +239,8 @@ class RuleRewriteTransformer:
 
     @singledispatchmethod
     def _rewrite(
-        self, node: FASP_AST, _: FreshVariableGenerator
-    ) -> FASP_AST:  # pragma: no cover
+        self, node: FASP_Statement, _: FreshVariableGenerator
+    ) -> FASP_Statement:  # pragma: no cover
         """Default: return node unchanged."""
         return node
 
