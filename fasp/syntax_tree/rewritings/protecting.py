@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from functools import singledispatchmethod
+from functools import singledispatch, singledispatchmethod
 from typing import Any, Iterable, List, Optional, Sequence, cast
 
-from clingo import ast
-from clingo.core import Library, Location, Position
+from clingo import ast, core
 from clingo.symbol import Number, Symbol, SymbolType
 
 from fasp.syntax_tree._context import RewriteContext
@@ -53,116 +52,91 @@ GUARD_NAME = "GRD"
 ASSIGNMENT_NAME = "ASS"
 
 
-class ComparisonProtector:
+def _sign_to_int(library: core.Library, sign: ast.Sign) -> ast.TermSymbolic:
+    position = core.Position(library, "<aux>", 0, 0)
+    location = core.Location(position, position)
+    return ast.TermSymbolic(library, location, Number(library, SIGN_TO_INT[sign]))
+
+
+def _relation_to_int(library: core.Library, relation: ast.Relation) -> ast.TermSymbolic:
+    position = core.Position(library, "<aux>", 0, 0)
+    location = core.Location(position, position)
+    return ast.TermSymbolic(
+        library, location, Number(library, RELATION_TO_INT[relation])
+    )
+
+
+def _guard_to_function(
+    context: RewriteContext, location: core.Location, guard: ast.RightGuard
+) -> ast.TermFunction:
+    library = context.lib.library
+    arguments = ast.ArgumentTuple(
+        library, [_relation_to_int(library, guard.relation), guard.term]
+    )
+    return ast.TermFunction(
+        library, location, context.prefix_protect_guard, [arguments]
+    )
+
+
+@singledispatch
+def _protect_comparison(node: AST, context: RewriteContext) -> AST | None:
+    return node.transform(context.lib.library, _protect_comparison, context)
+
+
+@_protect_comparison.register
+def _(node: ast.LiteralBoolean | ast.LiteralSymbolic, context: RewriteContext) -> None:
+    return None
+
+
+@_protect_comparison.register
+def _(
+    comparison: ast.LiteralComparison,
+    context: RewriteContext,
+) -> ast.LiteralSymbolic:
     """
-    A class to protect comparisons in a Clingo AST.
+    Rewrites a LiteralComparison as a positive LiteralSymbolic of the form
+        Comparison(left, right, sign)
+    where right is a tuple of functions symbols Guard(relation, term)
     """
-
-    def __init__(
-        self,
-        library: Library,
-        comparison_name: str = COMPARISON_NAME,
-        guard_name: str = GUARD_NAME,
-    ):
-        self.library = library
-        self.comparison_name = comparison_name
-        self.guard_name = guard_name
-        position = Position(library, "<aux>", 0, 0)
-        location = Location(position, position)
-        self.sign_to_int = {
-            r: ast.TermSymbolic(library, location, Number(library, n))
-            for r, n in SIGN_TO_INT.items()
-        }
-        self.relation_to_int = {
-            r: ast.TermSymbolic(library, location, Number(library, n))
-            for r, n in RELATION_TO_INT.items()
-        }
-
-    def _guard_to_function(
-        self, location: Location, guard: ast.RightGuard
-    ) -> ast.TermFunction:
-        arguments = ast.ArgumentTuple(
-            self.library, [self.relation_to_int[guard.relation], guard.term]
-        )
-        return ast.TermFunction(self.library, location, self.guard_name, [arguments])
-
-    def protect_comparison(
-        self, comparison: ast.LiteralComparison
-    ) -> ast.LiteralSymbolic:
-        """
-        Rewrites a LiteralComparison as a positive LiteralSymbolic of the form
-            Comparison(left, right, sign)
-        where right is a tuple of functions symbols Guard(relation, term)
-        """
-        location = comparison.location
-        sign = self.sign_to_int[comparison.sign]
-        left = comparison.left
-        right = ast.TermTuple(
-            self.library,
-            location,
-            [
-                ast.ArgumentTuple(
-                    self.library,
-                    [self._guard_to_function(location, g) for g in comparison.right],
-                )
-            ],
-        )
-        atom = ast.TermFunction(
-            self.library,
-            location,
-            self.comparison_name,
-            [ast.ArgumentTuple(self.library, [left, right, sign])],
-        )
-        return ast.LiteralSymbolic(self.library, location, ast.Sign.NoSign, atom)
-
-    def __call__(self, comparison: ast.LiteralComparison) -> ast.LiteralSymbolic:
-        """
-        Call method to protect a comparison.
-        """
-        return self.protect_comparison(comparison)
-
-
-class _ComparisonProtectorTransformer:
-    """
-    A transformer to protect comparisons in a Clingo AST.
-    """
-
-    def __init__(self, library: Library):
-        self.library = library
-        self.protect_comparison = ComparisonProtector(library)
-
-    @singledispatchmethod
-    def dispatch(self, node: AST_T) -> AST_T:
-        return node.transform(self.library, self.dispatch) or node
-
-    @dispatch.register
-    def _(self, node: ast.LiteralComparison) -> ast.LiteralSymbolic:
-        return self.protect_comparison(node)
-
-    @dispatch.register
-    def _(
-        self, node: ast.LiteralBoolean | ast.LiteralSymbolic
-    ) -> ast.LiteralBoolean | ast.LiteralSymbolic:
-        return node
-
-    def rewrite(self, node: ast.Statement) -> ast.Statement:
-        return node.transform(self.library, self.dispatch) or node
+    library = context.lib.library
+    location = comparison.location
+    sign = _sign_to_int(library, comparison.sign)
+    left = comparison.left
+    right = ast.TermTuple(
+        library,
+        location,
+        [
+            ast.ArgumentTuple(
+                library,
+                [_guard_to_function(context, location, g) for g in comparison.right],
+            )
+        ],
+    )
+    atom = ast.TermFunction(
+        library,
+        location,
+        context.prefix_protect_comparison,
+        [ast.ArgumentTuple(library, [left, right, sign])],
+    )
+    return ast.LiteralSymbolic(library, location, ast.Sign.NoSign, atom)
 
 
 def protect_comparisons(
-    library: Library, statements: Iterable[ast.Statement]
-) -> list[ast.Statement]:
+    context: RewriteContext, statement: ast.Statement
+) -> ast.Statement:
     """
     Protect comparisons in a Clingo AST.
 
     Args:
-        statements (Iterable[AST]): The AST statements to protect.
+        statement ast.Statement): The AST statements to protect.
 
     Returns:
-        Iterable[AST]: The protected AST statements.
+        ast.Statement: The protected AST statements.
     """
-    transformer = _ComparisonProtectorTransformer(library)
-    return [transformer.rewrite(statement) for statement in statements]
+    return (
+        statement.transform(context.lib.library, _protect_comparison, context)
+        or statement
+    )
 
 
 @dataclass
@@ -178,7 +152,7 @@ class RightGuard:
     relation: ast.Relation
     term: ast.Term | Symbol
 
-    def to_ast(self, library: Library, location: Location) -> ast.RightGuard:
+    def to_ast(self, library: core.Library, location: core.Location) -> ast.RightGuard:
         """
         Convert the RightGuard to an AST RightGuard.
 
@@ -196,7 +170,7 @@ class RightGuard:
 
 
 def _restore_guard_arguments(
-    library: Library, term: ast.TermFunction | Symbol
+    library: core.Library, term: ast.TermFunction | Symbol
 ) -> RightGuard:
     _, arguments = function_arguments(term)
     relation_int = arguments[0]
@@ -229,7 +203,7 @@ def _restore_guard_arguments(
 
 
 def restore_comparison_arguments(
-    library: Library,
+    library: core.Library,
     arguments: Sequence[ast.TermOrProjection] | Sequence[Symbol],
 ) -> tuple[ast.Sign, ast.TermOrProjection | Symbol, list[RightGuard]]:
     assert (
@@ -257,7 +231,7 @@ def restore_comparison_arguments(
 
 
 def restore_comparison(
-    library: Library,
+    library: core.Library,
     literal: ast.LiteralSymbolic,
     comparison_name: str = COMPARISON_NAME,
 ) -> ast.LiteralSymbolic | ast.LiteralComparison:
@@ -338,9 +312,9 @@ class _ComparisonRestorationTransformer:
     A transformer to restore comparisons in a Clingo AST.
     """
 
-    def __init__(self, library: Library):
-        self.library = library
-        self.protect_comparison = ComparisonProtector(library)
+    def __init__(self, context: RewriteContext):
+        self.library = context.lib.library
+        # self.protect_comparison = ComparisonProtector(context)
 
     @singledispatchmethod
     def dispatch(self, node: AST) -> AST:  # pragma: no cover
@@ -363,7 +337,7 @@ class _ComparisonRestorationTransformer:
 
 
 def restore_comparisons(
-    library: Library, statements: Iterable[ast.Statement]
+    context: RewriteContext, statements: Iterable[ast.Statement]
 ) -> list[ast.Statement]:
     """
     Protect comparisons in a Clingo AST.
@@ -374,7 +348,7 @@ def restore_comparisons(
     Returns:
         Iterable[AST]: The protected AST statements.
     """
-    transformer = _ComparisonRestorationTransformer(library)
+    transformer = _ComparisonRestorationTransformer(context)
 
     return [transformer.rewrite(statement) for statement in statements]
 
@@ -525,7 +499,7 @@ def _is_literal_protected_assignment(
 
 
 def _restore_assignment_function_to_head_simple_assignment(
-    library: Library,
+    library: core.Library,
     atom: ast.TermFunction | ast.TermSymbolic,
 ) -> Optional[HeadSimpleAssignment]:
     # if not is_function(atom):
@@ -549,7 +523,7 @@ def _restore_assignment_function_to_head_simple_assignment(
 
 
 def _restore_assignment_literal_to_head_simple_assignment(
-    library: Library,
+    library: core.Library,
     literal: ast.LiteralSymbolic,
 ) -> Optional[HeadSimpleAssignment]:
     """
@@ -611,7 +585,10 @@ class _AssignmentRestorationTransformer:
         return ChoiceAssignment(head.location, head.left, new_elements, head.right)
 
     def _construct_prefixed_tuple_from_protected_assignment_tuple(
-        self, library: Library, term: ast.TermFunction | ast.TermSymbolic, prefix: str
+        self,
+        library: core.Library,
+        term: ast.TermFunction | ast.TermSymbolic,
+        prefix: str,
     ) -> ast.TermFunction:
         # Construct a new TermFunction for a protected assignment tuple.
         # Example: ASS(next(X), Y) with prefix 'F' -> Fnext(X, Y)

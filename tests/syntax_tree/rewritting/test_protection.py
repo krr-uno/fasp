@@ -9,8 +9,8 @@ from fasp.syntax_tree.parsing.parser import parse_string
 from fasp.syntax_tree._context import RewriteContext
 
 from fasp.syntax_tree.rewritings.protecting import (
-    _ComparisonProtectorTransformer,
     _ComparisonRestorationTransformer,
+    _protect_comparison,
     _restore_guard_arguments,
     protect_comparisons,
     restore_comparison,
@@ -33,7 +33,9 @@ class TestProtectComparisons(unittest.TestCase):
         """
         Set up the test case with a library instance.
         """
-        self.lib = Library()
+        self.elib = ELibrary()
+        self.context = RewriteContext(self.elib)
+        self.lib = self.elib.library
         self.rewrite_context = ast.RewriteContext(self.lib)
 
     def assertEqualRewrite(self, program, expected):
@@ -52,7 +54,7 @@ class TestProtectComparisons(unittest.TestCase):
 
         ast.parse_string(self.lib, program, callback)
 
-        result = list(protect_comparisons(self.lib, statements))
+        result = [protect_comparisons(self.context, stmt) for stmt in statements]
 
         expected_lines = [line.strip() for line in expected.splitlines()]
 
@@ -105,14 +107,18 @@ class TestRestoreComparisons(unittest.TestCase):
         """
         Set up the test case with a library instance.
         """
-        self.lib = Library()
+        self.elib = ELibrary()
+        self.lib = self.elib.library
+        self.context = RewriteContext(self.elib)
         self.rewrite_context = ast.RewriteContext(self.lib)
+
 
     def test_restore(self):
         cmp = ast.parse_literal(self.lib, "a=100")
         self.assertEqual(str(cmp), "a=100")
-        transformer = _ComparisonProtectorTransformer(self.lib)
-        protected = transformer.dispatch(cmp)
+        # transformer = _ComparisonProtectorTransformer(self.context)
+        # protected = transformer.dispatch(cmp)
+        protected = _protect_comparison(cmp, self.context) or cmp
         self.assertEqual(str(protected), "CMP(a,(GRD(0,100),),0)")
         guard = protected.atom.pool[0].arguments[1].pool[0].arguments[0]
         self.assertEqual(str(guard), "GRD(0,100)")
@@ -125,9 +131,10 @@ class TestRestoreComparisons(unittest.TestCase):
 
     def test_restore_symbolic(self):
         lit = ast.parse_literal(self.lib, "#true")
-        transformer = _ComparisonProtectorTransformer(self.lib)
-        protected = transformer.dispatch(lit)
-        restorer = _ComparisonRestorationTransformer(self.lib)
+        # transformer = _ComparisonProtectorTransformer(self.context)
+        # protected = transformer.dispatch(lit)
+        protected = _protect_comparison(lit, self.context) or lit
+        restorer = _ComparisonRestorationTransformer(self.context)
         restored = restorer.dispatch(protected)
         self.assertEqual(lit, restored)
 
@@ -144,7 +151,7 @@ class TestRestoreComparisons(unittest.TestCase):
         ast.parse_string(self.lib, program, callback)
 
         # Protect comparisons
-        protected = list(protect_comparisons(self.lib, statements))
+        protected = [protect_comparisons(self.context, stmt) for stmt in statements]
 
         protected_str = "\n".join(str(stmt).strip() for stmt in protected[1:])
         exp_protected_str = textwrap.dedent(expected).strip()
@@ -156,7 +163,7 @@ class TestRestoreComparisons(unittest.TestCase):
         )
 
         # Restore comparisons
-        restored = list(restore_comparisons(self.lib, protected))
+        restored = list(restore_comparisons(self.context, protected))
         self.assertEqual(len(statements), len(restored))
         for orig, rest in zip(statements, restored):
             # Compare string forms

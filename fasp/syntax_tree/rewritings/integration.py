@@ -3,7 +3,7 @@ from typing import Iterable
 
 from clingo import ast
 
-from fasp.syntax_tree._context import RewriteContext as FASPRewriteContext
+from fasp.syntax_tree._context import RewriteContext
 from fasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
@@ -17,7 +17,6 @@ from fasp.syntax_tree.rewritings.negated_literals import (
 )
 from fasp.syntax_tree.rewritings.protecting import (
     protect_assignment,
-    protect_assignments,
     protect_comparisons,
     restore_assignments,
     restore_comparisons,
@@ -58,7 +57,7 @@ class PipelineStage(IntEnum):
 
 
 def _clingo_rewrite_wrapper(
-    context: FASPRewriteContext, statements: Iterable[ast.Statement]
+    context: RewriteContext, statements: Iterable[ast.Statement]
 ) -> list[ast.Statement]:
     """
     Wrapper for clingo's statement rewriting to handle errors.
@@ -86,7 +85,7 @@ def _clingo_rewrite_wrapper(
 
 
 def transform_to_clingo_statements(
-    context: FASPRewriteContext,
+    context: RewriteContext,
     statements: Iterable[FASP_Statement],
 ) -> list[ast.Statement]:
     """
@@ -101,10 +100,10 @@ def transform_to_clingo_statements(
         stm = rewrite_some_choices(library, stm)
         stm = normalize_assignment_aggregates(library, stm)
         stm = protect_assignment(context, stm)
+        stm = protect_comparisons(context, stm)
         new_statements.append(stm)
-    new_statements = protect_comparisons(library, new_statements)
     new_statements = _clingo_rewrite_wrapper(context, new_statements)
-    new_statements = restore_comparisons(library, new_statements)
+    new_statements = restore_comparisons(context, new_statements)
     new_statements2 = restore_assignments(
         context.lib,
         new_statements,
