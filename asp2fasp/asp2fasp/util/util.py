@@ -1,9 +1,21 @@
-from typing import Iterable, Tuple
+from itertools import combinations
+from typing import (
+    Iterable,
+    List,
+    Sequence,
+    Tuple,
+    TypeVar,
+)
 
 from clingo import ast
 from clingo.core import Library
+from clingo.symbol import Symbol, SymbolType
 
-from asp2fasp.util.ast import HeadLiteralAST, StatementAST, TermAST
+from asp2fasp.util.ast import AST, HeadLiteralAST, StatementAST, TermAST
+
+FunctionLikeAST = ast.TermFunction | ast.TermSymbolic | ast.TermTuple | Symbol
+
+T = TypeVar("T")
 
 
 # Utility to negate a Relation
@@ -61,6 +73,52 @@ def extract_comparison_terms(
     # return None
 
 
+# def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
+#     return isinstance(node, ast.TermFunction) or (
+#         isinstance(node, ast.TermSymbolic) and node.symbol.type == SymbolType.Function
+#     )
+
+
+def function_arguments(
+    node: FunctionLikeAST,
+) -> tuple[str, Sequence[ast.TermOrProjection] | Sequence[Symbol]]:
+
+    if isinstance(node, ast.TermTuple):  # pragma: no cover
+        name = ""
+        assert len(node.pool) == 1 and isinstance(
+            node.pool[0], ast.ArgumentTuple
+        ), f"Terms must be unpooled {node}"
+        arguments = node.pool[0].arguments
+    elif isinstance(node, ast.TermFunction):
+        name = node.name
+        assert len(node.pool) == 1, f"Terms must be unpooled {node}"
+        arguments = node.pool[0].arguments
+    else:  # pragma: no cover
+        if isinstance(node, ast.TermSymbolic):
+            node = node.symbol
+        if node.type == SymbolType.Tuple:  # pragma: no cover
+            name = ""
+        else:
+            assert (
+                node.type == SymbolType.Function
+            ), f"Expected a symbol function, got {node}: {node.type}"
+            name = node.name
+        arguments = node.arguments
+    return name, arguments
+
+
+# def function_arguments_ast(
+#     library: Library,
+#     node: ast.TermFunction | ast.TermSymbolic,
+# ) -> tuple[str, Sequence[ast.Term]]:
+#     name, arguments = function_arguments(node)
+#     if arguments and isinstance(arguments[0], ast.Term):
+#         return name, cast(Sequence[ast.Term], arguments)
+#     return name, [
+#         ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
+#     ]
+
+
 def split_multiple_aggregate_elements(
     lib: Library, node: StatementAST
 ) -> Iterable[StatementAST]:
@@ -112,3 +170,46 @@ def same_bound_symbol(left: ast.LeftGuard, right: ast.RightGuard) -> bool:
     l_sym = getattr(left.term, "symbol", None)
     r_sym = getattr(right.term, "symbol", None)
     return l_sym is not None and r_sym is not None and l_sym == r_sym
+
+
+def identify_invariant_positions(
+    occurrences: Sequence[Sequence[T]],
+) -> List[int]:
+
+    num_args = len(occurrences[0])
+    invariant_positions = [1] * num_args  # Start with all as invariant
+
+    for i in range(num_args):
+        reference_value = occurrences[0][i]
+        for occurrence in occurrences[1:]:
+            if occurrence[i] != reference_value:
+                invariant_positions[i] = 0
+                break  # No need to check further for this index
+
+    return invariant_positions
+
+
+def get_variant_subsets(
+    variant_positions: List[int],
+    lists_of_elements: Sequence[Sequence[T]],
+) -> List[List[Tuple[List[T], List[int]]]]:
+    all_subsets: List[List[Tuple[List[T], List[int]]]] = []
+
+    for _list in lists_of_elements:
+        elements = [
+            _list[i] for i in variant_positions
+        ]  # Extract variant elements based on positions
+        num_variants = len(elements)
+
+        subsets: List[Tuple[List[T], List[int]]] = []
+        for r in range(1, num_variants + 1):  # Generate all non-empty subsets
+            for indices in combinations(range(num_variants), r):
+                subset_values = [elements[i] for i in indices]  # Corresponding values
+                subset_indices = [
+                    variant_positions[i] for i in indices
+                ]  # Corresponding original indices
+                subsets.append((subset_values, subset_indices))
+
+        all_subsets.append(subsets)
+
+    return all_subsets
