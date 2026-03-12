@@ -1,10 +1,10 @@
 import unittest
 
-from fasp.util.ast import ELibrary
+from funasp.util.ast import ELibrary
 
-from fasp.syntax_tree.types import SymbolSignature
-from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.syntax_tree.rewritings.to_asp import NormalForm2PredicateTransformer
+from funasp.syntax_tree.types import SymbolSignature
+from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.syntax_tree.rewritings.to_asp import NormalForm2PredicateTransformer
 
 
 class TestNormalForm2PredicateTransformer(unittest.TestCase):

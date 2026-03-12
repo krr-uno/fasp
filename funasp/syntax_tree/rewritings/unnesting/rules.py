@@ -4,7 +4,7 @@ from typing import Any, List, Set
 from clingo import ast
 from clingo.core import Library
 
-from fasp.syntax_tree._nodes import (
+from funasp.syntax_tree._nodes import (
     FASP_AST,
     AssignmentRule,
     FASP_Statement,
@@ -13,16 +13,16 @@ from fasp.syntax_tree._nodes import (
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from fasp.syntax_tree.collectors import collect_variables
-from fasp.syntax_tree.rewritings.unnesting.literals import (
+from funasp.syntax_tree.collectors import collect_variables
+from funasp.syntax_tree.rewritings.unnesting.literals import (
     UnnestFunctionsInLiteralsTransformer,
     unnest_functions,
 )
-from fasp.syntax_tree.types import SymbolSignature
-from fasp.util.ast import (
+from funasp.syntax_tree.types import SymbolSignature
+from funasp.util.ast import (
     FreshVariableGenerator,
 )
-from fasp.util.iterables import map_none
+from funasp.util.iterables import map_none
 
 
 class RuleRewriteTransformer:

@@ -2,9 +2,9 @@ import unittest
 
 from clingo import ast
 
-from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.util.ast import ELibrary
-from fasp.syntax_tree.rewritings.negated_literals import (
+from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.util.ast import ELibrary
+from funasp.syntax_tree.rewritings.negated_literals import (
     rewrite_negated_body_literals_from_statements,
 )
 

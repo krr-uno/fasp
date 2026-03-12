@@ -3,11 +3,11 @@ from typing import Iterable
 from clingo import ast
 from clingo.core import Library
 
-from fasp.syntax_tree._nodes import (
+from funasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
 )
-from fasp.util.ast import ELibrary, transform_iterable
+from funasp.util.ast import ELibrary, transform_iterable
 
 
 def _rewrite_body_literal(

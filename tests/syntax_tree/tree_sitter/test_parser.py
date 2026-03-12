@@ -4,14 +4,14 @@ import unittest
 
 from clingo import ast
 
-from fasp.syntax_tree import AssignmentRule, HeadSimpleAssignment, ShowFDirective
+from funasp.syntax_tree import AssignmentRule, HeadSimpleAssignment, ShowFDirective
 
 # from fasp.ast.rewrittings.assigments import ParsingException
-from fasp.util.ast import ParsingException
-from fasp.util.ast import ELibrary
-from fasp.util.ast import AST
-from fasp.syntax_tree.parsing import parser
-from fasp.util.ast import parse_string
+from funasp.util.ast import ParsingException
+from funasp.util.ast import ELibrary
+from funasp.util.ast import AST
+from funasp.syntax_tree.parsing import parser
+from funasp.util.ast import parse_string
 
 
 class TestParseAssignment(unittest.TestCase):

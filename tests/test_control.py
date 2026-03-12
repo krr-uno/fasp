@@ -4,9 +4,9 @@ from typing import Iterable
 import unittest
 
 
-from fasp.control import Control
-from fasp.util.ast import ELibrary
-from fasp.solve import Model
+from funasp.control import Control
+from funasp.util.ast import ELibrary
+from funasp.solve import Model
 
 from .examples import EXAMPLES
 

@@ -4,14 +4,14 @@ import unittest
 from clingo import ast
 from clingo.core import Location, Position, Library
 
-from fasp.util.ast import (
+from funasp.util.ast import (
     ELibrary,
     ParsingException,
     SyntacticCheckVisitor,
     SyntacticError,
 )
-from fasp.syntax_tree.collectors import collect_variables
-from fasp.util import ast as util_ast
+from funasp.syntax_tree.collectors import collect_variables
+from funasp.util import ast as util_ast
 
 
 INVALID_ASTTYPES = {

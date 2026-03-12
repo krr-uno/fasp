@@ -12,8 +12,8 @@ import sys
 from typing import Any
 
 # IMPORTANT: use the parsing.parse_string that uses TreeSitter (supports ':=')
-from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.util.ast import ELibrary
+from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.util.ast import ELibrary
 
 
 def pretty_print(node: Any, indent: int = 0) -> None:

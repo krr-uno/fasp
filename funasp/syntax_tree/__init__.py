@@ -2,7 +2,7 @@ from typing import Iterable
 
 from clingo import ast
 
-from fasp.syntax_tree.rewritings.integration import (
+from funasp.syntax_tree.rewritings.integration import (
     transform_to_clingo_statements,
 )
 

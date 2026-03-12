@@ -3,7 +3,7 @@ from typing import List
 from clingo import ast, symbol
 from clingo.core import Library
 
-from fasp.syntax_tree._nodes import (
+from funasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,

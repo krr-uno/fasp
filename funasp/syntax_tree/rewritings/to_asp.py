@@ -5,7 +5,7 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number
 
-from fasp.syntax_tree._nodes import (
+from funasp.syntax_tree._nodes import (
     FASP_AST_T,
     AssignmentAggregateElement,
     AssignmentRule,
@@ -17,10 +17,10 @@ from fasp.syntax_tree._nodes import (
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from fasp.syntax_tree.types import (
+from funasp.syntax_tree.types import (
     SymbolSignature,
 )
-from fasp.util.ast import (
+from funasp.util.ast import (
     create_body_literal,
     create_literal,
     function_arguments_ast,

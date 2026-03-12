@@ -2,12 +2,12 @@ import textwrap
 import unittest
 
 
-from fasp.syntax_tree.rewritings.aggregates import (
+from funasp.syntax_tree.rewritings.aggregates import (
     normalize_assignment_aggregates,
 )
 
-from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.util.ast import ELibrary
+from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.util.ast import ELibrary
 
 
 class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):

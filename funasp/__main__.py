@@ -1,6 +1,6 @@
 import sys
 
-from fasp.__version__ import __version__
+from funasp.__version__ import __version__
 
 
 def check_versions() -> int:
@@ -37,7 +37,7 @@ def main() -> int:
         return error_code
     if not version_mode:
         sys.stdout.write("\n")
-    from fasp.app import main as app_main  # pylint: disable=import-outside-toplevel
+    from funasp.app import main as app_main  # pylint: disable=import-outside-toplevel
 
     return app_main(sys.argv[1:])
 

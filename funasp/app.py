@@ -5,9 +5,9 @@ from clingo import core
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.control import Control as ClingoControl
 
-from fasp.__version__ import __version__
-from fasp.control import Control
-from fasp.util.ast import ELibrary, ParsingException
+from funasp.__version__ import __version__
+from funasp.control import Control
+from funasp.util.ast import ELibrary, ParsingException
 
 
 class FaspApp(App):

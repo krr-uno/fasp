@@ -1,9 +1,9 @@
 import unittest
 
 
-from fasp.syntax_tree.collectors import collect_evaluable_functions, collect_variables
-from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.util.ast import ELibrary
+from funasp.syntax_tree.collectors import collect_evaluable_functions, collect_variables
+from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.util.ast import ELibrary
 
 
 class TestGetEvaluableFunctions(unittest.TestCase):

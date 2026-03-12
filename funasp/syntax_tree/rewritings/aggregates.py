@@ -1,14 +1,14 @@
 from clingo import ast
 from clingo.core import Library
 
-from fasp.syntax_tree._nodes import (
+from funasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from fasp.syntax_tree.collectors import collect_variables
-from fasp.util.ast import (
+from funasp.syntax_tree.collectors import collect_variables
+from funasp.util.ast import (
     FreshVariableGenerator,
 )
 

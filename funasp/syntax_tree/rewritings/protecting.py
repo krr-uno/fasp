@@ -5,8 +5,8 @@ from typing import Any, Iterable, List, Optional, Sequence, cast
 from clingo import ast, core
 from clingo.symbol import Number, Symbol, SymbolType
 
-from fasp.syntax_tree._context import RewriteContext
-from fasp.syntax_tree._nodes import (
+from funasp.syntax_tree._context import RewriteContext
+from funasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,
@@ -17,7 +17,7 @@ from fasp.syntax_tree._nodes import (
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from fasp.util.ast import (
+from funasp.util.ast import (
     AST,
     AST_T,
     ELibrary,

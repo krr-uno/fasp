@@ -3,7 +3,7 @@ from typing import Sequence
 from clingo import solve
 from clingo.symbol import Symbol, SymbolType
 
-from fasp.symbol import FunctionSymbol
+from funasp.symbol import FunctionSymbol
 
 
 class Model:

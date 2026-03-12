@@ -1,7 +1,7 @@
 from clingo.ast import StatementShowSignature
 
-from fasp.syntax_tree._context import RewriteContext
-from fasp.syntax_tree._nodes import FASP_Statement, ShowFDirective
+from funasp.syntax_tree._context import RewriteContext
+from funasp.syntax_tree._nodes import FASP_Statement, ShowFDirective
 
 
 def rewrite_showf(ctx: RewriteContext, statement: FASP_Statement) -> FASP_Statement:

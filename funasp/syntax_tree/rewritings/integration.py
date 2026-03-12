@@ -3,35 +3,35 @@ from typing import Iterable
 
 from clingo import ast
 
-from fasp.syntax_tree._context import RewriteContext
-from fasp.syntax_tree._nodes import (
+from funasp.syntax_tree._context import RewriteContext
+from funasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
 )
-from fasp.syntax_tree.collectors import (
+from funasp.syntax_tree.collectors import (
     collect_evaluable_functions,
 )
-from fasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
-from fasp.syntax_tree.rewritings.negated_literals import (
+from funasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
+from funasp.syntax_tree.rewritings.negated_literals import (
     rewrite_negated_body_literals_from_statements,
 )
-from fasp.syntax_tree.rewritings.protecting import (
+from funasp.syntax_tree.rewritings.protecting import (
     protect_assignment,
     protect_comparisons,
     restore_assignments,
     restore_comparisons,
 )
-from fasp.syntax_tree.rewritings.showf import rewrite_showf
-from fasp.syntax_tree.rewritings.some_assignments import (
+from funasp.syntax_tree.rewritings.showf import rewrite_showf
+from funasp.syntax_tree.rewritings.some_assignments import (
     rewrite_some_choices,
 )
-from fasp.syntax_tree.rewritings.to_asp import (
+from funasp.syntax_tree.rewritings.to_asp import (
     NormalForm2PredicateTransformer,
     functional_constraints,
     to_asp,
 )
-from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
-from fasp.syntax_tree.types import SymbolSignature
+from funasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
+from funasp.syntax_tree.types import SymbolSignature
 
 
 class PipelineStage(IntEnum):

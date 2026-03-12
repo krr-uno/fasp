@@ -5,10 +5,10 @@ import clingo
 from clingo import ast
 from clingo.symbol import Symbol
 
-from fasp.solve import Model
-from fasp.syntax_tree._context import RewriteContext
-from fasp.syntax_tree.parsing import parser
-from fasp.util.ast import ELibrary
+from funasp.solve import Model
+from funasp.syntax_tree._context import RewriteContext
+from funasp.syntax_tree.parsing import parser
+from funasp.util.ast import ELibrary
 
 from .syntax_tree import rewrite_statements
 

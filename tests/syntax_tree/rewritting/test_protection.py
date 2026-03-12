@@ -4,11 +4,11 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from fasp.syntax_tree._nodes import FASP_AST
-from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.syntax_tree._context import RewriteContext
+from funasp.syntax_tree._nodes import FASP_AST
+from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.syntax_tree._context import RewriteContext
 
-from fasp.syntax_tree.rewritings.protecting import (
+from funasp.syntax_tree.rewritings.protecting import (
     _ComparisonRestorationTransformer,
     _protect_comparison,
     _restore_guard_arguments,
@@ -18,7 +18,7 @@ from fasp.syntax_tree.rewritings.protecting import (
     protect_assignments,
     restore_assignments,
 )
-from fasp.util.ast import AST, ELibrary
+from funasp.util.ast import AST, ELibrary
 
 
 def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:

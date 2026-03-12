@@ -1,4 +1,4 @@
-from fasp.syntax_tree.rewritings.protecting import (  # protect_comparisons,; restore_comparisons,
+from funasp.syntax_tree.rewritings.protecting import (  # protect_comparisons,; restore_comparisons,
     COMPARISON_NAME,
 )
 

@@ -4,7 +4,7 @@ import unittest
 import io, contextlib
 
 
-from fasp.app import main
+from funasp.app import main
 
 from .examples import EXAMPLES
 

@@ -3,15 +3,15 @@ from typing import Any, Iterable
 
 from clingo import ast
 
-from fasp.syntax_tree._nodes import (
+from funasp.syntax_tree._nodes import (
     FASP_AST,
     AssignmentRule,
     HeadAggregateAssignment,
     HeadAggregateAssignmentElement,
     HeadSimpleAssignment,
 )
-from fasp.syntax_tree.types import SymbolSignature
-from fasp.util.ast import function_arguments
+from funasp.syntax_tree.types import SymbolSignature
+from funasp.util.ast import function_arguments
 
 
 def collect_variables(node: FASP_AST) -> set[str]:

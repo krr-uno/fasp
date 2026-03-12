@@ -15,7 +15,7 @@ from tree_sitter import (
     Tree,
 )
 
-from fasp.syntax_tree._nodes import (
+from funasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,
@@ -28,13 +28,13 @@ from fasp.syntax_tree._nodes import (
     ShowFDirective,
     SymbolSignature,
 )
-from fasp.util.ast import (
+from funasp.util.ast import (
     AST,
     ELibrary,
     ParsingException,
     SyntacticError,
 )
-from fasp.util.ast import parse_string as clingo_parse_string
+from funasp.util.ast import parse_string as clingo_parse_string
 
 
 def _ast_merge(asts1: Iterable[AST], asts2: Iterable[AST]) -> Iterable[AST]:

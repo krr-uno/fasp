@@ -8,7 +8,7 @@ nox.options.sessions = "typecheck", "test", "format"
 # nox.options.sessions = "test", "format"
 nox.options.default_venv_backend = None
 
-PROJECT_NAME = "fasp"
+PROJECT_NAME = "funasp"
 
 
 @nox.session(python=PYTHON_VERSIONS)

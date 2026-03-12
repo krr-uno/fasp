@@ -1,6 +1,6 @@
 from clingo.ast import RewriteContext as ClingoRewriteContext
 
-from fasp.util.ast import ELibrary
+from funasp.util.ast import ELibrary
 
 
 class RewriteContext:

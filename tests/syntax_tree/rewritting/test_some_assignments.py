@@ -1,8 +1,11 @@
+
+
+
 import unittest
 
-from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.util.ast import ELibrary
-from fasp.syntax_tree.rewritings.some_assignments import (
+from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.util.ast import ELibrary
+from funasp.syntax_tree.rewritings.some_assignments import (
     rewrite_some_choices,
 )
 

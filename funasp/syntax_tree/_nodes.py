@@ -6,8 +6,8 @@ from typing import Any, Self, TypeVar
 from clingo import ast
 from clingo.core import Library, Location
 
-from fasp.syntax_tree.types import SymbolSignature
-from fasp.util import ast as util_ast
+from funasp.syntax_tree.types import SymbolSignature
+from funasp.util import ast as util_ast
 
 
 class AssignmentAST:
