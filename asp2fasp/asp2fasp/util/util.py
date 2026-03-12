@@ -83,7 +83,7 @@ def function_arguments(
     node: FunctionLikeAST,
 ) -> tuple[str, Sequence[ast.TermOrProjection] | Sequence[Symbol]]:
 
-    if isinstance(node, ast.TermTuple):  # pragma: no cover
+    if isinstance(node, ast.TermTuple):
         name = ""
         assert len(node.pool) == 1 and isinstance(
             node.pool[0], ast.ArgumentTuple
@@ -93,7 +93,7 @@ def function_arguments(
         name = node.name
         assert len(node.pool) == 1, f"Terms must be unpooled {node}"
         arguments = node.pool[0].arguments
-    else:  # pragma: no cover
+    else:
         if isinstance(node, ast.TermSymbolic):
             node = node.symbol
         if node.type == SymbolType.Tuple:  # pragma: no cover
