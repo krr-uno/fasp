@@ -17,6 +17,13 @@ LIBC = ctypes.CDLL(None)  # None = current process's libc
 LIBC.fflush.argtypes = [ctypes.c_void_p]
 LIBC.fflush.restype = ctypes.c_int
 
+def c_flush_stdout() -> None:
+    is_windows = True
+    try:
+        is_windows = sys.platform.startswith("win")
+    except Exception as e: # pragma: no cover
+        pass
+    LIBC.fflush("msvcrt" if is_windows else None)  # Flush C's stdout
 
 class FaspApp(App):
     def __init__(self, library: ELibrary, clingo_options: Sequence[str]) -> None:
@@ -52,7 +59,7 @@ class FaspApp(App):
     def print_model(
         self, model: solve.Model, default_printer: Callable[[], None]
     ) -> None:
-        LIBC.fflush(None)  # Flush C's stdout
+        c_flush_stdout()
         sys.stdout.write(str(Model(model, self._prefix)))
         sys.stdout.write("\n")
         sys.stdout.flush()
