@@ -22,22 +22,26 @@ class InequalityConstraintFinder:
         self.conditions: list[ast.LiteralComparison] = []
         self.foundPredicates: list[FPredicate] = []
 
-    def identifyInequalityPattern(self, statements: Iterable[StatementAST]) -> None:
+    def identifyInequalityPattern(
+        self, statements: Iterable[StatementAST]
+    ) -> List[FPredicate]:
         """
         Identifies functional relationships in constraints by checking for the pattern for
         functional relations.  Stores found relations as FPredicate tuples.
         """
+        if self.foundPredicates:
+            self.foundPredicates.clear()
         for rule in statements:
             if isinstance(rule, ast.StatementRule):
                 # Only analyze if rule is a constraint.
                 if not util.is_constraint(rule.head):
-                    return
+                    continue
 
                 # Clear values from previous rules, if any.
                 self.symbolicAtoms = []
                 self.comparisons = []
 
-                # rule.body contains BodySimpleLiteral | BodyAggregate | ...
+                # Capture ast.LiteralSymbolic and ast.LiteralComparison from ast.BodySimpleLiteral in rule.body
                 for body_elem in rule.body:
                     if isinstance(body_elem, ast.BodySimpleLiteral):
                         # Dispatch on the inner literal type.
@@ -47,10 +51,7 @@ class InequalityConstraintFinder:
                         elif isinstance(body_elem.literal, ast.LiteralComparison):
                             self.comparisons.append(body_elem.literal)
                 self.mapAndCheckPredicates()
-                # for fPredicate in self.foundPredicates:
-                #     print(
-                #         F"Found functional predicate: {fPredicate.name}/{fPredicate.arity} with arguments {fPredicate.arguments} and values {fPredicate.values}"
-                #     )
+        return self.foundPredicates
 
     def _map_predicate_occurrences(
         self, symbolicAtoms: List[ast.LiteralSymbolic]
@@ -186,9 +187,6 @@ class InequalityConstraintFinder:
 
                 if name != _name:
                     _, args = util.function_arguments(term)
-                    # args = tuple(
-                    #     arg.name for arg in term.arguments if isinstance(arg, ast.TermVariable)
-                    # )
                     conditionArgs = list(args)
                     # Note: Index in the functional argument for the corresponding condition argument.
                     sharedArgsIndices = []

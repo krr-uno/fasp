@@ -16,18 +16,30 @@ class InequalityConstraintFinderTest(unittest.TestCase):
         self.finder = InequalityConstraintFinder()
 
     def _apply(self, program: str) -> list[FPredicate]:
-        """Parse `program`, rewrite each rule, and return the normalized text."""
+        """Parse `program`, pass asts to pattern finder and return identifed FPredicates."""
         program = textwrap.dedent(program).strip()
         nodes: list[AST] = []
         ast.parse_string(self.lib, program, nodes.append)
 
-        self.finder.identifyInequalityPattern(nodes)
-        return self.finder.foundPredicates
-    
+        return self.finder.identifyInequalityPattern(nodes)
+
     def assertFPredicateEqual(self, program:str, expectedFPredicates: list[FPredicate]) -> None:
         foundFPredicates = self._apply(program)
         assert len(foundFPredicates) == len(expectedFPredicates), f"Expected FPredicates of same length, got {len(foundFPredicates)} and {len(expectedFPredicates)}"
         assert all(fp in foundFPredicates for fp in expectedFPredicates), f"Expected predicates {expectedFPredicates}, found {foundFPredicates}"
+    
+    ## TESTS ##
+    def test_apply_twice(self) -> list[FPredicate]:
+        """Parse `program`, pass asts to pattern finder, call identifyInequalityPattern twice to check that it does not break stuff,and return identifed FPredicates."""
+        program = textwrap.dedent(":- at(A, B, C, D), at(A, B, C', D'), (C,D) != (C',D').").strip()
+        expectedFPredicates =[FPredicate(name='at', arity=4, arguments=(0, 1), values=(2, 3), condition=[])]
+
+        nodes: list[AST] = []
+        ast.parse_string(self.lib, program, nodes.append)
+        self.finder.identifyInequalityPattern(nodes)
+        fpredicates =  self.finder.identifyInequalityPattern(nodes)
+        
+        assert all(fp in fpredicates for fp in expectedFPredicates), f"Expected predicates {expectedFPredicates}, found {fpredicates}"
     
     def test_not_constraint(self) -> None:
         program = "a."
@@ -69,16 +81,13 @@ class InequalityConstraintFinderTest(unittest.TestCase):
         
         self.assertFPredicateEqual(program, expected)
     
-
-   
     def test_inequality_pattern_with_tuple_conditions(self) -> None:
         program = ":- at(A, B, C, D), at(A, B, C', D'), (C,D) != (C',D')."
         expected = [FPredicate(name='at', arity=4, arguments=(0, 1), values=(2, 3), condition=[])]
         
         self.assertFPredicateEqual(program, expected)
 
-
-    # Extra Tests
+    ## Extra Tests (Not needed for coverage) ## 
     def test_1(self) -> None:
         program = ":- at(A, B, C, D), at(A, B, C', D'), C != C', D != D'."
         expected = []
