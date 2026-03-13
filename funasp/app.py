@@ -13,7 +13,7 @@ from funasp.util.ast import ELibrary, ParsingException
 
 LIBC_NAME: str | None = None
 try:
-    if sys.platform.startswith("win"):
+    if sys.platform.startswith("win"): # pragma: no cover
         LIBC_NAME = "msvcrt"
 except Exception as e: # pragma: no cover
     pass
