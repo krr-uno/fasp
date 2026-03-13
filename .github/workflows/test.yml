@@ -42,7 +42,7 @@ jobs:
     - name: Conda install clingo
       shell: bash -l {0}
       run: |
-        conda install --name clingo6 -c potassco/label/dev-20 clingo
+        conda install --name clingo6 -c potassco/label/dev-20 clingo coverage
 
     - name: "checkout repository"
       uses: actions/checkout@v3
