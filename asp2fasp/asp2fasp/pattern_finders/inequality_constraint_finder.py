@@ -39,6 +39,7 @@ class InequalityConstraintFinder:
                 if not util.is_constraint(rule.head):
                     continue
 
+                # print(f"Analyzing constraint: {rule}")
                 # Clear values from previous rules, if any.
                 self.symbolicAtoms = []
                 self.comparisons = []
@@ -90,8 +91,14 @@ class InequalityConstraintFinder:
 
         # Check for comparisons in predicates with multiple occurrences in the same rule.
         for name, occurrences in predicates.items():
+            # print(
+            #     f"Checking predicate '{name}' with occurrences: {[list(map(str, occurrence)) for occurrence in occurrences]}"
+            # )
             if len(occurrences) > 1:
                 invariantArgs = util.identify_invariant_positions(occurrences)
+                # print(
+                #     f"Invariant argument positions for predicate '{name}': {invariantArgs}"
+                # )
                 if 0 in invariantArgs and 1 in invariantArgs:
                     self.identify_functional_arguments(name, occurrences, invariantArgs)
                     if len(self.functional_predicates) > 0:

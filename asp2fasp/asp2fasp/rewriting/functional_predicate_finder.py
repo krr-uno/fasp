@@ -42,10 +42,22 @@ class FunctionalPredicateFinder:
     def processProgram(
         self, statements: List[StatementAST] | List[ast.StatementRule]
     ) -> Tuple[List[FPredicate], List[FRelation]]:
-        # # Preprocess the program with the pipeline of transformers, which includes splitting rules with multiple aggregate elements
-        # self.statements = processPipelinetransformers(self.lib, statements)
+        # Preprocess the program with the pipeline of transformers, which includes splitting rules with multiple aggregate elements
+        self.statements = processPipelinetransformers(self.lib, statements)
 
-        self.statements = statements
+        """ 
+        # NOTE: If staetment are preprocessed before calling ICF.identifyInequalityPattern(self.statements),
+        some variables are rewritten as `*` by clingo rewrite, which causes them to be added as "arguments" for the FPredicate.
+        For exmaple:
+        `:- pos(I,X,Y); pos(I,X1,Y1); X1 != X.`
+
+        after preprocessing, it becomes:
+
+        `:- pos(I,X,*); pos(I,X1,*); X1 != X.`
+        `*` is treated as invariant and it causes it to be added as an argument to the FPredicate
+
+        This is handled by treating ast.Projection as `invariant` always in asp2fasp.util.identify_invariant_positions.
+        """
 
         foundFunctionalPredicates: List[FPredicate] = []
         # Identify functional predicates patterns
@@ -55,15 +67,6 @@ class FunctionalPredicateFinder:
         self.functionalPredicates.extend(foundFunctionalPredicates)
 
         return self.functionalPredicates, self.processFoundPredicates()
-
-    # if self.asp_program:
-    #     APF = AggregatePatternFinder(self)
-    #     APF.identifyAggregatePattern()
-    #     APF.identifyCountConstraintPattern()
-    #     ICF = InequalityConstraintFinder(self)
-    #     ICF.identifyInequalityPattern()
-    #     self.processFoundPredicates()
-    #     return self.asp_program
 
     def processFoundPredicates(self) -> List[FRelation]:
         groupedPredicates = defaultdict(list)

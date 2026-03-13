@@ -48,17 +48,21 @@ class FunctionalPredicateFinderTest(unittest.TestCase):
         )
 
     ## TESTS ##
-    def test_not_constraint(self) -> None:
+    def test_no_constraint(self) -> None:
         program = "a."
-        fPredicates,fRelation = self._apply(program)
-        assert len(fPredicates) == 0, f"Expected no predicates, found {len(fPredicates)}"
-        assert len(fRelation) == 0, f"Expected no relations, found {len(fRelation)}"
+        
+        self.assertFPredicateEqual(program, ([],[]))
     
     def test_no_inequality(self) -> None:
         program = ":- pos(I,X,Y); pos(I,X1,Y1); Y > Y1."
-        fPredicates,fRelation = self._apply(program)
+        
         self.assertFPredicateEqual(program, ([],[]))
     
+    def test_inequality(self) -> None:
+        program = ":- pos(I,X,Y); pos(I,X1,Y1); Y != Y1."
+        
+        self.assertFPredicateEqual(program, ([FPredicate(name='pos', arity=3, arguments=(0,), values=(2,), condition=[])],[]))
+
     def test_identifies_inequality_pattern(self) -> None:
         program = """
             :- pos(I,X,Y); pos(I,X1,Y1); X1 != X.
@@ -71,53 +75,3 @@ class FunctionalPredicateFinderTest(unittest.TestCase):
                 )
 
         self.assertFPredicateEqual(program, expected)
-
-    # def test_identifies_inequality_pattern_with_conditions(self) -> None:
-    #     program = ":- loc(A, B), loc(C, B), A != C, pred1(A)."
-    #     expected = [FPredicate(name='loc', arity=2, arguments=(1,), values=(0,), condition=[CPredicate(name='pred1', arity=1, arguments=(0,))]),]
-
-    #     self.assertFPredicateEqual(program, expected)
-    
-    # def test_identifies_inequality_pattern_with_conditions_shared_arg(self) -> None:
-    #     program = ":- loc(A, B), loc(C, B), A != C, pred1(A,C)."
-    #     expected = [FPredicate(name='loc', arity=2, arguments=(1,), values=(0,), condition=[CPredicate(name='pred1', arity=2, arguments=(0,-1))]),]
-        
-    #     self.assertFPredicateEqual(program, expected)
-    
-    # def test_inequality_pattern_with_multiple_inequalities(self) -> None:
-    #     program = ":- unit2sensor(U,D1), unit2sensor(U,D2), unit2sensor(U,D3), D1!=D2,D2!=D3,D1!=D3."
-    #     expected = [FPredicate(name='unit2sensor', arity=2, arguments=(0,), values=(1,), condition=[CPredicate(name='unit2sensor', arity=2, arguments=(0, -1))])]
-        
-    #     self.assertFPredicateEqual(program, expected)
-    
-    # def test_inequality_pattern_with_tuple_conditions(self) -> None:
-    #     program = ":- at(A, B, C, D), at(A, B, C', D'), (C,D) != (C',D')."
-    #     expected = [FPredicate(name='at', arity=4, arguments=(0, 1), values=(2, 3), condition=[])]
-        
-    #     self.assertFPredicateEqual(program, expected)
-
-    # ## Extra Tests (Not needed for coverage) ## 
-    # def test_1(self) -> None:
-    #     program = ":- at(A, B, C, D), at(A, B, C', D'), C != C', D != D'."
-    #     expected = []
-        
-    #     self.assertFPredicateEqual(program, expected)
-    
-    # def test_2(self) -> None:
-    #     program = ":- at(A, B, C, D), at(A, B', C', D'), (C,D) != (C',D')."
-    #     expected = [FPredicate(name='at', arity=4, arguments=(0,), values=(2, 3), condition=[])]
-
-    #     self.assertFPredicateEqual(program, expected)
-
-    # def test_3(self) -> None:
-    #     program = "at(A, B, C, D), at(A', B', C', D'), (C,D) != (C',D')."
-    #     expected = []
-
-    #     self.assertFPredicateEqual(program, expected)
-    
-    # def test_4(self) -> None:
-    #     program = ":- loc(A, B, D), loc(X, B, D), A != X."
-    #     expected = [FPredicate(name='loc', arity=3, arguments=(1, 2), values=(0,), condition=[])]
-
-    #     self.assertFPredicateEqual(program, expected)
-    

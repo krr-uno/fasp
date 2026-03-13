@@ -172,19 +172,43 @@ def same_bound_symbol(left: ast.LeftGuard, right: ast.RightGuard) -> bool:
     return l_sym is not None and r_sym is not None and l_sym == r_sym
 
 
+# def identify_invariant_positions(
+#     occurrences: Sequence[Sequence[T]],
+# ) -> List[int]:
+
+#     num_args = len(occurrences[0])
+#     invariant_positions = [1] * num_args  # Start with all as invariant
+
+#     for i in range(num_args):
+#         reference_value = occurrences[0][i]
+#         for occurrence in occurrences[1:]:
+#             if occurrence[i] != reference_value:
+#                 invariant_positions[i] = 0
+#                 break  # No need to check further for this index
+
+#     return invariant_positions
+
+
 def identify_invariant_positions(
     occurrences: Sequence[Sequence[T]],
 ) -> List[int]:
 
     num_args = len(occurrences[0])
-    invariant_positions = [1] * num_args  # Start with all as invariant
+    invariant_positions = [1] * num_args
 
     for i in range(num_args):
-        reference_value = occurrences[0][i]
-        for occurrence in occurrences[1:]:
-            if occurrence[i] != reference_value:
+        column_values = [occ[i] for occ in occurrences]
+
+        # Special rule: '*' makes the position variant
+        if any(isinstance(v, ast.Projection) for v in column_values):
+            invariant_positions[i] = 0
+            continue
+
+        reference_value = column_values[0]
+        for value in column_values[1:]:
+            if value != reference_value:
                 invariant_positions[i] = 0
-                break  # No need to check further for this index
+                break
 
     return invariant_positions
 

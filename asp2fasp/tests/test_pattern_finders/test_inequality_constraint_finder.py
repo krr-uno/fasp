@@ -112,3 +112,8 @@ class InequalityConstraintFinderTest(unittest.TestCase):
 
         self.assertFPredicateEqual(program, expected)
     
+    def test_5(self) -> None:
+        program =":- pos(I,X,Y); pos(I,X1,Y1); Y != Y1."
+        expected = [FPredicate(name='pos', arity=3, arguments=(0,), values=(2,), condition=[])]
+
+        self.assertFPredicateEqual(program, expected)
