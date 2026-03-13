@@ -34,9 +34,9 @@ class TestControl(unittest.TestCase):
         line_number = 0
         output, _ = self.execute_app(files)
         result = None
-        # print("="*80)
-        # print(output)
-        # print("="*80)
+        print("="*80)
+        print(output)
+        print("="*80)
         for line in output.strip().splitlines():
             line = line.strip()
             if line.startswith("Answer"):
