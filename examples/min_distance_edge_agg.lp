@@ -4,7 +4,7 @@ node(1..7).
 
 dist(X,X):=0 :- node(X).
 
-dist(X,Y):=M+1 :- edge(X,_), edge(_,Y), M = #min{N: dist(X,Z)=N, edge(Z,Y)}.
+dist(X,Y):=M+1 :- edge(X,_), edge(_,Y), M = #min{N: dist(X,Z)=N, edge(Z,Y)}, M < #sup.
 
 #showf dist/2.
 

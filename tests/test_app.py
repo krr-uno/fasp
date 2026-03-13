@@ -29,10 +29,12 @@ class TestControl(unittest.TestCase):
         return result.stdout, result.stderr
 
 
-    def assert_models(self, files: PathLike, expected_models):
+    def assert_models(self, files: PathLike, expected_models, *, allow_errors: bool=False):
         models = []
         line_number = 0
         output, error = self.execute_app(files)
+        if not allow_errors:
+            self.assertEqual(error.strip(),"")
         result = None
         for line in output.strip().splitlines():
             line = line.strip()
@@ -164,4 +166,5 @@ class TestControl(unittest.TestCase):
         self.assert_models(
             [example_file],
             [""],
+            allow_errors=True,
         )
