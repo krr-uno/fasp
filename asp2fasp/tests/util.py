@@ -1,11 +1,11 @@
-from typing import List, Tuple, TypeVar
+from typing import List, Tuple, TypeVar, Type
 
 from clingo import ast
 from clingo.core import Library
 from asp2fasp.util.ast import AST, StatementAST
 
 T = TypeVar('T')
-
+T_AST = TypeVar('T_AST', bound=AST)
 
 def collect_statements(lib: Library,program:str) -> List[ast.StatementRule]:
     """Helper to collect StatementRule nodes program str."""
@@ -18,7 +18,7 @@ def collect_statements(lib: Library,program:str) -> List[ast.StatementRule]:
             stmts.append(n)
     return stmts
 
-def find_in_ast(node:AST, typ: type) -> None | AST:
+def find_in_ast(node:AST, typ: Type[T_AST]) -> None | T_AST:
     result = None
 
     def visitor(n:AST) -> None:
@@ -34,7 +34,7 @@ def find_in_ast(node:AST, typ: type) -> None | AST:
     visitor(node)
     return result
 
-def parse_and_find(lib: Library, program: str, typ: type) -> None | AST:
+def parse_and_find(lib: Library, program: str, typ: Type[T_AST]) -> None | T_AST:
     rules = collect_statements(lib, program)
 
     if not rules:
