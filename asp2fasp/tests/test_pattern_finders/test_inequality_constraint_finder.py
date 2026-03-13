@@ -12,8 +12,9 @@ from asp2fasp.util.ast import AST
 
 
 FPredicate = namedtuple(
-    "FPredicate", ["name", "arity", "arguments", "values"]
+    "FPredicate", ["name", "arity", "arguments", "values", "condition"]
 )
+CPredicate = namedtuple("CPredicate", ["name", "arity", "arguments"])
 
 class InequalityConstraintFinderTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -49,12 +50,14 @@ class InequalityConstraintFinderTest(unittest.TestCase):
             name="pos",
             arity=3,
             arguments=(0,),
-            values=(1,)
+            values=(1,),
+            condition=[]
         ), FPredicate(
             name="pos",
             arity=3,
             arguments=(0,),
-            values=(2,)
+            values=(2,),
+            condition=[]
         )]
 
         assert len(self.finder.foundPredicates) == len(expected), f"Expected {len(expected)} predicates, found {len(self.finder.foundPredicates)}"

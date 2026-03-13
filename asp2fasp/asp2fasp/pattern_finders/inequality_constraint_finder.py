@@ -7,10 +7,10 @@ import asp2fasp.util.util as util
 from asp2fasp.util.ast import AST, StatementAST
 
 # TODO: Add Condition
-FPredicate = namedtuple("FPredicate", ["name", "arity", "arguments", "values"])
-# FPredicate = namedtuple(
-#     "FPredicate", ["name", "arity", "arguments", "values", "condition"]
-# )
+# FPredicate = namedtuple("FPredicate", ["name", "arity", "arguments", "values"])
+FPredicate = namedtuple(
+    "FPredicate", ["name", "arity", "arguments", "values", "condition"]
+)
 CPredicate = namedtuple("CPredicate", ["name", "arity", "arguments"])
 
 
@@ -109,7 +109,7 @@ class InequalityConstraintFinder:
                                 values=tuple(
                                     self.functional_predicates[predicate]["outputs"]
                                 ),
-                                # condition=self.getConditionPredicates(predicate, predicates[predicate]),
+                                condition=self.getConditionPredicates(predicate, predicates[predicate]),
                             )
                             for predicate in self.functional_predicates.keys()
                         ]
@@ -173,58 +173,57 @@ class InequalityConstraintFinder:
         # else: ambiguous, skip.
 
 
-#     def getConditionPredicates(self, _name, _occurrences):
-#         conditionPredicates = []
-#         # NOTE: Assumes mapAndCheckPredicates has already processed the first two
-#         # symbolicAtoms for identifying the functional relation.
-#         countSymbolicAtom = 0
-#         for sym_lit in self.symbolicAtoms:
-#             term = sym_lit.atom
+    def getConditionPredicates(self, _name: str, _occurrences: Sequence[Sequence[ast.TermOrProjection]]) -> List[CPredicate]:
+        conditionPredicates: List[CPredicate] = []
+        # NOTE: Assumes mapAndCheckPredicates has already processed the first two
+        # symbolicAtoms for identifying the functional relation.
+        countSymbolicAtom = 0
+        for sym_lit in self.symbolicAtoms:
+            term = sym_lit.atom
 
-#             if isinstance(term, ast.TermFunction):
-#                 name = term.name
+            if isinstance(term, ast.TermFunction):
+                name = term.name
 
-#                 if name != _name:
-#                     args = tuple(
-#                         arg.name for arg in term.arguments if isinstance(arg, ast.TermVariable)
-#                     )
-#                     conditionArgs = list(args)
-#                     # Note: Index in the functional argument for the corresponding condition argument.
-#                     sharedArgsIndices = []
-#                     for arg in conditionArgs:
-#                         for occurrence in _occurrences:
-#                             if arg in occurrence:
-#                                 sharedArgsIndices.append(occurrence.index(arg))
-#                             else:
-#                                 sharedArgsIndices.append(-1)
-#                             break
+                if name != _name:
+                    _, args = util.function_arguments(term)
+                    # args = tuple(
+                    #     arg.name for arg in term.arguments if isinstance(arg, ast.TermVariable)
+                    # )
+                    conditionArgs = list(args)
+                    # Note: Index in the functional argument for the corresponding condition argument.
+                    sharedArgsIndices = []
+                    for arg in conditionArgs:
+                        for occurrence in _occurrences:
+                            if arg in occurrence:
+                                sharedArgsIndices.append(occurrence.index(arg))
+                            else:
+                                sharedArgsIndices.append(-1)
+                            break
 
-#                     conditionPredicate = CPredicate(
-#                         name=name, arity=len(args), arguments=tuple(sharedArgsIndices)
-#                     )
-#                     conditionPredicates.append(conditionPredicate)
+                    conditionPredicate = CPredicate(
+                        name=name, arity=len(args), arguments=tuple(sharedArgsIndices)
+                    )
+                    conditionPredicates.append(conditionPredicate)
 
-#                 # Case: conditional functional relation with more than 2 occurrences of the same predicate.
-#                 elif name == name and len(_occurrences) >= 2:
-#                     if countSymbolicAtom >= 2:
-#                         args = tuple(
-#                             arg.name for arg in term.arguments if isinstance(arg, ast.TermVariable)
-#                         )
-#                         conditionArgs = list(args)
-#                         sharedArgsIndices = []
-#                         for arg in conditionArgs:
-#                             for occurrence in _occurrences:
-#                                 if arg in occurrence:
-#                                     sharedArgsIndices.append(occurrence.index(arg))
-#                                 else:
-#                                     sharedArgsIndices.append(-1)
-#                                 break
+                # Case: conditional functional relation with more than 2 occurrences of the same predicate.
+                elif name == name and len(_occurrences) >= 2:
+                    if countSymbolicAtom >= 2:
+                        _, args = util.function_arguments(term)
+                        conditionArgs = list(args)
+                        sharedArgsIndices = []
+                        for arg in conditionArgs:
+                            for occurrence in _occurrences:
+                                if arg in occurrence:
+                                    sharedArgsIndices.append(occurrence.index(arg))
+                                else:
+                                    sharedArgsIndices.append(-1)
+                                break
 
-#                         conditionPredicate = CPredicate(
-#                             name=name, arity=len(args), arguments=tuple(sharedArgsIndices)
-#                         )
-#                         conditionPredicates.append(conditionPredicate)
-#                     else:
-#                         countSymbolicAtom += 1
+                        conditionPredicate = CPredicate(
+                            name=name, arity=len(args), arguments=tuple(sharedArgsIndices)
+                        )
+                        conditionPredicates.append(conditionPredicate)
+                    else:
+                        countSymbolicAtom += 1
 
-#         return conditionPredicates
+        return conditionPredicates
