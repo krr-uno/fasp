@@ -32,10 +32,12 @@ class TestControl(unittest.TestCase):
     def assert_models(self, files: PathLike, expected_models):
         models = []
         line_number = 0
-        output, _ = self.execute_app(files)
+        output, error = self.execute_app(files)
         result = None
         print("="*80)
         print(output)
+        print("-"*80)
+        print(error)
         print("="*80)
         for line in output.strip().splitlines():
             line = line.strip()
