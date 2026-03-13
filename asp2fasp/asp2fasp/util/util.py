@@ -124,7 +124,7 @@ def split_multiple_aggregate_elements(
 ) -> Iterable[StatementAST]:
     # Only process StatementRule
     if not isinstance(node, ast.StatementRule):
-        return [node]   #pragma: no cover
+        return [node]  # pragma: no cover
     head = node.head
     # Only process HeadSetAggregate with no guards
     if (
