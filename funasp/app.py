@@ -1,13 +1,21 @@
+import ctypes
 import sys
-from typing import Sequence
+from typing import Callable, Sequence
 
-from clingo import core
+from clingo import core, solve
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.control import Control as ClingoControl
 
 from funasp.__version__ import __version__
 from funasp.control import Control
+from funasp.solve import Model
 from funasp.util.ast import ELibrary, ParsingException
+
+LIBC = ctypes.CDLL(None)  # None = current process's libc
+
+# Declare fflush prototype
+LIBC.fflush.argtypes = [ctypes.c_void_p]
+LIBC.fflush.restype = ctypes.c_int
 
 
 class FaspApp(App):
@@ -40,6 +48,14 @@ class FaspApp(App):
             self._set_prefix,
             argument="<prefix>",
         )
+
+    def print_model(
+        self, model: solve.Model, default_printer: Callable[[], None]
+    ) -> None:
+        LIBC.fflush(None)  # Flush C's stdout
+        sys.stdout.write(str(Model(model, self._prefix)))
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
     def _set_prefix(self, prefix: str) -> None:
         self._prefix = prefix
@@ -89,7 +105,7 @@ def fasp_main(
     if options is None:  # pragma: no cover
         options = []
     app = FaspApp(library, options)
-    options.append("--outf=3")
+    # options.append("--outf=3")
     try:
         return clingo_main(library.library, options, app)
     except Exception:  # pragma: no cover

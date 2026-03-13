@@ -1,45 +1,69 @@
-import nox
+import nox, os
 
 PYTHON_VERSIONS = False
-# if "GITHUB_ACTIONS" in os.environ:
+if "GITHUB_ACTIONS" in os.environ:
+    nox.options.sessions = "typecheck", "slow_test", "format"
+else:
 #     PYTHON_VERSIONS = [f"3.{i}" for i in range(13, 14)]
-
-nox.options.sessions = "typecheck", "test", "format"
+    nox.options.sessions = "typecheck", "test", "format"
 # nox.options.sessions = "test", "format"
 nox.options.default_venv_backend = None
 
 PROJECT_NAME = "funasp"
 
+TESTS = [
+    "tests/clingo/test_rewrite.py",
+    "tests/syntax_tree/rewriting/test_aggregates.py",
+    "tests/syntax_tree/rewriting/test_collectors.py",
+    "tests/syntax_tree/rewriting/test_integration.py",
+    "tests/syntax_tree/rewriting/test_negated_literals.py",
+    "tests/syntax_tree/rewriting/test_protection.py",
+    "tests/syntax_tree/rewriting/test_rewriting.py",
+    "tests/syntax_tree/rewriting/test_rule_rewriting.py",
+    "tests/syntax_tree/rewriting/test_some_assignments.py",
+    "tests/syntax_tree/rewriting/test_to_asp.py",
+    "tests/syntax_tree/rewriting/test_unnesting.py",
+    "tests/syntax_tree/test_syntax_tree.py",
+    "tests/syntax_tree/tree_sitter/test_parser.py",
+    "tests/test_control.py",
+    "tests/util/test_ast.py",
+]
+
+SLOW_TESTS = [
+    *TESTS,
+    "tests/test_app.py",
+]
 
 @nox.session(python=PYTHON_VERSIONS)
-# @nox.session
 def test(session):
     """Run the test suite."""
     if session.python:
         session.install("clingo")
+    session.run(
+        "python",
+        "-m",
+        "unittest",
+        *TESTS,
+        "-v",
+    )
+
+
+@nox.session(python=PYTHON_VERSIONS)
+def slow_test(session):
+    """Run the test suite."""
+    if session.python:
+        session.install("clingo")
         session.install("coverage")
-    # tests = [
-    #     "tests/ast",
-    # ]
-    # session.run("coverage", "run", "-m", "unittest", "discover", "-v")
     session.run(
         "coverage",
         "run",
         "-m",
         "unittest",
         "discover",
-        # "tests/ast/test_protection.py",
-        # "tests/ast/test_rewriting_aggregates.py",
-        # "tests/ast/tree_sitter/test_parser.py",
-        # "tests/clingo/test_rewrite.py",
-        # "tests/ast/test_rewriting.py",
-        # "tests/ast/test_syntax_checking.py",
-        # "tests/examples.py",
-        # "tests/test_control.py",
-        # "tests/util/test_ast.py",
         "-v",
     )
     coverage_omit = ["tests/*"]
+    session.run("coverage", "combine", "--append")
     session.run(
         "coverage",
         "report",

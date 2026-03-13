@@ -1,9 +1,8 @@
-import sys
-from typing import Any, Callable, Iterable, Optional, Sequence, Tuple
+from collections.abc import Callable
+from typing import Any, Iterable, Optional, Sequence
 
 import clingo
-from clingo import ast
-from clingo.symbol import Symbol
+from clingo import ast, symbol
 
 from funasp.solve import Model
 from funasp.syntax_tree._context import RewriteContext
@@ -50,7 +49,7 @@ class Control:
 
     def ground(
         self,
-        parts: Sequence[Tuple[str, Sequence[Symbol]]] = (("base", ()),),
+        parts: Sequence[tuple[str, Sequence[symbol.Symbol]]] = (("base", ()),),
         context: Any = None,
     ) -> None:
         """
@@ -97,15 +96,16 @@ class Control:
         """
         Main function to be called after parsing and grounding.
         """
-        self.ground()
-        for i, model in enumerate(self.solve()):
-            sys.stdout.write(f"Answer {i + 1}:\n")
-            sys.stdout.write(str(model) + "\n")
-        if self._result is not None:
-            if self._result.satisfiable:
-                sys.stdout.write("SATISFIABLE\n")
-            elif self._result.unsatisfiable:
-                sys.stdout.write("UNSATISFIABLE\n")
+        self.clingo_control.main()
+        # self.ground()
+        # for i, model in enumerate(self.solve()):
+        #     sys.stdout.write(f"Answer {i + 1}:\n")
+        #     sys.stdout.write(str(model) + "\n")
+        # if self._result is not None:
+        #     if self._result.satisfiable:
+        #         sys.stdout.write("SATISFIABLE\n")
+        #     elif self._result.unsatisfiable:
+        #         sys.stdout.write("UNSATISFIABLE\n")
 
     def get_rewritten_program(self) -> str:
         """

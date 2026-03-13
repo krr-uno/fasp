@@ -19,7 +19,6 @@ from funasp.syntax_tree._nodes import (
 )
 from funasp.util.ast import (
     AST,
-    AST_T,
     ELibrary,
     FunctionLikeAST,
     function_arguments,

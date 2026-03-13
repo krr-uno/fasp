@@ -17,4 +17,4 @@ edge(X,Y) :- edge(Y,X).
 vertex(X) :- edge(X,__A_0).
 vertex(X) :- edge(__A_0,X).
 
-#show visited/1.
+% #show visited/1.

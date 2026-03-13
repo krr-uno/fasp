@@ -1,3 +1,4 @@
+import subprocess
 from os import PathLike
 from pathlib import Path
 import unittest
@@ -10,38 +11,49 @@ from .examples import EXAMPLES
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 
+APP_NAME = "funasp"
 
 class TestControl(unittest.TestCase):
 
     def execute_app(self, files: PathLike) -> tuple[str, str]:
         args = [str(file) for file in files] + ["0"]
-        output_io = io.StringIO()
-        err_io = io.StringIO()
-        with contextlib.redirect_stdout(output_io):
-            with contextlib.redirect_stderr(err_io):
-                main(args)
-        return output_io.getvalue(), err_io.getvalue()
+        # args_main = args + ["--outf=3"]  # For testing rewrite mode
+        # output_io = io.StringIO()
+        # err_io = io.StringIO()
+        # with contextlib.redirect_stdout(output_io):
+        #     with contextlib.redirect_stderr(err_io):
+        #         main(args_main)
+        # return output_io.getvalue(), err_io.getvalue()
+        # result = subprocess.run(["python", APP_NAME, *args], capture_output=True, text=True)
+        result = subprocess.run(["coverage", "run", "-a", "--data-file=.coverage.my", APP_NAME, *args], capture_output=True, text=True)
+        return result.stdout, result.stderr
+
 
     def assert_models(self, files: PathLike, expected_models):
         models = []
-        is_first_line = True
+        line_number = 0
         output, _ = self.execute_app(files)
         result = None
+        # print("="*80)
+        # print(output)
+        # print("="*80)
         for line in output.strip().splitlines():
             line = line.strip()
             if line.startswith("Answer"):
-                is_first_line = True
+                line_number = 1
                 continue
             if line in {"SATISFIABLE", "UNSATISFIABLE"}:
                 result = line
+                line_number = 0
                 continue
-            if is_first_line:
-                is_first_line = False
+            if line_number == 1:
+                line_number += 1
                 models.append(line)
-            else:
+            elif line_number > 1:
                 models[-1] += "\n" + line
         self.assertIsNotNone(result, "Expected SATISFIABLE or UNSATISFIABLE in output")
         self.assertEqual(result, "SATISFIABLE" if expected_models else "UNSATISFIABLE")
+        # print(models)
         self.assertCountEqual(models, expected_models)
 
     def test_app(self):

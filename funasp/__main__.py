@@ -3,7 +3,7 @@ import sys
 from funasp.__version__ import __version__
 
 
-def check_versions() -> int:
+def check_versions() -> int:  # pragma: no cover
     if sys.version_info < (3, 13):
         sys.stderr.write(
             f"*** ERROR: fasp requires Python 3.13 or higher, found version {sys.version_info} \n"
@@ -24,19 +24,19 @@ def check_versions() -> int:
             f"*** ERROR: fasp requires clingo library version 6.0.0 or higher, found version {clingo_version_str}.\n"
         )
         return 1
-    sys.stdout.write(f"clingo version {clingo_version_str}\n")
+    # sys.stdout.write(f"clingo version {clingo_version_str}\n")
     return 0
 
 
 def main() -> int:
     args = frozenset(sys.argv[1:])
-    version_mode = "-v" in args or "--version" in args
-    if not version_mode:
-        sys.stdout.write(f"fasp version {__version__}\n")
-    if error_code := check_versions() != 0:
+    "-v" in args or "--version" in args
+    # if not version_mode:
+    #     sys.stdout.write(f"fasp version {__version__}\n")
+    if error_code := check_versions() != 0:  # pragma: no cover
         return error_code
-    if not version_mode:
-        sys.stdout.write("\n")
+    # if not version_mode:
+    #     sys.stdout.write("\n")
     from funasp.app import main as app_main  # pylint: disable=import-outside-toplevel
 
     return app_main(sys.argv[1:])
