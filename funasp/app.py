@@ -5,6 +5,7 @@ from typing import Callable, Sequence
 from clingo import core, solve
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.control import Control as ClingoControl
+from clingo.control import ControlMode as ClingoControlMode
 
 from funasp.__version__ import __version__
 from funasp.control import Control
@@ -13,9 +14,9 @@ from funasp.util.ast import ELibrary, ParsingException
 
 LIBC_NAME: str | None = None
 try:
-    if sys.platform.startswith("win"): # pragma: no cover
+    if sys.platform.startswith("win"):  # pragma: no cover
         LIBC_NAME = "msvcrt"
-except Exception as e: # pragma: no cover
+except Exception as e:  # pragma: no cover
     pass
 LIBC = ctypes.CDLL(LIBC_NAME)  # None = current process's libc
 
@@ -32,15 +33,6 @@ class FaspApp(App):
         self._clingo_options = clingo_options
         self._prefix = "F"
         self._print_rewrite = False
-        self._check_command_line_arguments(clingo_options)
-
-    def _check_command_line_arguments(self, arguments: Sequence[str]) -> None:
-        for i, arg in enumerate(arguments):
-            if arg.startswith("--mode="):
-                if arg == "--mode=rewrite":
-                    self._print_rewrite = True
-                elif len(arguments) > i + 1 and arguments[i + 1] == "rewrite":
-                    self._print_rewrite = True
 
     def register_options(self, options: AppOptions) -> None:
         options.add_flag(
@@ -76,7 +68,7 @@ class FaspApp(App):
         )
         try:
             control.parse_files(files)
-            if self._print_rewrite:
+            if clingo_control.mode == ClingoControlMode.Rewrite:
                 print(control.get_rewritten_program())
                 return
         except ParsingException as e:
