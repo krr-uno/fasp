@@ -1,6 +1,7 @@
 from typing import Iterable, List, Sequence, Tuple, TypedDict, cast
 
 import clingo.ast as ast
+from clingo.core import Library
 
 import asp2fasp.util.util as util
 from asp2fasp.util.ast import AST, StatementAST, TermAST
@@ -13,7 +14,8 @@ class FunctionalPredicateData(TypedDict):
 
 
 class InequalityConstraintFinder:
-    def __init__(self) -> None:
+    def __init__(self, library: Library) -> None:
+        self.library = library
         self.comparisons: list[ast.LiteralComparison] = []
         self.symbolicAtoms: list[ast.LiteralSymbolic] = []
         self.occurrences: list[int] = []

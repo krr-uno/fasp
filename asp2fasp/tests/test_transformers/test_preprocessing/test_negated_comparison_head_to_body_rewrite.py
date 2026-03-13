@@ -7,6 +7,8 @@ from clingo.core import Library
 from asp2fasp.transformers.preprocessing.negated_comparison_head_to_body_rewrite import NegatedComparisonHeadToBodyTransformer
 from asp2fasp.util.ast import AST
 
+from tests.util import collect_statements
+
 class ChoiceGuardTransformerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.lib = Library()
@@ -14,14 +16,12 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
 
     def _apply(self, program: str) -> str:
         program = textwrap.dedent(program).strip()
-        nodes: list[AST] = []
-        ast.parse_string(self.lib, program, nodes.append)
+        nodes: list[ast.StatementRule] = collect_statements(self.lib, program)
         rewritten: list[str] = []
         for node in nodes:
             new_node = self.transformer.rewrite_rule(node) or node
             rewritten.append(str(new_node).strip())
         # Remove the program declaration if present
-        rewritten = rewritten[1:]
         return "\n".join(rewritten)
 
     def assertRewriteEqual(self, program: str, expected: str) -> None:
@@ -33,7 +33,7 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
     # TESTS
     # -----------------------------------------------------------
 
-    def test_disjunction_head_with_comparison(self):
+    def test_disjunction_head_with_comparison(self) -> None:
         program = """
         a | b<3 :- c.
         """
@@ -42,7 +42,7 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
         """
         self.assertRewriteEqual(program, expected)
 
-    def test_single_literal_head_with_comparison(self):
+    def test_single_literal_head_with_comparison(self) -> None:
         program = """
         b<3 :- c.
         """
@@ -50,7 +50,7 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
         :- c; b>=3.
         """
         self.assertRewriteEqual(program, expected)
-    def test_rule_unchanged(self):
+    def test_rule_unchanged(self) -> None:
         program = """
         a :- c.
         """
@@ -59,7 +59,7 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
         """
         self.assertRewriteEqual(program, expected)    
     
-    def test_negate_operator_all_cases(self):
+    def test_negate_operator_all_cases(self) -> None:
         program = """
         a=1 :- d.
         a!=1 :- d.

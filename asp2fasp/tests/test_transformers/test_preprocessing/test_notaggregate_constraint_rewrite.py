@@ -7,6 +7,8 @@ from clingo.core import Library
 from asp2fasp.transformers.preprocessing.notaggregate_constraint_rewrite import NotAggregateConstraintTransformer
 from asp2fasp.util.ast import AST
 
+from tests.util import collect_statements
+
 class NotAggregateConstraintTransformerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.lib = Library()
@@ -14,14 +16,12 @@ class NotAggregateConstraintTransformerTest(unittest.TestCase):
 
     def _apply(self, program: str) -> str:
         program = textwrap.dedent(program).strip()
-        nodes: list[AST] = []
-        ast.parse_string(self.lib, program, nodes.append)
+        nodes: list[ast.StatementRule] = collect_statements(self.lib, program)
         rewritten: list[str] = []
         for node in nodes:
             new_node = self.transformer.rewrite_rule(node) or node
             rewritten.append(str(new_node).strip())
         # Remove the program declaration if present
-        rewritten = rewritten[1:]
         return "\n".join(rewritten)
 
     def assertRewriteEqual(self, program: str, expected: str) -> None:

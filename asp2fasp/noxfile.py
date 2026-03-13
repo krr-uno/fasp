@@ -91,3 +91,15 @@ def typecheck(session):
         "-p",
         PROJECT_NAME,
     )
+    
+@nox.session(python=PYTHON_VERSIONS)
+def typecheckT(session):
+    # session.install("mypy")
+    session.run(
+        "mypy",
+        "--allow-redefinition-new",
+        "--local-partial-types",
+        "--strict",
+        "-p",
+        "tests",
+    )

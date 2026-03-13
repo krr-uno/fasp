@@ -20,7 +20,7 @@ class ChoiceGuardTransformer(PreprocessingTransformer):
 
     @singledispatchmethod
     def rewrite_rule(self, rule: StatementAST) -> StatementAST | None:
-        return rule
+        return rule  #pragma: no cover
 
     @rewrite_rule.register
     def _(self, rule: ast.StatementRule) -> ast.StatementRule | None:

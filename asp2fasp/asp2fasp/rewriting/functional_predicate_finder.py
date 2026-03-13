@@ -1,30 +1,38 @@
+from typing import Any, Dict, Iterable, List, Tuple
+from collections import defaultdict
+
+from clingo import ast
+from clingo.core import Library
+
 import asp2fasp.util.util as util
+from asp2fasp.transformers.preprocessing import processPipelinetransformers
 from asp2fasp.util.ast import StatementAST
 from asp2fasp.util.types import CPredicate, FPredicate, FRelation
 
-# from asp2fasp.casp.patternFinders.ast_utils import ASTUtils
-# from asp2fasp.casp.patternFinders import (InequalityConstraintFinder, AggregatePatternFinder)
-
-# class FunctionalPredicateFinder6:
-#     def __init__(self, statements:Iterable[StatementAST]) -> None:
-#         self.statements = statements
-#         self.functionalPredicates: List[FPredicate] = []
-#         self.functionalRelations: List[FRelation] = []
-#         self.constraints: List[StatementAST] = []
-#         self.definitions: Dict[str, Any] = {}
+from asp2fasp.pattern_finders import InequalityConstraintFinder
 
 
-#     def getFunctionalPredicates(self) -> List[FPredicate]:
-#         return self.functionalPredicates
+class FunctionalPredicateFinder:
+    def __init__(self, library: Library) -> None:
+        self.lib = library
+        self.statements:Iterable[StatementAST] = []
+        self.functionalPredicates: List[FPredicate] = []
+        self.functionalRelations: List[FRelation] = []
+        self.constraints: List[StatementAST] = []
+        self.definitions: Dict[str, Any] = {}
 
-#     def foundFunctionalPredicate(self) -> bool:
-#         return len(self.functionalPredicates) > 0
+    # def getFunctionalPredicates(self) -> List[FPredicate]:
+    #     return self.functionalPredicates
 
-#     def getFunctionalRelations(self) -> List[FRelation]:
-#         return self.functionalRelations
+    # def foundFunctionalPredicate(self) -> bool:
+    #     return len(self.functionalPredicates) > 0
 
-#     def foundFunctionalRelation(self) -> bool:
-#         return len(self.functionalRelations) > 0
+    # def getFunctionalRelations(self) -> List[FRelation]:
+    #     return self.functionalRelations
+
+    # def foundFunctionalRelation(self) -> bool:
+    #     return len(self.functionalRelations) > 0
+
 
 # def update_program_string(self):
 #     rule_strings = []
@@ -34,33 +42,49 @@ from asp2fasp.util.types import CPredicate, FPredicate, FRelation
 #     return self.asp_program
 
 
-# def processProgram(self):
-#     if self.asp_program:
-#         APF = AggregatePatternFinder(self)
-#         APF.identifyAggregatePattern()
-#         APF.identifyCountConstraintPattern()
-#         ICF = InequalityConstraintFinder(self)
-#         ICF.identifyInequalityPattern()
-#         self.processFoundPredicates()
-#         return self.asp_program
+    def processProgram(self, statements:List[StatementAST] | List[ast.StatementRule]) -> Tuple[List[FPredicate], List[FRelation]]:
+        # # Preprocess the program with the pipeline of transformers, which includes splitting rules with multiple aggregate elements
+        # self.statements = processPipelinetransformers(self.lib, statements)
 
-# def processFoundPredicates(self):
-#     groupedPredicates = defaultdict(list)
-#     for fPredicate in self.functionalPredicates:
-#         if fPredicate.condition == []:
-#             key = (fPredicate.name, fPredicate.arguments, fPredicate.arity)
-#             groupedPredicates[key].append(fPredicate.values)
-#     for (name, arguments, arity), valuesList in groupedPredicates.items():
-#         fullIndices = set(range(arity))
-#         remainingIndices = fullIndices - set(arguments)
-#         extractedValues = set()
-#         valuesTuples = []
-#         for values in valuesList:
-#             valuesTuples.append(tuple(values))
-#             extractedValues.update(values)
-#         if extractedValues == remainingIndices:
-#             self.functionalRelations.append(FRelation(name, arity, arguments, valuesTuples))
-#     return self.functionalRelations
+        self.statements = statements
+        
+        foundFunctionalPredicates:List[FPredicate] = []
+        # Identify functional predicates patterns
+        ICF = InequalityConstraintFinder(self.lib)
+        foundFunctionalPredicates = ICF.identifyInequalityPattern(self.statements)
+
+        self.functionalPredicates.extend(foundFunctionalPredicates)
+    
+        return self.functionalPredicates, self.processFoundPredicates()
+
+
+
+# if self.asp_program:
+#     APF = AggregatePatternFinder(self)
+#     APF.identifyAggregatePattern()
+#     APF.identifyCountConstraintPattern()
+#     ICF = InequalityConstraintFinder(self)
+#     ICF.identifyInequalityPattern()
+#     self.processFoundPredicates()
+#     return self.asp_program
+
+    def processFoundPredicates(self) -> List[FRelation]:
+        groupedPredicates = defaultdict(list)
+        for fPredicate in self.functionalPredicates:
+            if fPredicate.condition == []:
+                key = (fPredicate.name, fPredicate.arguments, fPredicate.arity)
+                groupedPredicates[key].append(fPredicate.values)
+        for (name, arguments, arity), valuesList in groupedPredicates.items():
+            fullIndices = set(range(arity))
+            remainingIndices = fullIndices - set(arguments)
+            extractedValues = set()
+            valuesTuples = []
+            for values in valuesList:
+                valuesTuples.append(tuple(values))
+                extractedValues.update(values)
+            if extractedValues == remainingIndices:
+                self.functionalRelations.append(FRelation(name, arity, arguments, valuesTuples))
+        return self.functionalRelations
 
 # def rewriteFunctionalRelations(self):
 #     new_program = []
@@ -173,26 +197,3 @@ from asp2fasp.util.types import CPredicate, FPredicate, FRelation
 #     if updateProgram:
 #         self.asp_program = reconstructedProgram
 #     return reconstructedProgram
-
-
-# def processPipelinetransformers(self, lib:Library, statements:Iterable[StatementAST]) -> Iterable[StatementAST]:
-#     transformers:List[PreprocessingTransformer] = [
-#         NegatedComparisonHeadToBodyTransformer(lib),
-#         ChoiceGuardTransformer(lib),
-#         NotAggregateConstraintTransformer(lib),
-#         AggregateHeadBodyConditionTransformer(lib),
-#     ]
-#     # Split rules with multiple aggregate elements
-#     initial_asts:List[StatementAST] = []
-#     for ast_node in statements:
-#         initial_asts.extend(util.split_multiple_aggregate_elements(lib, ast_node))
-#     current_asts = initial_asts
-#     for tr in transformers:
-#         next_asts = []
-#         for stmt in current_asts:
-#             out = tr.rewrite_rule(stmt)
-#             next_asts.append(out or stmt)
-
-#         current_asts = next_asts
-
-#     return current_asts

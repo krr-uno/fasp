@@ -9,6 +9,9 @@ from asp2fasp.transformers.preprocessing.aggregate_head_body_condition_rewrite i
 )
 
 from asp2fasp.util.ast import AST
+
+from tests.util import collect_statements
+
 class AggregateHeadBodyConditionTransformerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.lib = Library()
@@ -17,14 +20,12 @@ class AggregateHeadBodyConditionTransformerTest(unittest.TestCase):
     def _apply(self, program: str) -> str:
         """Parse `program`, rewrite each rule, and return the normalized text."""
         program = textwrap.dedent(program).strip()
-        nodes: list[AST] = []
-        ast.parse_string(self.lib, program, nodes.append)
+        nodes: list[ast.StatementRule] = collect_statements(self.lib, program)
 
         rewritten: list[str] = []
         for node in nodes:
             new_node = self.transformer.rewrite_rule(node) or node
             rewritten.append(str(new_node).strip())
-        rewritten =rewritten[1:]
         return "\n".join(line for line in rewritten if line)
 
     def assertRewriteEqual(self, program: str, expected: str) -> None:
