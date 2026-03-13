@@ -1,49 +1,34 @@
-from collections import namedtuple
-
 import asp2fasp.util.util as util
 from asp2fasp.util.ast import StatementAST
+from asp2fasp.util.types import CPredicate, FPredicate, FRelation
 
 # from asp2fasp.casp.patternFinders.ast_utils import ASTUtils
 # from asp2fasp.casp.patternFinders import (InequalityConstraintFinder, AggregatePatternFinder)
 
-FPredicate = namedtuple(
-    "FPredicate", ["name", "arity", "arguments", "values", "condition"]
-)
-CPredicate = namedtuple("CPredicate", ["name", "arity", "arguments"])
-FRelation = namedtuple("FRelation", ["name", "arity", "arguments", "values"])
-
 # class FunctionalPredicateFinder6:
-# def __init__(self, _asp_program=""):
-#     self.asp_program = _asp_program
-#     self.asp_program_ast = []
-#     self.functionalPredicates = []
-#     self.functionalRelations = []
-#     self.constraints = []
-#     self.definitions = {}
-#     ast.parse_string(self.lib, self.asp_program, self.asp_program_ast.append)
+#     def __init__(self, statements:Iterable[StatementAST]) -> None:
+#         self.statements = statements
+#         self.functionalPredicates: List[FPredicate] = []
+#         self.functionalRelations: List[FRelation] = []
+#         self.constraints: List[StatementAST] = []
+#         self.definitions: Dict[str, Any] = {}
 
-# def getFunctionalPredicates(self):
-#     return self.functionalPredicates
 
-# def foundFunctionalPredicate(self):
-#     return len(self.functionalPredicates) > 0
+#     def getFunctionalPredicates(self) -> List[FPredicate]:
+#         return self.functionalPredicates
 
-# def getFunctionalRelations(self):
-#     return self.functionalRelations
+#     def foundFunctionalPredicate(self) -> bool:
+#         return len(self.functionalPredicates) > 0
 
-# def foundFunctionalRelation(self):
-#     return len(self.functionalRelations) > 0
+#     def getFunctionalRelations(self) -> List[FRelation]:
+#         return self.functionalRelations
 
-# def clingoParseString(self, program=None, callback=None):
-#     if program is None:
-#         program = self.asp_program
-#     if callback is None:
-#         callback = self.visit
-#     ast.parse_string(self.lib, program, callback)
+#     def foundFunctionalRelation(self) -> bool:
+#         return len(self.functionalRelations) > 0
 
 # def update_program_string(self):
 #     rule_strings = []
-#     for node in self.asp_program_ast:
+#     for node in self.statements:
 #         rule_strings.append(str(node))
 #     self.asp_program = util.clean_program_base("\n".join(rule_strings), removeDirective=True)
 #     return self.asp_program
@@ -209,4 +194,5 @@ FRelation = namedtuple("FRelation", ["name", "arity", "arguments", "values"])
 #             next_asts.append(out or stmt)
 
 #         current_asts = next_asts
+
 #     return current_asts

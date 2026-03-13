@@ -1,8 +1,6 @@
 import textwrap
 import unittest
 
-from collections import namedtuple
-
 from clingo import ast
 from clingo.core import Library
 
@@ -10,11 +8,7 @@ from asp2fasp.pattern_finders.inequality_constraint_finder import InequalityCons
 
 from asp2fasp.util.ast import AST
 
-
-FPredicate = namedtuple(
-    "FPredicate", ["name", "arity", "arguments", "values", "condition"]
-)
-CPredicate = namedtuple("CPredicate", ["name", "arity", "arguments"])
+from asp2fasp.util.types import FPredicate, CPredicate
 
 class InequalityConstraintFinderTest(unittest.TestCase):
     def setUp(self) -> None:

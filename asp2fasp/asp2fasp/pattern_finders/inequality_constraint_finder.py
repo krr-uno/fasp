@@ -1,17 +1,10 @@
-from collections import namedtuple
 from typing import Iterable, List, Sequence, Tuple, TypedDict, cast
 
 import clingo.ast as ast
 
 import asp2fasp.util.util as util
 from asp2fasp.util.ast import AST, StatementAST, TermAST
-
-# TODO: Add Condition
-# FPredicate = namedtuple("FPredicate", ["name", "arity", "arguments", "values"])
-FPredicate = namedtuple(
-    "FPredicate", ["name", "arity", "arguments", "values", "condition"]
-)
-CPredicate = namedtuple("CPredicate", ["name", "arity", "arguments"])
+from asp2fasp.util.types import CPredicate, FPredicate
 
 
 class FunctionalPredicateData(TypedDict):
