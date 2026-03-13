@@ -4,7 +4,7 @@ from typing import Iterable, List, Sequence, Tuple, TypedDict, cast
 import clingo.ast as ast
 
 import asp2fasp.util.util as util
-from asp2fasp.util.ast import AST, StatementAST
+from asp2fasp.util.ast import AST, StatementAST, TermAST
 
 # TODO: Add Condition
 # FPredicate = namedtuple("FPredicate", ["name", "arity", "arguments", "values"])
@@ -109,7 +109,9 @@ class InequalityConstraintFinder:
                                 values=tuple(
                                     self.functional_predicates[predicate]["outputs"]
                                 ),
-                                condition=self.getConditionPredicates(predicate, predicates[predicate]),
+                                condition=self.getConditionPredicates(
+                                    predicate, predicates[predicate]
+                                ),
                             )
                             for predicate in self.functional_predicates.keys()
                         ]
@@ -134,8 +136,12 @@ class InequalityConstraintFinder:
             for comparison in self.comparisons:
                 # extract_comparison_terms handles clingo 6 LiteralComparison;
                 # operator is now ast.Relation (renamed from ast.ComparisonOperator in clingo 5).
-                lhs_terms, operator, rhs_terms = util.extract_comparison_terms(
+                raw_lhs_terms, operator, raw_rhs_terms = util.extract_comparison_terms(
                     comparison
+                )
+
+                lhs_terms, rhs_terms = self._extract_comparison_terms_from_term_tuples(
+                    raw_lhs_terms, raw_rhs_terms
                 )
                 if operator != ast.Relation.NotEqual:
                     continue  # Only consider inequality constraints.
@@ -172,8 +178,9 @@ class InequalityConstraintFinder:
             self.functional_predicates[name]["outputs"].update(chosen_variant_indices)
         # else: ambiguous, skip.
 
-
-    def getConditionPredicates(self, _name: str, _occurrences: Sequence[Sequence[ast.TermOrProjection]]) -> List[CPredicate]:
+    def getConditionPredicates(
+        self, _name: str, _occurrences: Sequence[Sequence[ast.TermOrProjection]]
+    ) -> List[CPredicate]:
         conditionPredicates: List[CPredicate] = []
         # NOTE: Assumes mapAndCheckPredicates has already processed the first two
         # symbolicAtoms for identifying the functional relation.
@@ -220,10 +227,36 @@ class InequalityConstraintFinder:
                                 break
 
                         conditionPredicate = CPredicate(
-                            name=name, arity=len(args), arguments=tuple(sharedArgsIndices)
+                            name=name,
+                            arity=len(args),
+                            arguments=tuple(sharedArgsIndices),
                         )
                         conditionPredicates.append(conditionPredicate)
                     else:
                         countSymbolicAtom += 1
 
         return conditionPredicates
+
+    # TODO: Find a cleaner way to extract terms from comparisons, handling the case where they are wrapped in TermTuples.
+    def _extract_comparison_terms_from_term_tuples(
+        self, lhs_terms: Iterable[TermAST], rhs_terms: Iterable[TermAST]
+    ) -> Tuple[Sequence[AST], Sequence[AST]]:
+
+        lhs_seq: Sequence[AST] = list(lhs_terms)
+        rhs_seq: Sequence[AST] = list(rhs_terms)
+
+        if (
+            lhs_seq
+            and isinstance(lhs_seq[0], ast.TermTuple)
+            and lhs_seq[0].pool
+            and isinstance(lhs_seq[0].pool[0], ast.ArgumentTuple)
+        ):
+            lhs_seq = cast(Sequence[AST], lhs_seq[0].pool[0].arguments)
+        if (
+            rhs_seq
+            and isinstance(rhs_seq[0], ast.TermTuple)
+            and rhs_seq[0].pool
+            and isinstance(rhs_seq[0].pool[0], ast.ArgumentTuple)
+        ):
+            rhs_seq = cast(Sequence[AST], rhs_seq[0].pool[0].arguments)
+        return lhs_seq, rhs_seq
