@@ -208,3 +208,4 @@ __marimo__/
 scratch/
 
 fasp/tools/print_ast.py
+asp2fasp/test.lp
