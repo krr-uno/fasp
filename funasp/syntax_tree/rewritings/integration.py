@@ -74,8 +74,7 @@ def _clingo_rewrite_wrapper(
             errors.append((stmt, e))
             continue
         if rewritten_list:
-            for new_stmt in rewritten_list:
-                out.append(new_stmt)
+            out.extend(rewritten_list)
         else:
             out.append(stmt)
     context.lib.ignore_info = False
@@ -96,13 +95,17 @@ def transform_to_clingo_statements(
     context.ctx
     new_statements: list[ast.Statement] = []
     for stmt in statements:
-        stm = rewrite_showf(context, stmt)
-        stm = rewrite_some_choices(library, stm)
-        stm = normalize_assignment_aggregates(library, stm)
-        stm = protect_assignment(context, stm)
-        stm = protect_comparisons(context, stm)
-        new_statements.append(stm)
+        new_stmt = rewrite_showf(context, stmt)
+        new_stmt = rewrite_some_choices(library, new_stmt)
+        new_stmt = normalize_assignment_aggregates(library, new_stmt)
+        new_stmt = protect_assignment(context, new_stmt)
+        new_stmt = protect_comparisons(context, new_stmt)
+        new_statements.append(new_stmt)
+        # new_stmts = ast.rewrite_statement(context.ctx, new_stmt)
+        # new_statements.extend(new_stmts)
+
     new_statements = _clingo_rewrite_wrapper(context, new_statements)
+    # print(new_statements)
     new_statements = restore_comparisons(context, new_statements)
     new_statements2 = restore_assignments(
         context.lib,
