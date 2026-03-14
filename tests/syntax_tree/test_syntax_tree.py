@@ -2,10 +2,10 @@ import textwrap
 import unittest
 
 from clingo import ast
-from fasp.util.ast import ELibrary
-from fasp.syntax_tree.parsing.parser import parse_string
-from fasp.syntax_tree import rewrite_statement, rewrite_statements
-from fasp.syntax_tree._context import RewriteContext
+from funasp.util.ast import ELibrary
+from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.syntax_tree import rewrite_statement, rewrite_statements
+from funasp.syntax_tree._context import RewriteContext
 
 
 class TestSyntaxTree(unittest.TestCase):

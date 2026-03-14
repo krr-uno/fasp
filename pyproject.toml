@@ -1,20 +1,21 @@
 [project]
-name = "fasp"
+name = "funasp"
 version = "0.0.1"
 description = "A functional ASP solver"
 authors = [
-    { name = "Jorge Fandinno", email = "jfandinno@unomaha.edu" }
+    { name = "Jorge Fandinno", email = "jfandinno@unomaha.edu" },
+    { name = "Ravi Pandey", email = "ravipandey@unomaha.edu" }
 ]
 readme = "README.md"
 requires-python = ">=3.13.5"
 dependencies = []
 
 [project.scripts]
-fasp = "fasp.__main__:main"
+funasp = "funasp.__main__:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["fasp"]
+packages = ["funasp"]

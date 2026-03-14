@@ -1,45 +1,73 @@
-import nox
+from re import S
+
+import nox, os
 
 PYTHON_VERSIONS = False
-# if "GITHUB_ACTIONS" in os.environ:
+if "GITHUB_ACTIONS" in os.environ:
+    nox.options.sessions = "typecheck", "slow_test", "format"
+else:
 #     PYTHON_VERSIONS = [f"3.{i}" for i in range(13, 14)]
-
-nox.options.sessions = "typecheck", "test", "format"
+    nox.options.sessions = "typecheck", "test", "format"
 # nox.options.sessions = "test", "format"
 nox.options.default_venv_backend = None
 
-PROJECT_NAME = "fasp"
+PROJECT_NAME = "funasp"
 
+TESTS_PATH = "tests"
+
+
+from pathlib import Path
+
+TESTS = sorted(Path(TESTS_PATH).rglob("test_*.py"))
+
+SLOW_TESTS = {
+    "tests/test_app.py",
+}
+
+TESTS = [test for test in TESTS if str(test) not in SLOW_TESTS]
+
+SLOW_TESTS = [*TESTS, *SLOW_TESTS]
 
 @nox.session(python=PYTHON_VERSIONS)
-# @nox.session
 def test(session):
     """Run the test suite."""
     if session.python:
         session.install("clingo")
+    session.run(
+        "coverage",
+        "run",
+        "-m",
+        "unittest",
+        *TESTS,
+        "-v",
+    )
+    coverage_omit = ["tests/*"]
+    session.run(
+        "coverage",
+        "report",
+        "--sort=cover",
+        "--fail-under=100",
+        "-m",
+        f"--omit={','.join(coverage_omit)}",
+    )
+
+
+@nox.session(python=PYTHON_VERSIONS)
+def slow_test(session):
+    """Run the test suite."""
+    if session.python:
+        session.install("clingo")
         session.install("coverage")
-    # tests = [
-    #     "tests/ast",
-    # ]
-    # session.run("coverage", "run", "-m", "unittest", "discover", "-v")
     session.run(
         "coverage",
         "run",
         "-m",
         "unittest",
         "discover",
-        # "tests/ast/test_protection.py",
-        # "tests/ast/test_rewriting_aggregates.py",
-        # "tests/ast/tree_sitter/test_parser.py",
-        # "tests/clingo/test_rewrite.py",
-        # "tests/ast/test_rewriting.py",
-        # "tests/ast/test_syntax_checking.py",
-        # "tests/examples.py",
-        # "tests/test_control.py",
-        # "tests/util/test_ast.py",
         "-v",
     )
     coverage_omit = ["tests/*"]
+    session.run("coverage", "combine", "--append")
     session.run(
         "coverage",
         "report",

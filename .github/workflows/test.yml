@@ -15,7 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
-        # os: ['ubuntu-latest']
         python-version: ["3.13"]
         runAll:
           - ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')) }}
@@ -52,6 +51,7 @@ jobs:
       run: |
         conda install --name clingo6 --file envs/requirements.txt
         pip install -r requirements.txt
+        pip install -e .
 
     - name: run tests
       run: nox
