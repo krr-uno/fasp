@@ -1,3 +1,5 @@
+from re import S
+
 import nox, os
 
 PYTHON_VERSIONS = False
@@ -11,28 +13,20 @@ nox.options.default_venv_backend = None
 
 PROJECT_NAME = "funasp"
 
-TESTS = [
-    "tests/clingo/test_rewrite.py",
-    "tests/syntax_tree/rewriting/test_aggregates.py",
-    "tests/syntax_tree/rewriting/test_collectors.py",
-    "tests/syntax_tree/rewriting/test_integration.py",
-    "tests/syntax_tree/rewriting/test_negated_literals.py",
-    "tests/syntax_tree/rewriting/test_protection.py",
-    "tests/syntax_tree/rewriting/test_rewriting.py",
-    "tests/syntax_tree/rewriting/test_rule_rewriting.py",
-    "tests/syntax_tree/rewriting/test_some_assignments.py",
-    "tests/syntax_tree/rewriting/test_to_asp.py",
-    "tests/syntax_tree/rewriting/test_unnesting.py",
-    "tests/syntax_tree/test_syntax_tree.py",
-    "tests/syntax_tree/tree_sitter/test_parser.py",
-    "tests/test_control.py",
-    "tests/util/test_ast.py",
-]
+TESTS_PATH = "tests"
 
-SLOW_TESTS = [
-    *TESTS,
+
+from pathlib import Path
+
+TESTS = sorted(Path(TESTS_PATH).rglob("test_*.py"))
+
+SLOW_TESTS = {
     "tests/test_app.py",
-]
+}
+
+TESTS = [test for test in TESTS if str(test) not in SLOW_TESTS]
+
+SLOW_TESTS = [*TESTS, *SLOW_TESTS]
 
 @nox.session(python=PYTHON_VERSIONS)
 def test(session):
@@ -40,11 +34,21 @@ def test(session):
     if session.python:
         session.install("clingo")
     session.run(
-        "python",
+        "coverage",
+        "run",
         "-m",
         "unittest",
         *TESTS,
         "-v",
+    )
+    coverage_omit = ["tests/*"]
+    session.run(
+        "coverage",
+        "report",
+        "--sort=cover",
+        "--fail-under=100",
+        "-m",
+        f"--omit={','.join(coverage_omit)}",
     )
 
 
