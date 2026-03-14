@@ -3,34 +3,33 @@ from typing import Iterable, cast
 
 from clingo import ast
 
-from fasp.syntax_tree._context import RewriteContext as FASPRewriteContext
-from fasp.syntax_tree._nodes import (
+from funasp.syntax_tree._context import RewriteContext as FASPRewriteContext
+from funasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
 )
-from fasp.syntax_tree.collectors import (
+from funasp.syntax_tree.collectors import (
     collect_evaluable_functions,
 )
-from fasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
-from fasp.syntax_tree.rewritings.negated_literals import (
+from funasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
+from funasp.syntax_tree.rewritings.negated_literals import (
     rewrite_negated_body_literals_from_statements,
 )
-from fasp.syntax_tree.rewritings.protecting import (
+from funasp.syntax_tree.rewritings.protecting import (
     protect_assignments,
     protect_comparisons,
     restore_assignments,
     restore_comparisons,
 )
-from fasp.syntax_tree.rewritings.showf import rewrite_showf
-from fasp.syntax_tree.rewritings.some_assignments import (
-    transform_choice_some_to_choice_assignment,
-)
-from fasp.syntax_tree.rewritings.to_asp import (
+from funasp.syntax_tree.rewritings.showf import rewrite_showf
+from funasp.syntax_tree.rewritings.some_assignments import rewrite_some_choices
+
+from funasp.syntax_tree.rewritings.to_asp import (
     NormalForm2PredicateTransformer,
     functional_constraints,
 )
-from fasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
-from fasp.syntax_tree.types import SymbolSignature
+from funasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
+from funasp.syntax_tree.types import SymbolSignature
 
 
 class PipelineStage(IntEnum):
@@ -46,13 +45,6 @@ class PipelineStage(IntEnum):
     UNNEST_FUNCTIONS = auto()
     TO_ASP = auto()
 
-
-# class Statement:
-
-#     def __init__(self, original: FASP_Statement):
-#         self.original = original
-#         self.has_assignments = isinstance(original, AssignmentRule)
-#         self.rewritten: list[FASP_Statement] = []
 
 
 class FASPProgramTransformer:
@@ -121,7 +113,7 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         out = [
-            transform_choice_some_to_choice_assignment(self.library, stmt)
+            rewrite_some_choices(self.library, stmt)
             for stmt in statements
         ]
         return out
@@ -142,7 +134,7 @@ class FASPProgramTransformer:
     def _protect_comparisons_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        return protect_comparisons(self.library, statements)
+        return [protect_comparisons(self.ctx, stm) for stm in statements]
 
     def _clingo_rewrite_wrapper(
         self, statements: Iterable[FASP_Statement]
@@ -159,10 +151,9 @@ class FASPProgramTransformer:
                 errors.append((stmt, e))
                 continue
             if rewritten_list:
-                for new_stmt in rewritten_list:
-                    out.append(new_stmt)
-            else:
-                out.append(stmt)
+                out.extend(rewritten_list)
+            # else:
+            #     out.append(stmt)
         self.ctx.lib.ignore_info = False
         if errors:
             raise RuntimeError("rewriting failed", errors)
@@ -176,7 +167,7 @@ class FASPProgramTransformer:
 
         for stmt in stmts:
             assert not isinstance(stmt, AssignmentRule)
-        result = restore_comparisons(self.library, cast(Iterable[ast.Statement], stmts))
+        result = restore_comparisons(self.ctx, cast(Iterable[ast.Statement], stmts))
         return result
 
     def _restore_assignments_wrapper(
