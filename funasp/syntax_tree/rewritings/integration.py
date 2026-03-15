@@ -64,7 +64,7 @@ def _clingo_rewrite_wrapper(
     """
     ctx = context.ctx
     context.lib.ignore_info = True
-    out = []
+    out: list[ast.Statement] = []
     errors = []
     for stmt in statements:
         assert not isinstance(stmt, AssignmentRule)

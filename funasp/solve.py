@@ -54,13 +54,6 @@ class Model:
         Returns
         -------
         The selected symbols.
-
-        Notes
-        -----
-        Atoms are represented using functions (`Symbol` objects), and CSP
-        assignments are represented using functions with name `"$"` where the
-        first argument is the name of the CSP variable and the second its
-        value.
         """
         return [
             symbol

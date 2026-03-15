@@ -46,6 +46,24 @@ class NormalForm2PredicateTransformer:
         self.evaluable_functions = evaluable_functions
         self.prefix = prefix
 
+    def function_to_term(
+        self,
+        assigned_function: ast.TermFunction | ast.TermSymbolic,
+        value: ast.TermOrProjection,
+        location: Location,
+    ) -> ast.TermFunction:
+        name, arguments = function_arguments_ast(self.library, assigned_function)
+        assert (
+            SymbolSignature(name, len(arguments)) in self.evaluable_functions
+        ), f"Function {name}/{len(arguments)} not in evaluable functions {set(map(str, self.evaluable_functions))}."
+
+        return ast.TermFunction(
+            self.library,
+            location,
+            f"{self.prefix}{name}",
+            [ast.ArgumentTuple(self.library, [*arguments, value])],
+        )
+
     def function_to_literal(
         self,
         assigned_function: ast.TermFunction | ast.TermSymbolic,
@@ -53,21 +71,11 @@ class NormalForm2PredicateTransformer:
         location: Location,
     ) -> ast.LiteralSymbolic:
 
-        name, arguments = function_arguments_ast(self.library, assigned_function)
-        assert (
-            SymbolSignature(name, len(arguments)) in self.evaluable_functions
-        ), f"Function {name}/{len(arguments)} not in evaluable functions {set(map(str, self.evaluable_functions))}."
-
         return ast.LiteralSymbolic(
             self.library,
             location,
             ast.Sign.NoSign,
-            ast.TermFunction(
-                self.library,
-                assigned_function.location,
-                f"{self.prefix}{name}",
-                [ast.ArgumentTuple(self.library, [*arguments, value])],
-            ),
+            self.function_to_term(assigned_function, value, location),
         )
 
     @singledispatchmethod
@@ -208,17 +216,7 @@ class NormalForm2PredicateTransformer:
         name, arguments = function_arguments_ast(self.library, node.left)
         if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
             return None
-        return ast.LiteralSymbolic(
-            self.library,
-            node.location,
-            ast.Sign.NoSign,
-            ast.TermFunction(
-                self.library,
-                node.left.location,
-                f"{self.prefix}{name}",
-                [ast.ArgumentTuple(self.library, [*arguments, node.right[0].term])],
-            ),
-        )
+        return self.function_to_literal(node.left, node.right[0].term, node.location)
 
     @_dispatch.register
     def _(self, node: AssignmentRule | ast.StatementRule) -> ast.StatementRule:
