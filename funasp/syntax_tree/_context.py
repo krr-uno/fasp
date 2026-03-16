@@ -22,6 +22,7 @@ class RewriteContext:
         prefix_protect_comparison: str = "CMP",
         prefix_protect_guard: str = "GRD",
         prefix_protect_assignment: str = "ASS",
+        prefix_protect_operation: str = "OP",
     ):
         self.lib = lib
         self.prefix_function = prefix_function
@@ -30,4 +31,5 @@ class RewriteContext:
         self.prefix_protect_comparison = prefix_protect_comparison
         self.prefix_protect_guard = prefix_protect_guard
         self.prefix_protect_assignment = prefix_protect_assignment
+        self.prefix_protect_operation = prefix_protect_operation
         self.ctx = ClingoRewriteContext(self.lib.library)
