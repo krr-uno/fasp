@@ -11,8 +11,15 @@ handles both fasp AssignmentAST and clingo AST nodes.
 import sys
 from typing import Any
 
+from funasp.syntax_tree._context import RewriteContext
+
 # IMPORTANT: use the parsing.parse_string that uses TreeSitter (supports ':=')
 from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.syntax_tree.rewritings.integration import _clingo_rewrite_wrapper
+from funasp.syntax_tree.rewritings.protecting_operations import (
+    protect_operations,
+    restore_operations,
+)
 from funasp.util.ast import ELibrary
 
 
@@ -101,9 +108,11 @@ if __name__ == "__main__":
         # t(1).
         # """
         src = "1 { f(X) := 1 : p(X); f(X) := 2 : q(X) } 3."
-        src = "#show f/1." " p(X)."
+        src = "p(a+((b+d),c),X) :-  f(X)."
     print("Source:\n", src)
     asts = parse_string(lib, src)
+    # asts = [protect_operations(RewriteContext(lib=lib), stmt) for stmt in asts]
+    # asts = _clingo_rewrite_wrapper(RewriteContext(lib=lib), asts)
     print("\n--- Parsed ASTs ---\n")
     for a in asts:
         pretty_print(a)
