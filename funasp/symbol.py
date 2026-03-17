@@ -43,3 +43,6 @@ class FunctionSymbol:
         args = symbol.arguments[:-1]
         return_value = symbol.arguments[-1]
         return cls(name, return_value, args)
+        # return cls(
+        #     symbol.arguments[0].name, symbol.arguments[1], symbol.arguments[0].arguments
+        # )

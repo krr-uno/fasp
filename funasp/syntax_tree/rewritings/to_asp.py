@@ -64,6 +64,13 @@ class NormalForm2PredicateTransformer:
             [ast.ArgumentTuple(self.library, [*arguments, value])],
         )
 
+        # return ast.TermFunction(
+        #     self.library,
+        #     location,
+        #     f"{self.prefix}",
+        #     [ast.ArgumentTuple(self.library, [assigned_function, value])],
+        # )
+
     def function_to_literal(
         self,
         assigned_function: ast.TermFunction | ast.TermSymbolic,

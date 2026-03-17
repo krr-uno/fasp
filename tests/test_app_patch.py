@@ -8,6 +8,7 @@ from unittest.mock import patch, MagicMock
 
 
 from funasp.app import FaspApp, main
+from funasp.control import Control
 
 from .examples import EXAMPLES
 
@@ -16,7 +17,10 @@ TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 APP_NAME = "funasp"
 
 FaspAppMock = MagicMock(spec=FaspApp)
-FaspAppMock._prefix = "F"
+# FaspAppMock.prefix = "F"
+FaspAppMock._control = MagicMock(spec=Control)
+FaspAppMock._control.prefix = "F"
+FaspAppMock._control.print_model = lambda model, default_printer: Control.print_model(FaspAppMock._control, model, default_printer)
 
 def control_main_patch(self):
     self.ground()

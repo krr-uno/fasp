@@ -1,8 +1,12 @@
+import ctypes
+import sys
 from collections.abc import Callable
 from typing import Any, Iterable, Optional, Sequence
 
 import clingo
-from clingo import ast, symbol
+from clingo import ast
+from clingo import solve as clingo_solve
+from clingo import symbol
 
 from funasp.solve import Model
 from funasp.syntax_tree._context import RewriteContext
@@ -10,6 +14,18 @@ from funasp.syntax_tree.parsing import parser
 from funasp.util.ast import ELibrary
 
 from .syntax_tree import rewrite_statements
+
+LIBC_NAME: str | None = None
+try:
+    if sys.platform.startswith("win"):  # pragma: no cover
+        LIBC_NAME = "msvcrt"
+except Exception as e:  # pragma: no cover
+    pass
+LIBC = ctypes.CDLL(LIBC_NAME)  # None = current process's libc
+
+# Declare fflush prototype
+LIBC.fflush.argtypes = [ctypes.c_void_p]
+LIBC.fflush.restype = ctypes.c_int
 
 
 class Control:
@@ -91,6 +107,12 @@ class Control:
             for model in handle:
                 yield Model(model, self.prefix)
             self._result = handle.get()
+
+    def print_model(self, model: clingo_solve.Model, _: Callable[[], None]) -> None:
+        LIBC.fflush(None)  # Flush C's stdout
+        sys.stdout.write(str(Model(model, self.prefix)))
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
     def main(self) -> None:
         """

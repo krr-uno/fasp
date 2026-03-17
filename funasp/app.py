@@ -1,6 +1,6 @@
 import ctypes
 import sys
-from typing import Callable, Sequence
+from typing import Callable, Optional, Sequence
 
 from clingo import core, solve
 from clingo.app import App, AppOptions, Flag, clingo_main
@@ -33,6 +33,7 @@ class FaspApp(App):
         self._clingo_options = clingo_options
         self._prefix = "F"
         self._print_rewrite = False
+        self._control: Optional[Control] = None
 
     def register_options(self, options: AppOptions) -> None:
         options.add_flag(
@@ -50,26 +51,28 @@ class FaspApp(App):
     def print_model(
         self, model: solve.Model, default_printer: Callable[[], None]
     ) -> None:
-        LIBC.fflush(None)  # Flush C's stdout
-        sys.stdout.write(str(Model(model, self._prefix)))
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+        # LIBC.fflush(None)  # Flush C's stdout
+        # sys.stdout.write(str(Model(model, self._prefix)))
+        # sys.stdout.write("\n")
+        # sys.stdout.flush()
+        assert self._control is not None
+        self._control.print_model(model, default_printer)
 
     def _set_prefix(self, prefix: str) -> None:
         self._prefix = prefix
 
     def main(self, clingo_control: ClingoControl, files: Sequence[str]) -> None:
         prefix = self._prefix
-        control = Control(
+        self._control = Control(
             self._library,
             self._clingo_options,
             prefix,
             clingo_control,
         )
         try:
-            control.parse_files(files)
+            self._control.parse_files(files)
             if clingo_control.mode == ClingoControlMode.Rewrite:
-                print(control.get_rewritten_program())
+                print(self._control.get_rewritten_program())
                 return
         except ParsingException as e:
             for error in e.errors:
@@ -82,7 +85,7 @@ class FaspApp(App):
                 sys.stderr.write("*** ERROR: (fasp): rewriting failed\n")
                 return
             raise e  # pragma: no cover
-        control.main()
+        self._control.main()
 
 
 def fasp_main(
