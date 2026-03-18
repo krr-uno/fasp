@@ -4,6 +4,7 @@ from typing import Any, List, Set
 from clingo import ast
 from clingo.core import Library
 
+from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree._nodes import (
     FASP_AST,
     AssignmentAggregateElement,
@@ -376,3 +377,10 @@ class RuleRewriteTransformer:
         update["body"] = new_body_literals_from_comps
 
         return node.update(self.lib, **update)
+
+
+
+def unnest_evaluable_functions(context: RewriteContext, statement: FASP_Statement, evaluable_functions: set[SymbolSignature]) -> FASP_Statement:
+    used = collect_variables(statement)
+    transformer = RuleRewriteTransformer(context.lib, evaluable_functions)
+    return transformer.transform_rule(statement)
