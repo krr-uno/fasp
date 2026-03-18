@@ -1,11 +1,13 @@
 from functools import singledispatch
 from typing import Any, Iterable
 
-from clingo import ast
+from clingo import ast, symbol
 
 from funasp.syntax_tree._nodes import (
     FASP_AST,
+    AssignmentAggregateElement,
     AssignmentRule,
+    ChoiceAssignment,
     HeadAggregateAssignment,
     HeadAggregateAssignmentElement,
     HeadSimpleAssignment,
@@ -44,29 +46,36 @@ def _get_evaluable_functions_head(node: Any) -> set[SymbolSignature]:
 
 @_get_evaluable_functions_head.register
 def _(head: HeadSimpleAssignment) -> set[SymbolSignature]:
-    name, arguments = function_arguments(head.assigned_function)
-    return {SymbolSignature(name, len(arguments))}
+    assigned_function = head.assigned_function
+    if isinstance(assigned_function, ast.TermFunction):
+        name = assigned_function.name
+        return {
+            SymbolSignature(name, len(pool.arguments))
+            for pool in assigned_function.pool
+        }
+    elif (
+        isinstance(assigned_function, ast.TermSymbolic)
+        and assigned_function.symbol.type == symbol.SymbolType.Function
+    ):
+        return {
+            SymbolSignature(
+                assigned_function.symbol.name, len(assigned_function.symbol.arguments)
+            )
+        }
+    assert (
+        False
+    ), f"Unsupported assigned function type: {assigned_function.__class__}"  # pragma: no cover
 
 
 @_get_evaluable_functions_head.register
-def _(head: HeadAggregateAssignment) -> set[SymbolSignature]:
+def _(head: HeadAggregateAssignment | ChoiceAssignment) -> set[SymbolSignature]:
     evaluable_functions = set()
     for element in head.elements:
-        if isinstance(element, HeadAggregateAssignmentElement):
-            name, arguments = function_arguments(element.assignment.assigned_function)
-            evaluable_functions.add(SymbolSignature(name, len(arguments)))
+        if isinstance(
+            element, HeadAggregateAssignmentElement | AssignmentAggregateElement
+        ):
+            evaluable_functions |= _get_evaluable_functions_head(element.assignment)
     return evaluable_functions
-
-
-# NOTE: Is this correct?
-# @_get_evaluable_functions_head.register
-# def _(head: ChoiceAssignment) -> set[SymbolSignature]:
-#     evaluable_functions = set()
-#     for element in head.elements:
-#         if isinstance(element, AssignmentAggregateElement):
-#             name, arguments = function_arguments(element.assignment.assigned_function)
-#             evaluable_functions.add(SymbolSignature(name, len(arguments)))
-#     return evaluable_functions
 
 
 class _VariableCollector:

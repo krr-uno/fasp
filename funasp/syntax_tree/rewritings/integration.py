@@ -93,39 +93,45 @@ def transform_to_clingo_statements(
     """
     library = context.lib.library
     context.ctx
-    new_statements: list[ast.Statement] = []
+    new_statements: list[FASP_Statement] = []
     for stmt in statements:
         new_stmt = rewrite_showf(context, stmt)
         new_stmt = rewrite_some_choices(library, new_stmt)
         new_stmt = normalize_assignment_aggregates(library, new_stmt)
-        new_stmt = protect_assignment(context, new_stmt)
-        new_stmt = protect_comparisons(context, new_stmt)
+        # new_stmt = protect_assignment(context, new_stmt)
+        # new_stmt = protect_comparisons(context, new_stmt)
         new_statements.append(new_stmt)
         # new_stmts = ast.rewrite_statement(context.ctx, new_stmt)
         # new_statements.extend(new_stmts)
+    evaluable_functions = collect_evaluable_functions(new_statements)
+    new_statements2: list[ast.Statement] = []
+    for stmt in new_statements:
+        new_stmt = stmt
+        new_stmt = protect_assignment(context, new_stmt)
+        new_stmt = protect_comparisons(context, new_stmt)
+        new_statements2.append(new_stmt)
 
-    new_statements = _clingo_rewrite_wrapper(context, new_statements)
+    new_statements2 = _clingo_rewrite_wrapper(context, new_statements2)
     # print(new_statements)
-    new_statements = restore_comparisons(context, new_statements)
-    new_statements2 = restore_assignments(
+    new_statements2 = restore_comparisons(context, new_statements2)
+    new_statements3 = restore_assignments(
         context.lib,
-        new_statements,
+        new_statements2,
         context.prefix_function,
     )
-    new_statements2 = rewrite_negated_body_literals_from_statements(
-        context.lib, new_statements2
+    new_statements3 = rewrite_negated_body_literals_from_statements(
+        context.lib, new_statements3
     )
-    evaluable_functions = collect_evaluable_functions(new_statements2)
     transformer = RuleRewriteTransformer(library, evaluable_functions)
-    new_statements2 = [
-        transformer.transform_rule(stmt) or stmt for stmt in new_statements2
+    new_statements3 = [
+        transformer.transform_rule(stmt) or stmt for stmt in new_statements3
     ]
-    new_statements2 = to_asp(
-        library, new_statements2, evaluable_functions, context.prefix_function
+    new_statements3 = to_asp(
+        library, new_statements3, evaluable_functions, context.prefix_function
     )
-    new_statements2.extend(
+    new_statements3.extend(
         functional_constraints(
             context.lib.library, evaluable_functions, context.prefix_function
         )
     )
-    return new_statements2
+    return new_statements3

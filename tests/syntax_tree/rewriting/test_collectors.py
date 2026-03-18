@@ -49,6 +49,22 @@ class TestGetEvaluableFunctions(unittest.TestCase):
         """
         self.assertEqualFunctions(program, ["fibo/1"])
 
+    def test_pools(self):
+        """Test syntax checking with a correct program snippet."""
+        program = """
+            #program base.
+            f(X;Y,Z) := g(Y) :- p(X,Y,Z).
+        """
+        self.assertEqualFunctions(program, ["f/1", "f/2"])
+
+    def test_choice(self):
+        """Test syntax checking with a correct program snippet."""
+        program = """
+            #program base.
+            { f(X) := g(Y) } :- p(X,Y,Z).
+        """
+        self.assertEqualFunctions(program, ["f/1"])
+
 
 class TestGetVariables(unittest.TestCase):
 
