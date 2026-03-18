@@ -3,6 +3,7 @@
 
 import unittest
 
+from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
 from funasp.syntax_tree.rewritings.some_assignments import (
@@ -15,6 +16,7 @@ class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
 
     def setUp(self):
         self.lib = ELibrary()
+        self.context = RewriteContext(self.lib)
 
     def parse_program(self, program: str):
         """Parse a FASP program into statements (AssignmentRule)."""
@@ -27,7 +29,7 @@ class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
         out: list[str] = []
         for stmt in stmts:
             transformed = rewrite_some_choices(
-                self.lib.library, stmt
+                self.context, stmt
             )
             stmt = transformed or stmt
             out.append(str(stmt).strip())

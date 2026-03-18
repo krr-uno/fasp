@@ -31,7 +31,9 @@ def _rewrite_body_literal(
     )
 
 
-def _rewrite_statement(library: Library, statement: FASP_Statement) -> FASP_Statement:
+def rewrite_negate_body_literals(
+    library: Library, statement: FASP_Statement
+) -> FASP_Statement:
     if not isinstance(statement, ast.StatementRule | AssignmentRule):
         return statement
     new_body = transform_iterable(library, statement.body, _rewrite_body_literal)
@@ -44,4 +46,4 @@ def rewrite_negated_body_literals_from_statements(
     library: ELibrary,
     statements: Iterable[FASP_Statement],
 ) -> Iterable[FASP_Statement]:
-    return [_rewrite_statement(library.library, stmt) for stmt in statements]
+    return [rewrite_negate_body_literals(library.library, stmt) for stmt in statements]

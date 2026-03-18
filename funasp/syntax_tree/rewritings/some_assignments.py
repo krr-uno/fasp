@@ -1,8 +1,8 @@
 from typing import List
 
 from clingo import ast, symbol
-from clingo.core import Library
 
+from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
@@ -13,7 +13,9 @@ from funasp.syntax_tree._nodes import (
 )
 
 
-def rewrite_some_choices(library: Library, stm: FASP_Statement) -> FASP_Statement:
+def rewrite_some_choices(
+    context: RewriteContext, stm: FASP_Statement
+) -> FASP_Statement:
     """
     Transform a ChoiceSomeAssignment head into a ChoiceAssignment head
     with a corresponding #count aggregate prepended to the body.
@@ -27,6 +29,7 @@ def rewrite_some_choices(library: Library, stm: FASP_Statement) -> FASP_Statemen
 
     Returns None if no transformation is done.
     """
+    library = context.lib.library
     if not isinstance(stm, AssignmentRule) or not isinstance(
         head := stm.head, ChoiceSomeAssignment
     ):

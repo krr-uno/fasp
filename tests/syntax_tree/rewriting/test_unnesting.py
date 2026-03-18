@@ -2,6 +2,7 @@ import unittest
 
 from clingo import ast as clingo_ast
 
+
 from funasp.syntax_tree._nodes import FASP_AST
 from funasp.syntax_tree.parsing.parser import parse_string
 from funasp.syntax_tree.rewritings.unnesting.literals import (
@@ -145,6 +146,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
 
     def setUp(self):
         self.lib = ELibrary()
+        self.context = clingo_ast.RewriteContext(self.lib.library)
 
     def apply_unnesting_node(
         self,
@@ -152,6 +154,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         evaluable_functions: list[str],
         unnest_left_guard_equality: bool = False,
         allowed_in_negated_literals: bool = True,
+        apply_clingo_rewrite: bool = False,
     ):
         """
         Apply unnesting node-by-node and return (new_program_str, list[set[str]]).
@@ -162,6 +165,11 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         }
 
         stmts = parse_string(self.lib, program)
+        if apply_clingo_rewrite:
+            new_stmts = []
+            for stmt in stmts:
+                new_stmts.extend(clingo_ast.rewrite_statement(self.context, stmt))
+            stmts = new_stmts
         stmts = stmts[1:]  # Skip #program base
 
         new_stmts = []
@@ -200,17 +208,21 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         expected_sets: list[set[str]],
         unnest_left_guard_equality: bool = False,
         allowed_in_negated_literals: bool = True,
+        apply_clingo_rewrite: bool = False,
     ):
         new_program, unnested_sets = self.apply_unnesting_node(
             program,
             evaluable_functions,
             unnest_left_guard_equality,
             allowed_in_negated_literals,
+            apply_clingo_rewrite,
         )
 
         if expected_program is not None:
             expected_lines = [line.strip() for line in expected_program.splitlines()]
+            expected_lines = [line for line in expected_lines if line]  # Remove empty lines
             actual_lines = [line.strip() for line in new_program.splitlines()]
+            actual_lines = [line for line in actual_lines if line]  # Remove empty lines
             self.assertEqual(expected_lines, actual_lines)
 
         if expected_sets is not None:
@@ -534,4 +546,19 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             "p(FUN).",
             [{"f(a;b,c)=FUN"}],
             unnest_left_guard_equality=True,
+        )
+
+        self.assertEqualUnnesting(
+            """
+            p(f(a)).
+            p(1).
+            """,
+            ["f/1"],
+            """
+            p(FUN).
+            p(1).
+            """,
+            [{"f(a)=FUN"}, set()],
+            unnest_left_guard_equality=True,
+            apply_clingo_rewrite=True,
         )

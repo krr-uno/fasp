@@ -13,6 +13,7 @@ from funasp.syntax_tree.collectors import (
 )
 from funasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
 from funasp.syntax_tree.rewritings.negated_literals import (
+    rewrite_negate_body_literals,
     rewrite_negated_body_literals_from_statements,
 )
 from funasp.syntax_tree.rewritings.protecting import (
@@ -92,44 +93,31 @@ def transform_to_clingo_statements(
     then run the pipeline and return transformed statements.
     """
     library = context.lib.library
-    context.ctx
+    # context.ctx
     new_statements: list[FASP_Statement] = []
+    evaluable_functions: set[SymbolSignature] = set()
     for stmt in statements:
         new_stmt = rewrite_showf(context, stmt)
-        new_stmt = rewrite_some_choices(library, new_stmt)
+        new_stmt = rewrite_some_choices(context, new_stmt)
         new_stmt = normalize_assignment_aggregates(library, new_stmt)
+        new_stmt = rewrite_negate_body_literals(library, new_stmt)
+        evaluable_functions |= collect_evaluable_functions(new_stmt)
         new_statements.append(new_stmt)
-    new_statements = list(
-        rewrite_negated_body_literals_from_statements(context.lib, new_statements)
-    )
-    evaluable_functions = collect_evaluable_functions(new_statements)
-    # print("Evaluable functions:", evaluable_functions)
     transformer = RuleRewriteTransformer(library, evaluable_functions)
-    new_statements = [
-        transformer.transform_rule(stmt) or stmt for stmt in new_statements
-    ]
     new_statements2: list[ast.Statement] = []
     for stmt in new_statements:
-        new_stmt = stmt
+        new_stmt = transformer.transform_rule(stmt) or stmt
         new_stmt = protect_assignment(context, new_stmt)
         new_stmt = protect_comparisons(context, new_stmt)
         new_statements2.append(new_stmt)
 
     new_statements2 = _clingo_rewrite_wrapper(context, new_statements2)
-    # print(new_statements)
     new_statements2 = restore_comparisons(context, new_statements2)
     new_statements3 = restore_assignments(
         context.lib,
         new_statements2,
         context.prefix_function,
     )
-    # new_statements3 = rewrite_negated_body_literals_from_statements(
-    #     context.lib, new_statements3
-    # )
-
-    # new_statements3 = [
-    #     transformer.transform_rule(stmt) or stmt for stmt in new_statements3
-    # ]
     new_statements3 = to_asp(
         library, new_statements3, evaluable_functions, context.prefix_function
     )
