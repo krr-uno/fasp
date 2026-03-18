@@ -3,6 +3,7 @@ from typing import Iterable
 from clingo import ast
 from clingo.core import Library
 
+from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
@@ -32,18 +33,20 @@ def _rewrite_body_literal(
 
 
 def rewrite_negate_body_literals(
-    library: Library, statement: FASP_Statement
+    context: RewriteContext, statement: FASP_Statement
 ) -> FASP_Statement:
     if not isinstance(statement, ast.StatementRule | AssignmentRule):
         return statement
-    new_body = transform_iterable(library, statement.body, _rewrite_body_literal)
+    new_body = transform_iterable(
+        context.lib.library, statement.body, _rewrite_body_literal
+    )
     if new_body is None:
         return statement
-    return statement.update(library, body=new_body)
+    return statement.update(context.lib.library, body=new_body)
 
 
 def rewrite_negated_body_literals_from_statements(
-    library: ELibrary,
+    context: RewriteContext,
     statements: Iterable[FASP_Statement],
 ) -> Iterable[FASP_Statement]:
-    return [rewrite_negate_body_literals(library.library, stmt) for stmt in statements]
+    return [rewrite_negate_body_literals(context, stmt) for stmt in statements]

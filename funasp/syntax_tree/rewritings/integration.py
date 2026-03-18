@@ -31,7 +31,10 @@ from funasp.syntax_tree.rewritings.to_asp import (
     functional_constraints,
     to_asp,
 )
-from funasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
+from funasp.syntax_tree.rewritings.unnesting.rules import (
+    RuleRewriteTransformer,
+    unnest_evaluable_functions,
+)
 from funasp.syntax_tree.types import SymbolSignature
 
 
@@ -99,14 +102,13 @@ def transform_to_clingo_statements(
     for stmt in statements:
         new_stmt = rewrite_showf(context, stmt)
         new_stmt = rewrite_some_choices(context, new_stmt)
-        new_stmt = normalize_assignment_aggregates(library, new_stmt)
-        new_stmt = rewrite_negate_body_literals(library, new_stmt)
+        new_stmt = normalize_assignment_aggregates(context, new_stmt)
+        new_stmt = rewrite_negate_body_literals(context, new_stmt)
         evaluable_functions |= collect_evaluable_functions(new_stmt)
         new_statements.append(new_stmt)
-    transformer = RuleRewriteTransformer(library, evaluable_functions)
     new_statements2: list[ast.Statement] = []
     for stmt in new_statements:
-        new_stmt = transformer.transform_rule(stmt) or stmt
+        new_stmt = unnest_evaluable_functions(context, stmt, evaluable_functions)
         new_stmt = protect_assignment(context, new_stmt)
         new_stmt = protect_comparisons(context, new_stmt)
         new_statements2.append(new_stmt)

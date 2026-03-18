@@ -1,7 +1,8 @@
 import textwrap
 import unittest
 
-from clingo.ast import RewriteContext
+
+from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
 from funasp.util.ast import AST
@@ -30,7 +31,7 @@ from funasp.syntax_tree.types import SymbolSignature
 
 
 def _functional2asp(
-    library: Library, statements: Iterable[FASP_Statement], prefix: str = "F"
+    context: RewriteContext, statements: Iterable[FASP_Statement], prefix: str = "F"
 ) -> tuple[set[SymbolSignature], list[ast.Statement]]:
     """
     Transform a program in functional normal form into a regular program.
@@ -41,15 +42,15 @@ def _functional2asp(
     Returns:
         Iterable[ast.AST]: The transformed program.
     """
-    statements = [normalize_assignment_aggregates(library, stm) for stm in statements]
+    statements = [normalize_assignment_aggregates(context, stm) for stm in statements]
     evaluable_functions = collect_evaluable_functions(statements)
-    transformer = NormalForm2PredicateTransformer(library, evaluable_functions, prefix)
+    transformer = NormalForm2PredicateTransformer(context.lib.library, evaluable_functions, prefix)
     return (
         evaluable_functions,
         list(
             chain(
                 (transformer.rewrite(stm) for stm in statements),
-                functional_constraints(library, evaluable_functions, prefix),
+                functional_constraints(context.lib.library, evaluable_functions, prefix),
             )
         ),
     )
@@ -83,7 +84,8 @@ class TestSyntacticChecker(unittest.TestCase):
         Set up the test case with a library instance.
         """
         self.lib = ELibrary()
-        self.rewrite_context = RewriteContext(self.lib.library)
+        self.context = RewriteContext(self.lib)
+        self.rewrite_context = self.context.ctx
 
     def assertEqualRewrite(self, program, expected):
         """
@@ -95,7 +97,7 @@ class TestSyntacticChecker(unittest.TestCase):
         """
         statements = parse_string(self.lib, program)
 
-        _, result = _functional2asp(self.lib.library, statements)
+        _, result = _functional2asp(self.context, statements)
 
         expected_lines = [line.strip() for line in expected.splitlines()]
 

@@ -2,6 +2,7 @@ import textwrap
 import unittest
 
 
+from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree.rewritings.aggregates import (
     normalize_assignment_aggregates,
 )
@@ -17,6 +18,8 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
 
     def setUp(self):
         self.lib = ELibrary()
+        self.context = RewriteContext(self.lib)
+        self.rewrite_context = self.context.ctx
 
     def parse_program(self, program: str):
         stmts = parse_string(self.lib, program)
@@ -26,7 +29,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
     def rewrite(self, program: str):
         stmts = self.parse_program(program)
         out = [
-            normalize_assignment_aggregates(self.lib.library, stmt) for stmt in stmts
+            normalize_assignment_aggregates(self.context, stmt) for stmt in stmts
         ]
         return [str(stmt).strip() for stmt in out], []
 
@@ -131,7 +134,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         program = "p(a)."
 
         stmts = self.parse_program(program)
-        out = normalize_assignment_aggregates(self.lib, stmts)
+        out = normalize_assignment_aggregates(self.context, stmts)
 
         self.assertEqual(
             "\n".join(str(s) for s in out).strip(), "#program base.\np(a)."

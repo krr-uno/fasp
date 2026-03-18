@@ -2,6 +2,7 @@ import unittest
 
 from clingo import ast
 
+from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
 from funasp.syntax_tree.rewritings.negated_literals import (
@@ -12,6 +13,7 @@ from funasp.syntax_tree.rewritings.negated_literals import (
 class TestNegatedLiteralsTransformer(unittest.TestCase):
     def setUp(self):
         self.lib = ELibrary()
+        self.context = RewriteContext(self.lib)
 
     def apply_negated_literals_transformer(self, program: str):
         """
@@ -29,7 +31,7 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
             stmts[1:] if stmts and isinstance(stmts[0], ast.StatementProgram) else stmts
         )
 
-        new_stmts = rewrite_negated_body_literals_from_statements(self.lib, stmts)
+        new_stmts = rewrite_negated_body_literals_from_statements(self.context, stmts)
 
         new_stmts_str = []
         for stmt in new_stmts:

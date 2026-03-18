@@ -1,6 +1,6 @@
 from clingo import ast
-from clingo.core import Library
 
+from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
@@ -14,7 +14,7 @@ from funasp.util.ast import (
 
 
 def normalize_assignment_aggregates(
-    library: Library, stm: FASP_Statement
+    context: RewriteContext, stm: FASP_Statement
 ) -> FASP_Statement:
     """Rewrites rules with HeadAssignmentAggregate into rules with HeadSimpleAssignment and a BodyAggregate.
     For example, a rule like:
@@ -27,6 +27,7 @@ def normalize_assignment_aggregates(
     ```
     where W is a fresh variable.
     """
+    library = context.lib.library
     if not isinstance(stm, AssignmentRule) or not isinstance(
         head := stm.head, HeadAssignmentAggregate
     ):
