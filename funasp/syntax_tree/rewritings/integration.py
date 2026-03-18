@@ -98,12 +98,12 @@ def transform_to_clingo_statements(
         new_stmt = rewrite_showf(context, stmt)
         new_stmt = rewrite_some_choices(library, new_stmt)
         new_stmt = normalize_assignment_aggregates(library, new_stmt)
-        # new_stmt = protect_assignment(context, new_stmt)
-        # new_stmt = protect_comparisons(context, new_stmt)
         new_statements.append(new_stmt)
-        # new_stmts = ast.rewrite_statement(context.ctx, new_stmt)
-        # new_statements.extend(new_stmts)
+    new_statements = list(
+        rewrite_negated_body_literals_from_statements(context.lib, new_statements)
+    )
     evaluable_functions = collect_evaluable_functions(new_statements)
+    {f.name for f in evaluable_functions}
     new_statements2: list[ast.Statement] = []
     for stmt in new_statements:
         new_stmt = stmt
@@ -119,9 +119,9 @@ def transform_to_clingo_statements(
         new_statements2,
         context.prefix_function,
     )
-    new_statements3 = rewrite_negated_body_literals_from_statements(
-        context.lib, new_statements3
-    )
+    # new_statements3 = rewrite_negated_body_literals_from_statements(
+    #     context.lib, new_statements3
+    # )
     transformer = RuleRewriteTransformer(library, evaluable_functions)
     new_statements3 = [
         transformer.transform_rule(stmt) or stmt for stmt in new_statements3

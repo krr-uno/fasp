@@ -1,5 +1,6 @@
 from re import S
 
+from click import INT
 import nox, os
 
 PYTHON_VERSIONS = False
@@ -24,7 +25,14 @@ SLOW_TESTS = {
     "tests/test_app.py",
 }
 
+INTEGRATION_TESTS = {
+    "tests/test_app.py",
+    "tests/test_app_patch.py",
+    "tests/test_control.py",
+}
+
 TESTS = [test for test in TESTS if str(test) not in SLOW_TESTS]
+FTESTS = [test for test in TESTS if str(test) not in INTEGRATION_TESTS]
 
 SLOW_TESTS = [*TESTS, *SLOW_TESTS]
 
@@ -39,6 +47,29 @@ def test(session):
         "-m",
         "unittest",
         *TESTS,
+        "-v",
+    )
+    coverage_omit = ["tests/*"]
+    session.run(
+        "coverage",
+        "report",
+        "--sort=cover",
+        "--fail-under=100",
+        "-m",
+        f"--omit={','.join(coverage_omit)}",
+    )
+
+@nox.session(python=PYTHON_VERSIONS)
+def ftest(session):
+    """Run the test suite."""
+    if session.python:
+        session.install("clingo")
+    session.run(
+        "coverage",
+        "run",
+        "-m",
+        "unittest",
+        *FTESTS,
         "-v",
     )
     coverage_omit = ["tests/*"]
