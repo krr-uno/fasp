@@ -108,17 +108,22 @@ class AssignmentAST:
         If the transformer returns None for a child, that child is left
         unchanged. Otherwise, the child is replaced with the returned node.
         """
+        # print(f"Transforming node of type {self.__class__}: {self}")
         d = self.to_dict()
+        # print(f"Original fields: {d.keys()}")
         for key, value in d.items():
             if key in {"location", "type"}:
                 continue
+            # print(f"Transforming field '{key}' with value: {value}")
             if isinstance(value, Sequence) and not isinstance(value, str):
                 new_values = []
                 for item in value:
                     if new_item := transformer(item, *args, **kwargs):
                         new_values.append(new_item)
                 d[key] = new_values
-            elif new_value := transformer(value, *args, **kwargs):
+            elif new_value := (
+                transformer(value, *args, **kwargs) if value is not None else None
+            ):
                 d[key] = new_value
         d.pop("type", None)
         return self.__class__(**d)

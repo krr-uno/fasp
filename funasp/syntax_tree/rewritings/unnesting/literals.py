@@ -291,6 +291,8 @@ class UnnestFunctionsInLiteralsTransformer:
             new_node, name, arguments = self._unnest_symbol_function(
                 node, sign, location
             )
+            if outer or not self._is_evaluable(name, len(arguments)):
+                return new_node
         else:
             new_node = node.transform(
                 self.lib,
@@ -298,11 +300,15 @@ class UnnestFunctionsInLiteralsTransformer:
                 outer=False,
                 sign=sign,
             )
-            name, arguments = function_arguments(node)
+            if outer:
+                return new_node
+            name = node.name
+            for arguments in node.pool:
+                if self._is_evaluable(name, len(arguments.arguments)):
+                    break
+            else:
+                return new_node
             location = node.location
-
-        if outer or not self._is_evaluable(name, len(arguments)):
-            return new_node
 
         node = new_node or node
 

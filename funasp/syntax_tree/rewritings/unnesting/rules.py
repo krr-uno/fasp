@@ -6,6 +6,7 @@ from clingo.core import Library
 
 from funasp.syntax_tree._nodes import (
     FASP_AST,
+    AssignmentAggregateElement,
     AssignmentRule,
     FASP_Statement,
     HeadAggregateAssignment,
@@ -55,6 +56,7 @@ class RuleRewriteTransformer:
         self.body_literal_transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib, self.evaluable_functions, var_gen
         )
+        # print("Original rule:", node)
         return self._rewrite(node, var_gen)
 
     @singledispatchmethod
@@ -63,6 +65,7 @@ class RuleRewriteTransformer:
         ast.HeadLiteral,
     )](self, node: T, var_gen: FreshVariableGenerator) -> T | None:
         """Default: return node unchanged."""
+        # print(f"Visiting literal of type {node.__class__}: {node}")
         return node.transform(self.lib, self._rewrite_literal, var_gen)
 
     @_rewrite_literal.register
@@ -71,6 +74,7 @@ class RuleRewriteTransformer:
         node: ast.BodySimpleLiteral,
         var_gen: FreshVariableGenerator,
     ) -> ast.BodySimpleLiteral | ast.BodyConditionalLiteral | None:
+        # print(f"Visiting literal of type {node.__class__}: {node}")
         if node.literal.sign != ast.Sign.Single:
             literal = self.body_literal_transformer.unnest(node.literal)
             if literal is None:
@@ -102,6 +106,7 @@ class RuleRewriteTransformer:
         node: ast.BodyConditionalLiteral,
         var_gen: FreshVariableGenerator,
     ) -> ast.BodyConditionalLiteral | None:
+        # print(f"Visiting literal of type {node.__class__}: {node}")
         update = {}
         literal = self.body_literal_transformer.unnest(node.literal)
         if literal is not None:
@@ -135,6 +140,7 @@ class RuleRewriteTransformer:
         node: ast.BodyAggregate | ast.HeadAggregate | HeadAggregateAssignment,
         var_gen: FreshVariableGenerator,
     ) -> ast.BodyAggregate | ast.HeadAggregate | HeadAggregateAssignment:
+        # print(f"Visiting literal of type {node.__class__}: {node}")
         new_elements = []
         for elem in node.elements:
             new_elem = self._rewrite_literal(elem, var_gen)
@@ -166,14 +172,16 @@ class RuleRewriteTransformer:
             ast.BodyAggregateElement
             | ast.HeadAggregateElement
             | HeadAggregateAssignmentElement
+            | AssignmentAggregateElement
         ),
         var_gen: FreshVariableGenerator,
     ) -> (
         ast.BodyAggregateElement
         | ast.HeadAggregateElement
         | HeadAggregateAssignmentElement
+        | AssignmentAggregateElement
     ):
-
+        # print(f"Visiting (Element) literal of type {node.__class__}: {node}")
         transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
             self.evaluable_functions,
@@ -181,7 +189,14 @@ class RuleRewriteTransformer:
             allowed_in_negated_literals=False,
         )
         update: dict[str, Any] = {}
-        if tuple_ := map_none(lambda t: transformer.unnest(t, outer=False), node.tuple):
+        if isinstance(
+            node,
+            ast.BodyAggregateElement
+            | ast.HeadAggregateElement
+            | HeadAggregateAssignmentElement,
+        ) and (
+            tuple_ := map_none(lambda t: transformer.unnest(t, outer=False), node.tuple)
+        ):
             update["tuple"] = tuple_
         if condition := map_none(
             lambda c: transformer.unnest(c, outer=False), node.condition
@@ -192,7 +207,9 @@ class RuleRewriteTransformer:
             literal = transformer.unnest(node.literal)
             if literal is not None:
                 update["literal"] = literal
-        elif isinstance(node, HeadAggregateAssignmentElement):
+        elif isinstance(
+            node, HeadAggregateAssignmentElement | AssignmentAggregateElement
+        ):
             assignment = transformer.unnest(node.assignment)
             if assignment is not None:
                 update["assignment"] = assignment
@@ -209,6 +226,7 @@ class RuleRewriteTransformer:
         node: ast.OptimizeElement,
         var_gen: FreshVariableGenerator,
     ) -> ast.OptimizeElement:
+        # print(f"Visiting literal of type {node.__class__}: {node}")
         transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
             self.evaluable_functions,
@@ -233,9 +251,20 @@ class RuleRewriteTransformer:
     def _(
         self, node: HeadAssignmentAggregate, var_gen: FreshVariableGenerator
     ) -> HeadAssignmentAggregate:
+        # print(f"Visiting literal of type {node.__class__}: {node}")
         assert (
             False
         ), "HeadAggregateAssignment seen during function unnesting. This should not happen."
+
+    @_rewrite_literal.register(ast.HeadSimpleLiteral | HeadSimpleAssignment)
+    def _[T: (
+        ast.HeadSimpleLiteral,
+        HeadSimpleAssignment,
+    )](self, node: T, var_gen: FreshVariableGenerator) -> T | None:
+        # print(f"Visiting literal of type {node.__class__}: {node}")
+        result = self.head_literal_transformer.unnest(node)
+        # print(f"Result of unnesting head literal: {result}")
+        return result if result is not None else node
 
     @singledispatchmethod
     def _rewrite(
@@ -250,10 +279,12 @@ class RuleRewriteTransformer:
         ast.StatementRule,
         AssignmentRule,
     )](self, node: T, var_gen: FreshVariableGenerator) -> T:
-        if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):
-            new_head = self.head_literal_transformer.unnest(node.head)
-        else:
-            new_head = self._rewrite_literal(node.head, var_gen)
+        # print("Rewriting rule:", node)
+        # if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):
+        #     new_head = self.head_literal_transformer.unnest(node.head)
+        # else:
+        new_head = self._rewrite_literal(node.head, var_gen)
+        # print("New head after unnesting:", new_head)
 
         new_body_literals: List[ast.BodyLiteral] = []
 
@@ -280,6 +311,7 @@ class RuleRewriteTransformer:
             update["head"] = new_head
         if new_body_literals:
             update["body"] = new_body_literals
+        # print("Updated rule:", node, "to", node.update(self.lib, **update))
         return node.update(self.lib, **update)
 
     @_rewrite.register(ast.StatementOptimize)

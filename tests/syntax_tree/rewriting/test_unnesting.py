@@ -511,10 +511,27 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_conditional_literal_nothing(self):
-        print("TEST: test_conditional_literal_nothing")
         self.assertEqualUnnesting(
             "p :- q(X): r(f(X)).",
             [],
             "p :- q(X): r(f(X)).",
             [set()],
+        )
+
+    def test_assignment_rule(self):
+        self.assertEqualUnnesting(
+            "a := b :- p(c).",
+            ["a/0", "c/0"],
+            "a := b :- p(FUN).",
+            [{"c=FUN"}],
+            unnest_left_guard_equality=True,
+        )
+
+    def test_pool(self):
+        self.assertEqualUnnesting(
+            "p(f(a;b,c)).",
+            ["f/1"],
+            "p(FUN).",
+            [{"f(a;b,c)=FUN"}],
+            unnest_left_guard_equality=True,
         )

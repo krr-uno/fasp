@@ -36,127 +36,88 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
         self.assertEqual(transformed_str, expected_program)
 
-    # def test_choice_some_rewrite(self):
-    #     self.assertTransformEqual(
-    #         "a := #some{X: p(X)} :- q(X), r.",
-    #         "{ a := X: p(X) } = 1 :- #count { X: p(X) } >= 1; q(X); r.",
-    #         test_pipeline=PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES,
-    #     )
 
-    # def test_assignment_aggregate_rewrite(self):
-    #     """
-    #     Test rewriting of assignment aggregates:
-    #     """
-    #     self.assertTransformEqual(
-    #         "f(X) := #sum { Y: p(Y,Z) , q(X), r(X) } :- b(X,Z).",
-    #         "f(X) := W :- b(X,Z); W = #sum { Y: p(Y,Z), q(X), r(X) }.",
-    #         test_pipeline=PipelineStage.NORMALIZE_ASSIGNMENT_AGGREGATES,
-    #     )
+    def test_to_asp(self):
+        self.assertTransformEqual(
+            "f(1) := Y :- g(Y).",
+            """
+            Ff(1,Y) :- g(Y).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
 
-    # def test_combined_rewrite(self):
-    #     """
-    #     Combined program containing both a #some assignment and an assignment aggregate.
-    #     Verifies pipeline chaining.
-    #     """
-    #     self.assertTransformEqual(
-    #         """\
-    #             a := #some{X: p(X)} :- s.
-    #             f(X) := #count { Y: p(Y,Z) } :- b(X,Z).
-    #         """,
-    #         """\
-    #             { ASS(a,X): p(X) } = 1 :- #count { X: p(X) } >= 1; s.
-    #             ASS(f(X),W) :- b(X,Z); W = #count { Y: p(Y,Z) }.
-    #         """,
-    #         test_pipeline=PipelineStage.PROTECT_COMPARISONS,
-    #     )
+    def test_total_integration(self):
+        self.assertTransformEqual(
+            "1 { sk(X, Y)  : skis(Y) } 1 :- sks(X).",
+            "1 <= #count { 0,sk(X,Y): sk(X,Y): skis(Y) } <= 1 :- sks(X).",
+        )
 
-    # def test_choice_some_rewrite_context(self):
-    #     self.assertTransformEqual(
-    #         "a := #sum{X: p(X)} :- q(X), r.",
-    #         "ASS(a,W) :- q(X); r; W = #sum { X: p(X) }.",
-    #         test_pipeline=PipelineStage.CLINGO_REWRITE,
-    #     )
+    def test_king(self):
+        self.assertTransformEqual(
+            """
+            country(france).
+            country(usa).
+            person(felipe).
 
-    # def test_pool_rewrite(self):
-    #     self.assertTransformEqual(
-    #         "f(1;2) := Y :- g(Y).",
-    #         "ASS(f(1;2),Y) :- g(Y).",
-    #         test_pipeline=PipelineStage.PROTECT_COMPARISONS,
-    #     )
-
-    # def test_pool_rewrite_2(self):
-    #     self.assertTransformEqual(
-    #         "f(1;2) := Y :- g(Y).",
-    #         """\
-    #             ASS(f(1),Y) :- g(Y).
-    #             ASS(f(2),Y) :- g(Y).
-    #         """,
-    #         test_pipeline=PipelineStage.CLINGO_REWRITE,
-    #     )
-
-    # def test_pool_restore_assignments(self):
-    #     self.assertTransformEqual(
-    #         "f(1;2) := Y :- g(Y).",
-    #         """\
-    #             f(1) := Y :- g(Y).
-    #             f(2) := Y :- g(Y).
-    #         """,
-    #         test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
-    #     )
-
-    # def test_comparison_rewrite(self):
-    #     self.assertTransformEqual(
-    #         "a=100.",
-    #         "a=100.",
-    #         test_pipeline=PipelineStage.UNNEST_FUNCTIONS,
-    #     )
-
-    # def test_to_asp(self):
-    #     self.assertTransformEqual(
-    #         "f(1) := Y :- g(Y).",
-    #         "Ff(1,Y) :- g(Y).",
-    #     )
-
-    # def test_total_integration(self):
-    #     self.assertTransformEqual(
-    #         "1 { sk(X, Y)  : skis(Y) } 1 :- sks(X).",
-    #         "1 <= #count { 0,sk(X,Y): sk(X,Y): skis(Y) } <= 1 :- sks(X).",
-    #     )
-
-    # def test_king(self):
-    #     self.assertTransformEqual(
-    #         """
-    #         country(france).
-    #         country(usa).
-    #         person(felipe).
-
-    #         {king(C,X) : person(X)}:- country(C).
+            {king(C,X) : person(X)}:- country(C).
 
 
-    #         :- king(C1,X); king(C2,X); C1!=C2.
-    #         """,
-    #         """
-    #         country(france).
-    #         country(usa).
-    #         person(felipe).
-    #         #count { 0,king(C,X): king(C,X): person(X) } :- country(C).
-    #         :- king(C1,X); king(C2,X); C1!=C2.
-    #         """,
-    #     )
+            :- king(C1,X); king(C2,X); C1!=C2.
+            """,
+            """
+            country(france).
+            country(usa).
+            person(felipe).
+            #count { 0,king(C,X): king(C,X): person(X) } :- country(C).
+            :- king(C1,X); king(C2,X); C1!=C2.
+            """,
+        )
 
-    # def test_head_aggregate_assignment(self):
-    #     self.assertTransformEqual(
-    #         "{king(C) := X: person(X)}:- country(C).",
-    #         "#count{ 0,Fking(C,X): king(C) := X: person(X) } :- country(C).",
-    #         test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
-    #     )
 
-    # def test_head_aggregate_assignment2(self):
-    #     self.assertTransformEqual(
-    #         "{king(spain) := felipe}.",
-    #         "#count{ 0,Fking(spain,felipe): king(spain) := felipe }.",
-    #         test_pipeline=PipelineStage.RESTORE_ASSIGNMENTS,
-    #     )
+
+    def test_fact(self):
+        self.assertTransformEqual(
+            """
+            c := 1.
+            p(c).
+            """,
+            """
+            Fc(1).
+            p(FUN) :- Fc(FUN).
+            :- Fc(_); 1 < #count { V: Fc(V) }.
+            """
+        )
+
+    def test_pool(self):
+        self.assertTransformEqual(
+            """
+            f(1) := 2.
+            p(f(a;b,c;d,e,f)).
+            """,
+            """
+            Ff(1,2).
+            p(FUN) :- Ff(a,FUN).
+            p(FUN) :- f(b,c)=FUN.
+            p(FUN) :- f(d,e,f)=FUN.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
+    def test_assignment_rule(self):
+        self.assertTransformEqual(
+            """
+            c := 1.
+            a := b :- p(c).
+            p(c).
+            """,
+            """
+            Fc(1).
+            Fa(b) :- p(FUN); Fc(FUN).
+            p(FUN) :- Fc(FUN).
+            :- Fa(_); 1 < #count { V: Fa(V) }.
+            :- Fc(_); 1 < #count { V: Fc(V) }.
+            """
+        )
 
     def test_head_aggregate_assignment2(self):
         self.assertTransformEqual(
@@ -235,7 +196,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
             """
-            Ffibo(X,Y) :- number(X); X>1; FUN+FUN2=Y; Ffibo(X-1,FUN); Ffibo(X-2,FUN2).
+            Ffibo(X,Y) :- number(X); X>1; 1*__A_0+0=Y; Ffibo(1*X+(-1),FUN); Ffibo(1*X+(-2),FUN2); __A_0=FUN+FUN2.
             :- Ffibo(X0,_); 1 < #count { V: Ffibo(X0,V) }.
             """,
         )
