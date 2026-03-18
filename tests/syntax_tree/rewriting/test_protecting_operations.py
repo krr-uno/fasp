@@ -1,4 +1,3 @@
-import textwrap
 import unittest
 
 from clingo import ast
@@ -48,7 +47,7 @@ class TestProtectOperations(unittest.TestCase):
             p(OP(9,(OP(6,a,b),c))).
             """
         )
-    
+   
     ## EXTRA TEST ##
     def test_protect_operations_2(self):
         self.assertEqualRewrite(
@@ -92,25 +91,28 @@ class TestRestoreOperations(unittest.TestCase):
 
     ## TESTS ##
     def test_restore_operations(self):
-        program = """
-            p(a+((b+d),c),X) :-  f(X).
-            p(|(a+b,c)|).
-            """
-        expected = """
-            p(OP(6,a,(OP(6,b,d),c)),X) :- f(X).
-            p(OP(9,(OP(6,a,b),c))).
-            """
+        program = "p(a+(b+d,c),X) :- f(X)."
         self.assertEqualRewrite(
-            program, expected
+            program, program
         )
-    
-    # ## EXTRA TEST ##
-    # def test_restore_operations_2(self):
+   
+    # Non-deterministic results
+    # def test_restore_operations_head_disjunction(self):
+    #     program = """
+    #         p(a+(b+d,c),X); g(a+b) :- f(X).
+    #         """
     #     self.assertEqualRewrite(
-    #         """
-    #         p(a+((b+d),c),X) :-  f(X) + f(Y)=2.
-    #         """,
-    #         """
-    #         p(OP(6,a,(OP(6,b,d),c)),X) :- OP(6,f(X),f(Y))=2.
-    #         """
+    #         program, program
     #     )
+   
+    def test_restore_operations_absolute(self):
+        program ="p(|(a+b,c)|)."
+        self.assertEqualRewrite(program, program)
+   
+    def test_restore_mixed_non_function(self):
+        program = "p(1,a,2)."
+        self.assertEqualRewrite(program, program)
+    ## EXTRA TEST ##
+    def test_restore_nested_functions(self):
+        program = "p(f(g(a+b),h(c)))."
+        self.assertEqualRewrite(program, program)

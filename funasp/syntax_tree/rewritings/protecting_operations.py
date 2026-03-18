@@ -1,10 +1,11 @@
 from functools import singledispatch
 
 from clingo import ast
-from clingo.symbol import Number
+from clingo.core import Location
+from clingo.symbol import Number, Symbol, SymbolType
 
 from funasp.syntax_tree._context import RewriteContext
-from funasp.util.ast import AST, function_arguments
+from funasp.util.ast import AST
 
 INT_TO_BINARY_OPERATOR = [
     ast.BinaryOperator.And,  # 0
@@ -118,125 +119,161 @@ def protect_operations(
 
 # RESTORATION
 
-# def _symbol_to_operation(
-#     library: Library,
-#     location: Location,
-#     symbol: Symbol,
-#     op_name: str,
-# ) -> ast.Term | None:
-#     if symbol.type != SymbolType.Function:
-#         return None
 
-#     if symbol.name != op_name:
-#         return None
+def _symbol_tuple_to_term(
+    symbol: Symbol,
+    location: Location,
+    context: RewriteContext,
+) -> ast.TermTuple:
+    """
+    Convert a tuple Symbol into a TermTuple, recursively restoring elements.
+    """
+    library = context.lib.library
 
-#     args = list(symbol.arguments)
+    args: list[ast.Term] = []
 
-#     assert len(args) in (2, 3)
+    for sym in symbol.arguments:
+        # Wrap symbol into TermSymbolic
+        term = ast.TermSymbolic(library, location, sym)
 
-#     op_id_symbol = args[0]
-#     assert op_id_symbol.type == SymbolType.Number
-#     op_id = op_id_symbol.number
+        # Recursively restore
+        restored = _restore_operations(term, context)
 
-#     if len(args) == 2:
-#         inner = ast.TermSymbolic(library, location, args[1])
-#         return ast.TermAbsolute(library, location, [inner])
+        if restored is not None:
+            assert isinstance(
+                restored, ast.TermBinaryOperation | ast.TermAbsolute | ast.TermTuple
+            )
+            args.append(restored)
+        else:
+            args.append(term)
+    arg_tuple = ast.ArgumentTuple(library, args)
+    return ast.TermTuple(library, location, [arg_tuple])
 
-#     left = ast.TermSymbolic(library, location, args[1])
-#     right = ast.TermSymbolic(library, location, args[2])
 
-#     operator = INT_TO_BINARY_OPERATOR[op_id]
+def _symbol_to_term(
+    location: Location,
+    symbol: Symbol,
+    context: RewriteContext,
+) -> (
+    ast.TermAbsolute | ast.TermBinaryOperation | ast.TermTuple | ast.TermFunction | None
+):
+    """
+    Convert a Symbol representing OP(...) back into AST nodes.
+    """
+    library = context.lib.library
+    if symbol.type == SymbolType.Tuple:
+        return _symbol_tuple_to_term(symbol, location, context)
+    if symbol.type != SymbolType.Function:
+        return None
 
-#     return ast.TermBinaryOperation(
-#         library,
-#         location,
-#         left,
-#         operator,
-#         right,
-#     )
+    if symbol.name != context.prefix_protect_operation:
+        if not symbol.arguments:
+            return None  # constant, leave unchanged
 
-# @singledispatch
-# def _restore_operations(node: AST, context: RewriteContext) -> AST | None:
-#     return node.transform(context.lib.library, _restore_operations, context)
+        args: list[ast.Term] = []
 
-# @_restore_operations.register
-# def _(node: ast.TermSymbolic, context: RewriteContext) -> ast.Term | None:
+        for sym in symbol.arguments:
+            term = ast.TermSymbolic(library, location, sym)
+            restored = _restore_operations(term, context)
 
-#     library = context.lib.library
-#     symbol = node.symbol
+            if restored is not None:
+                assert isinstance(restored, ast.Term)
+                args.append(restored)
+            else:
+                args.append(term)
 
-#     if symbol.type != SymbolType.Function:
-#         return node
+        arg_tuple = ast.ArgumentTuple(library, args)
 
-#     name = symbol.name
-#     args = list(symbol.arguments)
+        return ast.TermFunction(
+            library,
+            location,
+            symbol.name,
+            [arg_tuple],
+        )
 
-#     new_args = []
-#     contains_ast = False
+    symbol_args = list(symbol.arguments)
 
-#     # recurse into arguments
-#     for arg in args:
+    assert len(symbol_args) in (2, 3)
 
-#         if isinstance(arg, Symbol) and arg.type == SymbolType.Function:
+    # First argument is operator ID
+    op_id_sym = symbol_args[0]
+    assert op_id_sym.type == SymbolType.Number
+    op_id = op_id_sym.number
 
-#             term = ast.TermSymbolic(library, node.location, arg)
+    # Helper: convert Symbol → TermSymbolic → recursively restore
+    def _sym_to_term(
+        sym: Symbol,
+    ) -> (
+        ast.TermSymbolic
+        | ast.TermAbsolute
+        | ast.TermBinaryOperation
+        | ast.TermTuple
+        | ast.TermFunction
+    ):
+        term = ast.TermSymbolic(library, location, sym)
+        restored = _restore_operations(term, context)
+        if restored is not None:
+            assert isinstance(
+                restored, ast.TermBinaryOperation | ast.TermAbsolute | ast.TermTuple
+            )
+            return restored
+        return term
 
-#             restored = _restore_operations(term, context)
+    # Absolute
+    if op_id == ABSOLUTE_INT:
+        assert len(symbol_args) == 2
 
-#             if isinstance(restored, ast.TermSymbolic):
-#                 new_args.append(restored.symbol)
+        inner = _sym_to_term(symbol_args[1])
 
-#             else:
-#                 contains_ast = True
-#                 new_args.append(restored)
+        return ast.TermAbsolute(
+            library,
+            location,
+            [inner],
+        )
 
-#         else:
-#             new_args.append(arg)
+    # Binary operations
+    assert len(symbol_args) == 3
 
-#     # try converting this node to operation
-#     op = _symbol_to_operation(
-#         library,
-#         node.location,
-#         symbol,
-#         context.prefix_protect_operation,
-#     )
+    operator_type = INT_TO_BINARY_OPERATOR[op_id]
 
-#     if op is not None:
-#         return op
+    left = _sym_to_term(symbol_args[1])
+    right = _sym_to_term(symbol_args[2])
 
-#     # rebuild function normally
-#     if contains_ast:
+    return ast.TermBinaryOperation(
+        library,
+        location,
+        left,
+        operator_type,
+        right,
+    )
 
-#         ast_args = []
 
-#         for arg in new_args:
-#             if isinstance(arg, Symbol):
-#                 ast_args.append(ast.TermSymbolic(library, node.location, arg))
-#             else:
-#                 ast_args.append(arg)
+@singledispatch
+def _restore_operations(node: AST, context: RewriteContext) -> AST | None:
+    return node.transform(context.lib.library, _restore_operations, context)
 
-#         return ast.TermFunction(
-#             library,
-#             node.location,
-#             name,
-#             [ast.ArgumentTuple(library, ast_args)],
-#         )
 
-#     new_symbol = Function(library,name, new_args)
+@_restore_operations.register
+def _(
+    node: ast.TermSymbolic, context: RewriteContext
+) -> (
+    ast.TermAbsolute | ast.TermBinaryOperation | ast.TermTuple | ast.TermFunction | None
+):
+    context.lib.library
+    location = node.location
+    symbol = node.symbol
 
-#     return ast.TermSymbolic(
-#         library,
-#         node.location,
-#         new_symbol,
-#     )
+    restored = _symbol_to_term(location, symbol, context)
+    if restored is not None:
+        return restored
+
+    return None
 
 
 def restore_operations(
     context: RewriteContext, statement: ast.Statement
 ) -> ast.Statement:
-    """
-    Restore protected operations encoded as TermFunction(context.prefix_protect_operation, ...)
-    back to TermBinaryOperation and TermAbsolute in the AST.
-    """
-    return statement
-    # return statement.transform(context.lib.library, _restore_operations, context) or statement
+    return (
+        statement.transform(context.lib.library, _restore_operations, context)
+        or statement
+    )
