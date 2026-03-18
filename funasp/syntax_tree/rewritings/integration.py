@@ -13,7 +13,6 @@ from funasp.syntax_tree.collectors import (
 from funasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
 from funasp.syntax_tree.rewritings.negated_literals import (
     rewrite_negate_body_literals,
-    rewrite_negated_body_literals_from_statements,
 )
 from funasp.syntax_tree.rewritings.protecting import (
     protect_assignment,
@@ -26,21 +25,14 @@ from funasp.syntax_tree.rewritings.some_assignments import (
     rewrite_some_choices,
 )
 from funasp.syntax_tree.rewritings.to_asp import (
-    NormalForm2PredicateTransformer,
     functional_constraints,
     to_asp,
 )
+from funasp.syntax_tree.rewritings.unnesting._statement import Statement
 from funasp.syntax_tree.rewritings.unnesting.rules import (
     unnest_evaluable_functions,
 )
 from funasp.syntax_tree.types import SymbolSignature
-
-# class Statement:
-
-#     def __init__(self, original: FASP_Statement):
-#         self.original = original
-#         self.has_assignments = isinstance(original, AssignmentRule)
-#         self.rewritten: list[FASP_Statement] = []
 
 
 def _clingo_rewrite_wrapper(
@@ -79,12 +71,12 @@ def transform_to_clingo_statements(
     then run the pipeline and return transformed statements.
     """
     library = context.lib.library
-    # context.ctx
     new_statements: list[FASP_Statement] = []
     evaluable_functions: set[SymbolSignature] = set()
     for stmt in statements:
+        stmt = Statement(stmt)
         new_stmt = rewrite_showf(context, stmt)
-        new_stmt = rewrite_some_choices(context, new_stmt)
+        new_stmt = rewrite_some_choices(context, new_stmt.rewritten[0])
         new_stmt = normalize_assignment_aggregates(context, new_stmt)
         new_stmt = rewrite_negate_body_literals(context, new_stmt)
         evaluable_functions |= collect_evaluable_functions(new_stmt)
