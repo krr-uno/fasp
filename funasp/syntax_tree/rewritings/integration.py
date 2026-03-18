@@ -1,4 +1,3 @@
-from enum import IntEnum, auto
 from typing import Iterable
 
 from clingo import ast
@@ -32,25 +31,9 @@ from funasp.syntax_tree.rewritings.to_asp import (
     to_asp,
 )
 from funasp.syntax_tree.rewritings.unnesting.rules import (
-    RuleRewriteTransformer,
     unnest_evaluable_functions,
 )
 from funasp.syntax_tree.types import SymbolSignature
-
-
-class PipelineStage(IntEnum):
-    SHOWF = auto()
-    REWRITE_CHOICE_SOME = auto()
-    NORMALIZE_ASSIGNMENT_AGGREGATES = auto()
-    PROTECT_ASSIGNMENTS = auto()
-    PROTECT_COMPARISONS = auto()
-    CLINGO_REWRITE = auto()
-    RESTORE_COMPARISONS = auto()
-    RESTORE_ASSIGNMENTS = auto()
-    NEGATED_LITERALS = auto()
-    UNNEST_FUNCTIONS = auto()
-    TO_ASP = auto()
-
 
 # class Statement:
 
