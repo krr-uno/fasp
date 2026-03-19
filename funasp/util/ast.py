@@ -373,8 +373,8 @@ class ELibrary:
         message = self.process_message(msg_type, message)
         # print(">>>>>>>>>>>>", message, self.ignore_info, msg_type, MessageType.Info, MessageType.OperationUndefined)
         if self.logger is not None and (
-            msg_type not in {MessageType.Info, MessageType.OperationUndefined}
-            or not self.ignore_info
+            not self.ignore_info
+            or msg_type not in {MessageType.Info, MessageType.OperationUndefined}
         ):  # pragma: no cover
             self.logger(msg_type, message)
 

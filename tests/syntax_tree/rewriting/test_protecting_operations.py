@@ -6,7 +6,7 @@ from funasp.util.ast import AST,ELibrary
 
 from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree.rewritings.protecting_operations import protect_operations, restore_operations
-from funasp.syntax_tree.rewritings.integration import _clingo_rewrite_wrapper
+from funasp.syntax_tree.rewritings.integration import RewritingStatement, _clingo_rewrite
 
 class TestProtectOperations(unittest.TestCase):
     def setUp(self):
@@ -47,7 +47,7 @@ class TestProtectOperations(unittest.TestCase):
             p(OP(9,(OP(6,a,b),c))).
             """
         )
-   
+
     ## EXTRA TEST ##
     def test_protect_operations_2(self):
         self.assertEqualRewrite(
@@ -74,8 +74,13 @@ class TestRestoreOperations(unittest.TestCase):
 
         ast.parse_string(self.lib.library, program, callback)
         result = [protect_operations(self.context, stmt) for stmt in statements]
-        result = _clingo_rewrite_wrapper(self.context, result)
-        result = [restore_operations(self.context, stmt) for stmt in result]
+        result2 = []
+        for stmt in result:
+            stmt = RewritingStatement(stmt)
+            stmt.rewrite_to_clingo(self.context, lambda c, s: s)
+            _clingo_rewrite(self.context, stmt)
+            result2.extend(stmt._clingo_rewritten)
+        result = [restore_operations(self.context, stmt) for stmt in result2]
 
         expected_lines = [line.strip() for line in expected.splitlines()]
         expected_lines = [line for line in expected_lines if line]  # Remove empty lines
@@ -95,7 +100,7 @@ class TestRestoreOperations(unittest.TestCase):
         self.assertEqualRewrite(
             program, program
         )
-   
+
     # Non-deterministic results
     # def test_restore_operations_head_disjunction(self):
     #     program = """
@@ -104,11 +109,11 @@ class TestRestoreOperations(unittest.TestCase):
     #     self.assertEqualRewrite(
     #         program, program
     #     )
-   
+
     def test_restore_operations_absolute(self):
         program ="p(|(a+b,c)|)."
         self.assertEqualRewrite(program, program)
-   
+
     def test_restore_mixed_non_function(self):
         program = "p(1,a,2)."
         self.assertEqualRewrite(program, program)

@@ -37,33 +37,6 @@ from funasp.syntax_tree.rewritings.unnesting.rules import (
 from funasp.syntax_tree.types import SymbolSignature
 
 
-def _clingo_rewrite_wrapper(
-    context: RewriteContext, statements: Iterable[ast.Statement]
-) -> list[ast.Statement]:
-    """
-    Wrapper for clingo's statement rewriting to handle errors.
-    """
-    ctx = context.ctx
-    context.lib.ignore_info = True
-    out: list[ast.Statement] = []
-    errors = []
-    for stmt in statements:
-        assert not isinstance(stmt, AssignmentRule)
-        try:
-            rewritten_list = ast.rewrite_statement(ctx, stmt)
-        except RuntimeError as e:
-            errors.append((stmt, e))
-            continue
-        if rewritten_list:
-            out.extend(rewritten_list)
-        else:
-            out.append(stmt)
-    context.lib.ignore_info = False
-    if errors:
-        raise RuntimeError("rewriting failed", errors)
-    return out
-
-
 class RewritingStatement:
 
     def __init__(self, original: FASP_Statement):
@@ -110,14 +83,6 @@ class RewritingStatement:
         assert self._clingo_rewritten is not None
         self._clingo_rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
 
-    def rewrite_clingo_m(
-        self,
-        context: RewriteContext,
-        fun: Callable[[RewriteContext, Iterable[ast.Statement]], list[ast.Statement]],
-    ) -> None:
-        assert self._clingo_rewritten is not None
-        self._clingo_rewritten = fun(context, self._clingo_rewritten)
-
     def rewrite_from_clingo(
         self,
         context: RewriteContext,
@@ -125,6 +90,40 @@ class RewritingStatement:
     ) -> None:
         assert self._clingo_rewritten is not None
         self._rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
+
+    def rewrite_clingo_m(  # pragma: no cover
+        self,
+        context: RewriteContext,
+        fun: Callable[[RewriteContext, Iterable[ast.Statement]], list[ast.Statement]],
+    ) -> None:
+        assert self._clingo_rewritten is not None
+        self._clingo_rewritten = fun(context, self._clingo_rewritten)
+
+
+def _clingo_rewrite(context: RewriteContext, statement: RewritingStatement) -> None:
+    """
+    Wrapper for clingo's statement rewriting to handle errors.
+    """
+    statements = statement.clingo_rewritten
+    ctx = context.ctx
+    context.lib.ignore_info = True
+    out: list[ast.Statement] = []
+    errors = []
+    for stmt in statements:
+        assert not isinstance(stmt, AssignmentRule)
+        try:
+            rewritten_list = ast.rewrite_statement(ctx, stmt)
+        except RuntimeError as e:
+            errors.append((stmt, e))
+            continue
+        if rewritten_list:
+            out.extend(rewritten_list)
+        else:
+            out.append(stmt)
+    context.lib.ignore_info = False
+    if errors:
+        raise RuntimeError("rewriting failed", errors)
+    statement._clingo_rewritten = out
 
 
 def transform_to_clingo_statements(
@@ -146,7 +145,7 @@ def transform_to_clingo_statements(
         stmt.rewrite(context, unnest)
         stmt.rewrite_to_clingo(context, protect_assignment)
         stmt.rewrite_clingo(context, protect_comparisons)
-        stmt.rewrite_clingo_m(context, _clingo_rewrite_wrapper)
+        _clingo_rewrite(context, stmt)
         stmt.rewrite_clingo(context, restore_comparisons)
         stmt.rewrite_from_clingo(context, restore_assignments)
         stmt.rewrite_to_clingo(context, to_asp)
