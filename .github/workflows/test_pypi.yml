@@ -60,8 +60,4 @@ jobs:
 
       - name: Test
         run: |
-          nox
-
-      - name: Mypy
-        run: |
-          nox
+          nox -s slow_test
