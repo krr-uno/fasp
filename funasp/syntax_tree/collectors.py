@@ -13,7 +13,6 @@ from funasp.syntax_tree._nodes import (
     HeadSimpleAssignment,
 )
 from funasp.syntax_tree.types import SymbolSignature
-from funasp.util.ast import function_arguments
 
 
 def collect_variables(node: FASP_AST) -> set[str]:

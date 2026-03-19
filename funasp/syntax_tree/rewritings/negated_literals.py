@@ -8,7 +8,7 @@ from funasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
 )
-from funasp.util.ast import ELibrary, transform_iterable
+from funasp.util.ast import transform_iterable
 
 
 def _rewrite_body_literal(

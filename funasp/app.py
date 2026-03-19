@@ -12,7 +12,6 @@ from colorama import init as colorama_init
 
 from funasp.__version__ import __version__
 from funasp.control import Control
-from funasp.solve import Model
 from funasp.util.ast import ELibrary, ParsingException
 
 LIBC_NAME: str | None = None

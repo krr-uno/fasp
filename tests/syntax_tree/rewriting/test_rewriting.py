@@ -11,7 +11,6 @@ from itertools import chain
 from typing import Iterable
 
 from clingo import ast
-from clingo.core import Library
 
 from funasp.syntax_tree._nodes import (
     FASP_Statement,

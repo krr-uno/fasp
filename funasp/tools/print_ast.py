@@ -11,15 +11,8 @@ handles both fasp AssignmentAST and clingo AST nodes.
 import sys
 from typing import Any
 
-from funasp.syntax_tree._context import RewriteContext
-
 # IMPORTANT: use the parsing.parse_string that uses TreeSitter (supports ':=')
 from funasp.syntax_tree.parsing.parser import parse_string
-from funasp.syntax_tree.rewritings.integration import _clingo_rewrite
-from funasp.syntax_tree.rewritings.protecting_operations import (
-    protect_operations,
-    restore_operations,
-)
 from funasp.util.ast import ELibrary
 
 

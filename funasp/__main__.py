@@ -1,7 +1,5 @@
 import sys
 
-from funasp.__version__ import __version__
-
 
 def check_versions() -> int:  # pragma: no cover
     if sys.version_info < (3, 13):

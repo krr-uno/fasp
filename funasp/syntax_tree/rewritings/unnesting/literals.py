@@ -12,7 +12,6 @@ from funasp.syntax_tree._nodes import (
 from funasp.syntax_tree.types import SymbolSignature
 from funasp.util.ast import (
     FreshVariableGenerator,
-    function_arguments,
     is_function,
 )
 from funasp.util.iterables import map_none

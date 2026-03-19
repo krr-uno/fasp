@@ -6,7 +6,6 @@ from clingo.core import Library
 
 from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree._nodes import (
-    FASP_AST,
     AssignmentAggregateElement,
     AssignmentRule,
     FASP_Statement,

@@ -19,9 +19,7 @@ from funasp.syntax_tree.rewritings.protecting import (
     protect_assignment,
     protect_comparisons,
     restore_assignments,
-    restore_assignments_list,
     restore_comparisons,
-    restore_comparisons_list,
 )
 from funasp.syntax_tree.rewritings.showf import rewrite_showf
 from funasp.syntax_tree.rewritings.some_assignments import (
@@ -34,7 +32,6 @@ from funasp.syntax_tree.rewritings.to_asp import (
 from funasp.syntax_tree.rewritings.unnesting.rules import (
     unnest,
 )
-from funasp.syntax_tree.types import SymbolSignature
 
 
 class RewritingStatement:
