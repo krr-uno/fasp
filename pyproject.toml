@@ -4,7 +4,8 @@ version = "0.0.1"
 description = "A functional ASP solver"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [ "colorama>=0.4", "types-colorama>=0.4",]
+dependencies = [ "colorama>=0.4", "types-colorama>=0.4"]
+
 [[project.authors]]
 name = "Jorge Fandinno"
 email = "jfandinno@unomaha.edu"
