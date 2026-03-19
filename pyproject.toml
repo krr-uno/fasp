@@ -22,7 +22,7 @@ funasp = "funasp.__main__:main"
 
 [project.urls]
 Repository = "https://github.com/krr-uno/funasp"
-Source = "https://github.com/potassco/clingo/tree/0"
+Source = "https://github.com/krr-uno/funasp"
 
 [tool.setuptools]
 packages = [ "funasp",]

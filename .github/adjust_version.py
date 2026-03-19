@@ -29,7 +29,7 @@ def adjust_version(build_number, git_hash):
 
     pyproject["project"]["version"] = f"{version}"
     pyproject["project"]["urls"]["Source"] = (
-        f"https://github.com/potassco/clingo/tree/{git_hash}"
+        f"https://github.com/krr-uno/funasp/tree/{git_hash}"
     )
     with open("pyproject.toml", "w", encoding="utf-8") as hnd:
         toml.dump(pyproject, hnd)
