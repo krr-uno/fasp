@@ -26,6 +26,24 @@ jobs:
         with:
           python-version: 3.12
 
+      - name: Get build number and hash
+        shell: bash -l {0}
+        run: |
+          if [ "${{ inputs.build_number }}" == "auto" ]; then
+            echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
+          else
+            echo "BUILD_NUMBER=${{ inputs.build_number }}" >> $GITHUB_ENV
+          fi
+          echo "GIT_HASH=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Adjust version
+        shell: bash -l {0}
+        run: |
+          pip install toml
+          python .github/adjust_version.py --build-number ${BUILD_NUMBER} --git-hash ${GIT_HASH}
+
       - name: install build dependencies
         run: python3 -m pip install build
 
