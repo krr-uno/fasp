@@ -43,7 +43,7 @@ jobs:
           pip install funasp
 
       - name: Install PyPi Test
-        if: ${{ inputs.index != 'testpypi' }}
+        if: ${{ inputs.index != 'pypi' }}
         run: |
           pip install -i https://test.pypi.org/simple/ funasp
 
