@@ -336,6 +336,22 @@ class _ComparisonRestorationTransformer:
 
 
 def restore_comparisons(
+    context: RewriteContext, statement: ast.Statement
+) -> ast.Statement:
+    """
+    Protect comparisons in a Clingo AST.
+
+    Args:
+        statements (Iterable[AST]): The AST statements to protect.
+
+    Returns:
+        Iterable[AST]: The protected AST statements.
+    """
+    transformer = _ComparisonRestorationTransformer(context)
+    return transformer.rewrite(statement)
+
+
+def restore_comparisons_list(
     context: RewriteContext, statements: Iterable[ast.Statement]
 ) -> list[ast.Statement]:
     """
@@ -722,13 +738,29 @@ class _AssignmentRestorationTransformer:
 
 
 def restore_assignments(
+    context: RewriteContext, statement: ast.Statement
+) -> FASP_Statement:
+    """
+    Apply the restoration transformer to all statements.
+    """
+    transformer = _AssignmentRestorationTransformer(
+        context.lib, context.prefix_function
+    )
+    return transformer.rewrite(statement)
+
+
+def restore_assignments_list(
     library: ELibrary, statements: Iterable[ast.Statement], prefix: str = "F"
 ) -> Sequence[FASP_Statement]:
     """
     Apply the restoration transformer to all statements.
     """
-    transformer = _AssignmentRestorationTransformer(library, prefix=prefix)
-    return [transformer.rewrite(statement) for statement in statements]
+    # transformer = _AssignmentRestorationTransformer(library, prefix=prefix)
+    # return [transformer.rewrite(statement) for statement in statements]
+    return [
+        restore_assignments(RewriteContext(library, prefix_function=prefix), statement)
+        for statement in statements
+    ]
 
 
 # #########################################################################

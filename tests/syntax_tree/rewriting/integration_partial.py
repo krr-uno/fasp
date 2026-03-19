@@ -18,8 +18,8 @@ from funasp.syntax_tree.rewritings.negated_literals import (
 from funasp.syntax_tree.rewritings.protecting import (
     protect_assignments,
     protect_comparisons,
-    restore_assignments,
-    restore_comparisons,
+    restore_assignments_list,
+    restore_comparisons_list,
 )
 from funasp.syntax_tree.rewritings.showf import rewrite_showf
 from funasp.syntax_tree.rewritings.some_assignments import rewrite_some_choices
@@ -167,13 +167,13 @@ class FASPProgramTransformer:
 
         for stmt in stmts:
             assert not isinstance(stmt, AssignmentRule)
-        result = restore_comparisons(self.ctx, cast(Iterable[ast.Statement], stmts))
+        result = restore_comparisons_list(self.ctx, cast(Iterable[ast.Statement], stmts))
         return result
 
     def _restore_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
-        return restore_assignments(
+        return restore_assignments_list(
             self.lib,
             cast(Iterable[ast.Statement], statements),
             self.ctx.prefix_function,

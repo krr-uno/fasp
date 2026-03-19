@@ -1,5 +1,6 @@
 from clingo.ast import RewriteContext as ClingoRewriteContext
 
+from funasp.syntax_tree.types import SymbolSignature
 from funasp.util.ast import ELibrary
 
 
@@ -23,6 +24,7 @@ class RewriteContext:
         prefix_protect_guard: str = "GRD",
         prefix_protect_assignment: str = "ASS",
         prefix_protect_operation: str = "OP",
+        evaluable_functions: set[SymbolSignature] | None = None,
     ):
         self.lib = lib
         self.prefix_function = prefix_function
@@ -33,3 +35,6 @@ class RewriteContext:
         self.prefix_protect_assignment = prefix_protect_assignment
         self.prefix_protect_operation = prefix_protect_operation
         self.ctx = ClingoRewriteContext(self.lib.library)
+        self.evaluable_functions: set[SymbolSignature] = (
+            set(evaluable_functions) if evaluable_functions is not None else set()
+        )

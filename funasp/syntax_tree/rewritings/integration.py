@@ -1,6 +1,7 @@
-from typing import Iterable
+from typing import Callable, Iterable, Sequence
 
 from clingo import ast
+from typing_extensions import Final
 
 from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree._nodes import (
@@ -18,7 +19,9 @@ from funasp.syntax_tree.rewritings.protecting import (
     protect_assignment,
     protect_comparisons,
     restore_assignments,
+    restore_assignments_list,
     restore_comparisons,
+    restore_comparisons_list,
 )
 from funasp.syntax_tree.rewritings.showf import rewrite_showf
 from funasp.syntax_tree.rewritings.some_assignments import (
@@ -28,9 +31,8 @@ from funasp.syntax_tree.rewritings.to_asp import (
     functional_constraints,
     to_asp,
 )
-from funasp.syntax_tree.rewritings.unnesting._statement import Statement
 from funasp.syntax_tree.rewritings.unnesting.rules import (
-    unnest_evaluable_functions,
+    unnest,
 )
 from funasp.syntax_tree.types import SymbolSignature
 
@@ -62,6 +64,69 @@ def _clingo_rewrite_wrapper(
     return out
 
 
+class RewritingStatement:
+
+    def __init__(self, original: FASP_Statement):
+        self.original: Final[FASP_Statement] = original
+        self.has_assignments = isinstance(original, AssignmentRule)
+        self._rewritten: list[FASP_Statement] | None = [original]
+        self._clingo_rewritten: list[ast.Statement] | None = None
+
+    @property
+    def rewritten(self) -> Sequence[FASP_Statement]:
+        if self._rewritten is not None:
+            return self._rewritten
+        assert self._clingo_rewritten is not None
+        return self._clingo_rewritten  # pragma: no cover
+
+    @property
+    def clingo_rewritten(self) -> Sequence[ast.Statement]:
+        if self._clingo_rewritten is not None:
+            return self._clingo_rewritten
+        raise ValueError("No clingo rewritten statements available")  # pragma: no cover
+
+    def rewrite(
+        self,
+        context: RewriteContext,
+        fun: Callable[[RewriteContext, FASP_Statement], FASP_Statement],
+    ) -> None:
+        assert self._rewritten is not None
+        self._rewritten = [fun(context, stmt) for stmt in self.rewritten]
+
+    def rewrite_to_clingo(
+        self,
+        context: RewriteContext,
+        fun: Callable[[RewriteContext, FASP_Statement], ast.Statement],
+    ) -> None:
+        assert self._rewritten is not None
+        self._clingo_rewritten = [fun(context, stmt) for stmt in self.rewritten]
+        self._rewritten = None
+
+    def rewrite_clingo(
+        self,
+        context: RewriteContext,
+        fun: Callable[[RewriteContext, ast.Statement], ast.Statement],
+    ) -> None:
+        assert self._clingo_rewritten is not None
+        self._clingo_rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
+
+    def rewrite_clingo_m(
+        self,
+        context: RewriteContext,
+        fun: Callable[[RewriteContext, Iterable[ast.Statement]], list[ast.Statement]],
+    ) -> None:
+        assert self._clingo_rewritten is not None
+        self._clingo_rewritten = fun(context, self._clingo_rewritten)
+
+    def rewrite_from_clingo(
+        self,
+        context: RewriteContext,
+        fun: Callable[[RewriteContext, ast.Statement], FASP_Statement],
+    ) -> None:
+        assert self._clingo_rewritten is not None
+        self._rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
+
+
 def transform_to_clingo_statements(
     context: RewriteContext,
     statements: Iterable[FASP_Statement],
@@ -70,37 +135,22 @@ def transform_to_clingo_statements(
     Parse the program string, collect variables,
     then run the pipeline and return transformed statements.
     """
-    library = context.lib.library
-    new_statements: list[FASP_Statement] = []
-    evaluable_functions: set[SymbolSignature] = set()
-    for stmt in statements:
-        stmt = Statement(stmt)
-        new_stmt = rewrite_showf(context, stmt)
-        new_stmt = rewrite_some_choices(context, new_stmt.rewritten[0])
-        new_stmt = normalize_assignment_aggregates(context, new_stmt)
-        new_stmt = rewrite_negate_body_literals(context, new_stmt)
-        evaluable_functions |= collect_evaluable_functions(new_stmt)
-        new_statements.append(new_stmt)
-    new_statements2: list[ast.Statement] = []
+    new_statements = [RewritingStatement(stmt) for stmt in statements]
     for stmt in new_statements:
-        new_stmt = unnest_evaluable_functions(context, stmt, evaluable_functions)
-        new_stmt = protect_assignment(context, new_stmt)
-        new_stmt = protect_comparisons(context, new_stmt)
-        new_statements2.append(new_stmt)
+        stmt.rewrite(context, rewrite_showf)
+        stmt.rewrite(context, rewrite_some_choices)
+        stmt.rewrite(context, normalize_assignment_aggregates)
+        stmt.rewrite(context, rewrite_negate_body_literals)
+        context.evaluable_functions |= collect_evaluable_functions(stmt.rewritten)
+    for stmt in new_statements:
+        stmt.rewrite(context, unnest)
+        stmt.rewrite_to_clingo(context, protect_assignment)
+        stmt.rewrite_clingo(context, protect_comparisons)
+        stmt.rewrite_clingo_m(context, _clingo_rewrite_wrapper)
+        stmt.rewrite_clingo(context, restore_comparisons)
+        stmt.rewrite_from_clingo(context, restore_assignments)
+        stmt.rewrite_to_clingo(context, to_asp)
 
-    new_statements2 = _clingo_rewrite_wrapper(context, new_statements2)
-    new_statements2 = restore_comparisons(context, new_statements2)
-    new_statements3 = restore_assignments(
-        context.lib,
-        new_statements2,
-        context.prefix_function,
-    )
-    new_statements3 = to_asp(
-        library, new_statements3, evaluable_functions, context.prefix_function
-    )
-    new_statements3.extend(
-        functional_constraints(
-            context.lib.library, evaluable_functions, context.prefix_function
-        )
-    )
-    return new_statements3
+    new_statements2 = [s for stmt in new_statements for s in stmt.clingo_rewritten]
+    new_statements2.extend(functional_constraints(context))
+    return new_statements2

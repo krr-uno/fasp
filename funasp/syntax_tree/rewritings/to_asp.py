@@ -5,6 +5,7 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number
 
+from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree._nodes import (
     FASP_AST_T,
     AssignmentAggregateElement,
@@ -316,7 +317,7 @@ def _functional_constraint(
 
 
 def functional_constraints(
-    library: Library, evaluable_functions: Iterable[SymbolSignature], prefix: str = "F"
+    context: RewriteContext,
 ) -> Iterable[ast.StatementRule]:
     """
     Generate functional constraints for evaluable functions.
@@ -328,19 +329,29 @@ def functional_constraints(
         list[ast.AST]: A list of constraints for the functional normal form.
     """
     return (
-        _functional_constraint(library, fun, prefix)
-        for fun in sorted(evaluable_functions)
+        _functional_constraint(context.lib.library, fun, context.prefix_function)
+        for fun in sorted(context.evaluable_functions)
     )
 
 
 def to_asp(
-    library: Library,
-    statements: Iterable[FASP_Statement],
-    evaluable_functions: AbstractSet[SymbolSignature],
-    prefix: str = "F",
-) -> list[ast.Statement]:
+    context: RewriteContext,
+    statement: FASP_Statement,
+) -> ast.Statement:
     to_asp_transformer = NormalForm2PredicateTransformer(
-        library, evaluable_functions, prefix
+        context.lib.library, context.evaluable_functions, context.prefix_function
     )
-    new_statements = [to_asp_transformer.rewrite(stmt) for stmt in statements]
-    return new_statements
+    return to_asp_transformer.rewrite(statement)
+
+
+# def to_asp_list(
+#     library: Library,
+#     statements: Iterable[FASP_Statement],
+#     evaluable_functions: AbstractSet[SymbolSignature],
+#     prefix: str = "F",
+# ) -> list[ast.Statement]:
+#     to_asp_transformer = NormalForm2PredicateTransformer(
+#         library, evaluable_functions, prefix
+#     )
+#     new_statements = [to_asp_transformer.rewrite(stmt) for stmt in statements]
+#     return new_statements

@@ -14,9 +14,9 @@ from funasp.syntax_tree.rewritings.protecting import (
     _restore_guard_arguments,
     protect_comparisons,
     restore_comparison,
-    restore_comparisons,
+    restore_comparisons_list,
     protect_assignments,
-    restore_assignments,
+    restore_assignments_list,
 )
 from funasp.util.ast import AST, ELibrary
 
@@ -163,7 +163,7 @@ class TestRestoreComparisons(unittest.TestCase):
         )
 
         # Restore comparisons
-        restored = list(restore_comparisons(self.context, protected))
+        restored = list(restore_comparisons_list(self.context, protected))
         self.assertEqual(len(statements), len(restored))
         for orig, rest in zip(statements, restored):
             # Compare string forms
@@ -294,7 +294,7 @@ class TestRestoreAssignments(unittest.TestCase):
         )
 
         # Restore assignments
-        restored = list(restore_assignments(self.lib, protected))
+        restored = list(restore_assignments_list(self.lib, protected))
         self.assertEqual(len(statements), len(restored))
         for orig, rest in zip(statements, restored):
             # Compare string forms

@@ -379,11 +379,12 @@ class RuleRewriteTransformer:
         return node.update(self.lib, **update)
 
 
-def unnest_evaluable_functions(
+def unnest(
     context: RewriteContext,
     statement: FASP_Statement,
-    evaluable_functions: set[SymbolSignature],
 ) -> FASP_Statement:
     collect_variables(statement)
-    transformer = RuleRewriteTransformer(context.lib.library, evaluable_functions)
+    transformer = RuleRewriteTransformer(
+        context.lib.library, context.evaluable_functions
+    )
     return transformer.transform_rule(statement) or statement

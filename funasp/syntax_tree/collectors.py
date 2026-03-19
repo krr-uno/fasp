@@ -22,7 +22,7 @@ def collect_variables(node: FASP_AST) -> set[str]:
 
 
 def collect_evaluable_functions(
-    program: Iterable[FASP_AST] | FASP_AST,
+    program: Iterable[FASP_AST],
 ) -> set[SymbolSignature]:
     """
     Collects all evaluable function symbols from the given program.
@@ -33,10 +33,10 @@ def collect_evaluable_functions(
     Returns:
         set[FunctionSymbol]: A set of FunctionSymbol instances representing the functions found.
     """
-    if isinstance(program, FASP_AST):
-        if isinstance(program, AssignmentRule):
-            return _get_evaluable_functions_head(program.head)
-        return set()
+    # if isinstance(program, FASP_AST):
+    #     if isinstance(program, AssignmentRule):
+    #         return _get_evaluable_functions_head(program.head)
+    #     return set()
     get_evaluable_functions = set()
     for statement in program:
         if isinstance(statement, AssignmentRule):

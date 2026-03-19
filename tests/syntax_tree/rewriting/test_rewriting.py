@@ -43,14 +43,14 @@ def _functional2asp(
         Iterable[ast.AST]: The transformed program.
     """
     statements = [normalize_assignment_aggregates(context, stm) for stm in statements]
-    evaluable_functions = collect_evaluable_functions(statements)
-    transformer = NormalForm2PredicateTransformer(context.lib.library, evaluable_functions, prefix)
+    context.evaluable_functions = collect_evaluable_functions(statements)
+    transformer = NormalForm2PredicateTransformer(context.lib.library, context.evaluable_functions, context.prefix_function)
     return (
-        evaluable_functions,
+        context.evaluable_functions,
         list(
             chain(
                 (transformer.rewrite(stm) for stm in statements),
-                functional_constraints(context.lib.library, evaluable_functions, prefix),
+                functional_constraints(context),
             )
         ),
     )
