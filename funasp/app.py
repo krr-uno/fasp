@@ -51,10 +51,6 @@ class FaspApp(App):
     def print_model(
         self, model: solve.Model, default_printer: Callable[[], None]
     ) -> None:
-        # LIBC.fflush(None)  # Flush C's stdout
-        # sys.stdout.write(str(Model(model, self._prefix)))
-        # sys.stdout.write("\n")
-        # sys.stdout.flush()
         assert self._control is not None
         self._control.print_model(model, default_printer)
 
