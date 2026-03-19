@@ -1,0 +1,19 @@
+name: clingo6
+channels:
+  - potassco/label/dev-20
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.13.5
+  - pip=25.1
+  - clingo=6.0.0
+  - nox=2025.5.1
+  - mypy=1.17.1
+  - black=25.1.0
+  - pip:
+      - autoflake==2.3.1
+      - coverage==7.10.1
+      - isort==6.0.1
+      - pyflakes==3.4.0
+      - pylint==3.3.7
+

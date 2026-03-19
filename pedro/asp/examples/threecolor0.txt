@@ -1,0 +1,11 @@
+iscolor(r).
+iscolor(g).
+iscolor(b).
+
+color(C) in {X | iscolor(X) } :- country(C).
+:- neighbor(C,D), color(C)=color(D).
+
+country(ch). country(fr). country(de).
+neighbor(ch,fr).
+neighbor(ch,de).
+neighbor(fr,de).

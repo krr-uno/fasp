@@ -1,0 +1,26 @@
+#show controls/2.
+company(c1).
+company(c2).
+company(c3).
+
+owns(c1,c2):=51.
+owns(c2,c3):=51.
+owns(c3,c2):=1.
+controls(C1,C1,C2):=owns(C1,C2).
+controls(C1,C2,C3):=owns(C2,C3) :- controls(C1,C2), company(C3).
+controls(C1,C2,C3):=0 :- not controls(C1,C2,C3) !=0, 
+                         company(C1), company(C2), company(C3).
+
+sum(C1,C3):=controls(C1,c1,C3)+controls(C1,c2,C3)+controls(C1,c3,C3).
+controls(C1,C3) :- sum(C1,C3)>50.
+
+% recursive version
+%next(c1,c2). next(c2,c3).
+
+%val(C1,C2,C3):=controls(C1,C2,C3) :- not controls(C3,C2).
+%val(C1,C2,C3):=0 :- not val(C1,C2,C3)!=0,company(C1), company(C2), company(C3).
+
+%sm(C1,c1,C3) := val(C1,c1,C3).
+%sm(C1,Y,C3) := sm(C1,X,C3)+val(C1,Y,C3) :- next(X,Y).
+
+%controls(C1,C3) :- sm(C1,c3,C3)>50.

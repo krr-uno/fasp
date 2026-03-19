@@ -1,0 +1,12 @@
+sit(0). sit(1).
+succ(0,1).
+block(a). block(b).
+
+% By default, the initial location of a block is the table
+loc(X,0):=table :- not loc(X,0) != table, block(X).
+
+% Inertia
+loc(X,T2):=loc(X,T1) :- not loc(X,T2) != loc(X,T1), 
+                block(X), succ(T1,T2).
+
+loc(a,0):=b.

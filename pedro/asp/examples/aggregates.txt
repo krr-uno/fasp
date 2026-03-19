@@ -1,0 +1,28 @@
+#show cnt/1, count/0.
+day(1). day(2). day(3). day(4). day(5). day(6). day(7). 
+
+income(1):=5.
+income(3):=6.
+income(5):=1.
+income(6):=10.
+income(7):=2.
+income(X):=0 :- not income(X)!=0, day(X).
+
+% non-recursive definition
+%total(Y) :- #sum{X : day(D), income(D,X)} = Y.
+total:=income(1)+income(2)+income(3)+income(4)+income(5)+income(6)+income(7).
+
+% recursive definition using the ordering among days
+tot(1):=income(1).
+tot(X):=tot(X-1)+income(X) :- X>1.
+
+% Counting how many days we got 5 dollars or more
+got5(X):=1 :- income(X)>5.
+got5(X):=0 :- not got5(X)!=0, day(X).
+
+% Aggregate version
+count:=got5(1)+got5(2)+got5(3)+got5(4)+got5(5)+got5(6)+got5(7).
+
+% Recursive version
+cnt(1):=got5(1).
+cnt(X):=cnt(X-1)+got5(X) :- X>1.

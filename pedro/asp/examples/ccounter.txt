@@ -1,0 +1,10 @@
+% Cyclic counter modulo n
+% n is 0 by default
+n:=0 :- not n != 0.
+
+n:=3. % If we remove this line, next becomes undefined for all X
+
+int(0). int(1). int(2).
+
+next(X):=(X+1)\n :- int(X).
+undefined(X) :- not \E next(X), int(X).

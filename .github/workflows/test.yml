@@ -1,0 +1,57 @@
+name: Run CI tests
+
+on:
+  - push
+  - pull_request
+
+env:
+  FORCE_COLOR: "3"
+
+jobs:
+  build:
+    name: fasp on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+        python-version: ["3.13"]
+        runAll:
+          - ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')) }}
+        exclude:
+          - os: 'windows-latest'
+            runAll: false
+          - os: 'macos-latest'
+            runAll: false
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+    - name: Conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+        channels: conda-forge
+        channel-priority: strict
+        activate-environment: clingo6
+        auto-update-conda: true
+
+    - name: Conda install clingo
+      shell: bash -l {0}
+      run: |
+        conda install --name clingo6 -c potassco/label/dev-20 clingo
+
+    - name: "checkout repository"
+      uses: actions/checkout@v3
+
+    - name: Conda install packages
+      shell: bash -l {0}
+      run: |
+        conda install --name clingo6 --file envs/requirements.txt
+        pip install -r requirements.txt
+        pip install -e .
+
+    - name: run tests
+      run: nox
