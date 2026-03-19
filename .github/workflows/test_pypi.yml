@@ -41,7 +41,7 @@ jobs:
         if: ${{ inputs.index == 'pypi' }}
         run: |
           python --version
-          pip install funasp
+          python -m pip install funasp
 
       - name: Install PyPi Test
         if: ${{ inputs.index != 'pypi' }}
