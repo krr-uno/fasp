@@ -4,8 +4,11 @@ from pathlib import Path
 import unittest
 import io, contextlib
 
-
-from funasp.app import main
+try:
+    from funasp.app import main
+    SOURCE_CODE_PRESENT = True
+except ImportError:
+    SOURCE_CODE_PRESENT = False
 
 from .examples import EXAMPLES
 
@@ -17,14 +20,6 @@ class TestControl(unittest.TestCase):
 
     def execute_app(self, files: PathLike) -> tuple[str, str]:
         args = [str(file) for file in files] + ["0"]
-        # args_main = args + ["--outf=3"]  # For testing rewrite mode
-        # output_io = io.StringIO()
-        # err_io = io.StringIO()
-        # with contextlib.redirect_stdout(output_io):
-        #     with contextlib.redirect_stderr(err_io):
-        #         main(args_main)
-        # return output_io.getvalue(), err_io.getvalue()
-        # result = subprocess.run(["python", APP_NAME, *args], capture_output=True, text=True)
         result = subprocess.run(["coverage", "run", "-a", "--data-file=.coverage.my", APP_NAME, *args], capture_output=True, text=True)
         return result.stdout, result.stderr
 
@@ -99,40 +94,6 @@ class TestControl(unittest.TestCase):
     #     # Ensure outputs are equal even when prefix changes
     #     self.assertEqual(output_default, output_custom)
 
-    def execute_app_with_args(self, files, extra_args):
-        args = [str(file) for file in files] + extra_args + ["0"]
-        output_io = io.StringIO()
-        err_io = io.StringIO()
-        with contextlib.redirect_stdout(output_io):
-            with contextlib.redirect_stderr(err_io):
-                main(args)
-        return output_io.getvalue(), err_io.getvalue()
-
-    def test_prefix_and_print_rewrite(self):
-        example_file = TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"
-
-        # Rewrite with default prefix (F)
-        rewrite_default, _ = self.execute_app_with_args(
-            [example_file], ["--mode=rewrite"]
-        )
-
-        # Rewrite with custom prefix (G)
-        rewrite_custom, _ = self.execute_app_with_args(
-            [example_file], ["--mode=", "rewrite", "--prefix-fun=G"]
-        )
-
-        # Both rewrites should be non-empty
-        self.assertTrue(rewrite_default.strip())
-        self.assertTrue(rewrite_custom.strip())
-
-        # Default should contain F-prefixed predicates
-        self.assertIn("F", rewrite_default)
-
-        # Custom should contain G-prefixed predicates
-        self.assertIn("G", rewrite_custom)
-
-        # Rewrites must differ
-        self.assertNotEqual(rewrite_default, rewrite_custom)
 
     def test_app_syntax_error(self):
         example_file = TEST_EXAMPLES_PATH / "syntax_error.lp"
@@ -167,3 +128,41 @@ class TestControl(unittest.TestCase):
             [""],
             allow_errors=True,
         )
+
+    def execute_app_with_args(self, files, extra_args):
+        args = [str(file) for file in files] + extra_args + ["0"]
+        output_io = io.StringIO()
+        err_io = io.StringIO()
+        with contextlib.redirect_stdout(output_io):
+            with contextlib.redirect_stderr(err_io):
+                main(args)
+        return output_io.getvalue(), err_io.getvalue()
+
+
+    def test_prefix_and_print_rewrite(self):
+        if not SOURCE_CODE_PRESENT:
+            self.skipTest("Source code not present, skipping test.")
+        example_file = TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"
+
+        # Rewrite with default prefix (F)
+        rewrite_default, _ = self.execute_app_with_args(
+            [example_file], ["--mode=rewrite"]
+        )
+
+        # Rewrite with custom prefix (G)
+        rewrite_custom, _ = self.execute_app_with_args(
+            [example_file], ["--mode=", "rewrite", "--prefix-fun=G"]
+        )
+
+        # Both rewrites should be non-empty
+        self.assertTrue(rewrite_default.strip())
+        self.assertTrue(rewrite_custom.strip())
+
+        # Default should contain F-prefixed predicates
+        self.assertIn("F", rewrite_default)
+
+        # Custom should contain G-prefixed predicates
+        self.assertIn("G", rewrite_custom)
+
+        # Rewrites must differ
+        self.assertNotEqual(rewrite_default, rewrite_custom)
