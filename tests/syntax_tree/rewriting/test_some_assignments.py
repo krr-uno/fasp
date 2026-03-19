@@ -7,7 +7,7 @@ from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
 from funasp.syntax_tree.rewritings.some_assignments import (
-    rewrite_some_choices,
+    _rewrite_some_choices,
 )
 
 
@@ -28,7 +28,7 @@ class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
         stmts = stmts[1:]
         out: list[str] = []
         for stmt in stmts:
-            transformed = rewrite_some_choices(
+            transformed = _rewrite_some_choices(
                 self.context, stmt
             )
             stmt = transformed or stmt

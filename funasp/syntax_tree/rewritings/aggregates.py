@@ -8,12 +8,13 @@ from funasp.syntax_tree._nodes import (
     HeadSimpleAssignment,
 )
 from funasp.syntax_tree.collectors import collect_variables
+from funasp.syntax_tree.rewritings.unnesting._statement import Statement
 from funasp.util.ast import (
     FreshVariableGenerator,
 )
 
 
-def normalize_assignment_aggregates(
+def _normalize_assignment_aggregates(
     context: RewriteContext, stm: FASP_Statement
 ) -> FASP_Statement:
     """Rewrites rules with HeadAssignmentAggregate into rules with HeadSimpleAssignment and a BodyAggregate.
@@ -59,3 +60,12 @@ def normalize_assignment_aggregates(
 
     # Return the rewritten rule.
     return stm.update(head=new_head, body=new_body)
+
+
+def normalize_assignment_aggregates(
+    ctx: RewriteContext, statement: Statement
+) -> Statement:
+    statement.rewritten = [
+        _normalize_assignment_aggregates(ctx, stm) for stm in statement.rewritten
+    ]
+    return statement

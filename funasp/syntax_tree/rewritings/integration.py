@@ -71,12 +71,12 @@ def transform_to_clingo_statements(
     then run the pipeline and return transformed statements.
     """
     library = context.lib.library
-    new_statements: list[FASP_Statement] = []
+    new_statements: list[Statement] = []
     evaluable_functions: set[SymbolSignature] = set()
     for stmt in statements:
         stmt = Statement(stmt)
         new_stmt = rewrite_showf(context, stmt)
-        new_stmt = rewrite_some_choices(context, new_stmt.rewritten[0])
+        new_stmt = rewrite_some_choices(context, new_stmt)
         new_stmt = normalize_assignment_aggregates(context, new_stmt)
         new_stmt = rewrite_negate_body_literals(context, new_stmt)
         evaluable_functions |= collect_evaluable_functions(new_stmt)
@@ -86,7 +86,8 @@ def transform_to_clingo_statements(
         new_stmt = unnest_evaluable_functions(context, stmt, evaluable_functions)
         new_stmt = protect_assignment(context, new_stmt)
         new_stmt = protect_comparisons(context, new_stmt)
-        new_statements2.append(new_stmt)
+        assert isinstance(new_stmt.rewritten[0], ast.Statement)
+        new_statements2.append(new_stmt.rewritten[0])
 
     new_statements2 = _clingo_rewrite_wrapper(context, new_statements2)
     new_statements2 = restore_comparisons(context, new_statements2)

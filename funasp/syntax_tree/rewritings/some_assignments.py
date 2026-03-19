@@ -11,9 +11,10 @@ from funasp.syntax_tree._nodes import (
     FASP_Statement,
     HeadSimpleAssignment,
 )
+from funasp.syntax_tree.rewritings.unnesting._statement import Statement
 
 
-def rewrite_some_choices(
+def _rewrite_some_choices(
     context: RewriteContext, stm: FASP_Statement
 ) -> FASP_Statement:
     """
@@ -91,3 +92,10 @@ def rewrite_some_choices(
     new_body: list[ast.BodyLiteral] = [count_aggregate, *body]
 
     return stm.update(library, head=new_head, body=new_body)
+
+
+def rewrite_some_choices(ctx: RewriteContext, statement: Statement) -> Statement:
+    statement.rewritten = [
+        _rewrite_some_choices(ctx, stm) for stm in statement.rewritten
+    ]
+    return statement

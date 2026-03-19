@@ -8,6 +8,7 @@ from funasp.syntax_tree._nodes import (
     AssignmentRule,
     FASP_Statement,
 )
+from funasp.syntax_tree.rewritings.unnesting._statement import Statement
 from funasp.util.ast import ELibrary, transform_iterable
 
 
@@ -32,7 +33,7 @@ def _rewrite_body_literal(
     )
 
 
-def rewrite_negate_body_literals(
+def _rewrite_negate_body_literals(
     context: RewriteContext, statement: FASP_Statement
 ) -> FASP_Statement:
     if not isinstance(statement, ast.StatementRule | AssignmentRule):
@@ -49,4 +50,13 @@ def rewrite_negated_body_literals_from_statements(
     context: RewriteContext,
     statements: Iterable[FASP_Statement],
 ) -> Iterable[FASP_Statement]:
-    return [rewrite_negate_body_literals(context, stmt) for stmt in statements]
+    return [_rewrite_negate_body_literals(context, stmt) for stmt in statements]
+
+
+def rewrite_negate_body_literals(
+    ctx: RewriteContext, statement: Statement
+) -> Statement:
+    statement.rewritten = [
+        _rewrite_negate_body_literals(ctx, stm) for stm in statement.rewritten
+    ]
+    return statement

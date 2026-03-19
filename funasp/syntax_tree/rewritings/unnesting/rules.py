@@ -16,6 +16,7 @@ from funasp.syntax_tree._nodes import (
     HeadSimpleAssignment,
 )
 from funasp.syntax_tree.collectors import collect_variables
+from funasp.syntax_tree.rewritings.unnesting._statement import Statement
 from funasp.syntax_tree.rewritings.unnesting.literals import (
     UnnestFunctionsInLiteralsTransformer,
     unnest_functions,
@@ -379,7 +380,7 @@ class RuleRewriteTransformer:
         return node.update(self.lib, **update)
 
 
-def unnest_evaluable_functions(
+def _unnest_evaluable_functions(
     context: RewriteContext,
     statement: FASP_Statement,
     evaluable_functions: set[SymbolSignature],
@@ -387,3 +388,15 @@ def unnest_evaluable_functions(
     collect_variables(statement)
     transformer = RuleRewriteTransformer(context.lib.library, evaluable_functions)
     return transformer.transform_rule(statement) or statement
+
+
+def unnest_evaluable_functions(
+    ctx: RewriteContext,
+    statement: Statement,
+    evaluable_functions: set[SymbolSignature],
+) -> Statement:
+    statement.rewritten = [
+        _unnest_evaluable_functions(ctx, stm, evaluable_functions)
+        for stm in statement.rewritten
+    ]
+    return statement

@@ -12,6 +12,7 @@ from funasp.syntax_tree._nodes import (
     HeadAggregateAssignmentElement,
     HeadSimpleAssignment,
 )
+from funasp.syntax_tree.rewritings.unnesting._statement import Statement
 from funasp.syntax_tree.types import SymbolSignature
 from funasp.util.ast import function_arguments
 
@@ -21,7 +22,7 @@ def collect_variables(node: FASP_AST) -> set[str]:
     return collector.collect(node)
 
 
-def collect_evaluable_functions(
+def _collect_evaluable_functions(
     program: Iterable[FASP_AST] | FASP_AST,
 ) -> set[SymbolSignature]:
     """
@@ -107,3 +108,10 @@ class _VariableCollector:
         if isinstance(node, ast.TermSymbolic):
             return
         node.visit(self._collect_vars)
+
+
+def collect_evaluable_functions(statement: Statement) -> set[SymbolSignature]:
+    evaluable_functions: set[SymbolSignature] = set()
+    for stm in statement.rewritten:
+        evaluable_functions |= _collect_evaluable_functions(stm)
+    return evaluable_functions

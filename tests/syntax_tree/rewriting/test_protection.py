@@ -12,7 +12,7 @@ from funasp.syntax_tree.rewritings.protecting import (
     _ComparisonRestorationTransformer,
     _protect_comparison,
     _restore_guard_arguments,
-    protect_comparisons,
+    _protect_comparisons,
     restore_comparison,
     restore_comparisons,
     protect_assignments,
@@ -54,7 +54,7 @@ class TestProtectComparisons(unittest.TestCase):
 
         ast.parse_string(self.lib, program, callback)
 
-        result = [protect_comparisons(self.context, stmt) for stmt in statements]
+        result = [_protect_comparisons(self.context, stmt) for stmt in statements]
 
         expected_lines = [line.strip() for line in expected.splitlines()]
 
@@ -151,7 +151,7 @@ class TestRestoreComparisons(unittest.TestCase):
         ast.parse_string(self.lib, program, callback)
 
         # Protect comparisons
-        protected = [protect_comparisons(self.context, stmt) for stmt in statements]
+        protected = [_protect_comparisons(self.context, stmt) for stmt in statements]
 
         protected_str = "\n".join(str(stmt).strip() for stmt in protected[1:])
         exp_protected_str = textwrap.dedent(expected).strip()

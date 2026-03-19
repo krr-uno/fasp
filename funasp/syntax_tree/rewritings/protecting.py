@@ -17,6 +17,7 @@ from funasp.syntax_tree._nodes import (
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
+from funasp.syntax_tree.rewritings.unnesting._statement import Statement
 from funasp.util.ast import (
     AST,
     ELibrary,
@@ -120,7 +121,7 @@ def _(
     return ast.LiteralSymbolic(library, location, ast.Sign.NoSign, atom)
 
 
-def protect_comparisons(
+def _protect_comparisons(
     context: RewriteContext, statement: ast.Statement
 ) -> ast.Statement:
     """
@@ -136,6 +137,19 @@ def protect_comparisons(
         statement.transform(context.lib.library, _protect_comparison, context)
         or statement
     )
+
+
+def protect_comparisons(ctx: RewriteContext, statement: Statement) -> Statement:
+    # assert len(statement.rewritten) == 1, "Expected exactly one rewritten statement after comparison protection."
+    # assert isinstance(statement.rewritten[0], ast.Statement)
+    # return _protect_comparisons(ctx, statement.rewritten[0])
+
+    statement.rewritten = [
+        _protect_comparisons(ctx, stm)
+        for stm in statement.rewritten
+        if isinstance(stm, ast.Statement)
+    ]
+    return statement
 
 
 @dataclass
@@ -424,7 +438,7 @@ def protect_head_aggregate_assignment(
     )
 
 
-def protect_assignment(context: RewriteContext, node: FASP_Statement) -> ast.Statement:
+def _protect_assignment(context: RewriteContext, node: FASP_Statement) -> ast.Statement:
     if not isinstance(node, AssignmentRule):
         return node
 
@@ -460,6 +474,11 @@ def protect_assignment(context: RewriteContext, node: FASP_Statement) -> ast.Sta
     )
 
 
+def protect_assignment(ctx: RewriteContext, statement: Statement) -> Statement:
+    statement.rewritten = [_protect_assignment(ctx, stm) for stm in statement.rewritten]
+    return statement
+
+
 def protect_assignments(
     context: RewriteContext, statements: Iterable[FASP_Statement]
 ) -> Iterable[ast.Statement]:
@@ -475,7 +494,7 @@ def protect_assignments(
     """
     # transformer = _AssignmentProtectorTransformer(context)
     # return (transformer.rewrite(statement) for statement in statements)
-    return (protect_assignment(context, statement) for statement in statements)
+    return (_protect_assignment(context, statement) for statement in statements)
 
 
 # RESTORATION: Rule with ASS(left, right) --> AssignmentRule
