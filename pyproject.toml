@@ -8,7 +8,11 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.13.5"
-dependencies = []
+dependencies = [
+    "colorama>=0.4.6",
+    "types-colorama>=0.4.15",
+    "clingo>=6.0.0",
+]
 
 [project.scripts]
 funasp = "funasp.__main__:main"

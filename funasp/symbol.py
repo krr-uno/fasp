@@ -15,7 +15,7 @@ class FunctionSymbol:
         """
         Return the string representation of the function symbol.
         """
-        args = ", ".join(map(str, self.arguments))
+        args = ",".join(map(str, self.arguments))
         if args:
             args = f"({args})"
         return f"{self.name}{args}={str(self.value)}"
