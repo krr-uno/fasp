@@ -6,6 +6,9 @@ from clingo import core, solve
 from clingo.app import App, AppOptions, Flag, clingo_main
 from clingo.control import Control as ClingoControl
 from clingo.control import ControlMode as ClingoControlMode
+from colorama import Fore, Style
+from colorama import deinit as colorama_deinit
+from colorama import init as colorama_init
 
 from funasp.__version__ import __version__
 from funasp.control import Control
@@ -34,6 +37,7 @@ class FaspApp(App):
         self._prefix = "F"
         self._print_rewrite = False
         self._control: Optional[Control] = None
+        self._errors: list[Exception] = []
 
     def register_options(self, options: AppOptions) -> None:
         options.add_flag(
@@ -73,15 +77,37 @@ class FaspApp(App):
         except ParsingException as e:
             for error in e.errors:
                 sys.stderr.write(str(error) + "\n")
-            sys.stderr.write("*** ERROR: (fasp): parsing failed\n")
+            self._errors.append(e)
             return
         except RuntimeError as e:
             if "rewriting failed" == e.args[0]:
-                sys.stdout.write("UNKNOWN\n")
-                sys.stderr.write("*** ERROR: (fasp): rewriting failed\n")
+                self._errors.append(e)
                 return
             raise e  # pragma: no cover
         self._control.main()
+
+    def report_error_summary(self) -> None:
+        if any(isinstance(error, ParsingException) for error in self._errors):
+            print(
+                Style.BRIGHT
+                + Fore.RED
+                + "*** ERROR: (fasp):"
+                + Style.RESET_ALL
+                + " parsing failed\n",
+                file=sys.stderr,
+            )
+        if any(
+            isinstance(error, RuntimeError) and error.args[0] == "rewriting failed"
+            for error in self._errors
+        ):
+            print(
+                Style.BRIGHT
+                + Fore.RED
+                + "*** ERROR: (fasp):"
+                + Style.RESET_ALL
+                + " rewriting failed\n",
+                file=sys.stderr,
+            )
 
 
 def fasp_main(
@@ -99,16 +125,20 @@ def fasp_main(
     raise_errors
         If True, raise exceptions on errors instead of printing them.
     """
+    colorama_init(autoreset=True)
     if options is None:  # pragma: no cover
         options = []
     app = FaspApp(library, options)
     # options.append("--outf=3")
     try:
-        return clingo_main(library.library, options, app)
+        result = clingo_main(library.library, options, app)
+        app.report_error_summary()
+        return result
     except Exception:  # pragma: no cover
         if raise_errors:
             raise
         return 1
+    colorama_deinit()  # pragma: no cover
 
 
 def main(options: Sequence[str] = ()) -> int:

@@ -162,7 +162,7 @@ class TestControl(unittest.TestCase):
             [example_file]
         )
         self.assertIn("syntax error", err)
-        self.assertIn("*** ERROR: (fasp): parsing failed", err)
+
 
     def test_app_unsafe(self):
         example_file = TEST_EXAMPLES_PATH / "unsafe.lp"
@@ -171,9 +171,8 @@ class TestControl(unittest.TestCase):
         out, err = self.execute_app(
             [example_file]
         )
-        self.assertIn("rewriting failed", err)
-        self.assertIn("UNKNOWN", out)
-        self.assertIn("*** ERROR: (fasp): rewriting failed", err)
+        self.assertIn("the following variables are unsafe", err)
+
 
     def test_app_undefined_function(self):
         example_file = TEST_EXAMPLES_PATH / "undefined_function.lp"

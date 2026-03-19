@@ -151,7 +151,6 @@ class TestControl(unittest.TestCase):
         out, err = self.execute_app(
             [example_file]
         )
-        self.assertIn("rewriting failed", err)
         self.assertIn("UNKNOWN", out)
         self.assertIn("*** ERROR: (fasp): rewriting failed", err)
 
