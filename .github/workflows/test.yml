@@ -1,9 +1,14 @@
 name: Run CI tests
 
 on:
-  - push
-  - pull_request
-  - workflow_call
+  pull_request:
+  workflow_call:
+  push:
+    tags-ignore:
+      - '**'
+    branches:
+      - '**'
+
 
 env:
   FORCE_COLOR: "3"
