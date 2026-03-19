@@ -2,6 +2,12 @@ name: deploy to pypi
 
 on:
   workflow_dispatch:
+    inputs:
+      build_number:
+        description: "The build number."
+        required: true
+        type: string
+        default: auto
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
