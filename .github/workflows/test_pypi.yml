@@ -35,7 +35,7 @@ jobs:
 
       - name: Dependencies
         run: |
-          pip install pytest mypy
+          pip install mypy
 
       - name: Install PyPi
         if: ${{ inputs.index == 'pypi' }}
