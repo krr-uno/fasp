@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, Sequence, Final
+from typing import Callable, Final, Iterable, Sequence
 
 from clingo import ast
 
