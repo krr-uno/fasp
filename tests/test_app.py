@@ -135,19 +135,8 @@ class TestControl(unittest.TestCase):
             allow_errors=True,
         )
 
-    # def execute_app(self, files, extra_args):
-    #     args = [str(file) for file in files] + extra_args + ["0"]
-    #     output_io = io.StringIO()
-    #     err_io = io.StringIO()
-    #     with contextlib.redirect_stdout(output_io):
-    #         with contextlib.redirect_stderr(err_io):
-    #             main(args)
-    #     return output_io.getvalue(), err_io.getvalue()
-
 
     def test_prefix_and_print_rewrite(self):
-        if not SOURCE_CODE_PRESENT:
-            self.skipTest("Source code not present, skipping test.")
         example_file = TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"
 
         # Rewrite with default prefix (F)
