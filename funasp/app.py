@@ -137,7 +137,8 @@ def fasp_main(
         if raise_errors:
             raise
         return 1
-    colorama_deinit()  # pragma: no cover
+    finally:
+        colorama_deinit()
 
 
 def main(options: Sequence[str] = ()) -> int:
