@@ -1,8 +1,8 @@
-import subprocess
+import subprocess, importlib.util
 from os import PathLike
 from pathlib import Path
 import unittest
-import io, contextlib
+
 
 try:
     from funasp.app import main
@@ -18,9 +18,15 @@ APP_NAME = "funasp"
 
 class TestControl(unittest.TestCase):
 
-    def execute_app(self, files: PathLike) -> tuple[str, str]:
+    def execute_app(self, files: PathLike, extra_args: list[str] | None = None) -> tuple[str, str]:
         args = [str(file) for file in files] + ["0"]
-        result = subprocess.run(["coverage", "run", "-a", "--data-file=.coverage.my", APP_NAME, *args], capture_output=True, text=True)
+        if extra_args:
+            args = extra_args + args
+        if importlib.util.find_spec("coverage") is not None:
+            command = ["coverage", "run", "-a", "--data-file=.coverage.my", APP_NAME, *args]
+        else:
+            command = [APP_NAME, *args]
+        result = subprocess.run(command, capture_output=True, text=True)
         return result.stdout, result.stderr
 
 
@@ -129,14 +135,14 @@ class TestControl(unittest.TestCase):
             allow_errors=True,
         )
 
-    def execute_app_with_args(self, files, extra_args):
-        args = [str(file) for file in files] + extra_args + ["0"]
-        output_io = io.StringIO()
-        err_io = io.StringIO()
-        with contextlib.redirect_stdout(output_io):
-            with contextlib.redirect_stderr(err_io):
-                main(args)
-        return output_io.getvalue(), err_io.getvalue()
+    # def execute_app(self, files, extra_args):
+    #     args = [str(file) for file in files] + extra_args + ["0"]
+    #     output_io = io.StringIO()
+    #     err_io = io.StringIO()
+    #     with contextlib.redirect_stdout(output_io):
+    #         with contextlib.redirect_stderr(err_io):
+    #             main(args)
+    #     return output_io.getvalue(), err_io.getvalue()
 
 
     def test_prefix_and_print_rewrite(self):
@@ -145,12 +151,12 @@ class TestControl(unittest.TestCase):
         example_file = TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"
 
         # Rewrite with default prefix (F)
-        rewrite_default, _ = self.execute_app_with_args(
+        rewrite_default, _ = self.execute_app(
             [example_file], ["--mode=rewrite"]
         )
 
         # Rewrite with custom prefix (G)
-        rewrite_custom, _ = self.execute_app_with_args(
+        rewrite_custom, _ = self.execute_app(
             [example_file], ["--mode=", "rewrite", "--prefix-fun=G"]
         )
 
