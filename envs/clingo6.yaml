@@ -18,4 +18,6 @@ dependencies:
       - pyflakes==3.4.0
       - pylint==3.3.7
       - types-colorama==0.4.15.20250801
+      - tree-sitter-fasp==0.1.0
+      - tree-sitter-python==0.23.6
 
