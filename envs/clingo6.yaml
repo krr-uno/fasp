@@ -4,8 +4,8 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - colorama=0.4.6=py313h06a4308_0
   - python=3.13.5
+  - colorama=0.4.6
   - pip=25.1
   - clingo=6.0.0
   - nox=2025.5.1
