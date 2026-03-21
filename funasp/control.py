@@ -11,9 +11,10 @@ from clingo import symbol
 from funasp.solve import Model
 from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree.parsing import parser
+from funasp.syntax_tree import rewrite_statements
 from funasp.util.ast import ELibrary
 
-from .syntax_tree import rewrite_statements
+
 
 LIBC_NAME: str | None = None
 try:
