@@ -1,7 +1,6 @@
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Iterable, Sequence, Final
 
 from clingo import ast
-from typing_extensions import Final
 
 from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree._nodes import (
