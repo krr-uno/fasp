@@ -25,7 +25,8 @@ funasp = "funasp.__main__:main"
 Repository = "https://github.com/krr-uno/funasp"
 Source = "https://github.com/krr-uno/funasp"
 
-[tool.setuptools.packages]
+[tool.setuptools.packages.find]
+where = ["."]
 include = ["funasp", "funasp.*"]
 
 
