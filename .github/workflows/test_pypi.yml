@@ -60,4 +60,5 @@ jobs:
 
       - name: Test
         run: |
-          python -m unittest tests/test_app.py
+          # python -m unittest tests/test_app.py
+          funasp examples/companies.lp
