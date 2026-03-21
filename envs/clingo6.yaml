@@ -4,6 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - colorama=0.4.6=py313h06a4308_0
   - python=3.13.5
   - pip=25.1
   - clingo=6.0.0
@@ -16,6 +17,5 @@ dependencies:
       - isort==6.0.1
       - pyflakes==3.4.0
       - pylint==3.3.7
-      - colorama==0.4.6
       - types-colorama==0.4.15.20250801
 
