@@ -58,7 +58,6 @@ jobs:
       run: |
         conda install --name clingo6 --file envs/requirements.txt
         pip install -r requirements.txt
-        pip install types-colorama
         pip install -e .
 
     - name: run tests
