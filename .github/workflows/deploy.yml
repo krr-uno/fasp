@@ -40,7 +40,7 @@ jobs:
           echo "github.run_number = ${{ github.run_number }}"
           echo "inputs.build_number = ${{ inputs.build_number }}"
           echo "or ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || inputs.build_number == 'auto' }}"
-          if [ "${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || inputs.build_number }}" == "auto" ]; then
+          if [ "${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || inputs.build_number == 'auto' }}" ]; then
             echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
           else
             echo "BUILD_NUMBER=${{ inputs.build_number }}" >> $GITHUB_ENV
