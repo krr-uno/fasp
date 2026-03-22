@@ -1,6 +1,8 @@
+from inspect import Signature
 import textwrap
 import unittest
 
+from funasp.syntax_tree.types import SymbolSignature
 from funasp.util.ast import ELibrary
 from funasp.syntax_tree.parsing.parser import parse_string
 from funasp.syntax_tree.rewritings.integration import transform_to_clingo_statements
@@ -19,7 +21,18 @@ class TestFASPProgramTransformer(unittest.TestCase):
         expected_program: str | None,
         *,
         LOG: bool = False,
+        evaluable_functions: set[str] | None = None,
     ):
+        if evaluable_functions is None:
+            evaluable_functions = set()
+
+        evaluable_functions = {
+            SymbolSignature(name, int(arity))
+            for name, arity in (s.split("/") for s in evaluable_functions)
+        }
+
+        context = RewriteContext(self.elib, self.ctx.prefix_function, evaluable_functions = evaluable_functions)
+
         program = textwrap.dedent(program).strip()
         expected_program = (
             textwrap.dedent(expected_program).strip()
@@ -28,7 +41,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
         statement_asts = parse_string(self.elib, program)
-        transformed = transform_to_clingo_statements(self.ctx, statement_asts)
+        transformed = transform_to_clingo_statements(context, statement_asts)
 
         transformed_str = "\n".join(
             [str(statement).strip() for statement in transformed][1:]
@@ -205,9 +218,11 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertTransformEqual(
             "controller(C3) := C1 :- company(C1), company(C3), #sum{controlsStk(C1,C2,C3), C2} > 50.",
             """
-            Fcontroller(C3,C1) :- company(C1); company(C3); #sum { controlsStk(C1,C2,C3),C2 } > 50.
+            Fcontroller(C3,C1) :- company(C1); company(C3); #sum { FUN,C2: FcontrolsStk(C1,C2,C3,FUN) } > 50.
             :- Fcontroller(X0,_); 1 < #count { V: Fcontroller(X0,V) }.
+            :- FcontrolsStk(X0,X1,X2,_); 1 < #count { V: FcontrolsStk(X0,X1,X2,V) }.
             """,
+            evaluable_functions={"controlsStk/3"},
         )
 
     def test_family_full(self):

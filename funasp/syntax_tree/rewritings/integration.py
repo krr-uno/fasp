@@ -112,10 +112,7 @@ def _clingo_rewrite(context: RewriteContext, statement: RewritingStatement) -> N
         except RuntimeError as e:
             errors.append((stmt, e))
             continue
-        if rewritten_list:
-            out.extend(rewritten_list)
-        else:
-            out.append(stmt)
+        out.extend(rewritten_list)
     context.lib.ignore_info = False
     if errors:
         raise RuntimeError("rewriting failed", errors)
