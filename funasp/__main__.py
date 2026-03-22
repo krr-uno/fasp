@@ -4,7 +4,7 @@ import sys
 def check_versions() -> int:  # pragma: no cover
     if sys.version_info < (3, 13):
         sys.stderr.write(
-            f"*** ERROR: fasp requires Python 3.13 or higher, found version {sys.version_info} \n"
+            f"*** ERROR: funasp requires Python 3.13 or higher, found version {sys.version_info} \n"
         )
         return 1
     try:
@@ -13,13 +13,13 @@ def check_versions() -> int:  # pragma: no cover
         clingo_version = core.version()
     except ImportError:
         sys.stderr.write(
-            "*** ERROR: fasp requires clingo library version 6.0.0 or higher.\n"
+            "*** ERROR: funasp requires clingo library version 6.0.0 or higher.\n"
         )
         return 1
     clingo_version_str = ".".join(map(str, clingo_version))
     if clingo_version < (6, 0, 0):
         sys.stderr.write(
-            f"*** ERROR: fasp requires clingo library version 6.0.0 or higher, found version {clingo_version_str}.\n"
+            f"*** ERROR: funasp requires clingo library version 6.0.0 or higher, found version {clingo_version_str}.\n"
         )
         return 1
     # sys.stdout.write(f"clingo version {clingo_version_str}\n")
