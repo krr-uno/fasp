@@ -45,7 +45,8 @@ jobs:
             echo "BUILD_NUMBER=${{ inputs.build_number }}" >> $GITHUB_ENV
           fi
           echo "GIT_HASH=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
-          echo $BUILD_NUMBER
+          echo "BUILD_NUMBER = $BUILD_NUMBER"
+          echo "GIT_HASH = $GIT_HASH"
         env:
           GITHUB_SHA: ${{ github.sha }}
 
