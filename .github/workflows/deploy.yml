@@ -35,7 +35,7 @@ jobs:
       - name: Get build number and hash
         shell: bash -l {0}
         run: |
-          if [ "${{ inputs.build_number }}" == "auto" ]; then
+          if [ "${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || inputs.build_number }}" == "auto" ]; then
             echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
           else
             echo "BUILD_NUMBER=${{ inputs.build_number }}" >> $GITHUB_ENV
