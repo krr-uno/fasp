@@ -10,6 +10,7 @@ from clingo.core import Library
 class TestRewrite(unittest.TestCase):
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.library = Library()
 
     def assertEqualRewritten(
@@ -68,6 +69,7 @@ class TestRewrite(unittest.TestCase):
                 )
 
     def test_comparisons(self):
+        """Test comparisons."""
         program = """\
         X = Y :- X = Z, not Y = W, p(X, Y, Z, W).
         X != Y :- X != Z, not Y != W, p(X, Y, Z, W).
@@ -83,6 +85,7 @@ class TestRewrite(unittest.TestCase):
         self.assertEqualRewritten(program, expected)
 
     def test_aggregates(self):
+        """Test aggregates."""
         program = """\
         { p(X,Y) } :- q(X,Y).
         { p(X,Y) = Z } :- q(X,Y,Z).
@@ -122,6 +125,7 @@ class TestRewrite(unittest.TestCase):
         )
 
     def test_safety_1(self):
+        """Test safety 1."""
         program = """\
         a(X) :- b.
         """
@@ -149,6 +153,7 @@ class TestRewrite(unittest.TestCase):
         )
 
     def test_safety_2(self):
+        """Test safety 2."""
         errors = []
         library = Library(logger=lambda t, msg: errors.append((t, msg)))
         rewrite_context = ast.RewriteContext(library)
@@ -185,6 +190,7 @@ class TestRewrite(unittest.TestCase):
         )
 
     def test_pool_1(self):
+        """Test pool 1."""
         program = """\
         p(X;Y,Z) :- q(X,Y,Z).
         """
@@ -197,6 +203,7 @@ class TestRewrite(unittest.TestCase):
         self.assertEqualRewritten(program, expected)
 
     def test_pool_2(self):
+        """Test pool 2."""
         program = """\
         p(X;(Y,Z)) :- q(X,Y,Z).
         """
@@ -209,6 +216,7 @@ class TestRewrite(unittest.TestCase):
         self.assertEqualRewritten(program, expected)
 
     def test_unary_operator(self):
+        """Test unary operator."""
         program = """\
         p(--X) :- q(X).
         """
@@ -220,6 +228,7 @@ class TestRewrite(unittest.TestCase):
         self.assertEqualRewritten(program, expected)
 
     def test_arithmetic_1(self):
+        """Test arithmetic 1."""
         program = """\
         p(X) :- q(X).
         p(X+Y) :- q(X,Y).
@@ -243,6 +252,7 @@ class TestRewrite(unittest.TestCase):
         self.assertEqualRewritten(program, expected)
 
     def test_arithmetic_2(self):
+        """Test arithmetic 2."""
         program = """\
         p(X) :- q(X).
         p(Z) :- q(X,Y); Z=X+Y.
@@ -266,6 +276,7 @@ class TestRewrite(unittest.TestCase):
         self.assertEqualRewritten(program, expected)
 
     def test_arithmetic_3(self):
+        """Test arithmetic 3."""
         program = """\
         :- q1(X,Y,Z); W=3*X+5*Y+Z.
         :- q2(X,Y,Z); W=X+Y+Z.
@@ -285,6 +296,7 @@ class TestRewrite(unittest.TestCase):
         self.assertEqualRewritten(program, expected)
 
     def test_intervals(self):
+        """Test intervals."""
         program = """\
         p1(X) :- q1(X, 1..3).
         p2(X..Y) :- q2(X, Y).

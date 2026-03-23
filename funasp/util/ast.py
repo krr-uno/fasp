@@ -134,6 +134,7 @@ class SyntacticError(NamedTuple):
     information: Optional[Any] = None
 
     def __str__(self) -> str:  # pragma: no cover
+        """Return the clingo-style string representation of this syntax error."""
         return f"{self.location}: error: syntax error, {self.message}"
 
 
@@ -207,6 +208,7 @@ class SyntacticCheckVisitor:
             node.visit(self, args, kwargs)
 
     def __call__(self, node: AST, *args: Any, **kwargs: Any) -> None:
+        """Visit the given node when the visitor is used as a callable."""
         self.visit(node, *args, **kwargs)
 
 
@@ -215,6 +217,7 @@ def create_literal(
     atom: ast.Term,
     sign: ast.Sign = ast.Sign.NoSign,
 ) -> ast.Literal:
+    """Create a symbolic literal from the given term."""
     if hasattr(atom, "location"):
         location = atom.location
     else:  # pragma: no cover
@@ -262,6 +265,7 @@ def create_body_literal(
 
 
 def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
+    """Return whether the given AST node represents a function term."""
     return isinstance(node, ast.TermFunction) or (
         isinstance(node, ast.TermSymbolic) and node.symbol.type == SymbolType.Function
     )
@@ -270,6 +274,7 @@ def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
 def function_arguments(
     node: FunctionLikeAST,
 ) -> tuple[str, Sequence[ast.TermOrProjection] | Sequence[Symbol]]:
+    """Return the function name and positional arguments for a function-like node."""
     if isinstance(node, ast.TermTuple):
         name = ""
         assert len(node.pool) == 1 and isinstance(
@@ -298,6 +303,7 @@ def function_arguments_ast(
     library: Library,
     node: ast.TermFunction | ast.TermSymbolic,
 ) -> tuple[str, Sequence[ast.Term]]:
+    """Return function arguments as AST terms for the given function-like node."""
     name, arguments = function_arguments(node)
     if arguments and isinstance(arguments[0], ast.Term):
         return name, cast(Sequence[ast.Term], arguments)
@@ -316,11 +322,13 @@ class FreshVariableGenerator:
     """
 
     def __init__(self, used: set[str] | None = None):
+        """Initialize the generator with the set of already-used variable names."""
         self.used: set[str] = set(used) if used else set()
 
     def fresh_variable(
         self, lib: Library, location: Location, name: str = "V"
     ) -> ast.TermVariable:
+        """Create a fresh variable name that does not clash with previously used names."""
         if name not in self.used:
             self.used.add(name)
             return ast.TermVariable(lib, location, name, False)
@@ -345,6 +353,7 @@ class ELibrary:
         logger: typing.Callable[[MessageType, str], None] | None = None,
         message_limit: int = 25,
     ) -> None:
+        """Initialize the clingo library wrapper and its message handling state."""
         self.error_messages: list[tuple[MessageType, str]] = []
         self.last_error_reported = 0
         self.shared = shared
@@ -369,6 +378,7 @@ class ELibrary:
     #     self.original_statements[file].append(statement)
 
     def logger_function(self, msg_type: MessageType, message: str) -> None:
+        """Capture, normalize, and optionally forward messages emitted by clingo."""
         self.error_messages.append((msg_type, message))
         message = self.process_message(msg_type, message)
         # print(">>>>>>>>>>>>", message, self.ignore_info, msg_type, MessageType.Info, MessageType.OperationUndefined)
@@ -379,6 +389,7 @@ class ELibrary:
             self.logger(msg_type, message)
 
     def process_message(self, msg_type: MessageType, message: str) -> str:
+        """Normalize selected clingo messages for FASP-specific reporting."""
         if "unsafe variable" in message:
             lines = message.split("\n")
             lines[0] = lines[0][9:-3]
@@ -391,11 +402,13 @@ class ELibrary:
         return message
 
     def __enter__(self) -> typing.Self:
+        """Enter the managed context and return this library wrapper."""
         return self
 
     def __exit__(
         self, exc_type: typing.Any, exc_value: typing.Any, traceback: typing.Any
     ) -> bool:
+        """Exit the managed context by delegating to the underlying clingo library."""
         return self.library.__exit__(exc_type, exc_value, traceback)
 
 
@@ -405,6 +418,7 @@ class ParsingException(Exception):
     """
 
     def __init__(self, errors: list[SyntacticError]) -> None:
+        """Initialize the exception with the collected syntactic errors."""
         self.errors = errors
         messages = "\n".join(str(error) for error in errors)
         super().__init__(f"Parsing failed with {len(errors)} error(s):\n{messages}")
@@ -417,6 +431,7 @@ _PARSING_ERROR_PATTERN = re.compile(_PARSING_ERROR_RE)
 def _process_error(
     library: Library, message: tuple[MessageType, str]
 ) -> SyntacticError:
+    """Convert a clingo parsing error message tuple into a SyntacticError."""
     match = _PARSING_ERROR_PATTERN.match(message[1])
     if not match:  # pragma: no cover
         position = Position(library, "<unknown>", 0, 0)

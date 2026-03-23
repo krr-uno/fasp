@@ -12,6 +12,7 @@ from funasp.syntax_tree._context import RewriteContext
 
 class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.elib = ELibrary()
         self.ctx = RewriteContext(self.elib, prefix_function="F")
         self.maxDiff = None  # Show full diff on assertion failure
@@ -24,6 +25,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         test_pipeline=PipelineStage.TO_ASP,
         LOG: bool = False,
     ):
+        """Assert transform equal."""
         program = textwrap.dedent(program).strip()
         expected_program = (
             textwrap.dedent(expected_program).strip()
@@ -42,6 +44,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         self.assertEqual(transformed_str, expected_program)
 
     def test_choice_some_rewrite(self):
+        """Test choice some rewrite."""
         self.assertTransformEqual(
             "a := #some{X: p(X)} :- q(X), r.",
             "{ a := X: p(X) } = 1 :- #count { X: p(X) } >= 1; q(X); r.",
@@ -76,6 +79,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_choice_some_rewrite_context(self):
+        """Test choice some rewrite context."""
         self.assertTransformEqual(
             "a := #sum{X: p(X)} :- q(X), r.",
             "ASS(a,W) :- q(X); r; W = #sum { X: p(X) }.",
@@ -83,6 +87,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_pool_rewrite(self):
+        """Test pool rewrite."""
         self.assertTransformEqual(
             "f(1;2) := Y :- g(Y).",
             "ASS(f(1;2),Y) :- g(Y).",
@@ -90,6 +95,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_pool_rewrite_2(self):
+        """Test pool rewrite 2."""
         self.assertTransformEqual(
             "f(1;2) := Y :- g(Y).",
             """\
@@ -100,6 +106,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_pool_restore_assignments(self):
+        """Test pool restore assignments."""
         self.assertTransformEqual(
             "f(1;2) := Y :- g(Y).",
             """\
@@ -110,6 +117,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_comparison_rewrite(self):
+        """Test comparison rewrite."""
         self.assertTransformEqual(
             "a=100.",
             "a=100.",
@@ -117,18 +125,21 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_to_asp(self):
+        """Test to asp."""
         self.assertTransformEqual(
             "f(1) := Y :- g(Y).",
             "Ff(1,Y) :- g(Y).",
         )
 
     def test_total_integration(self):
+        """Test total integration."""
         self.assertTransformEqual(
             "1 { sk(X, Y)  : skis(Y) } 1 :- sks(X).",
             "1 <= #count { 0,sk(X,Y): sk(X,Y): skis(Y) } <= 1 :- sks(X).",
         )
 
     def test_king(self):
+        """Test king."""
         self.assertTransformEqual(
             """
             country(france).
@@ -150,6 +161,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_head_aggregate_assignment(self):
+        """Test head aggregate assignment."""
         self.assertTransformEqual(
             "{king(C) := X: person(X)}:- country(C).",
             "#count{ 0,Fking(C,X): king(C) := X: person(X) } :- country(C).",
@@ -157,6 +169,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_head_aggregate_assignment2(self):
+        """Test head aggregate assignment2."""
         self.assertTransformEqual(
             "{king(spain) := felipe}.",
             "#count{ 0,Fking(spain,felipe): king(spain) := felipe }.",
@@ -164,6 +177,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_fibo_comparitions(self):
+        """Test fibo comparitions."""
         self.assertTransformEqual(
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
             "ASS(fibo(X),Y) :- number(X); CMP(X,(GRD(1,1),),0); CMP(fibo(X-1)+fibo(X-2),(GRD(0,Y),),0).",
@@ -171,6 +185,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_company_comparisons(self):
+        """Test company comparisons."""
         self.assertTransformEqual(
             "controller(C3) := C1 :- company(C1), company(C3), #sum{controlsStk(C1,C2,C3), C2} > 50.",
             "ASS(controller(C3),C1) :- company(C1); company(C3); #sum { controlsStk(C1,C2,C3),C2 } > 50.",
@@ -214,6 +229,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
     #     )
 
     def test_king0(self):
+        """Test king0."""
         self.assertTransformEqual(
             "{ f(X) := Y: p(X,Y) } = 1.",
             "#count{ 0,Ff(X,Y): f(X) := Y: p(X,Y) } = 1.",
@@ -221,6 +237,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_basic_negated_literals(self):
+        """Test basic negated literals."""
         self.assertTransformEqual(
             "a :- p(C); not country(C).",
             "a :- p(C); #false: country(C).",
@@ -228,6 +245,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_basic_negated_literals2(self):
+        """Test basic negated literals2."""
         self.assertTransformEqual(
             """
             f(X) := 1 :- p(X).
@@ -241,6 +259,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_basic_negated_literals2b(self):
+        """Test basic negated literals2b."""
         self.assertTransformEqual(
             """
             f(X) := 1 :- p(X).
@@ -282,6 +301,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_basic_negated_literals3(self):
+        """Test basic negated literals3."""
         self.assertTransformEqual(
             "a :- p(C); not country(C).",
             "a :- p(C); #false: country(C).",
@@ -289,6 +309,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_basic_negated_literals4(self):
+        """Test basic negated literals4."""
         self.assertTransformEqual(
             """
             a := 1 :- p(X).
@@ -302,6 +323,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_negated_literals(self):
+        """Test negated literals."""
         self.assertTransformEqual(
             "{king(C) := X: person(X)}:- country(C).",
             "#count { 0,ASS(king(C),X): ASS(king(C),X): person(X) } :- country(C).",
@@ -309,6 +331,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_minimize(self):
+        """Test minimize."""
         self.assertTransformEqual(
             """
             a := 1 :- p(X).
@@ -322,6 +345,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_weak_constraint(self):
+        """Test weak constraint."""
         self.assertTransformEqual(
             """
             a := 1 :- p(X).
@@ -336,6 +360,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_weak_constraint2(self):
+        """Test weak constraint2."""
         self.assertTransformEqual(
             """
             a := 1 :- p(X).
@@ -349,6 +374,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_family(self):
+        """Test family."""
         self.assertTransformEqual(
             "orphan(X) :- person(X), not father(X)=_, not mother(X)=_.",
             "orphan(X) :- person(X); #false: father(X)=_; #false: mother(X)=_.",
@@ -362,6 +388,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_family_right(self):
+        """Test family right."""
         self.assertTransformEqual(
             "person(X) :- father(X)=_.",
             "person(X) :- father(X)=_.",
@@ -369,6 +396,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_family_left(self):
+        """Test family left."""
         self.assertTransformEqual(
             "person(Y) :- father(_)=Y.",
             "person(Y) :- father(_)=Y.",
@@ -376,6 +404,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_hamiltonian(self):
+        """Test hamiltonian."""
         self.assertTransformEqual(
             """
             next(X) := #some{Y: edge(X,Y)} :- vertex(X).
@@ -405,6 +434,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_min_distance(self):
+        """Test min distance."""
         self.assertTransformEqual(
             """
             dist(X,Y) := M+1 :- dist(X,Z)=M; edge(Z,Y); #false: edge(W,Y), dist(X,W)=N, N<M.

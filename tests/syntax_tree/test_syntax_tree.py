@@ -10,10 +10,12 @@ from funasp.syntax_tree._context import RewriteContext
 
 class TestSyntaxTree(unittest.TestCase):
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.elib = ELibrary()
         self.ctx = RewriteContext(self.elib)
 
     def applyRewrite(self, program: str):
+        """Apply rewrite."""
         statement_asts = parse_string(self.elib, program)[1:]
         rewritten_statements: list[ast.Statement] = []
         for stmt in statement_asts:
@@ -22,11 +24,13 @@ class TestSyntaxTree(unittest.TestCase):
         return rewritten_statements
 
     def applyRewriteList(self, program: str):
+        """Apply rewritelist."""
         statement_asts = parse_string(self.elib, program)[1:]
         rewritten_statements = rewrite_statements(self.ctx, statement_asts)
         return rewritten_statements
 
     def assertRewriteEqual(self, program: str, expected: str, mode: int = 1):
+        """Assert rewrite equal."""
         if mode == 1:
             rewritten_statements = self.applyRewrite(program)
         else:
@@ -40,6 +44,7 @@ class TestSyntaxTree(unittest.TestCase):
         )
 
     def test_rewrite_statement(self):
+        """Test rewrite statement."""
         program = "f(1) := Y :- g(Y)."
         expected = """\
             Ff(1,Y) :- g(Y).
@@ -48,6 +53,7 @@ class TestSyntaxTree(unittest.TestCase):
         self.assertRewriteEqual(program, expected, mode=1)
 
     def test_rewrite_statements(self):
+        """Test rewrite statements."""
         program = "f(1) := Y :- g(Y)."
         expected = """\
             Ff(1,Y) :- g(Y).

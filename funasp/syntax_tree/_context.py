@@ -26,6 +26,7 @@ class RewriteContext:
         prefix_protect_operation: str = "OP",
         evaluable_functions: set[SymbolSignature] | None = None,
     ):
+        """Initialize the RewriteContext instance."""
         self.lib = lib
         self.prefix_function = prefix_function
         self.prefix_variable = prefix_variable

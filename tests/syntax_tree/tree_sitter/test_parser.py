@@ -26,6 +26,7 @@ class TestParseAssignment(unittest.TestCase):
         parents1: list[AST] | None = None,
         parents2: list[AST] | None = None,
     ) -> None:
+        """Handle dispatch."""
         if not isinstance(ast1, AST) or not isinstance(ast2, AST):
             return
         if parents1 is None:
@@ -78,6 +79,7 @@ class TestParseAssignment(unittest.TestCase):
         parents2.pop()
 
     def assertASTEqual(self, ast1, ast2, check_location=True):
+        """Assert a s t equal."""
         if isinstance(ast1, Sequence):
             self.assertIsInstance(ast2, Sequence)
             self.assertEqual(
@@ -92,11 +94,13 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(ast1, ast2)
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.messages = []
         self.lib = ELibrary(logger=lambda t, msg: self.messages.append((t, msg)))
         self.parser = parser.TreeSitterParser(self.lib)
 
     def test_tree_parse_simple_assignment(self):
+        """Test tree parse simple assignment."""
         code = textwrap.dedent(
             """\
             a := 1.
@@ -117,6 +121,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertIsInstance(rule.head.value, ast.TermFunction | ast.TermSymbolic)
 
     def test_tree_parse_simple_assignments(self):
+        """Test tree parse simple assignments."""
         code = textwrap.dedent(
             """\
             a := 1 :- b11; b12.
@@ -149,6 +154,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertIsInstance(rule.head.value, ast.TermBinaryOperation)
 
     def test_tree_parse_simple_assignments_with_clingo(self):
+        """Test tree parse simple assignments with clingo."""
         code = textwrap.dedent(
             """\
             p(X) :- q(X).
@@ -198,6 +204,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertASTEqual(clingo_rules, expected_clingo[1:])
 
     def test_parse_locations(self):
+        """Test parse locations."""
         code = textwrap.dedent(
             """\
             a := 1 :- b11; b12.
@@ -237,6 +244,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(rule.head.location.end.column, 39)
 
     def assertEqualParse(self, code: str, expected: str | None = None):
+        """Assert equal parse."""
         if not expected:
             expected = code
         rules = self.parser.parse(code)
@@ -246,6 +254,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(list(map(str, rules)), lines)
 
     def test_assignment_aggregate(self):
+        """Test assignment aggregate."""
         self.assertEqualParse(
             textwrap.dedent(
                 """\
@@ -256,6 +265,7 @@ class TestParseAssignment(unittest.TestCase):
         )
 
     def test_assignment_choice(self):
+        """Test assignment choice."""
         self.assertEqualParse("{ a := 1 } :- b.")
         self.assertEqualParse("{ a := 1; b := 2 } :- c.")
         self.assertEqualParse("{ a := 1: p, q } :- c.")
@@ -271,6 +281,7 @@ class TestParseAssignment(unittest.TestCase):
         )
 
     def test_parse_merge(self):
+        """Test parse merge."""
         self.assertEqualParse(
             textwrap.dedent(
                 """\
@@ -293,6 +304,7 @@ class TestParseAssignment(unittest.TestCase):
         )
 
     def test_parse_error_clingo(self):
+        """Test parse error clingo."""
         code = textwrap.dedent(
             """\
             a :- b.
@@ -311,6 +323,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(errors[1].location.begin.line, 5)
 
     def test_parse_error_assignment_number(self):
+        """Test parse error assignment number."""
         code = textwrap.dedent(
             """\
             1 := 2.
@@ -324,6 +337,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(errors[0].location.begin.line, 1)
 
     def test_parse_error_assignment(self):
+        """Test parse error assignment."""
         code = textwrap.dedent(
             """\
             a := 2 :- b
@@ -340,6 +354,7 @@ class TestParseAssignment(unittest.TestCase):
         self.assertEqual(errors[0].message, "a := 2 :- b c.")
 
     def test_parse_head_aggregate_assignment(self):
+        """Test parse head aggregate assignment."""
         self.assertEqualParse("1 <= #count{ f(X): f(X) := Y } <= 1.")
         self.assertEqualParse("1 <= #count{ f(X): f(X) := Y: p(X,Y) } <= 1.")
         self.assertEqualParse(
@@ -360,6 +375,7 @@ class TestParseAssignment(unittest.TestCase):
     #     self.assertEqual(str(rules[0]), "#showf.")
 
     def test_showf_directive_signature(self):
+        """Test showf directive signature."""
         rules = self.parser.parse(
             """
                                   #showf p/1.

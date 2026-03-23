@@ -11,6 +11,7 @@ from funasp.syntax_tree.rewritings.unnesting.rules import RuleRewriteTransformer
 
 class TestRuleRewriteTransformer(unittest.TestCase):
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
 
     def apply_rule_rewrite(self, program: str, evaluable_functions):
@@ -51,6 +52,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
 
     # Tests
     def test_basic_unnest(self):
+        """Test basic unnest."""
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
             "p(f(1),a) :- q(g(1),b), r(h(1)).",
@@ -58,6 +60,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_no_evaluable_functions(self):
+        """Test no evaluable functions."""
         self.assertEqualRewrite(
             {},
             "p(f(1),a) :- q(g(1),b), not not r(h(1)).",
@@ -65,12 +68,15 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_head_function_only(self):
+        """Test head function only."""
         self.assertEqualRewrite({"c/0"}, "f(c) :- d.", "f(FUN) :- d; c=FUN.")
 
     def test_body_positive_literal(self):
+        """Test body positive literal."""
         self.assertEqualRewrite({"f/1"}, "p :- q(f(1)).", "p :- q(FUN); f(1)=FUN.")
 
     def test_head_simple_assignment(self):
+        """Test head simple assignment."""
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "x(X) := h(f(X))+g(Y).",
@@ -78,6 +84,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_body_aggregate_element(self):
+        """Test body aggregate element."""
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "f(X) :- W = #sum { f(Y) : p(g(Y)), q(X) }.",
@@ -85,6 +92,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_body_aggregate(self):
+        """Test body aggregate."""
         self.assertEqualRewrite(
             {"f/1"},
             "f(X) :- #sum { p(f(Y)),q(X) } = W.",
@@ -92,11 +100,13 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_negative_body_literal_creates_conditional_literal(self):
+        """Test negative body literal creates conditional literal."""
         self.assertEqualRewrite(
             {"f/1"}, "p :- not q(f(1)), r.", "p :- #false: q(FUN), f(1)=FUN; r."
         )
 
     def test_body_aggregate_element_list(self):
+        """Test body aggregate element list."""
         self.assertEqualRewrite(
             {"f/1"},
             "a :- #sum { q(f(1)),r(f(2)) }.",
@@ -104,11 +114,13 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_body_aggregate_element_list_2(self):
+        """Test body aggregate element list 2."""
         self.assertEqualRewrite(
             {"f/1"}, "a :- #sum { q(f(1)) }.", "a :- #sum { q(FUN): f(1)=FUN }."
         )
 
     def test_head_function_rewrite_always_adds_comparison(self):
+        """Test head function rewrite always adds comparison."""
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "p(f(1),g(2)) :- q.",
@@ -116,6 +128,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_assignment_rule(self):
+        """Test assignment rule."""
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "f(X) := g(X).",
@@ -123,6 +136,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_assignment_rule_2(self):
+        """Test assignment rule 2."""
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "f(X) := g(X) :- p(f(X)).",
@@ -130,6 +144,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_function_and_predicate(self):
+        """Test function and predicate."""
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             ":- f(X)=g(X); f(X).",
@@ -137,6 +152,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_comparisons(self):
+        """Test comparisons."""
         self.assertEqualRewrite(
             {"f/1", "a/0", "h/1"},
             ":- f(c) = a.",
@@ -192,6 +208,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_comparison_with_equality_in_head(self):
+        """Test comparison with equality in head."""
         self.assertEqualRewrite(
             {"a/0", "b/0"},
             "a=b.",
@@ -199,6 +216,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_head_aggregate_simple(self):
+        """Test head aggregate simple."""
         self.assertEqualRewrite(
             {"f/1"},
             "#sum { a(X): p: p(f(X)) } = 0 :- p.",
@@ -206,6 +224,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_head_aggregate_with_literal(self):
+        """Test head aggregate with literal."""
         self.assertEqualRewrite(
             {"f/1"},
             "#sum { a(X): p(f(X)): p(a) } = 0 :- p.",
@@ -213,6 +232,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_head_aggregate_guard(self):
+        """Test head aggregate guard."""
         self.assertEqualRewrite(
             {"f/1"},
             "#sum { a(X): p(f(X)): p(a) } = f(2) :- p.",
@@ -220,6 +240,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_arithmetic_in_body(self):
+        """Test arithmetic in body."""
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "p :- f(a)-g(b)=10.",
@@ -257,6 +278,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_double_negation_body(self):
+        """Test double negation body."""
         self.assertEqualRewrite(
             {"f/1"}, "p :- not not q(f(1)).", "p :- not not q(FUN); not not f(1)=FUN."
         )
@@ -268,11 +290,13 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_double_negation_head(self):
+        """Test double negation head."""
         self.assertEqualRewrite(
             {"f/1"}, "not not p(f(1)) :- q.", "not not p(FUN) :- q; not not f(1)=FUN."
         )
 
     def test_head_aggregate_assignment(self):
+        """Test head aggregate assignment."""
         with self.assertRaises(AssertionError) as cm:
             self.assertEqualRewrite(
                 {"f/1", "p/1"},
@@ -287,6 +311,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_body_aggregate_with_guard(self):
+        """Test body aggregate with guard."""
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "p :- #sum { g(X): q(X), h(X)} = f(2).",
@@ -294,6 +319,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_aggregate(self):
+        """Test aggregate."""
         self.assertEqualRewrite(
             {"f/1"},
             ":- W = #sum { X: p(f(Y),X) }.",
@@ -301,6 +327,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_aggregate_guard(self):
+        """Test aggregate guard."""
         self.assertEqualRewrite(
             {"f/1"},
             ":- f(Y) = #sum { X: p(X) }.",
@@ -308,6 +335,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_aggregates(self):
+        """Test aggregates."""
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
             "f(X)=W :- b(X,Z), W = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
@@ -315,6 +343,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_aggregates_2(self):
+        """Test aggregates 2."""
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
             ":- b(X,Z), h(1) = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
@@ -322,6 +351,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_assignment_simple(self):
+        """Test assignment simple."""
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
             "f(a) := 5.",
@@ -329,6 +359,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_assignment(self):
+        """Test assignment."""
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
             "f(g(a)) := h(a).",
@@ -336,6 +367,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_assignment_body(self):
+        """Test assignment body."""
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
             "f(g(a)) := h(a) :- f(g(b)).",
@@ -343,6 +375,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_aggregates_2(self):
+        """Test aggregates 2."""
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1"},
             "f(X)=1 :- b(X,Z), h(1) = #sum { f(Y): p(g(Y),Z), q(X), r(X) }.",
@@ -350,6 +383,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_negative_predicate_in_aggregate_with_evaluable_body_aggregate(self):
+        """Test negative predicate in aggregate with evaluable body aggregate."""
         with self.assertRaises(RuntimeError) as cm:
             self.assertEqualRewrite(
                 {"q/1", "a/0"},
@@ -362,6 +396,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_negative_predicate_in_aggregate_without_evaluable_body_aggregte(self):
+        """Test negative predicate in aggregate without evaluable body aggregte."""
         self.assertEqualRewrite(
             {"q/1", "a/0"},
             "p :- #sum { X: not q(b), r(q(X)) } = 1.",
@@ -369,6 +404,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_negative_predicate_in_aggregate_with_evaluable_head_aggregate(self):
+        """Test negative predicate in aggregate with evaluable head aggregate."""
         with self.assertRaises(RuntimeError) as cm:
             self.assertEqualRewrite(
                 {"f/1", "a/0"},
@@ -381,6 +417,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_body_conditional_literal(self):
+        """Test body conditional literal."""
         self.assertEqualRewrite(
             {"q/1", "a/0"},
             "p :- q(a): r(q(X)).",
@@ -388,6 +425,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_negative_predicate_in_body_conditional_literal(self):
+        """Test negative predicate in body conditional literal."""
         with self.assertRaises(RuntimeError) as cm:
             self.assertEqualRewrite({"q/1", "a/0"}, "p :- q(a): not r(q(X)).", None)
         self.assertEqual(
@@ -396,6 +434,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_aggregate_with_guard(self):
+        """Test aggregate with guard."""
         self.assertEqualRewrite(
             {"a/0", "b/0", "c/0"},
             "p :- #sum { X: q(a) } = b; q(c).",
@@ -403,11 +442,13 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_body_negative_literal_no_evaluable_functions(self):
+        """Test body negative literal no evaluable functions."""
         self.assertEqualRewrite(
             set(), "p :- not p(q).", "p :- not p(q)."  # no evaluable functions
         )
 
     def test_head_aggregate_with_evaluable_along_with_guard(self):
+        """Test head aggregate with evaluable along with guard."""
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "#sum { f(Y) : p(f(2)) : p(g(Y),Z), q(X), r(X) } >= f(Z).",
@@ -415,6 +456,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_head_aggregate_with_assignment(self):
+        """Test head aggregate with assignment."""
         self.assertEqualRewrite(
             {"f/1", "g/1"},
             "#count{ 0,ass(king(C),X): king(C) := X: person(X) } :- country(C).",
@@ -422,6 +464,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_head_aggregate_with_assignment2(self):
+        """Test head aggregate with assignment2."""
         self.assertEqualRewrite(
             {"f/1", "g/1", "h/1", "e/1"},
             "#count{ 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)) } :- country(C).",
@@ -429,6 +472,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_fibo(self):
+        """Test fibo."""
         self.assertEqualRewrite(
             {"fibo/1"},
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
@@ -443,6 +487,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
     #         "a :- #false: c."
     #     )
     def test_body_conditional_literal_false(self):
+        """Test body conditional literal false."""
         self.assertEqualRewrite(
             {"f/1"},
             """
@@ -456,6 +501,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_no_rewrite_head_set_aggregate(self):
+        """Test no rewrite head set aggregate."""
         self.assertEqualRewrite(
             {"q/1", "a/0"},
             ":- { X=country(f(b)) }.",
@@ -463,6 +509,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_statement_optimize(self):
+        """Test statement optimize."""
         self.assertEqualRewrite(
             {"f/1", "a/0"},
             "#minimize { 1@0,f(X),a: p(X) }.",
@@ -482,6 +529,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_weak_constraint(self):
+        """Test weak constraint."""
         self.assertEqualRewrite(
             {"f/1", "a/0"},
             ":~ p(X). [f(a)]",
@@ -489,6 +537,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_weak_constraint2(self):
+        """Test weak constraint2."""
         self.assertEqualRewrite(
             {"f/1", "a/0"},
             ":~ p(X); f(a). [b]",
@@ -502,6 +551,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_weak_constraint3(self):
+        """Test weak constraint3."""
         self.assertEqualRewrite(
             {"f/1", "a/0"},
             ":~ p(X); f(a). [b]",
@@ -509,6 +559,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_weak_constraint4(self):
+        """Test weak constraint4."""
         self.assertEqualRewrite(
             {"f/1", "a/0", "b/0"},
             ":~ p(X); f(a). [b@a]",
@@ -516,6 +567,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_conditional_literal(self):
+        """Test conditional literal."""
         self.assertEqualRewrite(
             {"f/1"},
             "p :- q(X): r(f(X)).",
@@ -523,6 +575,7 @@ class TestRuleRewriteTransformer(unittest.TestCase):
         )
 
     def test_conditional_literal_nothing(self):
+        """Test conditional literal nothing."""
         print("TEST: test_conditional_literal_nothing")
         self.assertEqualRewrite(
             set(),

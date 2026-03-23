@@ -27,6 +27,7 @@ class TestSyntacticChecker(unittest.TestCase):
     """
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = Library()
 
     def assertEqualErrors(self, program, expected_errors):
@@ -41,6 +42,7 @@ class TestSyntacticChecker(unittest.TestCase):
         syntactic_checker = SyntacticCheckVisitor(INVALID_ASTTYPES)
 
         def callback(statement):
+            """Handle callback output for the current test."""
             statement.visit(syntactic_checker)
 
         ast.parse_string(self.lib, program, callback)
@@ -103,6 +105,7 @@ class TestVariableManager(unittest.TestCase):
     """Tests VariableCollector and FreshVariableGenerator."""
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = Library()
         self.loc = Location(
             Position(self.lib, "<stdin>", 1, 1),
@@ -111,6 +114,7 @@ class TestVariableManager(unittest.TestCase):
         self.ast = ast
 
     def parse_program(self, program: str):
+        """Parse program."""
         stmts = []
         self.ast.parse_string(self.lib, program, stmts.append)
         return stmts
@@ -120,6 +124,7 @@ class TestVariableManager(unittest.TestCase):
     # FreshVariableGenerator tests
 
     def test_fresh_variable_simple_and_numbered(self):
+        """Test fresh variable simple and numbered."""
         gen = util_ast.FreshVariableGenerator({"X"})
         v1 = gen.fresh_variable(self.lib, self.loc, name="X")
         v2 = gen.fresh_variable(self.lib, self.loc, name="X")
@@ -130,11 +135,13 @@ class TestVariableManager(unittest.TestCase):
         self.assertEqual(v3.name, "Z")
 
     def test_fresh_variable_with_empty_used(self):
+        """Test fresh variable with empty used."""
         gen = util_ast.FreshVariableGenerator()
         v = gen.fresh_variable(self.lib, self.loc, name="Y")
         self.assertEqual(v.name, "Y")
 
     def test_generator_isolated_instances(self):
+        """Test generator isolated instances."""
         gen1 = util_ast.FreshVariableGenerator({"X"})
         gen2 = util_ast.FreshVariableGenerator({"Y"})
 
@@ -181,9 +188,11 @@ class TestParseString(unittest.TestCase):
     """Tests for util_ast.parse_string."""
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
 
     def assertCorrectParsing(self, program):
+        """Assert correct parsing."""
         statements = util_ast.parse_string(self.lib, program)
         statements = statements[1:]
         lines = program.strip().splitlines()
@@ -193,6 +202,7 @@ class TestParseString(unittest.TestCase):
             self.assertIsInstance(stmt, ast.StatementRule)
 
     def test_parse_string_correct(self):
+        """Test parse string correct."""
         self.assertCorrectParsing(
             """
             a :- b.
@@ -204,11 +214,13 @@ class TestParseString(unittest.TestCase):
         )
 
     def assertParsingException(self, program, expected_errors):
+        """Assert parsing exception."""
         with self.assertRaises(ParsingException) as cm:
             util_ast.parse_string(self.lib, program)
         self.assertEqual(cm.exception.errors, expected_errors)
 
     def test_parse_string_errors(self):
+        """Test parse string errors."""
         self.assertParsingException(
             """\
             a :- b.

@@ -143,11 +143,13 @@ class ShowFDirective(AssignmentAST):
     signature: SymbolSignature
 
     def __str__(self) -> str:  # pragma: no cover
+        """Return the string representation of this ShowFDirective."""
         if self.signature is None:
             return "#showf."
         return f"#showf {self.signature}."
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        """Return a dictionary representation of this ShowFDirective."""
         return {
             "type": "ShowFDirective",
             "location": self.location,
@@ -175,9 +177,11 @@ class HeadSimpleAssignment(AssignmentAST):
     value: ast.TermOrProjection
 
     def __str__(self) -> str:
+        """Return the string representation of this HeadSimpleAssignment."""
         return f"{str(self.assigned_function)} := {str(self.value)}"
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        """Return a dictionary representation of this HeadSimpleAssignment."""
         return {
             "type": "HeadSimpleAssignment",
             "location": self.location,
@@ -230,9 +234,11 @@ class HeadAssignmentAggregate(AssignmentAST):
     elements: Sequence[ast.BodyAggregateElement]
 
     def __str__(self) -> str:  # pragma: no cover
+        """Return the string representation of this HeadAssignmentAggregate."""
         return f"{str(self.assigned_function)} := {_AGGREGATE_FUNCTION_TO_STR[self.aggregate_function]}{{{'; '.join(map(str, self.elements))}}}"
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a dictionary representation of this HeadAssignmentAggregate."""
         return {
             "type": "HeadAssignmentAggregate",
             "location": self.location,
@@ -271,11 +277,13 @@ class AssignmentAggregateElement(AssignmentAST):
     condition: Sequence[ast.Literal]
 
     def __str__(self) -> str:
+        """Return the string representation of this AssignmentAggregateElement."""
         if self.condition:
             return f"{str(self.assignment)}: {', '.join(map(str, self.condition))}"
         return f"{str(self.assignment)}"
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        """Return a dictionary representation of this AssignmentAggregateElement."""
         return {
             "type": "AssignmentAggregateElement",
             "location": self.location,
@@ -319,6 +327,7 @@ class ChoiceAssignment(AssignmentAST):
     right: ast.RightGuard | None
 
     def __str__(self) -> str:  # pragma: no cover
+        """Return the string representation of this ChoiceAssignment."""
         left = str(self.left) if self.left else ""
         right = str(self.right) if self.right else ""
         return f"{left}{{ {'; '.join(map(str, self.elements))} }}{right}"
@@ -328,6 +337,7 @@ class ChoiceAssignment(AssignmentAST):
 
     # Attempt to fix to_dict implementation
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        """Return a dictionary representation of this ChoiceAssignment."""
         return {
             "type": "HeadChoiceAssignment",
             "location": self.location,
@@ -361,9 +371,11 @@ class ChoiceSomeAssignment(AssignmentAST):
     elements: Sequence[ast.BodyAggregateElement]
 
     def __str__(self) -> str:  # pragma: no cover
+        """Return the string representation of this ChoiceSomeAssignment."""
         return f"{str(self.assigned_function)} := #some{{{'; '.join(map(str, self.elements))}}}"
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        """Return a dictionary representation of this ChoiceSomeAssignment."""
         return {
             "type": "ChoiceSomeAssignment",
             "location": self.location,
@@ -405,6 +417,7 @@ class HeadAggregateAssignmentElement(AssignmentAST):
     condition: Sequence[ast.Literal]
 
     def __str__(self) -> str:
+        """Return the string representation of this HeadAggregateAssignmentElement."""
         _tuple = ""
         if self.tuple:
             _tuple = ",".join(map(str, self.tuple))
@@ -417,6 +430,7 @@ class HeadAggregateAssignmentElement(AssignmentAST):
         return f"{_tuple}{str(self.assignment)}"
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        """Return a dictionary representation of this HeadAggregateAssignmentElement."""
         return {
             "type": "HeadAggregateAssignmentElement",
             "location": self.location,
@@ -462,11 +476,13 @@ class HeadAggregateAssignment(AssignmentAST):
     right: ast.RightGuard | None
 
     def __str__(self) -> str:  # pragma: no cover
+        """Return the string representation of this HeadAggregateAssignment."""
         left = str(self.left) if self.left else ""
         right = str(self.right) if self.right else ""
         return f"{left}{_AGGREGATE_FUNCTION_TO_STR[self.function]}{{ {'; '.join(map(str, self.elements))} }}{right}"
 
     def to_dict(self) -> dict[str, Any]:  # pragma: no cover
+        """Return a dictionary representation of this HeadAggregateAssignment."""
         return {
             "type": "HeadAggregateAssignment",
             "location": self.location,
@@ -511,12 +527,14 @@ class AssignmentRule(AssignmentAST):
     body: Sequence[ast.BodyLiteral]
 
     def __str__(self) -> str:  # pragma: no cover
+        """Return the string representation of this AssignmentRule."""
         if not self.body:
             return f"{str(self.head)}."
         body = "; ".join(map(str, self.body))
         return f"{str(self.head)} :- {body}."
 
     def to_dict(self) -> dict[str, Any]:
+        """Return a dictionary representation of this AssignmentRule."""
         return {
             "type": "AssignmentRule",
             "location": self.location,

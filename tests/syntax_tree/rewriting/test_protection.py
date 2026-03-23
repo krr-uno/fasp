@@ -22,6 +22,7 @@ from funasp.util.ast import AST, ELibrary
 
 
 def _restore_guard(library: Library, term: ast.TermFunction) -> ast.RightGuard:
+    """Handle restore guard."""
     right = _restore_guard_arguments(library, term)
     return ast.RightGuard(library, right.relation, right.term)
 
@@ -50,6 +51,7 @@ class TestProtectComparisons(unittest.TestCase):
         statements = []
 
         def callback(statement):
+            """Handle callback output for the current test."""
             statements.append(statement)
 
         ast.parse_string(self.lib, program, callback)
@@ -114,6 +116,7 @@ class TestRestoreComparisons(unittest.TestCase):
 
 
     def test_restore(self):
+        """Test restore."""
         cmp = ast.parse_literal(self.lib, "a=100")
         self.assertEqual(str(cmp), "a=100")
         # transformer = _ComparisonProtectorTransformer(self.context)
@@ -130,6 +133,7 @@ class TestRestoreComparisons(unittest.TestCase):
         self.assertIsInstance(restored, ast.LiteralComparison)
 
     def test_restore_symbolic(self):
+        """Test restore symbolic."""
         lit = ast.parse_literal(self.lib, "#true")
         # transformer = _ComparisonProtectorTransformer(self.context)
         # protected = transformer.dispatch(lit)
@@ -146,6 +150,7 @@ class TestRestoreComparisons(unittest.TestCase):
         statements = []
 
         def callback(statement):
+            """Handle callback output for the current test."""
             statements.append(statement)
 
         ast.parse_string(self.lib, program, callback)
@@ -172,6 +177,7 @@ class TestRestoreComparisons(unittest.TestCase):
             self.assertIsInstance(rest, FASP_AST)
 
     def test_basic_comparison_restore(self):
+        """Test basic comparison restore."""
         self.assertEqualRestore(
             "a=100.",
             "CMP(a,(GRD(0,100),),0).",
@@ -185,6 +191,7 @@ class TestProtectAssignments(unittest.TestCase):
     """
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
         self.context = RewriteContext(self.lib)
 
@@ -230,24 +237,28 @@ class TestProtectAssignments(unittest.TestCase):
         self.assertEqualRewrite(program, expected)
 
     def test_aggregate(self):
+        """Test aggregate."""
         self.assertEqualRewrite(
             "{ f(X) := (Y,Z) } :- p.",
             "{ ASS(f(X),(Y,Z)) } :- p.",
         )
 
     def test_pool(self):
+        """Test pool."""
         self.assertEqualRewrite(
             "f(1;2) := Y :- g(Y).",
             "ASS(f(1;2),Y) :- g(Y).",
         )
 
     def test_aggregate_condition(self):
+        """Test aggregate condition."""
         self.assertEqualRewrite(
             "{ a := X: p(X); a } = 1 :- #count { X: p(X) } >= 1; s.",
             "{ ASS(a,X): p(X); a } = 1 :- #count { X: p(X) } >= 1; s.",
         )
 
     def test_choice_some_aggregate(self):
+        """Test choice some aggregate."""
         with self.assertRaises(AssertionError) as cm:
             self.assertEqualRewrite(
                 "a := #some{X: p(X)} :- p.",
@@ -259,6 +270,7 @@ class TestProtectAssignments(unittest.TestCase):
         )
 
     def test_head_aggregate_assignment(self):
+        """Test head aggregate assignment."""
         self.assertEqualRewrite(
             "#count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
             "#count { 0,ass(king(f(C)),X): ASS(king(g(C)),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
@@ -271,6 +283,7 @@ class TestRestoreAssignments(unittest.TestCase):
     """
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
         self.context = RewriteContext(self.lib)
 
@@ -303,6 +316,7 @@ class TestRestoreAssignments(unittest.TestCase):
             self.assertIsInstance(rest, FASP_AST)
 
     def test_basic_assignments(self):
+        """Test basic assignments."""
         program = """\
             f(X) := Y :- g.
             a := b :- p(X, Y).
@@ -316,36 +330,42 @@ class TestRestoreAssignments(unittest.TestCase):
         self.assertEqualRestore(program, expected)
 
     def test_aggregate_assignments(self):
+        """Test aggregate assignments."""
         self.assertEqualRestore(
             "{ f(X) := (Y,Z) } :- p.",
             "{ ASS(f(X),(Y,Z)) } :- p.",
         )
 
     def test_choice_assignments(self):
+        """Test choice assignments."""
         self.assertEqualRestore(
             "f(1;2) := Y :- g(Y).",
             "ASS(f(1;2),Y) :- g(Y).",
         )
 
     def test_restore_non_function_atom(self):
+        """Test restore non function atom."""
         self.assertEqualRestore(
             "#true.",
             "#true.",
         )
 
     def test_no_assignment(self):
+        """Test no assignment."""
         self.assertEqualRestore(
             "f(X) :- g(Y).",
             "f(X) :- g(Y).",
         )
 
     def test_no_assignment_in_aggregate(self):
+        """Test no assignment in aggregate."""
         self.assertEqualRestore(
             "{ f(X) } :- g(Y).",
             "{ f(X) } :- g(Y).",
         )
 
     def test_head_aggregate_Assignment(self):
+        """Test head aggregate Assignment."""
         self.assertEqualRestore(
             "#count { 0,ass(king(C),X): king(C) := X: person(X) } :- country(C).",
             "#count { 0,ass(king(C),X): ASS(king(C),X): person(X) } :- country(C).",

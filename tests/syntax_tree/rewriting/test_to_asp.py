@@ -10,6 +10,7 @@ from funasp.syntax_tree.rewritings.to_asp import NormalForm2PredicateTransformer
 class TestNormalForm2PredicateTransformer(unittest.TestCase):
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
 
     def assertRewrite(
@@ -41,6 +42,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         self.assertEqual(list(map(str, transformed_statements[1:])), expected)
 
     def test_rewrite(self):
+        """Test rewrite."""
         self.assertRewrite(
             {"f/1", "g/1"},
             "f(X):=Y :- g(X)=Y.",
@@ -48,11 +50,13 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         )
 
     def test_choice_assignment_rewrite(self):
+        """Test choice assignment rewrite."""
         self.assertRewrite(
             {"f/1"}, "{ f(X) := Y } :- p.", "{ f_f(X,Y) } :- p.", prefix="f_"
         )
 
     def test_choice_assignment_invalid(self):
+        """Test choice assignment invalid."""
         with self.assertRaises(AssertionError) as cm:
             self.assertRewrite(
                 {"f/1"},
@@ -64,9 +68,11 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         )
 
     def test_head_simple_assignment(self):
+        """Test head simple assignment."""
         self.assertRewrite({"f/1"}, "f(X) := Y :- q.", "f_f(X,Y) :- q.", prefix="f_")
 
     def test_aggregate_assignment_invalid_head_aggregate_assignment(self):
+        """Test aggregate assignment invalid head aggregate assignment."""
         with self.assertRaises(AssertionError) as cm:
             self.assertRewrite(
                 {"score/1"},
@@ -79,6 +85,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         )
 
     def test_aggregate_assignment_invalid_choice_some_assignment(self):
+        """Test aggregate assignment invalid choice some assignment."""
         with self.assertRaises(AssertionError) as cm:
             self.assertRewrite(
                 {"score/1"},
@@ -91,6 +98,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         )
 
     def test_choice_assignment_with_tuple(self):
+        """Test choice assignment with tuple."""
         self.assertRewrite(
             {"a/0"},
             "{ a := (X,Y): p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",
@@ -98,6 +106,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         )
 
     def test_head_aggregate_assignment(self):
+        """Test head aggregate assignment."""
         self.assertRewrite(
             {"f/1", "g/1", "h/1", "e/1", "king/1"},
             # king/1 is not in evaluable functions. Error?

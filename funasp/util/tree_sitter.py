@@ -32,18 +32,21 @@ def format_ts_tree(
     node: Node = obj.root_node if hasattr(obj, "root_node") else obj
 
     def get_children(n: Node) -> list[Node]:
+        """Return the children of a node, optionally filtering to named children."""
         if not named_only:
             return list(n.children)
         # keep only named children in order
         return [c for c in n.children if c.is_named]
 
     def field_name(parent: Node, idx: int) -> Optional[str]:
+        """Return the field name for the child at the given index, if available."""
         try:
             return parent.field_name_for_child(idx)
         except AttributeError:
             return None
 
     def should_snippet(n: Node) -> bool:
+        """Return whether a source snippet should be shown for the given node."""
         if src_bytes is None:
             return False
         if snippet_mode == "none":
@@ -58,6 +61,7 @@ def format_ts_tree(
         return False
 
     def snippet(n: Node) -> str:
+        """Return the formatted source snippet for the given node."""
         if not should_snippet(n):
             return ""
         s = (
@@ -74,6 +78,7 @@ def format_ts_tree(
         return s
 
     def label(n: Node) -> str:
+        """Build the display label for a single tree-sitter node."""
         parts = [n.type]
         if show_positions:
             (sr, sc), (er, ec) = n.start_point, n.end_point
@@ -88,6 +93,7 @@ def format_ts_tree(
     def walk(
         n: Node, prefix: str = "", is_last: bool = True, fld: Optional[str] = None
     ) -> None:
+        """Recursively append formatted lines for the given node and its children."""
         # branch glyphs
         branch = "└── " if is_last else "├── "
         # inline field name (if any)

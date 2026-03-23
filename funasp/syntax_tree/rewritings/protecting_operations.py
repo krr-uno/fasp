@@ -27,6 +27,7 @@ ABSOLUTE_INT = 9
 # PROTECTION
 @singledispatch
 def _protect_operations(node: AST, context: RewriteContext) -> AST | None:
+    """Protect arithmetic operation nodes by encoding them as synthetic function terms."""
     return node.transform(context.lib.library, _protect_operations, context)
 
 
@@ -210,6 +211,7 @@ def _symbol_to_term(
         | ast.TermTuple
         | ast.TermFunction
     ):
+        """Restore a nested symbol argument into the most specific term representation available."""
         term = ast.TermSymbolic(library, location, sym)
         restored = _restore_operations(term, context)
         if restored is not None:
@@ -250,6 +252,7 @@ def _symbol_to_term(
 
 @singledispatch
 def _restore_operations(node: AST, context: RewriteContext) -> AST | None:
+    """Restore protected arithmetic operations inside the given AST node."""
     return node.transform(context.lib.library, _restore_operations, context)
 
 
@@ -259,6 +262,7 @@ def _(
 ) -> (
     ast.TermAbsolute | ast.TermBinaryOperation | ast.TermTuple | ast.TermFunction | None
 ):
+    """Restore protected operations stored inside a symbolic term when possible."""
     context.lib.library
     location = node.location
     symbol = node.symbol
@@ -273,6 +277,7 @@ def _(
 def restore_operations(
     context: RewriteContext, statement: ast.Statement
 ) -> ast.Statement:
+    """Restore protected arithmetic operations throughout the given statement."""
     return (
         statement.transform(context.lib.library, _restore_operations, context)
         or statement

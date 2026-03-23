@@ -108,6 +108,7 @@ def slow_test(session):
 
 @nox.session(python=False)
 def format(session):
+    """Run formatting tools, or check formatting when requested."""
     if session.python:
         max_version = max(v for v in PYTHON_VERSIONS)
         if max_version != session.python:
@@ -143,6 +144,7 @@ def format(session):
 
 @nox.session
 def lint(session):
+    """Run pylint on the project package."""
     if session.python:
         session.install("pylint")
     session.run("pylint", PROJECT_NAME)
@@ -150,6 +152,7 @@ def lint(session):
 
 @nox.session(python=PYTHON_VERSIONS)
 def typecheck(session):
+    """Run mypy with the repository type-checking settings."""
     # session.install("mypy")
     session.run(
         "mypy",

@@ -37,6 +37,7 @@ class RuleRewriteTransformer:
         lib: Library,
         evaluable_functions: Set[SymbolSignature],
     ):
+        """Initialize the rule-level unnesting transformer."""
         self.lib = lib
         self.evaluable_functions = evaluable_functions
 
@@ -74,6 +75,7 @@ class RuleRewriteTransformer:
         node: ast.BodySimpleLiteral,
         var_gen: FreshVariableGenerator,
     ) -> ast.BodySimpleLiteral | ast.BodyConditionalLiteral | None:
+        """Rewrite a simple body literal, turning negated rewrites into conditional literals."""
         # print(f"Visiting literal of type {node.__class__}: {node}")
         if node.literal.sign != ast.Sign.Single:
             literal = self.body_literal_transformer.unnest(node.literal)
@@ -106,6 +108,7 @@ class RuleRewriteTransformer:
         node: ast.BodyConditionalLiteral,
         var_gen: FreshVariableGenerator,
     ) -> ast.BodyConditionalLiteral | None:
+        """Rewrite a conditional literal and append any generated comparisons to its condition."""
         # print(f"Visiting literal of type {node.__class__}: {node}")
         update = {}
         literal = self.body_literal_transformer.unnest(node.literal)
@@ -140,6 +143,7 @@ class RuleRewriteTransformer:
         node: ast.BodyAggregate | ast.HeadAggregate | HeadAggregateAssignment,
         var_gen: FreshVariableGenerator,
     ) -> ast.BodyAggregate | ast.HeadAggregate | HeadAggregateAssignment:
+        """Rewrite aggregate nodes by unnesting their elements and guards."""
         # print(f"Visiting literal of type {node.__class__}: {node}")
         new_elements = []
         for elem in node.elements:
@@ -181,6 +185,7 @@ class RuleRewriteTransformer:
         | HeadAggregateAssignmentElement
         | AssignmentAggregateElement
     ):
+        """Rewrite aggregate elements by unnesting tuples, conditions, and embedded assignments."""
         # print(f"Visiting (Element) literal of type {node.__class__}: {node}")
         transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
@@ -226,6 +231,7 @@ class RuleRewriteTransformer:
         node: ast.OptimizeElement,
         var_gen: FreshVariableGenerator,
     ) -> ast.OptimizeElement:
+        """Rewrite an optimize element and append any generated comparisons to its condition."""
         # print(f"Visiting literal of type {node.__class__}: {node}")
         transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
@@ -251,6 +257,7 @@ class RuleRewriteTransformer:
     def _(
         self, node: HeadAssignmentAggregate, var_gen: FreshVariableGenerator
     ) -> HeadAssignmentAggregate:
+        """Reject unreduced assignment aggregates during rule unnesting."""
         # print(f"Visiting literal of type {node.__class__}: {node}")
         assert (
             False
@@ -261,6 +268,7 @@ class RuleRewriteTransformer:
         ast.HeadSimpleLiteral,
         HeadSimpleAssignment,
     )](self, node: T, var_gen: FreshVariableGenerator) -> T | None:
+        """Rewrite a simple head node by unnesting evaluable functions within it."""
         # print(f"Visiting literal of type {node.__class__}: {node}")
         result = self.head_literal_transformer.unnest(node)
         # print(f"Result of unnesting head literal: {result}")
@@ -279,6 +287,7 @@ class RuleRewriteTransformer:
         ast.StatementRule,
         AssignmentRule,
     )](self, node: T, var_gen: FreshVariableGenerator) -> T:
+        """Rewrite a rule statement and append any residual comparisons to its body."""
         # print("Rewriting rule:", node)
         # if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):
         #     new_head = self.head_literal_transformer.unnest(node.head)
@@ -318,6 +327,7 @@ class RuleRewriteTransformer:
     def _(
         self, node: ast.StatementOptimize, var_gen: FreshVariableGenerator
     ) -> ast.StatementOptimize:
+        """Rewrite all optimize elements in an optimize statement."""
         new_elements = []
         for elem in node.elements:
             new_elem = self._rewrite_literal(elem, var_gen)
@@ -332,6 +342,7 @@ class RuleRewriteTransformer:
     def _(
         self, node: ast.StatementWeakConstraint, var_gen: FreshVariableGenerator
     ) -> ast.StatementWeakConstraint:
+        """Rewrite a weak constraint by unnesting its tuple and body literals."""
         transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
             self.evaluable_functions,
@@ -382,6 +393,7 @@ def unnest(
     context: RewriteContext,
     statement: FASP_Statement,
 ) -> FASP_Statement:
+    """Unnest evaluable functions in a single FASP statement."""
     collect_variables(statement)
     transformer = RuleRewriteTransformer(
         context.lib.library, context.evaluable_functions

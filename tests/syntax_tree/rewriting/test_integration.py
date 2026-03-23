@@ -11,6 +11,7 @@ from funasp.syntax_tree._context import RewriteContext
 
 class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.elib = ELibrary()
         self.ctx = RewriteContext(self.elib, prefix_function="F")
         self.maxDiff = None  # Show full diff on assertion failure
@@ -23,6 +24,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         LOG: bool = False,
         evaluable_functions: set[str] | None = None,
     ):
+        """Assert transform equal."""
         if evaluable_functions is None:
             evaluable_functions = set()
 
@@ -51,6 +53,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
 
     def test_to_asp(self):
+        """Test to asp."""
         self.assertTransformEqual(
             "f(1) := Y :- g(Y).",
             """
@@ -60,12 +63,14 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_total_integration(self):
+        """Test total integration."""
         self.assertTransformEqual(
             "1 { sk(X, Y)  : skis(Y) } 1 :- sks(X).",
             "1 <= #count { 0,sk(X,Y): sk(X,Y): skis(Y) } <= 1 :- sks(X).",
         )
 
     def test_king(self):
+        """Test king."""
         self.assertTransformEqual(
             """
             country(france).
@@ -89,6 +94,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
 
     def test_fact(self):
+        """Test fact."""
         self.assertTransformEqual(
             """
             c := 1.
@@ -102,6 +108,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_pool(self):
+        """Test pool."""
         self.assertTransformEqual(
             """
             f(1) := 2.
@@ -117,6 +124,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_assignment_rule(self):
+        """Test assignment rule."""
         self.assertTransformEqual(
             """
             c := 1.
@@ -133,6 +141,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_head_aggregate_assignment2(self):
+        """Test head aggregate assignment2."""
         self.assertTransformEqual(
             "{king(spain) := felipe}.",
             """
@@ -142,12 +151,14 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_no_change(self):
+        """Test no change."""
         self.assertTransformEqual(
             "f(X) :- g(X).",
             "f(X) :- g(X).",
         )
 
     def test_aggregate(self):
+        """Test aggregate."""
         self.assertTransformEqual(
             """
             f(X) := Y :- p(X,Y).
@@ -162,6 +173,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_choice_count(self):
+        """Test choice count."""
         self.assertTransformEqual(
             """
             f(X) := Y :- p(X,Y).
@@ -175,6 +187,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_choice_count_Ass(self):
+        """Test choice count Ass."""
         self.assertTransformEqual(
             """
             f(X) := Y :- p(X,Y).
@@ -189,6 +202,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_to_asp_head_aggregate_assignment(self):
+        """Test to asp head aggregate assignment."""
         self.assertTransformEqual(
             "#count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
             """
@@ -206,6 +220,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_fibo(self):
+        """Test fibo."""
         self.assertTransformEqual(
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
             """
@@ -215,6 +230,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_company(self):
+        """Test company."""
         self.assertTransformEqual(
             "controller(C3) := C1 :- company(C1), company(C3), #sum{controlsStk(C1,C2,C3), C2} > 50.",
             """
@@ -226,6 +242,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_family_full(self):
+        """Test family full."""
         self.assertTransformEqual(
             """
             father(cain):=adam.
@@ -272,6 +289,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
     def test_unsafe(self):
+        """Test unsafe."""
         with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
             self.assertTransformEqual(
                 """

@@ -16,6 +16,7 @@ from funasp.syntax_tree.types import SymbolSignature
 
 
 def collect_variables(node: FASP_AST) -> set[str]:
+    """Collect all variable names that occur in the given AST node."""
     collector = _VariableCollector()
     return collector.collect(node)
 
@@ -46,11 +47,13 @@ def collect_evaluable_functions(
 @singledispatch
 # TODO: Need to make it a visitor
 def _get_evaluable_functions_head(node: Any) -> set[SymbolSignature]:
+    """Collect evaluable function signatures from a supported assignment head."""
     assert False, f"Unsupported type: {_.__class__}"  # pragma: no cover
 
 
 @_get_evaluable_functions_head.register
 def _(head: HeadSimpleAssignment) -> set[SymbolSignature]:
+    """Collect the signature of the function assigned by a simple head assignment."""
     assigned_function = head.assigned_function
     if isinstance(assigned_function, ast.TermFunction):
         name = assigned_function.name
@@ -74,6 +77,7 @@ def _(head: HeadSimpleAssignment) -> set[SymbolSignature]:
 
 @_get_evaluable_functions_head.register
 def _(head: HeadAggregateAssignment | ChoiceAssignment) -> set[SymbolSignature]:
+    """Collect evaluable function signatures from assignment-bearing aggregate elements."""
     evaluable_functions = set()
     for element in head.elements:
         if isinstance(
@@ -93,13 +97,16 @@ class _VariableCollector:
     """
 
     def __init__(self) -> None:
+        """Initialize the collector state for a new variable traversal."""
         self.used: set[str] = set()
 
     def collect(self, node: FASP_AST) -> set[str]:
+        """Collect variable names from the given AST node."""
         self._collect_vars(node)
         return self.used
 
     def _collect_vars(self, node: FASP_AST) -> None:
+        """Recursively collect variables from the given AST subtree."""
         if isinstance(node, ast.TermVariable):
             self.used.add(node.name)
             return

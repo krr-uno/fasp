@@ -53,6 +53,7 @@ class NormalForm2PredicateTransformer:
         value: ast.TermOrProjection,
         location: Location,
     ) -> ast.TermFunction:
+        """Convert a functional assignment into its prefixed predicate term."""
         name, arguments = function_arguments_ast(self.library, assigned_function)
         assert (
             SymbolSignature(name, len(arguments)) in self.evaluable_functions
@@ -78,6 +79,7 @@ class NormalForm2PredicateTransformer:
         value: ast.TermOrProjection,
         location: Location,
     ) -> ast.LiteralSymbolic:
+        """Wrap a rewritten function term in a symbolic literal."""
 
         return ast.LiteralSymbolic(
             self.library,
@@ -142,6 +144,7 @@ class NormalForm2PredicateTransformer:
     # Elements inside aggregates
     @_rewrite_head.register
     def _(self, node: AssignmentAggregateElement) -> ast.SetAggregateElement:
+        """Rewrite an assignment aggregate element into a set aggregate element."""
         assignment = self._rewrite_head(node.assignment)
         assert isinstance(
             assignment, ast.HeadSimpleLiteral
@@ -156,6 +159,7 @@ class NormalForm2PredicateTransformer:
 
     @_rewrite_head.register
     def _(self, node: HeadAggregateAssignment) -> ast.HeadAggregate:
+        """Rewrite a head aggregate assignment into a plain head aggregate."""
         new_elements = []
         for element in node.elements:
             if isinstance(element, HeadAggregateAssignmentElement):
@@ -197,12 +201,14 @@ class NormalForm2PredicateTransformer:
 
     @_rewrite_head.register
     def _(self, node: HeadAssignmentAggregate) -> ast.HeadAggregate:
+        """Reject unreduced assignment aggregates during head rewriting."""
         assert (
             False
         ), "HeadAggregateAssignment seen during Head AST rewrite during Normalization. This should not happen."
 
     @_rewrite_head.register
     def _(self, node: ChoiceSomeAssignment) -> ast.HeadAggregate:
+        """Reject unreduced #some assignments during head rewriting."""
         assert (
             False
         ), "ChoiceSomeAssignment seen during Head AST rewrite during Normalization. This should not happen."
@@ -216,6 +222,7 @@ class NormalForm2PredicateTransformer:
 
     @_dispatch.register
     def _(self, node: ast.LiteralComparison) -> ast.LiteralSymbolic | None:
+        """Rewrite functional equalities in literals into prefixed predicate literals."""
         assert len(node.right) >= 1, "Comparison must have at least one guard."
         if (
             not is_function(node.left)
@@ -256,6 +263,7 @@ class NormalForm2PredicateTransformer:
         return node
 
     def rewrite(self, node: FASP_Statement) -> ast.Statement:
+        """Rewrite a normalized FASP statement into a plain clingo statement."""
         result = self._dispatch(node) or node
         return cast(ast.Statement, result)
 
@@ -340,6 +348,7 @@ def to_asp(
     context: RewriteContext,
     statement: FASP_Statement,
 ) -> ast.Statement:
+    """Rewrite a single normalized FASP statement into plain ASP."""
     to_asp_transformer = NormalForm2PredicateTransformer(
         context.lib.library, context.evaluable_functions, context.prefix_function
     )

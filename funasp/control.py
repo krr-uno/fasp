@@ -36,6 +36,7 @@ class Control:
         prefix: str = "F",
         clingo_control: Optional[clingo.control.Control] = None,
     ):
+        """Initialize the Control instance."""
         self.library = library
         self.clingo_control = clingo_control or clingo.control.Control(
             library.library, options
@@ -98,6 +99,7 @@ class Control:
         ) = None,
         on_finish: Callable[[clingo.solve.SolveResult], None] | None = None,
     ) -> Iterable[Model]:
+        """Solve the current grounded program and yield wrapped FASP models."""
         with self.clingo_control.start_solve(
             assumptions=assumptions,
             on_unsat=on_unsat,
@@ -110,6 +112,7 @@ class Control:
             self._result = handle.get()
 
     def print_model(self, model: clingo_solve.Model, _: Callable[[], None]) -> None:
+        """Print a model using the FASP-aware model formatter."""
         LIBC.fflush(None)  # Flush C's stdout
         sys.stdout.write(str(Model(model, self.prefix)))
         sys.stdout.write("\n")

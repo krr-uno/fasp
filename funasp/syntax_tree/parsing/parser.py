@@ -38,6 +38,7 @@ from funasp.util.ast import parse_string as clingo_parse_string
 
 
 def _ast_merge(asts1: Iterable[AST], asts2: Iterable[AST]) -> Iterable[AST]:
+    """Merge two statement streams ordered by source location."""
     asts = []
     asts1_i = iter(asts1)
     asts2_i = iter(asts2)
@@ -204,6 +205,7 @@ class TreeSitterParser:
     """
 
     def __init__(self, library: ELibrary):
+        """Initialize the parser wrapper and its error collection state."""
         self.library = library
         self.errors = []
 
@@ -240,6 +242,7 @@ class TreeSitterParser:
         return _ast_merge(_ast_merge(assigment_rules, showf_directives), statements)
 
     def _parse_assignment_rule(self, node: Node) -> AST:
+        """Parse an assignment-rule tree-sitter node into an AssignmentRule."""
         self._check_errors(node)
         unparsed_head = node.child_by_field_name("head")
         if unparsed_head.type == "simple_assignment":
@@ -264,6 +267,7 @@ class TreeSitterParser:
         )
 
     def _parse_showf(self, node: Node) -> ShowFDirective:
+        """Parse a #showf tree-sitter node into a ShowFDirective."""
         signature = None
         self._check_errors(node)
         unparsed_signature = node.child_by_field_name("signature")
@@ -274,6 +278,7 @@ class TreeSitterParser:
         return ShowFDirective(self._location_from_node(node), signature)
 
     def _check_errors(self, node: Node) -> None:
+        """Raise a parsing exception if the given tree-sitter node contains errors."""
         if node.has_error:
             start = Position(
                 self.library.library,
@@ -292,6 +297,7 @@ class TreeSitterParser:
             raise ParsingException([SyntacticError(location, message, None)])
 
     def _preparse_assignment(self, node: Node) -> tuple[ast.Term, str]:
+        """Split an assignment node into its left-hand term and raw right-hand text."""
         unparsed_function = node.children[0].text.decode("utf-8")
         unparsed_value = "".join(
             map(lambda x: x.text.decode("utf-8"), node.children[2:])
@@ -300,6 +306,7 @@ class TreeSitterParser:
         return assigned_function, unparsed_value
 
     def _parse_simple_assignment(self, node: Node) -> HeadSimpleAssignment:
+        """Parse a simple-assignment node into a HeadSimpleAssignment."""
         assigned_function, unparsed_value = self._preparse_assignment(node)
         value = ast.parse_term(self.library.library, unparsed_value)
         return HeadSimpleAssignment(
@@ -309,6 +316,7 @@ class TreeSitterParser:
         )
 
     def _parse_aggregate_assignment(self, node: Node) -> HeadAssignmentAggregate:
+        """Parse an aggregate-assignment node into a HeadAssignmentAggregate."""
         assigned_function, unparsed_aggregate = self._preparse_assignment(node)
         aggregate = self._clingo_parse_body_aggregate(unparsed_aggregate)
         return HeadAssignmentAggregate(
@@ -319,6 +327,7 @@ class TreeSitterParser:
         )
 
     def _parse_head_aggregate_assignment(self, node: Node) -> HeadAssignmentAggregate:
+        """Parse a head-aggregate-assignment node into a HeadAggregateAssignment."""
         # print(node)
         location = self._location_from_node(node)
 
@@ -401,6 +410,7 @@ class TreeSitterParser:
     def _parse_choice_assignment_element(
         self, node: Node
     ) -> AssignmentAggregateElement:
+        """Parse a choice-assignment element node into an AssignmentAggregateElement."""
         unparsed_assignment = node.child_by_field_name("assignment")
         unparsed_condition = node.children_by_field_name("condition")
         assignment = self._parse_simple_assignment(unparsed_assignment)
@@ -419,6 +429,7 @@ class TreeSitterParser:
         )
 
     def _parse_choice_assignment(self, node: Node) -> ChoiceAssignment:
+        """Parse a choice-assignment node into a ChoiceAssignment."""
         elements = []
         for unparsed_element in node.child_by_field_name("elements").children:
             if not unparsed_element.is_named:
@@ -470,6 +481,7 @@ class TreeSitterParser:
         )
 
     def _location_from_node(self, node: Node) -> Location:
+        """Convert a tree-sitter node span into a clingo source location."""
         return Location(
             Position(
                 self.library.library,
@@ -486,38 +498,47 @@ class TreeSitterParser:
         )
 
     def _clingo_parse_left_guard(self, src: str) -> AST:
+        """Parse a left guard by delegating to clingo on a synthetic choice."""
         choice = self._clingo_parse_choice(f"{src}{{a}}")
         return choice.left
 
     def _clingo_parse_right_guard(self, src: str) -> AST:
+        """Parse a right guard by delegating to clingo on a synthetic choice."""
         choice = self._clingo_parse_choice(f"{{a}}{src}")
         return choice.right
 
     def _clingo_parse_body(self, src: str) -> AST:
+        """Parse a rule body by delegating to clingo on a synthetic rule."""
         statement = ast.parse_statement(self.library.library, f":- {src}.")
         return statement.body
 
     def _clingo_parse_body_aggregate(self, src: str) -> AST:
+        """Parse a body aggregate by delegating to clingo on a synthetic rule body."""
         body = self._clingo_parse_body(src)
         return body[0]
 
     def _clingo_parse_head_aggregate(self, src: str) -> AST:
+        """Parse a head aggregate by delegating to clingo on a synthetic fact."""
         statement = ast.parse_statement(self.library.library, f"{src}.")
         return statement.head
 
     def _clingo_parse_choice(self, src: str) -> AST:
+        """Parse a choice head by delegating to clingo on a synthetic fact."""
         rule = ast.parse_statement(self.library.library, f"{src}.")
         return rule.head
 
     def _clingo_parse_choice_elements(self, src: str) -> AST:
+        """Parse choice elements by delegating to clingo on a synthetic choice."""
         choice = self._clingo_parse_choice(f"{{{src}}}")
         return choice.elements
 
     def _clingo_parse_choice_condition(self, src: str) -> AST:
+        """Parse a choice condition by delegating to clingo on a synthetic choice element."""
         elements = self._clingo_parse_choice_elements(f" p: {src}")
         return elements[0].condition
 
     def _clingo_parse_signature(self, src: str) -> AST:
+        """Parse a show signature by delegating to clingo on a synthetic directive."""
         statement = ast.parse_statement(self.library.library, f"#show {src}.")
         return SymbolSignature(statement.name, statement.arity)
 

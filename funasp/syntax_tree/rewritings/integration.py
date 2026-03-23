@@ -36,6 +36,7 @@ from funasp.syntax_tree.rewritings.unnesting.rules import (
 class RewritingStatement:
 
     def __init__(self, original: FASP_Statement):
+        """Initialize the wrapper around a single original statement."""
         self.original: Final[FASP_Statement] = original
         self.has_assignments = isinstance(original, AssignmentRule)
         self._rewritten: list[FASP_Statement] | None = [original]
@@ -43,6 +44,7 @@ class RewritingStatement:
 
     @property
     def rewritten(self) -> Sequence[FASP_Statement]:
+        """Return the current FASP-level rewritten statements."""
         if self._rewritten is not None:
             return self._rewritten
         assert self._clingo_rewritten is not None
@@ -50,6 +52,7 @@ class RewritingStatement:
 
     @property
     def clingo_rewritten(self) -> Sequence[ast.Statement]:
+        """Return the current clingo-level rewritten statements."""
         if self._clingo_rewritten is not None:
             return self._clingo_rewritten
         raise ValueError("No clingo rewritten statements available")  # pragma: no cover
@@ -59,6 +62,7 @@ class RewritingStatement:
         context: RewriteContext,
         fun: Callable[[RewriteContext, FASP_Statement], FASP_Statement],
     ) -> None:
+        """Apply a FASP-to-FASP rewrite function to the current statements."""
         assert self._rewritten is not None
         self._rewritten = [fun(context, stmt) for stmt in self.rewritten]
 
@@ -67,6 +71,7 @@ class RewritingStatement:
         context: RewriteContext,
         fun: Callable[[RewriteContext, FASP_Statement], ast.Statement],
     ) -> None:
+        """Apply a FASP-to-clingo rewrite function and switch to clingo statements."""
         assert self._rewritten is not None
         self._clingo_rewritten = [fun(context, stmt) for stmt in self.rewritten]
         self._rewritten = None
@@ -76,6 +81,7 @@ class RewritingStatement:
         context: RewriteContext,
         fun: Callable[[RewriteContext, ast.Statement], ast.Statement],
     ) -> None:
+        """Apply a clingo-to-clingo rewrite function to the current statements."""
         assert self._clingo_rewritten is not None
         self._clingo_rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
 
@@ -84,6 +90,7 @@ class RewritingStatement:
         context: RewriteContext,
         fun: Callable[[RewriteContext, ast.Statement], FASP_Statement],
     ) -> None:
+        """Apply a clingo-to-FASP rewrite function and switch back to FASP statements."""
         assert self._clingo_rewritten is not None
         self._rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
 
@@ -92,6 +99,7 @@ class RewritingStatement:
         context: RewriteContext,
         fun: Callable[[RewriteContext, Iterable[ast.Statement]], list[ast.Statement]],
     ) -> None:
+        """Apply a rewrite function that consumes and returns multiple clingo statements."""
         assert self._clingo_rewritten is not None
         self._clingo_rewritten = fun(context, self._clingo_rewritten)
 

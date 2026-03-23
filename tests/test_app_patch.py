@@ -23,6 +23,7 @@ FaspAppMock._control.prefix = "F"
 FaspAppMock._control.print_model = lambda model, default_printer: Control.print_model(FaspAppMock._control, model, default_printer)
 
 def control_main_patch(self):
+    """Control main patch."""
     self.ground()
     for i, model in enumerate(self.solve()):
         sys.stdout.write(f"Answer {i + 1}:\n")
@@ -36,6 +37,7 @@ def control_main_patch(self):
 class TestControl(unittest.TestCase):
 
     def execute_app(self, files: PathLike) -> tuple[str, str]:
+        """Execute app."""
         args = [str(file) for file in files] + ["0"]
         args_main = args + ["--outf=3"]  # For testing rewrite mode
         output_io = io.StringIO()
@@ -50,6 +52,7 @@ class TestControl(unittest.TestCase):
         return output_io.getvalue(), err_io.getvalue()
 
     def assert_models(self, files: PathLike, expected_models, *, allow_errors: bool=False):
+        """Assert models."""
         models = []
         line_number = 0
         output, error = self.execute_app(files)
@@ -76,6 +79,7 @@ class TestControl(unittest.TestCase):
         self.assertCountEqual(models, expected_models)
 
     def test_app(self):
+        """Test app."""
         examples = EXAMPLES
         # examples += [
         #     Example([TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"], ["f=1"]),
@@ -120,6 +124,7 @@ class TestControl(unittest.TestCase):
     #     self.assertEqual(output_default, output_custom)
 
     def execute_app_with_args(self, files, extra_args):
+        """Execute app with args."""
         args = [str(file) for file in files] + extra_args + ["0"]
         output_io = io.StringIO()
         err_io = io.StringIO()
@@ -129,6 +134,7 @@ class TestControl(unittest.TestCase):
         return output_io.getvalue(), err_io.getvalue()
 
     def test_prefix_and_print_rewrite(self):
+        """Test prefix and print rewrite."""
         example_file = TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"
 
         # Rewrite with default prefix (F)
@@ -155,6 +161,7 @@ class TestControl(unittest.TestCase):
         self.assertNotEqual(rewrite_default, rewrite_custom)
 
     def test_app_syntax_error(self):
+        """Test app syntax error."""
         example_file = TEST_EXAMPLES_PATH / "syntax_error.lp"
 
         # NOTE: No Error raised? app.py line:67-68
@@ -165,6 +172,7 @@ class TestControl(unittest.TestCase):
 
 
     def test_app_unsafe(self):
+        """Test app unsafe."""
         example_file = TEST_EXAMPLES_PATH / "unsafe.lp"
 
         # NOTE: No Error raised? app.py line:67-68
@@ -175,6 +183,7 @@ class TestControl(unittest.TestCase):
 
 
     def test_app_undefined_function(self):
+        """Test app undefined function."""
         example_file = TEST_EXAMPLES_PATH / "undefined_function.lp"
 
         # NOTE: No Error raised? app.py line:67-68

@@ -15,6 +15,7 @@ class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
     """Unit tests for the ChoiceSome -> ChoiceAssignment transformer."""
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
         self.context = RewriteContext(self.lib)
 
@@ -36,36 +37,42 @@ class TestChoiceSomeToChoiceAssignment(unittest.TestCase):
         return out, []
 
     def assertRewriteEqual(self, program: str, expected: str):
+        """Assert rewrite equal."""
         result, errors = self.rewrite(program)
         expected_lines = [line.strip() for line in expected.splitlines()]
         self.assertCountEqual(result, expected_lines)
         self.assertEqual(errors, [])
 
     def test_choice_some_transformation(self):
+        """Test choice some transformation."""
         self.assertRewriteEqual(
             "a := #some{X: p(X)} :- p.",
             "{ a := X: p(X) } = 1 :- #count { X: p(X) } >= 1; p.",
         )
 
     def test_choice_some_transformation_2(self):
+        """Test choice some transformation 2."""
         self.assertRewriteEqual(
             "a := #some{X: p(X), q; Y: p(Y)} :- p.",
             "{ a := X: p(X), q; a := Y: p(Y) } = 1 :- #count { X: p(X), q; Y: p(Y) } >= 1; p.",
         )
 
     def test_non_choice_some_transformation(self):
+        """Test non choice some transformation."""
         self.assertRewriteEqual(
             "a := #sum{X: p(X)} :- p.",
             "a := #sum{X: p(X)} :- p.",
         )
 
     def test_non_assignment_transformation(self):
+        """Test non assignment transformation."""
         self.assertRewriteEqual(
             "#sum{ X: p(X) } :- p.",
             "#sum { X: p(X) } :- p.",
         )
 
     def test_choice_some_tuple(self):
+        """Test choice some tuple."""
         self.assertRewriteEqual(
             "a := #some{X,Y: p(X,Y)} :- p.",
             "{ a := (X,Y): p(X,Y) } = 1 :- #count { X,Y: p(X,Y) } >= 1; p.",

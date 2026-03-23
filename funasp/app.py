@@ -29,6 +29,7 @@ LIBC.fflush.restype = ctypes.c_int
 
 class FaspApp(App):
     def __init__(self, library: ELibrary, clingo_options: Sequence[str]) -> None:
+        """Initialize the FaspApp instance."""
         super().__init__("funasp", __version__)
         self._order = Flag()
         self._library = library
@@ -39,6 +40,7 @@ class FaspApp(App):
         self._errors: list[Exception] = []
 
     def register_options(self, options: AppOptions) -> None:
+        """Register the command-line options supported by this application."""
         options.add_flag(
             "fasp", "order", "Print atoms in models in order.", self._order
         )
@@ -54,13 +56,16 @@ class FaspApp(App):
     def print_model(
         self, model: solve.Model, default_printer: Callable[[], None]
     ) -> None:
+        """Delegate model printing to the wrapped control object."""
         assert self._control is not None
         self._control.print_model(model, default_printer)
 
     def _set_prefix(self, prefix: str) -> None:
+        """Store the prefix used for rewritten function predicates."""
         self._prefix = prefix
 
     def main(self, clingo_control: ClingoControl, files: Sequence[str]) -> None:
+        """Parse the input files and either print the rewrite or run solving."""
         prefix = self._prefix
         self._control = Control(
             self._library,
@@ -86,6 +91,7 @@ class FaspApp(App):
         self._control.main()
 
     def report_error_summary(self) -> None:
+        """Print a short summary for parsing or rewriting failures."""
         if any(isinstance(error, ParsingException) for error in self._errors):
             print(
                 Style.BRIGHT
@@ -142,7 +148,10 @@ def fasp_main(
 
 
 def main(options: Sequence[str] = ()) -> int:
+    """Create the shared library wrapper and run the CLI application."""
+
     def logger(ty: core.MessageType, message: str) -> None:
+        """Forward clingo log messages to standard error."""
         sys.stderr.write(message + "\n")
 
     with ELibrary(logger=logger) as library:

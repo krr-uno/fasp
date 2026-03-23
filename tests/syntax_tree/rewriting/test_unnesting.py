@@ -16,6 +16,7 @@ from funasp.syntax_tree.rewritings.unnesting.rules import unnest_functions
 class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.elib = ELibrary()
         self.lib = self.elib.library
 
@@ -27,6 +28,7 @@ class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
         outer: bool = False,
         unnest_left_guard_equality: bool = False,
     ):
+        """Assert equal unnesting."""
         eval_sigs = {
             SymbolSignature(name, int(arity))
             for name, arity in (s.split("/") for s in evaluable_functions)
@@ -56,6 +58,7 @@ class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
         expected_term_str: str | None,
         outer: bool = False,
     ):
+        """Assert equal unnesting term."""
         term = clingo_ast.parse_term(self.lib, term_str)
         expected_term = (
             clingo_ast.parse_term(self.lib, expected_term_str)
@@ -71,6 +74,7 @@ class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
         expected_literal_str: str | None,
         unnest_left_guard_equality: bool = False,
     ):
+        """Assert equal unnesting literal."""
         literal = clingo_ast.parse_literal(self.lib, literal_str)
         expected_literal = (
             clingo_ast.parse_literal(self.lib, expected_literal_str)
@@ -86,6 +90,7 @@ class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
         )
 
     def test_function(self):
+        """Test function."""
         self.assertEqualUnnestingTerm("a", ["a/0"], "FUN")
         self.assertEqualUnnestingTerm("a", ["a/0"], None, outer=True)
         self.assertEqualUnnestingTerm("a", [], None)
@@ -94,16 +99,20 @@ class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
         self.assertEqualUnnestingTerm("f(a)", [], None)
 
     def test_symbolic_literal1(self):
+        """Test symbolic literal1."""
         self.assertEqualUnnestingLiteral("a(a)", ["a/0"], "a(FUN)")
 
     def test_symbolic_literal2(self):
+        """Test symbolic literal2."""
         self.assertEqualUnnestingLiteral("a", [], None)
 
     def test_symbolic_literal3(self):
+        """Test symbolic literal3."""
         self.assertEqualUnnestingLiteral("p(f(a))", ["f/1"], "p(FUN)")
         self.assertEqualUnnestingLiteral("p(f(a))", ["p/1"], None)
 
     def test_symbolic_equality(self):
+        """Test symbolic equality."""
         self.assertEqualUnnestingLiteral("a=a", ["a/0"], "a=FUN")
         self.assertEqualUnnestingLiteral("a=b", ["a/0"], None)
         self.assertEqualUnnestingLiteral("a=b", [], None)
@@ -132,6 +141,7 @@ class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):
         )
 
     def test_symbolic_inequality(self):
+        """Test symbolic inequality."""
         self.assertEqualUnnestingLiteral("a<a", ["a/0"], "FUN<FUN2")
         self.assertEqualUnnestingLiteral("a<b", ["a/0"], "FUN<b")
         self.assertEqualUnnestingLiteral("a<b", [], None)
@@ -145,6 +155,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
     """
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
         self.context = clingo_ast.RewriteContext(self.lib.library)
 
@@ -210,6 +221,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         allowed_in_negated_literals: bool = True,
         apply_clingo_rewrite: bool = False,
     ):
+        """Assert equal unnesting."""
         new_program, unnested_sets = self.apply_unnesting_node(
             program,
             evaluable_functions,
@@ -229,6 +241,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
             self.assertEqual(expected_sets, unnested_sets)
 
     def test_non_evaluable_symbolic_and_function(self):
+        """Test non evaluable symbolic and function."""
         self.assertEqualUnnesting(
             "q(a,b).",
             [],
@@ -237,6 +250,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_non_evaluable_symbolic_and_function(self):
+        """Test non evaluable symbolic and function."""
         self.assertEqualUnnesting(
             ":- q(a,b).",
             [],
@@ -245,6 +259,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_non_evaluable_symbolic_and_function_tuple(self):
+        """Test non evaluable symbolic and function tuple."""
         self.assertEqualUnnesting(
             "r((a,b)).",
             [],
@@ -253,6 +268,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_head(self):
+        """Test head."""
         self.assertEqualUnnesting(
             """p(g(h(a,b),c),d(X)) :- q(X).""",
             ["g/2", "h/2", "a/0"],
@@ -263,6 +279,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_body(self):
+        """Test body."""
         self.assertEqualUnnesting(
             """:- p(g(h(a,b),c),d(X)).""",
             ["g/2", "h/2", "a/0"],
@@ -273,6 +290,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_absolute_unary_binary_operations(self):
+        """Test absolute unary binary operations."""
         self.assertEqualUnnesting(
             "s(abs(-1), -(1), 1+2).",
             [],
@@ -281,6 +299,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_absolute(self):
+        """Test absolute."""
         self.assertEqualUnnesting(
             "p(|f(a)|).",
             ["f/1"],
@@ -289,6 +308,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_absolute_with_evaluable_function(self):
+        """Test absolute with evaluable function."""
         self.assertEqualUnnesting(
             "s(abs(f(a))).",
             ["f/1"],
@@ -305,6 +325,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
     #     )
 
     def test_predicates_are_not_functions(self):
+        """Test predicates are not functions."""
         self.assertEqualUnnesting(
             "f(a) :- q.",
             ["f/1"],
@@ -319,6 +340,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_mixed_head_and_body(self):
+        """Test mixed head and body."""
         self.assertEqualUnnesting(
             "p(f(a)) :- q(f(b)).",
             ["f/1"],
@@ -327,6 +349,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_no_evaluable_functions(self):
+        """Test no evaluable functions."""
         self.assertEqualUnnesting(
             "r(f(a)).",
             [],
@@ -335,6 +358,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_double_occurrence_same_function(self):
+        """Test double occurrence same function."""
         self.assertEqualUnnesting(
             "s(f(a), f(a)).",
             ["f/1"],
@@ -343,6 +367,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_double_occurrence_same_function_and_symbolic_function(self):
+        """Test double occurrence same function and symbolic function."""
         self.assertEqualUnnesting(
             "s(f(a), f(a)).",
             ["f/1", "a/0"],
@@ -351,6 +376,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_comparison(self):
+        """Test comparison."""
         self.assertEqualUnnesting(
             ":- f(a)<f(b).",
             ["f/1", "a/0"],
@@ -359,6 +385,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_comparison_rules_split(self):
+        """Test comparison rules split."""
         self.assertEqualUnnesting(
             ":- f(a) = f(b).",
             ["f/1", "a/0", "h/1"],
@@ -402,6 +429,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_non_binary_comparisons(self):
+        """Test non binary comparisons."""
         self.assertEqualUnnesting(
             ":- f(a)<f(b)<f(c).",
             ["f/1"],
@@ -410,6 +438,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_not_allowed_in_negated_literals(self):
+        """Test not allowed in negated literals."""
         with self.assertRaises(RuntimeError) as cm:
             self.assertEqualUnnesting(
                 ":- not p(f(a)).",
@@ -474,6 +503,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_head_simple_assignment_unnesting(self):
+        """Test head simple assignment unnesting."""
         self.assertEqualUnnesting(
             "x(X) := h(f(X))+g(Y).",
             ["f/1", "g/1"],
@@ -482,6 +512,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_double_negation(self):
+        """Test double negation."""
         self.assertEqualUnnesting(
             "p(f(1),b) :- q(a,b), not not r(h(1)).",
             ["f/1", "a/0", "h/1"],
@@ -490,6 +521,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_double_negation_in_multiple_level_unnesting(self):
+        """Test double negation in multiple level unnesting."""
         self.assertEqualUnnesting(
             "p :- not not q(f(g(a))).",
             ["f/1", "g/1", "a/0"],
@@ -498,6 +530,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_equality_comparison_in_head(self):
+        """Test equality comparison in head."""
         self.assertEqualUnnesting(
             "a=b :- p.",
             ["a/0", "b/0"],
@@ -507,6 +540,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_negative_predicate(self):
+        """Test negative predicate."""
         self.assertEqualUnnesting(
             "p :- q(a); not r(q(X)).",
             ["q/1", "a/0"],
@@ -515,6 +549,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_conditional_literal(self):
+        """Test conditional literal."""
         self.assertEqualUnnesting(
             "p :- q(X): r(f(X)).",
             ["f/1"],
@@ -523,6 +558,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_conditional_literal_nothing(self):
+        """Test conditional literal nothing."""
         self.assertEqualUnnesting(
             "p :- q(X): r(f(X)).",
             [],
@@ -531,6 +567,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_assignment_rule(self):
+        """Test assignment rule."""
         self.assertEqualUnnesting(
             "a := b :- p(c).",
             ["a/0", "c/0"],
@@ -540,6 +577,7 @@ class TestUnnestFunctionsTransformer(unittest.TestCase):
         )
 
     def test_pool(self):
+        """Test pool."""
         self.assertEqualUnnesting(
             "p(f(a;b,c)).",
             ["f/1"],

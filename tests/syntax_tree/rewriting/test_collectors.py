@@ -12,6 +12,7 @@ class TestGetEvaluableFunctions(unittest.TestCase):
     """
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
 
     def assertEqualFunctions(self, program, expected_functions):
@@ -69,6 +70,7 @@ class TestGetEvaluableFunctions(unittest.TestCase):
 class TestGetVariables(unittest.TestCase):
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
 
     def assertEqualVariables(self, program, expected_variables):
@@ -84,6 +86,7 @@ class TestGetVariables(unittest.TestCase):
         self.assertCountEqual(variables, expected_variables)
 
     def test_collect_from_clingo_program(self):
+        """Test collect from clingo program."""
         self.assertEqualVariables("p(X,Y) :- q(Z), not r(W).", {"X", "Y", "Z", "W"})
         self.assertEqualVariables("p(X,Y).", {"X", "Y"})
         self.assertEqualVariables("p(X,Y) := (W,Z).", {"X", "Y", "W", "Z"})

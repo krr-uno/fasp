@@ -12,6 +12,7 @@ from funasp.syntax_tree.rewritings.negated_literals import (
 
 class TestNegatedLiteralsTransformer(unittest.TestCase):
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
         self.context = RewriteContext(self.lib)
 
@@ -40,6 +41,7 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
         return "\n".join(new_stmts_str).strip()
 
     def assertCorrectRewrite(self, program: str, expected_program: str):
+        """Assert correct rewrite."""
         program = program.strip()
         new_program = self.apply_negated_literals_transformer(program)
 
@@ -48,66 +50,77 @@ class TestNegatedLiteralsTransformer(unittest.TestCase):
             self.assertEqual(new_program, expected_program)
 
     def test_empty(self):
+        """Test empty."""
         self.assertCorrectRewrite(
             "a.",
             "a.",
         )
 
     def test_no_change(self):
+        """Test no change."""
         self.assertCorrectRewrite(
             "a :- b.",
             "a :- b.",
         )
 
     def test_basic(self):
+        """Test basic."""
         self.assertCorrectRewrite(
             "b :- not a; c.",
             "b :- #false: a; c.",
         )
 
     def test_negated_literals_and_aggregates(self):
+        """Test negated literals and aggregates."""
         self.assertCorrectRewrite(
             "d :- not a; #count { X: p(X), not b(X) } >= 2.",
             "d :- #false: a; #count { X: p(X), not b(X) } >= 2.",
         )
 
     def test_double_negation(self):
+        """Test double negation."""
         self.assertCorrectRewrite(
             "b :- not not a.",
             "b :- not not a.",
         )
 
     def test_literal_boolean(self):
+        """Test literal boolean."""
         self.assertCorrectRewrite(
             "b :- not #false.",
             "b :- not #false.",
         )
 
     def test_no_change_assignment(self):
+        """Test no change assignment."""
         self.assertCorrectRewrite(
             "a := b.",
             "a := b.",
         )
 
     def test_negated_literals_and_aggregates_assignment(self):
+        """Test negated literals and aggregates assignment."""
         self.assertCorrectRewrite(
             "score(X) := #sum{f(Y): f(p(Y)), q(X) } :- p; not a.",
             "score(X) := #sum{f(Y): f(p(Y)), q(X)} :- p; #false: a.",
         )
 
     def test_negated_literals_with_variables(self):
+        """Test negated literals with variables."""
         self.assertCorrectRewrite(
             "a :- not p(X).",
             "a :- #false: p(X).",
         )
 
     def test_negated_literals_with_anonymous_variables(self):
+        """Test negated literals with anonymous variables."""
         self.assertCorrectRewrite(
             "a :- not p(_).",
             "a :- #false: p(_).",
         )
 
     def test_orphan(self):
+        """Test orphan."""
         self.assertCorrectRewrite(
             "orphan(X) :- person(X); not father(X)=_, not mother(X)=_.",
             "orphan(X) :- person(X); #false: father(X)=_; #false: mother(X)=_.",

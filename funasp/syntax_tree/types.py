@@ -15,4 +15,5 @@ class SymbolSignature:
     arity: int
 
     def __str__(self) -> str:
+        """Return the string form of the signature as name/arity."""
         return f"{self.name}/{self.arity}"

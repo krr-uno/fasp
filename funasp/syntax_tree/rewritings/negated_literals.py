@@ -14,6 +14,7 @@ from funasp.util.ast import transform_iterable
 def _rewrite_body_literal(
     library: Library, literal: ast.BodyLiteral
 ) -> None | ast.BodyConditionalLiteral:
+    """Rewrite a negated body literal into an equivalent conditional literal when needed."""
     if (
         not isinstance(literal, ast.BodySimpleLiteral)
         or isinstance(literal.literal, ast.LiteralBoolean)
@@ -35,6 +36,7 @@ def _rewrite_body_literal(
 def rewrite_negate_body_literals(
     context: RewriteContext, statement: FASP_Statement
 ) -> FASP_Statement:
+    """Rewrite eligible negated body literals inside a single statement."""
     if not isinstance(statement, ast.StatementRule | AssignmentRule):
         return statement
     new_body = transform_iterable(
@@ -49,4 +51,5 @@ def rewrite_negated_body_literals_from_statements(
     context: RewriteContext,
     statements: Iterable[FASP_Statement],
 ) -> Iterable[FASP_Statement]:
+    """Rewrite eligible negated body literals across a sequence of statements."""
     return [rewrite_negate_body_literals(context, stmt) for stmt in statements]

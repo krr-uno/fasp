@@ -52,6 +52,7 @@ ASSIGNMENT_NAME = "ASS"
 
 
 def _sign_to_int(library: core.Library, sign: ast.Sign) -> ast.TermSymbolic:
+    """Encode a literal sign as a numeric symbolic term."""
     position = core.Position(library, "<aux>", 0, 0)
     location = core.Location(position, position)
     return ast.TermSymbolic(
@@ -60,6 +61,7 @@ def _sign_to_int(library: core.Library, sign: ast.Sign) -> ast.TermSymbolic:
 
 
 def _relation_to_int(library: core.Library, relation: ast.Relation) -> ast.TermSymbolic:
+    """Encode a comparison relation as a numeric symbolic term."""
     position = core.Position(library, "<aux>", 0, 0)
     location = core.Location(position, position)
     return ast.TermSymbolic(
@@ -70,6 +72,7 @@ def _relation_to_int(library: core.Library, relation: ast.Relation) -> ast.TermS
 def _guard_to_function(
     context: RewriteContext, location: core.Location, guard: ast.RightGuard
 ) -> ast.TermFunction:
+    """Encode a right guard as a synthetic guard function term."""
     library = context.lib.library
     arguments = ast.ArgumentTuple(
         library, [_relation_to_int(library, guard.relation), guard.term]
@@ -81,11 +84,13 @@ def _guard_to_function(
 
 @singledispatch
 def _protect_comparison(node: AST, context: RewriteContext) -> AST | None:
+    """Protect comparison nodes by encoding them as ordinary symbolic literals."""
     return node.transform(context.lib.library, _protect_comparison, context)
 
 
 @_protect_comparison.register
 def _(node: ast.LiteralBoolean | ast.LiteralSymbolic, context: RewriteContext) -> None:
+    """Leave non-comparison literals unchanged during comparison protection."""
     return None
 
 
@@ -173,6 +178,7 @@ class RightGuard:
 def _restore_guard_arguments(
     library: core.Library, term: ast.TermFunction | clingo.symbol.Symbol
 ) -> RightGuard:
+    """Decode a protected guard term back into a RightGuard object."""
     _, arguments = function_arguments(term)
     relation_int = arguments[0]
     term2 = arguments[1]
@@ -207,6 +213,7 @@ def restore_comparison_arguments(
     library: core.Library,
     arguments: Sequence[ast.TermOrProjection] | Sequence[clingo.symbol.Symbol],
 ) -> tuple[ast.Sign, ast.TermOrProjection | clingo.symbol.Symbol, list[RightGuard]]:
+    """Decode the arguments stored inside a protected comparison literal."""
     assert (
         len(arguments) == 3
     ), f"Expected 3 arguments, got {len(arguments)}: {arguments}"
@@ -238,6 +245,7 @@ def restore_comparison(
     literal: ast.LiteralSymbolic,
     comparison_name: str = COMPARISON_NAME,
 ) -> ast.LiteralSymbolic | ast.LiteralComparison:
+    """Restore a protected comparison literal back into a LiteralComparison."""
     atom = literal.atom
     assert is_function(atom)
     function_name, arguments = function_arguments(atom)
@@ -316,26 +324,31 @@ class _ComparisonRestorationTransformer:
     """
 
     def __init__(self, context: RewriteContext):
+        """Initialize the comparison restoration transformer."""
         self.library = context.lib.library
         # self.protect_comparison = ComparisonProtector(context)
 
     @singledispatchmethod
     def dispatch(self, node: AST) -> AST:  # pragma: no cover
+        """Dispatch restoration recursively across the given AST node."""
         return node.transform(self.library, self.dispatch) or node
 
     @dispatch.register
     def _(  # pragma: no cover
         self, node: ast.LiteralSymbolic
     ) -> ast.LiteralSymbolic | ast.LiteralComparison:
+        """Restore protected comparisons that appear as symbolic literals."""
         return restore_comparison(self.library, node)
 
     @dispatch.register
     def _(
         self, node: ast.LiteralBoolean | ast.LiteralComparison
     ) -> ast.LiteralBoolean | ast.LiteralComparison:
+        """Leave boolean literals and existing comparisons unchanged."""
         return node
 
     def rewrite(self, node: ast.Statement) -> ast.Statement:
+        """Restore protected comparisons throughout the given statement."""
         return node.transform(self.library, self.dispatch) or node
 
 
@@ -381,6 +394,7 @@ def restore_comparisons_list(
 def protect_head_simple_assignment(
     context: RewriteContext, node: HeadSimpleAssignment
 ) -> ast.LiteralSymbolic:
+    """Encode a simple assignment head as an ASS(...) symbolic literal."""
     left = node.assigned_function
     # Build ASS(left, right)
     atom = ast.TermFunction(
@@ -398,6 +412,7 @@ def protect_head_simple_assignment(
 def protect_choice_assignment(
     context: RewriteContext, head: ChoiceAssignment
 ) -> ast.HeadSetAggregate:
+    """Encode assignment elements inside a choice head as protected aggregate elements."""
     new_elements = []
     for element in head.elements:
         if isinstance(element, AssignmentAggregateElement):
@@ -425,6 +440,7 @@ def protect_choice_assignment(
 def protect_head_aggregate_assignment(
     context: RewriteContext, node: HeadAggregateAssignment
 ) -> ast.HeadAggregate:
+    """Encode assignment elements inside a head aggregate as protected literals."""
     new_head_aggregate_elements = []
     for element in node.elements:
         if isinstance(element, HeadAggregateAssignmentElement):
@@ -451,6 +467,7 @@ def protect_head_aggregate_assignment(
 
 
 def protect_assignment(context: RewriteContext, node: FASP_Statement) -> ast.Statement:
+    """Rewrite an assignment rule into a standard clingo rule with protected heads."""
     if not isinstance(node, AssignmentRule):
         return node
 
@@ -527,6 +544,7 @@ def _restore_assignment_function_to_head_simple_assignment(
     library: core.Library,
     atom: ast.TermFunction | ast.TermSymbolic,
 ) -> Optional[HeadSimpleAssignment]:
+    """Decode an ASS(...) term back into a simple assignment head."""
     # if not is_function(atom):
     #     return None  # pragma: no cover
 
@@ -569,6 +587,7 @@ class _AssignmentRestorationTransformer:
     """
 
     def __init__(self, library: ELibrary, prefix: str = "F"):
+        """Initialize the assignment restoration transformer."""
         self.elib = library
         self.library = library.library
         self.prefix = prefix
@@ -615,6 +634,7 @@ class _AssignmentRestorationTransformer:
         term: ast.TermFunction | ast.TermSymbolic,
         prefix: str,
     ) -> ast.TermFunction:
+        """Convert an ASS(...) tuple term into its prefixed predicate tuple form."""
         # Construct a new TermFunction for a protected assignment tuple.
         # Example: ASS(next(X), Y) with prefix 'F' -> Fnext(X, Y)
 

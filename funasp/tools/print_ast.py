@@ -68,6 +68,7 @@ def pretty_print(node: Any, indent: int = 0) -> None:
 
         # clingo's visit expects a callback taking one parameter: the child node
         def cb(child: Any) -> None:
+            """Print a visited child node with one additional level of indentation."""
             pretty_print(child, indent + 1)
 
         try:

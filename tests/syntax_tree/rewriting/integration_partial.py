@@ -53,6 +53,7 @@ class FASPProgramTransformer:
         ctx: FASPRewriteContext,
         statement_asts: Iterable[FASP_Statement],
     ):
+        """Handle init."""
         self.ctx = ctx
         self.lib = self.ctx.lib
         self.library = self.lib.library
@@ -80,6 +81,7 @@ class FASPProgramTransformer:
     def log_info(
         self, statements: Iterable[FASP_Statement], stage: PipelineStage
     ) -> Iterable[FASP_Statement]:  # pragma: no cover
+        """Log info."""
         out = list(statements)
         for s in out:
             if hasattr(s, "head") and hasattr(s, "body"):
@@ -112,6 +114,7 @@ class FASPProgramTransformer:
     def _rewrite_choice_some_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
+        """Handle rewrite choice some wrapper."""
         out = [
             rewrite_some_choices(self.library, stmt)
             for stmt in statements
@@ -121,6 +124,7 @@ class FASPProgramTransformer:
     def _normalize_assignment_aggregates_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
+        """Handle normalize assignment aggregates wrapper."""
         out = [
             normalize_assignment_aggregates(self.library, stmt) for stmt in statements
         ]
@@ -129,16 +133,19 @@ class FASPProgramTransformer:
     def _protect_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
+        """Handle protect assignments wrapper."""
         return protect_assignments(self.ctx, statements)
 
     def _protect_comparisons_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
+        """Handle protect comparisons wrapper."""
         return [protect_comparisons(self.ctx, stm) for stm in statements]
 
     def _clingo_rewrite_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
+        """Handle clingo rewrite wrapper."""
         ctx = self.ctx.ctx
         self.ctx.lib.ignore_info = True
         out = []
@@ -163,6 +170,7 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
 
+        """Handle restore comparisons wrapper."""
         stmts = list(statements)
 
         for stmt in stmts:
@@ -173,6 +181,7 @@ class FASPProgramTransformer:
     def _restore_assignments_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
+        """Handle restore assignments wrapper."""
         return restore_assignments_list(
             self.lib,
             cast(Iterable[ast.Statement], statements),
@@ -182,6 +191,7 @@ class FASPProgramTransformer:
     def _negated_literals_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
+        """Handle negated literals wrapper."""
         return rewrite_negated_body_literals_from_statements(
             self.lib, cast(Iterable[ast.Statement], statements)
         )
@@ -189,6 +199,7 @@ class FASPProgramTransformer:
     def _unnest_functions_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
+        """Handle unnest functions wrapper."""
         stmts = list(statements)
         stmts2 = list(stmts)
         self.evaluable_functions = collect_evaluable_functions(stmts2)
@@ -206,6 +217,7 @@ class FASPProgramTransformer:
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
         # Collect evaluable functions again
+        """Handle to asp wrapper."""
         self.evaluable_functions = collect_evaluable_functions(statements)
 
         to_asp_transformer = NormalForm2PredicateTransformer(
@@ -219,6 +231,7 @@ class FASPProgramTransformer:
     def _showf_to_show_wrapper(
         self, statements: Iterable[FASP_Statement]
     ) -> Iterable[FASP_Statement]:
+        """Handle showf to show wrapper."""
         return [rewrite_showf(self.ctx, stmt) for stmt in statements]
 
 

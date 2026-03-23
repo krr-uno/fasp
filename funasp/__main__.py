@@ -2,6 +2,7 @@ import sys
 
 
 def check_versions() -> int:  # pragma: no cover
+    """Validate the Python and clingo versions required by the CLI."""
     if sys.version_info < (3, 13):
         sys.stderr.write(
             f"*** ERROR: funasp requires Python 3.13 or higher, found version {sys.version_info} \n"
@@ -27,6 +28,7 @@ def check_versions() -> int:  # pragma: no cover
 
 
 def main() -> int:
+    """Run the package entry point after validating the runtime environment."""
     args = frozenset(sys.argv[1:])
     "-v" in args or "--version" in args
     # if not version_mode:

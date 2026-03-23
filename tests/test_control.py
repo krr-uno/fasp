@@ -16,9 +16,11 @@ TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 class TestControl(unittest.TestCase):
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.library = ELibrary()
 
     def get_models(self, files: PathLike) -> Iterable[Model]:
+        """Return models."""
         control = Control(self.library, ["0"])
 
         control.parse_files(list(map(str, files)))
@@ -27,10 +29,12 @@ class TestControl(unittest.TestCase):
             yield model
 
     def assert_models(self, files: PathLike, expected_models):
+        """Assert models."""
         models = [str(model) for model in self.get_models(files)]
         self.assertCountEqual(models, expected_models)
 
     def test_app(self):
+        """Test app."""
         for i, example in enumerate(EXAMPLES):
             file_names = [f.name for f in example.files]
             with self.subTest(f"{i}: {file_names}"):

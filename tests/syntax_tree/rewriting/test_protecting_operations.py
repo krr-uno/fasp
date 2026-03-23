@@ -10,13 +10,16 @@ from funasp.syntax_tree.rewritings.integration import RewritingStatement, _cling
 
 class TestProtectOperations(unittest.TestCase):
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
         self.context = RewriteContext(lib=self.lib)
 
     def assertEqualRewrite(self, program, expected):
+        """Assert equal rewrite."""
         statements = []
 
         def callback(statement):
+            """Handle callback output for the current test."""
             statements.append(statement)
 
         ast.parse_string(self.lib.library, program, callback)
@@ -37,6 +40,7 @@ class TestProtectOperations(unittest.TestCase):
 
     ## TESTS ##
     def test_protect_operations(self):
+        """Test protect operations."""
         self.assertEqualRewrite(
             """
             p(a+((b+d),c),X) :-  f(X).
@@ -50,6 +54,7 @@ class TestProtectOperations(unittest.TestCase):
 
     ## EXTRA TEST ##
     def test_protect_operations_2(self):
+        """Test protect operations 2."""
         self.assertEqualRewrite(
             """
             p(a+((b+d),c),X) :-  f(X) + f(Y)=2.
@@ -63,13 +68,16 @@ class TestProtectOperations(unittest.TestCase):
 
 class TestRestoreOperations(unittest.TestCase):
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
         self.context = RewriteContext(lib=self.lib)
 
     def assertEqualRewrite(self, program, expected):
+        """Assert equal rewrite."""
         statements = []
 
         def callback(statement):
+            """Handle callback output for the current test."""
             statements.append(statement)
 
         ast.parse_string(self.lib.library, program, callback)
@@ -96,6 +104,7 @@ class TestRestoreOperations(unittest.TestCase):
 
     ## TESTS ##
     def test_restore_operations(self):
+        """Test restore operations."""
         program = "p(a+(b+d,c),X) :- f(X)."
         self.assertEqualRewrite(
             program, program
@@ -111,13 +120,16 @@ class TestRestoreOperations(unittest.TestCase):
     #     )
 
     def test_restore_operations_absolute(self):
+        """Test restore operations absolute."""
         program ="p(|(a+b,c)|)."
         self.assertEqualRewrite(program, program)
 
     def test_restore_mixed_non_function(self):
+        """Test restore mixed non function."""
         program = "p(1,a,2)."
         self.assertEqualRewrite(program, program)
     ## EXTRA TEST ##
     def test_restore_nested_functions(self):
+        """Test restore nested functions."""
         program = "p(f(g(a+b),h(c)))."
         self.assertEqualRewrite(program, program)

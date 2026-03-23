@@ -17,16 +17,19 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
     """
 
     def setUp(self):
+        """Set up test fixtures for each test."""
         self.lib = ELibrary()
         self.context = RewriteContext(self.lib)
         self.rewrite_context = self.context.ctx
 
     def parse_program(self, program: str):
+        """Parse program."""
         stmts = parse_string(self.lib, program)
         # ast.parse_string(self.lib, program, stmts.append)
         return stmts
 
     def rewrite(self, program: str):
+        """Rewrite."""
         stmts = self.parse_program(program)
         out = [
             normalize_assignment_aggregates(self.context, stmt) for stmt in stmts
@@ -34,6 +37,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         return [str(stmt).strip() for stmt in out], []
 
     def assertRewriteEqual(self, program: str, expected: str):
+        """Assert rewrite equal."""
         result, errors = self.rewrite(program)
         expected_lines = [line.strip() for line in expected.splitlines()]
         self.assertCountEqual(result, expected_lines)
@@ -41,6 +45,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         self.assertEqual(errors, [])
 
     def test_valid_sum_and_count(self):
+        """Test valid sum and count."""
         program = """\
             f(X) := #sum { Y: p(Y,Z) , q(X), r(X) } :- b(X,Z).
             f(X) := #count { Y: p(Y,Z) } :- b(X,Z).
@@ -55,6 +60,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         self.assertRewriteEqual(program, expected)
 
     def test_valid_sum_and_count2(self):
+        """Test valid sum and count2."""
         program = """\
             f(X) := #sum{ Y : p(Y,Z) , q(X), r(X) ; X : p(X) , q(X), r(X) } :- b(X,Z).
         """
@@ -67,6 +73,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
         self.assertRewriteEqual(program, expected)
 
     def test_valid_left_term_no_error_symbolic_function(self):
+        """Test valid left term no error symbolic function."""
         program = """\
             a = #sum{ Y : p(Y,Z) } :- b(X,Z).
         """
@@ -131,6 +138,7 @@ class TestHeadAggregateToBodyRewriteTransformer(unittest.TestCase):
     #     self.assertIn("found X", errors[0].message)
 
     def test_non_rule_statement_passthrough(self):
+        """Test non rule statement passthrough."""
         program = "p(a)."
 
         stmts = self.parse_program(program)

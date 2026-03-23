@@ -24,6 +24,7 @@ class Model:
     """
 
     def __init__(self, model: solve.Model, prefix: str = "F"):
+        """Initialize the Model instance."""
         self.clingo_model = model
         self.prefix = prefix
 
@@ -69,6 +70,7 @@ class Model:
         terms: bool = False,
         theory: bool = False,
     ) -> Sequence[FunctionSymbol]:
+        """Return the shown function assignments extracted from the underlying model."""
         return [
             FunctionSymbol.from_symbol(symbol)
             for symbol in self.clingo_model.symbols(shown, atoms, terms, theory)
@@ -103,4 +105,5 @@ class Model:
         return f"{predicate_str}\n{function_str}"
 
     def __repr__(self) -> str:
+        """Return the developer-facing string representation of this Model."""
         return self.to_str(ordered=True)
