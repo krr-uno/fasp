@@ -116,6 +116,36 @@ class UtilTest(unittest.TestCase):
         # For two variant elements, number of non-empty subsets = 3
         self.assertEqual(len(subsets[0]), 3)
 
+    def test_is_function(self) -> None:
+        term = parse_and_find(self.lib, "1 { a(X): p(X) } 1 :- a.", ast.TermFunction)
+        assert isinstance(term, ast.TermFunction)
+        assert util.is_function(term)
+
+    def test_get_parameter_list(self) -> None:
+        literalSymbolic = parse_and_find(self.lib, "p(X) :- a.", ast.LiteralSymbolic)
+        if literalSymbolic:
+            self.assertEqual(str(literalSymbolic), "p(X)")
+            params = util.get_parameter_list(literalSymbolic)
+            self.assertEqual(params, ['X'])
+        
+        symbolic = parse_and_find(self.lib, "p(1,2).", ast.TermSymbolic)
+        if symbolic:
+            self.assertEqual(str(symbolic), "1")
+            params = util.get_parameter_list(symbolic)
+            self.assertEqual(params, [])
+
+
+        termFunction = parse_and_find(self.lib, "1 { a(b(X),c): p(X) } 1 :- a.", ast.TermFunction)
+        if termFunction:
+            self.assertEqual(str(termFunction), "a(b(X),c)")
+            params = util.get_parameter_list(termFunction)
+            self.assertEqual(params, ['b(X)', 'c'])
+        
+        # termSymbolic = parse_and_find(self.lib, "{ a(X): p}:- a.", ast.TermSymbolic)
+        # self.assertEqual(str(termSymbolic), "p")
+        # params = util.get_parameter_list(termSymbolic)
+        # self.assertEqual(params, [])
+
 
 if __name__ == "__main__":
     unittest.main()

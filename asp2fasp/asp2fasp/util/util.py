@@ -4,6 +4,7 @@ from typing import (
     List,
     Sequence,
     Tuple,
+    TypeIs,
     TypeVar,
 )
 
@@ -73,10 +74,10 @@ def extract_comparison_terms(
     # return None
 
 
-# def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
-#     return isinstance(node, ast.TermFunction) or (
-#         isinstance(node, ast.TermSymbolic) and node.symbol.type == SymbolType.Function
-#     )
+def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
+    return isinstance(node, ast.TermFunction) or (
+        isinstance(node, ast.TermSymbolic) and node.symbol.type == SymbolType.Function
+    )
 
 
 def function_arguments(
@@ -237,3 +238,46 @@ def get_variant_subsets(
         all_subsets.append(subsets)
 
     return all_subsets
+
+
+def collect_statements_from_pased(
+    statements: Iterable[StatementAST] | Iterable[AST],
+) -> List[ast.StatementRule]:
+    stmts: List[ast.StatementRule] = []
+    for stmt in statements:
+        if isinstance(stmt, ast.StatementRule):
+            stmts.append(stmt)
+    return stmts
+
+
+def get_parameter_list(node: AST) -> list[str]:
+    """
+    Extracts the list of parameter variable names from a function node.
+    Returns a list of parameter names (as strings) in order.
+    """
+    # Handle LiteralSymbolic (similar to old Literal)
+    if isinstance(node, ast.LiteralSymbolic):
+        node = node.atom
+
+    # For clingo 6, check if it's a function-like term
+    if is_function(node):
+        _, arguments = function_arguments(node)
+
+        # Extract names from arguments
+        param_names = []
+        for arg in arguments:
+            # if isinstance(arg, ast.TermVariable):
+            #     param_names.append(arg.name)
+            # elif isinstance(arg, ast.TermSymbolic):
+            #     param_names.append(arg.symbol.name if arg.symbol.name else str(arg.symbol))
+            # elif isinstance(arg, ast.TermFunction):
+            #     # For nested functions, get the name
+            #     param_names.append(arg.name)
+            # else:
+            # Fallback for other types
+            # param_names.append(str(arg))
+            param_names.append(str(arg))
+
+        return param_names
+    else:
+        return []

@@ -8,12 +8,10 @@ import asp2fasp.util.util as util
 from asp2fasp.util.ast import AST, StatementAST, TermAST
 from asp2fasp.util.types import FPredicate
 
-DefinitionMap = dict[str, list[ast.StatementRule]]
-
 
 def split_program(
     statements: Sequence[ast.StatementRule],
-) -> tuple[list[ast.StatementRule], DefinitionMap]:
+) -> tuple[list[ast.StatementRule], dict[str, list[ast.StatementRule]]]:
     constraints: list[ast.StatementRule] = []
     definitions: DefaultDict[str, list[ast.StatementRule]] = defaultdict(list)
 

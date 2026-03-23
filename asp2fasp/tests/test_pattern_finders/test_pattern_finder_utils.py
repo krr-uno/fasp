@@ -137,7 +137,7 @@ class PatternFinderUtilsTest(unittest.TestCase):
                     #count { X: a(1) } == 1 :- a(X).
                     { a(X,Y): b(X); p(X): r(X) } < 2 :- c(X,Y), b(X), r(a), c(a,b).
                 """
-        expected_constraints = []
+        expected_constraints:List[str] = []
         expected_definitions = {
                     'b/1': ['a; b(X); r(a); c(a,b) :- b(X).'],
                     'r/1': ['a; b(X); r(a); c(a,b) :- b(X).'],

@@ -48,7 +48,6 @@ class InequalityConstraintFinderTest(unittest.TestCase):
     
     def test_no_inequality(self) -> None:
         program = ":- pos(I,X,Y); pos(I,X1,Y1); Y > Y1."
-        fPredicates = self._apply(program)
         self.assertFPredicateEqual(program, [])
     
     def test_identifies_inequality_pattern(self) -> None:
