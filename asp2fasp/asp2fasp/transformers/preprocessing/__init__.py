@@ -38,17 +38,7 @@ def processPipelinetransformers(
     current_asts = initial_asts
 
     rewrite_context = RewriteContext(lib)
-    errors = []
-    next_asts: List[StatementAST] = []
-    for stmt in current_asts:
-        try:
-            out = rewrite_statement(rewrite_context, stmt)
-            next_asts.extend(out)
-        except RuntimeError as e:
-            errors.append((stmt, e))
-    if errors:
-        raise RuntimeError("clingo rewriting failed", errors)
-    current_asts = next_asts
+    current_asts = rewrite_statements_wrapper(rewrite_context, current_asts)
 
     for tr in transformers:
         next_asts = []
@@ -57,3 +47,19 @@ def processPipelinetransformers(
             next_asts.append(out or stmt)
         current_asts = next_asts
     return current_asts
+
+
+def rewrite_statements_wrapper(
+    context: RewriteContext, statements: List[StatementAST]
+) -> List[StatementAST]:
+    errors = []
+    rewritten: List[StatementAST] = []
+    for stmt in statements:
+        try:
+            out = rewrite_statement(context, stmt)
+            rewritten.extend(out)
+        except RuntimeError as e:
+            errors.append((stmt, e))
+    if errors:
+        raise RuntimeError("clingo rewriting failed", errors)
+    return rewritten

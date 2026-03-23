@@ -9,6 +9,7 @@ from clingo.core import Library
 from asp2fasp.pattern_finders.inequality_constraint_finder import InequalityConstraintFinder
 from asp2fasp.util.ast import AST
 from asp2fasp.util.types import FPredicate, CPredicate
+from asp2fasp.transformers.preprocessing import processPipelinetransformers
 
 from tests.util import collect_statements
 
@@ -21,7 +22,7 @@ class InequalityConstraintFinderTest(unittest.TestCase):
         """Parse `program`, pass asts to pattern finder and return identifed FPredicates."""
         program = textwrap.dedent(program).strip()
         nodes: list[ast.StatementRule] = collect_statements(self.lib, program)
-        nodes = [n for n in nodes if isinstance(n, ast.StatementRule)]
+        nodes = processPipelinetransformers(self.lib, nodes)
         return self.finder.identifyInequalityPattern(nodes)
 
     def assertFPredicateEqual(self, program:str, expectedFPredicates: list[FPredicate]) -> None:
@@ -100,7 +101,7 @@ class InequalityConstraintFinderTest(unittest.TestCase):
         self.assertFPredicateEqual(program, expected)
 
     def test_3(self) -> None:
-        program = "at(A, B, C, D), at(A', B', C', D'), (C,D) != (C',D')."
+        program = "at(A, B, C, D), at(A', B', C', D'), (C,D) != (C',D'):- safety(A, A', B, B', C, C', D, D')."
         expected:List[FPredicate] = []
 
         self.assertFPredicateEqual(program, expected)
