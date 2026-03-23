@@ -389,7 +389,7 @@ class RuleRewriteTransformer:
         return node.update(self.lib, **update)
 
 
-def unnest(
+def unnest_ast(
     context: RewriteContext,
     statement: FASP_Statement,
 ) -> FASP_Statement:

@@ -21,7 +21,7 @@ def collect_variables(node: FASP_AST) -> set[str]:
     return collector.collect(node)
 
 
-def collect_evaluable_functions(
+def collect_evaluable_function_signatures(
     program: Iterable[FASP_AST],
 ) -> set[SymbolSignature]:
     """
@@ -40,18 +40,20 @@ def collect_evaluable_functions(
     get_evaluable_functions = set()
     for statement in program:
         if isinstance(statement, AssignmentRule):
-            get_evaluable_functions |= _get_evaluable_functions_head(statement.head)
+            get_evaluable_functions |= _collect_evaluable_signatures_from_head(
+                statement.head
+            )
     return get_evaluable_functions
 
 
 @singledispatch
 # TODO: Need to make it a visitor
-def _get_evaluable_functions_head(node: Any) -> set[SymbolSignature]:
+def _collect_evaluable_signatures_from_head(node: Any) -> set[SymbolSignature]:
     """Collect evaluable function signatures from a supported assignment head."""
     assert False, f"Unsupported type: {_.__class__}"  # pragma: no cover
 
 
-@_get_evaluable_functions_head.register
+@_collect_evaluable_signatures_from_head.register
 def _(head: HeadSimpleAssignment) -> set[SymbolSignature]:
     """Collect the signature of the function assigned by a simple head assignment."""
     assigned_function = head.assigned_function
@@ -75,7 +77,7 @@ def _(head: HeadSimpleAssignment) -> set[SymbolSignature]:
     ), f"Unsupported assigned function type: {assigned_function.__class__}"  # pragma: no cover
 
 
-@_get_evaluable_functions_head.register
+@_collect_evaluable_signatures_from_head.register
 def _(head: HeadAggregateAssignment | ChoiceAssignment) -> set[SymbolSignature]:
     """Collect evaluable function signatures from assignment-bearing aggregate elements."""
     evaluable_functions = set()
@@ -83,7 +85,9 @@ def _(head: HeadAggregateAssignment | ChoiceAssignment) -> set[SymbolSignature]:
         if isinstance(
             element, HeadAggregateAssignmentElement | AssignmentAggregateElement
         ):
-            evaluable_functions |= _get_evaluable_functions_head(element.assignment)
+            evaluable_functions |= _collect_evaluable_signatures_from_head(
+                element.assignment
+            )
     return evaluable_functions
 
 

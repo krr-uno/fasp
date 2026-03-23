@@ -16,7 +16,7 @@ from funasp.syntax_tree._nodes import (
     FASP_Statement,
 )
 from funasp.syntax_tree.collectors import (
-    collect_evaluable_functions,
+    collect_evaluable_function_signatures,
 )
 from funasp.syntax_tree.rewritings.aggregates import (
     normalize_assignment_aggregates,
@@ -42,7 +42,7 @@ def _functional2asp(
         Iterable[ast.AST]: The transformed program.
     """
     statements = [normalize_assignment_aggregates(context, stm) for stm in statements]
-    context.evaluable_functions = collect_evaluable_functions(statements)
+    context.evaluable_functions = collect_evaluable_function_signatures(statements)
     transformer = NormalForm2PredicateTransformer(context.lib.library, context.evaluable_functions, context.prefix_function)
     return (
         context.evaluable_functions,

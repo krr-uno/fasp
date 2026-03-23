@@ -9,7 +9,7 @@ from funasp.syntax_tree._nodes import (
     FASP_Statement,
 )
 from funasp.syntax_tree.collectors import (
-    collect_evaluable_functions,
+    collect_evaluable_function_signatures,
 )
 from funasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
 from funasp.syntax_tree.rewritings.negated_literals import (
@@ -202,7 +202,7 @@ class FASPProgramTransformer:
         """Handle unnest functions wrapper."""
         stmts = list(statements)
         stmts2 = list(stmts)
-        self.evaluable_functions = collect_evaluable_functions(stmts2)
+        self.evaluable_functions = collect_evaluable_function_signatures(stmts2)
 
         transformer = RuleRewriteTransformer(self.library, self.evaluable_functions)
         out: list[FASP_Statement] = []
@@ -218,7 +218,7 @@ class FASPProgramTransformer:
     ) -> Iterable[FASP_Statement]:
         # Collect evaluable functions again
         """Handle to asp wrapper."""
-        self.evaluable_functions = collect_evaluable_functions(statements)
+        self.evaluable_functions = collect_evaluable_function_signatures(statements)
 
         to_asp_transformer = NormalForm2PredicateTransformer(
             self.library, self.evaluable_functions, self.prefix

@@ -365,7 +365,7 @@ class ELibrary:
             shared,
             slotted,
             log_level,
-            self.logger_function,
+            self.handle_log_message,
             message_limit,
         )
         self.original_statements: dict[str, list[ast.Statement]] = {}
@@ -377,10 +377,10 @@ class ELibrary:
     #         self.original_statements[file] = []
     #     self.original_statements[file].append(statement)
 
-    def logger_function(self, msg_type: MessageType, message: str) -> None:
+    def handle_log_message(self, msg_type: MessageType, message: str) -> None:
         """Capture, normalize, and optionally forward messages emitted by clingo."""
         self.error_messages.append((msg_type, message))
-        message = self.process_message(msg_type, message)
+        message = self.normalize_log_message(msg_type, message)
         # print(">>>>>>>>>>>>", message, self.ignore_info, msg_type, MessageType.Info, MessageType.OperationUndefined)
         if self.logger is not None and (
             not self.ignore_info
@@ -388,7 +388,7 @@ class ELibrary:
         ):  # pragma: no cover
             self.logger(msg_type, message)
 
-    def process_message(self, msg_type: MessageType, message: str) -> str:
+    def normalize_log_message(self, msg_type: MessageType, message: str) -> str:
         """Normalize selected clingo messages for FASP-specific reporting."""
         if "unsafe variable" in message:
             lines = message.split("\n")

@@ -1,7 +1,7 @@
 import unittest
 
 
-from funasp.syntax_tree.collectors import collect_evaluable_functions, collect_variables
+from funasp.syntax_tree.collectors import collect_evaluable_function_signatures, collect_variables
 from funasp.syntax_tree.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
 
@@ -24,7 +24,7 @@ class TestGetEvaluableFunctions(unittest.TestCase):
             expected_errors (list): The list of expected SyntacticError instances.
         """
         statements = parse_string(self.lib, program)
-        evaluable_functions = collect_evaluable_functions(statements)
+        evaluable_functions = collect_evaluable_function_signatures(statements)
         self.assertCountEqual(
             set(map(str, evaluable_functions)), set(expected_functions)
         )

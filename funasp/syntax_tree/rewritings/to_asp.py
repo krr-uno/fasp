@@ -47,13 +47,13 @@ class NormalForm2PredicateTransformer:
         self.evaluable_functions = evaluable_functions
         self.prefix = prefix
 
-    def function_to_term(
+    def _build_evaluable_function_to_term(
         self,
         assigned_function: ast.TermFunction | ast.TermSymbolic,
         value: ast.TermOrProjection,
         location: Location,
     ) -> ast.TermFunction:
-        """Convert a functional assignment into its prefixed predicate term."""
+        """Builds a function term given its assigned function and its value."""
         name, arguments = function_arguments_ast(self.library, assigned_function)
         assert (
             SymbolSignature(name, len(arguments)) in self.evaluable_functions
@@ -85,7 +85,7 @@ class NormalForm2PredicateTransformer:
             self.library,
             location,
             ast.Sign.NoSign,
-            self.function_to_term(assigned_function, value, location),
+            self._build_evaluable_function_to_term(assigned_function, value, location),
         )
 
     @singledispatchmethod

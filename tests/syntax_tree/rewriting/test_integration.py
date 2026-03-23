@@ -5,7 +5,7 @@ import unittest
 from funasp.syntax_tree.types import SymbolSignature
 from funasp.util.ast import ELibrary
 from funasp.syntax_tree.parsing.parser import parse_string
-from funasp.syntax_tree.rewritings.integration import transform_to_clingo_statements
+from funasp.syntax_tree.rewritings.integration import rewrite_statements
 from funasp.syntax_tree._context import RewriteContext
 
 
@@ -43,7 +43,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         )
 
         statement_asts = parse_string(self.elib, program)
-        transformed = transform_to_clingo_statements(context, statement_asts)
+        transformed = rewrite_statements(context, statement_asts)
 
         transformed_str = "\n".join(
             [str(statement).strip() for statement in transformed][1:]

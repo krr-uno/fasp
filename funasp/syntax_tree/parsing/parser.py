@@ -296,7 +296,7 @@ class TreeSitterParser:
             message = f"{node.text.decode('utf-8').replace('\n', ' ').strip()}"
             raise ParsingException([SyntacticError(location, message, None)])
 
-    def _preparse_assignment(self, node: Node) -> tuple[ast.Term, str]:
+    def _split_assignment(self, node: Node) -> tuple[ast.Term, str]:
         """Split an assignment node into its left-hand term and raw right-hand text."""
         unparsed_function = node.children[0].text.decode("utf-8")
         unparsed_value = "".join(
@@ -307,7 +307,7 @@ class TreeSitterParser:
 
     def _parse_simple_assignment(self, node: Node) -> HeadSimpleAssignment:
         """Parse a simple-assignment node into a HeadSimpleAssignment."""
-        assigned_function, unparsed_value = self._preparse_assignment(node)
+        assigned_function, unparsed_value = self._split_assignment(node)
         value = ast.parse_term(self.library.library, unparsed_value)
         return HeadSimpleAssignment(
             self._location_from_node(node),
@@ -317,7 +317,7 @@ class TreeSitterParser:
 
     def _parse_aggregate_assignment(self, node: Node) -> HeadAssignmentAggregate:
         """Parse an aggregate-assignment node into a HeadAssignmentAggregate."""
-        assigned_function, unparsed_aggregate = self._preparse_assignment(node)
+        assigned_function, unparsed_aggregate = self._split_assignment(node)
         aggregate = self._clingo_parse_body_aggregate(unparsed_aggregate)
         return HeadAssignmentAggregate(
             self._location_from_node(node),
@@ -468,7 +468,7 @@ class TreeSitterParser:
         #     self.library.library, unparsed_assigned_function.text.decode("utf-8")
         # )
 
-        assigned_function, unparsed_aggregate = self._preparse_assignment(node)
+        assigned_function, unparsed_aggregate = self._split_assignment(node)
 
         # Creating to a valid dummy aggregate to parse for elements.
         dummy_aggregate = "#count" + unparsed_aggregate.split("#some", 1)[1]

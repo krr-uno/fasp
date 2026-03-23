@@ -8,7 +8,7 @@ from funasp.syntax_tree._nodes import (
     FASP_Statement,
 )
 from funasp.syntax_tree.collectors import (
-    collect_evaluable_functions,
+    collect_evaluable_function_signatures,
 )
 from funasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
 from funasp.syntax_tree.rewritings.negated_literals import (
@@ -29,7 +29,7 @@ from funasp.syntax_tree.rewritings.to_asp import (
     to_asp,
 )
 from funasp.syntax_tree.rewritings.unnesting.rules import (
-    unnest,
+    unnest_ast,
 )
 
 
@@ -94,7 +94,7 @@ class RewritingStatement:
         assert self._clingo_rewritten is not None
         self._rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
 
-    def rewrite_clingo_m(  # pragma: no cover
+    def rewrite_clingo_many(  # pragma: no cover
         self,
         context: RewriteContext,
         fun: Callable[[RewriteContext, Iterable[ast.Statement]], list[ast.Statement]],
@@ -127,7 +127,7 @@ def _clingo_rewrite(context: RewriteContext, statement: RewritingStatement) -> N
     statement._clingo_rewritten = out
 
 
-def transform_to_clingo_statements(
+def rewrite_statements(
     context: RewriteContext,
     statements: Iterable[FASP_Statement],
 ) -> list[ast.Statement]:
@@ -141,9 +141,11 @@ def transform_to_clingo_statements(
         stmt.rewrite(context, rewrite_some_choices)
         stmt.rewrite(context, normalize_assignment_aggregates)
         stmt.rewrite(context, rewrite_negate_body_literals)
-        context.evaluable_functions |= collect_evaluable_functions(stmt.rewritten)
+        context.evaluable_functions |= collect_evaluable_function_signatures(
+            stmt.rewritten
+        )
     for stmt in new_statements:
-        stmt.rewrite(context, unnest)
+        stmt.rewrite(context, unnest_ast)
         stmt.rewrite_to_clingo(context, protect_assignment)
         stmt.rewrite_clingo(context, protect_comparisons)
         _clingo_rewrite(context, stmt)
