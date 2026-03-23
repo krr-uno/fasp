@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from functools import singledispatch, singledispatchmethod
 from typing import Any, Iterable, List, Optional, Sequence, cast
 
+import clingo.symbol
 from clingo import ast, core
-from clingo.symbol import Number, Symbol, SymbolType
 
 from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree._nodes import (
@@ -54,14 +54,16 @@ ASSIGNMENT_NAME = "ASS"
 def _sign_to_int(library: core.Library, sign: ast.Sign) -> ast.TermSymbolic:
     position = core.Position(library, "<aux>", 0, 0)
     location = core.Location(position, position)
-    return ast.TermSymbolic(library, location, Number(library, SIGN_TO_INT[sign]))
+    return ast.TermSymbolic(
+        library, location, clingo.symbol.Number(library, SIGN_TO_INT[sign])
+    )
 
 
 def _relation_to_int(library: core.Library, relation: ast.Relation) -> ast.TermSymbolic:
     position = core.Position(library, "<aux>", 0, 0)
     location = core.Location(position, position)
     return ast.TermSymbolic(
-        library, location, Number(library, RELATION_TO_INT[relation])
+        library, location, clingo.symbol.Number(library, RELATION_TO_INT[relation])
     )
 
 
@@ -149,7 +151,7 @@ class RightGuard:
     """
 
     relation: ast.Relation
-    term: ast.Term | Symbol
+    term: ast.Term | clingo.symbol.Symbol
 
     def to_ast(self, library: core.Library, location: core.Location) -> ast.RightGuard:
         """
@@ -161,7 +163,7 @@ class RightGuard:
         Returns:
             ast.RightGuard: The AST representation of the right guard.
         """
-        if isinstance(self.term, Symbol):  # pragma: no cover
+        if isinstance(self.term, clingo.symbol.Symbol):  # pragma: no cover
             term = ast.TermSymbolic(library, location, self.term)
         else:
             term = self.term
@@ -169,7 +171,7 @@ class RightGuard:
 
 
 def _restore_guard_arguments(
-    library: core.Library, term: ast.TermFunction | Symbol
+    library: core.Library, term: ast.TermFunction | clingo.symbol.Symbol
 ) -> RightGuard:
     _, arguments = function_arguments(term)
     relation_int = arguments[0]
@@ -177,10 +179,10 @@ def _restore_guard_arguments(
     if isinstance(relation_int, ast.TermSymbolic):
         relation_int = relation_int.symbol
     assert isinstance(
-        relation_int, Symbol
+        relation_int, clingo.symbol.Symbol
     ), f"Expected a symbol, got {relation_int}: {type(relation_int)}"
     assert (
-        relation_int.type == SymbolType.Number
+        relation_int.type == clingo.symbol.SymbolType.Number
     ), f"Expected a number, got {relation_int}: {relation_int.type}"
     # term2 = arguments[1]
 
@@ -203,8 +205,8 @@ def _restore_guard_arguments(
 
 def restore_comparison_arguments(
     library: core.Library,
-    arguments: Sequence[ast.TermOrProjection] | Sequence[Symbol],
-) -> tuple[ast.Sign, ast.TermOrProjection | Symbol, list[RightGuard]]:
+    arguments: Sequence[ast.TermOrProjection] | Sequence[clingo.symbol.Symbol],
+) -> tuple[ast.Sign, ast.TermOrProjection | clingo.symbol.Symbol, list[RightGuard]]:
     assert (
         len(arguments) == 3
     ), f"Expected 3 arguments, got {len(arguments)}: {arguments}"
@@ -216,7 +218,7 @@ def restore_comparison_arguments(
         right, FunctionLikeAST
     ), f"Expected a tuple term, got {right}: {type(right)}"
     assert isinstance(
-        sign, ast.TermSymbolic | Symbol
+        sign, ast.TermSymbolic | clingo.symbol.Symbol
     ), f"Expected a tuple term, got {sign}: {type(sign)}"
     if isinstance(sign, ast.TermSymbolic):
         sign = sign.symbol
@@ -224,7 +226,9 @@ def restore_comparison_arguments(
     _, right = function_arguments(right)
     right = [
         _restore_guard_arguments(library, g)
-        for g in cast(Sequence[ast.TermFunction] | Sequence[Symbol], right)
+        for g in cast(
+            Sequence[ast.TermFunction] | Sequence[clingo.symbol.Symbol], right
+        )
     ]
     return sign, left, right
 
@@ -267,7 +271,7 @@ def restore_comparison(
         ast_right.append(new_r)
     # END: ######################################
 
-    if isinstance(left, Symbol):  # pragma: no cover
+    if isinstance(left, clingo.symbol.Symbol):  # pragma: no cover
         left = ast.TermSymbolic(library, literal.location, left)
 
     # EXPLANATION OF CHANGE:
@@ -339,13 +343,16 @@ def restore_comparisons(
     context: RewriteContext, statement: ast.Statement
 ) -> ast.Statement:
     """
-    Protect comparisons in a Clingo AST.
+    Restore protected comparisons in a Clingo AST statement back to
+    ``LiteralComparison`` nodes.
 
     Args:
-        statements (Iterable[AST]): The AST statements to protect.
+        context (RewriteContext): The rewriting context.
+        statement (ast.Statement): The AST statement whose protected
+            comparisons should be restored.
 
     Returns:
-        Iterable[AST]: The protected AST statements.
+        ast.Statement: The statement with comparisons restored.
     """
     transformer = _ComparisonRestorationTransformer(context)
     return transformer.rewrite(statement)
@@ -355,13 +362,16 @@ def restore_comparisons_list(
     context: RewriteContext, statements: Iterable[ast.Statement]
 ) -> list[ast.Statement]:
     """
-    Protect comparisons in a Clingo AST.
+    Restore protected comparisons in a list of Clingo AST statements back to
+    ``LiteralComparison`` nodes.
 
     Args:
-        statements (Iterable[AST]): The AST statements to protect.
+        context (RewriteContext): The rewriting context.
+        statements (Iterable[ast.Statement]): The AST statements whose
+            protected comparisons should be restored.
 
     Returns:
-        Iterable[AST]: The protected AST statements.
+        list[ast.Statement]: The statements with comparisons restored.
     """
     transformer = _ComparisonRestorationTransformer(context)
 
@@ -527,9 +537,9 @@ def _restore_assignment_function_to_head_simple_assignment(
 
     assert not isinstance(right, ast.Projection)
 
-    if isinstance(left, Symbol):
+    if isinstance(left, clingo.symbol.Symbol):
         left = ast.TermSymbolic(library, atom.location, left)
-    if isinstance(right, Symbol):
+    if isinstance(right, clingo.symbol.Symbol):
         right = ast.TermSymbolic(library, atom.location, right)
     assert isinstance(
         left, ast.TermFunction | ast.TermSymbolic
@@ -687,7 +697,7 @@ class _AssignmentRestorationTransformer:
                             and tup.name == ASSIGNMENT_NAME
                         ) or (
                             isinstance(tup, ast.TermSymbolic)
-                            and tup.symbol.type == SymbolType.Function
+                            and tup.symbol.type == clingo.symbol.SymbolType.Function
                             and tup.symbol.name == ASSIGNMENT_NAME
                         ):
                             tuple_converted = True

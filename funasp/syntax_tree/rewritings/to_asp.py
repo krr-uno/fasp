@@ -94,8 +94,9 @@ class NormalForm2PredicateTransformer:
         or choices like:
             { f(X) := Y }.
         into predicate-based heads:
-            f_f(X, Y).
-        Default handler for head rewriting: return the node unchanged.
+            Ff(X, Y).
+        Default handler: raises an assertion error for any unhandled node type,
+        since all valid assignment head types have dedicated dispatchers.
         """
         # Never called since all assignment based nodes have dispatchers.
         assert (
@@ -126,7 +127,8 @@ class NormalForm2PredicateTransformer:
     @_rewrite_head.register
     def _(self, node: ChoiceAssignment) -> ast.HeadSetAggregate:
         """
-        Visit a HeadSimpleAssignment node and transform it if it is an evaluable function.
+        Visit a ChoiceAssignment node and rewrite its elements into a
+        ``HeadSetAggregate`` of predicate-based literals.
         """
         elements = [self._rewrite_head(e) for e in node.elements]
         return ast.HeadSetAggregate(

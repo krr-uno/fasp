@@ -46,12 +46,14 @@ class Control:
 
     def parse_files(self, files: Sequence[str]) -> None:
         """
-        Extend the logic program with a (non-ground) logic program in a file.
+        Parse the given FASP files, rewrite them to clingo AST statements, and
+        add the result to the underlying clingo control. Also stores the
+        rewritten program string for later retrieval via ``get_rewritten_program``.
 
         Parameters
         ----------
-        file
-            The path of the file to load.
+        files
+            The paths of the files to parse and load.
         """
         rewrite_ctx = RewriteContext(self.library, self.prefix)
         statements = parser.parse_files(self.library, files)

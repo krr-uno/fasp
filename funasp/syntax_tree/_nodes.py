@@ -341,7 +341,10 @@ class ChoiceAssignment(AssignmentAST):
 @dataclass
 class ChoiceSomeAssignment(AssignmentAST):
     """
-    An assignment head of the form ``f(args) := #agg{ ... }``.
+    An assignment head of the form ``f(args) := #some{ ... }``.
+
+    Represents a deterministic selection: exactly one value is chosen from the
+    elements of the ``#some`` aggregate, provided at least one exists.
 
     Parameters
     ----------
@@ -350,7 +353,7 @@ class ChoiceSomeAssignment(AssignmentAST):
     assigned_function : ast.TermFunction
         The function symbol on the left-hand side.
     elements : Sequence[ast.BodyAggregateElement]
-        Elements of the aggregate body.
+        Elements of the ``#some`` aggregate body.
     """
 
     location: Location

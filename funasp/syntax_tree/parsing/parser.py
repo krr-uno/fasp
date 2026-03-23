@@ -554,17 +554,17 @@ class TreeSitterParser:
 
 def parse_string(library: ELibrary, src: str) -> Iterable[AST]:
     """
-    Parse the programs in the given files and return an abstract syntax tree for
-    each statement via a callback.
+    Parse the given FASP source string and return an abstract syntax tree for
+    each statement.
 
-    The function follows clingo's handling of files on the command line. Filename
-    `"-"` is treated as stdin and if an empty list is given, then the parser will
-    read from stdin.
+    A ``#program base.`` header is automatically prepended before parsing.
 
     Parameters
     ----------
-    files
-        List of file names.
+    library
+        The library used for error reporting and AST construction.
+    src
+        The FASP source code string to parse.
     """
     parser = TreeSitterParser(library)
     asts = clingo_parse_string(library, "#program base.")
