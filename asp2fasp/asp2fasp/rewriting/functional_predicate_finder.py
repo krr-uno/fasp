@@ -5,7 +5,7 @@ from clingo import ast
 from clingo.core import Library
 
 import asp2fasp.util.util as util
-from asp2fasp.pattern_finders import InequalityConstraintFinder
+from asp2fasp.pattern_finders import AggregatePatternFinder, InequalityConstraintFinder
 from asp2fasp.transformers.preprocessing import processPipelinetransformers
 from asp2fasp.util.ast import StatementAST
 from asp2fasp.util.types import CPredicate, FPredicate, FRelation
@@ -59,12 +59,21 @@ class FunctionalPredicateFinder:
         This is handled by treating ast.Projection as `invariant` always in asp2fasp.util.identify_invariant_positions.
         """
 
-        foundFunctionalPredicates: List[FPredicate] = []
+        # foundFunctionalPredicates: List[FPredicate] = []
         # Identify functional predicates patterns
         ICF = InequalityConstraintFinder(self.lib)
-        foundFunctionalPredicates = ICF.identifyInequalityPattern(self.statements)
+        found_inequalityFunctionalPredicates = ICF.identifyInequalityPattern(
+            self.statements
+        )
 
-        self.functionalPredicates.extend(foundFunctionalPredicates)
+        self.functionalPredicates.extend(found_inequalityFunctionalPredicates)
+
+        APF = AggregatePatternFinder(self.lib)
+        found_aggregateFunctionalPredicates = APF.identifyAggregatePattern(
+            self.statements
+        )
+
+        self.functionalPredicates.extend(found_aggregateFunctionalPredicates)
 
         return self.functionalPredicates, self.processFoundPredicates()
 

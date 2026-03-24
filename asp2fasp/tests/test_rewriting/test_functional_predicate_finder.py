@@ -75,3 +75,10 @@ class FunctionalPredicateFinderTest(unittest.TestCase):
                 )
 
         self.assertFPredicateEqual(program, expected)
+
+    def test_aggregate_pattern(self) -> None:
+        program = "1 { assign(N,C) : color(C)}  1 :- node(N), pos(Z)."
+        expected = [[FPredicate(name='assign', arity=2, arguments=(0,), values=(1,), condition=[])], 
+                    [FRelation(name='assign', arity=2, arguments=(0,), values=[(1,)])]]
+
+        self.assertFPredicateEqual(program, expected)
