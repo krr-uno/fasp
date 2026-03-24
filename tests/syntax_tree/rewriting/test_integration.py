@@ -219,6 +219,32 @@ class TestFASPProgramTransformer(unittest.TestCase):
             """,
         )
 
+        self.assertTransformEqual(
+            """
+            a := 1.
+            {f(a) := 1}.
+            """,
+            """
+            Fa(1).
+            #count { 0,Ff(FUN,1): Ff(FUN,1): Fa(FUN) }.
+            :- Fa(_); 1 < #count { V: Fa(V) }.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
+        self.assertTransformEqual(
+            """
+            a := 1.
+            {f(a) := 1} = a.
+            """,
+            """
+            Fa(1).
+            #count { 0,Ff(FUN,1): Ff(FUN,1): Fa(FUN) } = FUN2 :- Fa(FUN2).
+            :- Fa(_); 1 < #count { V: Fa(V) }.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
     def test_fibo(self):
         """Test fibo."""
         self.assertTransformEqual(

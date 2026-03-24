@@ -1,6 +1,7 @@
 from functools import singledispatchmethod
 from typing import Any, List, Set
 
+from click import Choice
 from clingo import ast
 from clingo.core import Library
 
@@ -8,6 +9,7 @@ from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
+    ChoiceAssignment,
     FASP_Statement,
     HeadAggregateAssignment,
     HeadAggregateAssignmentElement,
@@ -140,9 +142,19 @@ class RuleRewriteTransformer:
     @_rewrite_literal.register
     def _(
         self,
-        node: ast.BodyAggregate | ast.HeadAggregate | HeadAggregateAssignment,
+        node: (
+            ast.BodyAggregate
+            | ast.HeadAggregate
+            | HeadAggregateAssignment
+            | ChoiceAssignment
+        ),
         var_gen: FreshVariableGenerator,
-    ) -> ast.BodyAggregate | ast.HeadAggregate | HeadAggregateAssignment:
+    ) -> (
+        ast.BodyAggregate
+        | ast.HeadAggregate
+        | HeadAggregateAssignment
+        | ChoiceAssignment
+    ):
         """Rewrite aggregate nodes by unnesting their elements and guards."""
         # print(f"Visiting literal of type {node.__class__}: {node}")
         new_elements = []
