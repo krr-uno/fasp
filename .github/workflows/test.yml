@@ -57,8 +57,8 @@ jobs:
       run: nox
 
 
-  asp2fasp:
-    name: asp2fasp tests
+  asp2funasp:
+    name: asp2funasp tests
     if: github.ref == 'refs/heads/ravi/casp'
     runs-on: ubuntu-latest
 
@@ -88,6 +88,6 @@ jobs:
         conda install --name clingo6 --file envs/requirements.txt
         pip install -r requirements.txt
 
-    - name: Run asp2fasp nox
-      working-directory: asp2fasp
+    - name: Run asp2funasp nox
+      working-directory: asp2funasp
       run: nox
