@@ -4,18 +4,18 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from asp2funasp.transformers.preprocessing.choice_rule_guard_normalize_rewrite import (
-    ChoiceGuardTransformer,
+from asp2funasp.transformers.preprocessing.constraint_aggregate_guard_normalization import (
+    ConstraintAggregateGuardTransformer
 )
 
 from asp2funasp.util.ast import AST
 
 from tests.util import collect_statements
 
-class ChoiceGuardTransformerTest(unittest.TestCase):
+class ConstraintAggregateGuardTransformerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.lib = Library()
-        self.transformer = ChoiceGuardTransformer(self.lib)
+        self.transformer = ConstraintAggregateGuardTransformer(self.lib)
 
     def _apply(self, program: str) -> str:
         """Parse `program`, rewrite each rule, and return normalized text."""
@@ -41,67 +41,38 @@ class ChoiceGuardTransformerTest(unittest.TestCase):
     def test_left_guard_strict_less_is_normalized(self) -> None:
         self.assertRewriteEqual(
             """
-            3 < { a(X) }.
+            :- 3 < { a(X) }.
             """,
             """
-            4 <= { a(X) }.
-            """,
-        )
-
-    def test_right_guard_strict_less_is_normalized(self) -> None:
-        self.assertRewriteEqual(
-            """
-            { a(X) } < 5.
-            """,
-            """
-            { a(X) } <= 4.
+            :- 4 <= { a(X) }.
             """,
         )
-
-    def test_both_sides_strict_less_are_normalized(self) -> None:
-        self.assertRewriteEqual(
-            """
-            2 < { a(X) } < 6.
-            """,
-            """
-            3 <= { a(X) } <= 5.
-            """,
-        )
-
-    def test_equal_bounds_collapse_to_equality(self) -> None:
-        self.assertRewriteEqual(
-            """
-            2 < { a(X) } < 4.
-            """,
-            """
-            3 = { a(X) }.
-            """,
-        )
-
-    def test_inequality_right_guard_moves_to_left(self) -> None:
-        self.assertRewriteEqual(
-            """
-            { a(X) } != 1.
-            """,
-            """
-            1 != { a(X) }.
-            """)
 
     def test_variable_in_guard_with_less_than_relation_unchanged(self) -> None:
         self.assertRewriteEqual(
             """
-            Y <= { a(X) } < X.
+            :- Y <= { a(X) } < X.
             """,
             """
-            Y <= { a(X) } < X.
+            :- Y <= { a(X) } < X.
             """)
-
-    def test_non_choice_head_is_unchanged(self) -> None:
+    def test_inequality_right_guard_moves_to_left(self) -> None:
         self.assertRewriteEqual(
             """
-            p(X) :- q(X).
+            :- { a(X) } != 1.
             """,
             """
-            p(X) :- q(X).
+            :- 1 != { a(X) }.
+            """)
+
+
+    ## EXTRA TESTS ##
+    def test_right_guard_strict_less_is_normalized(self) -> None:
+        self.assertRewriteEqual(
             """
-            )
+            :- { a(X) } < 5.
+            """,
+            """
+            :- { a(X) } <= 4.
+            """,
+        )

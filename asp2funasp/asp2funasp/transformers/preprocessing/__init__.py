@@ -1,5 +1,8 @@
 from .aggregate_head_body_condition_rewrite import AggregateHeadBodyConditionTransformer
 from .choice_rule_guard_normalize_rewrite import ChoiceGuardTransformer
+from .constraint_aggregate_guard_normalization import (
+    ConstraintAggregateGuardTransformer,
+)
 from .negated_comparison_head_to_body_rewrite import (
     NegatedComparisonHeadToBodyTransformer,
 )
@@ -10,6 +13,7 @@ __all__ = [
     "NegatedComparisonHeadToBodyTransformer",
     "ChoiceGuardTransformer",
     "NotAggregateConstraintTransformer",
+    "ConstraintAggregateGuardTransformer",
 ]
 
 from typing import Iterable, List
@@ -30,6 +34,7 @@ def processPipelinetransformers(
         ChoiceGuardTransformer(lib),
         NotAggregateConstraintTransformer(lib),
         AggregateHeadBodyConditionTransformer(lib),
+        ConstraintAggregateGuardTransformer(lib),
     ]
     # Split rules with multiple aggregate elements
     initial_asts: List[StatementAST] = []

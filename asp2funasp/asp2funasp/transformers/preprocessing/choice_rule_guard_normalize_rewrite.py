@@ -39,6 +39,17 @@ class ChoiceGuardTransformer(PreprocessingTransformer):
         left_guard, right_guard, collapse_changed = util.collapse_equal_bounds(
             self._lib, left_guard, right_guard
         )
+        if (
+            right_guard
+            and right_guard.relation == ast.Relation.NotEqual
+            and left_guard == None
+        ):
+            left_guard = ast.LeftGuard(
+                self._lib, right_guard.term, right_guard.relation
+            )
+            right_guard = None
+            right_changed = True
+            left_changed = True
 
         if not any([left_changed, right_changed, collapse_changed]):
             return None
@@ -50,10 +61,14 @@ class ChoiceGuardTransformer(PreprocessingTransformer):
     def _is_choice_head(head: HeadLiteralAST) -> bool:
         return isinstance(head, (ast.HeadSetAggregate, ast.HeadAggregate))
 
-    def _normalize_guard[T: (
-        ast.LeftGuard,
-        ast.RightGuard,
-    )](self, guard: Optional[T], is_left: bool = True) -> Tuple[Optional[T], bool]:
+    def _normalize_guard[
+        T: (
+            ast.LeftGuard,
+            ast.RightGuard,
+        )
+    ](
+        self, guard: Optional[T], is_left: bool = True
+    ) -> Tuple[Optional[T], bool]:
         if guard is None:
             return None, False
         if guard.relation != ast.Relation.Less:

@@ -136,8 +136,41 @@ class AggregatePatternFinder:
                                             # Append to the class's list of functional predicates
                                             self.functionalPredicates.append(fpredicate)
 
-        # Use the main class's clingoParseString with the callback.
         return self.functionalPredicates
+
+    # def identifyCountConstraintPattern(
+    #     self, statements: Iterable[StatementAST]
+    # ) -> List[FPredicate]:
+    #     """
+    #     Identifies the target pattern from constraints only.
+
+    #     Target Pattern (example):
+    #       { assign(N,C) } :- node(N), color(C), ...
+    #       :- #count{ C,N : assign(N,C) } != 1, node(N).
+
+    #     The idea:
+    #       1. In constraints (reconstructed from main_class.constraints), look for a body aggregate
+    #          (#count aggregate) with guard '!= 1'.
+    #       2. For such a constraint, extract the predicate from the aggregate body.
+    #       3. Use util.pred_to_key on that predicate to check main_class.definitions.
+    #          Proceed only if exactly one (choice?) rule defines that predicate.
+    #       4. Extract literal sets from both the constraint's body (non-aggregate parts) and the
+    #          defining rule's body. Ensure the constraint's literal set is a subset of the defining rule's.
+    #       5. Finally, using getParameterList(), extract parameters from:
+    #          - The choice literal of the defining rule (the functional predicate).
+    #          - The constraint body literals.
+    #       6. For each parameter in the functional predicate's parameter list, if it appears in the
+    #          constraint body, record its index as an argument; otherwise, record it as a return value.
+    #       7. If all parameters are accounted for, create an FPredicate namedtuple and append it to
+    #          main_class.functionalPredicates.
+    #     """
+    #     statements = collect_statements_from_pased(statements)
+    #     self.constraints, self.predicate_definitions = split_program(statements)
+    #     for rule in self.constraints:
+    #         for bodyElement in rule.body:
+    #             if isinstance(bodyElement, ast.BodyAggregate):
+    #                 pass
+    #     return []
 
     # def identifyCountConstraintPattern(self):
     #     """
