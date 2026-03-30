@@ -103,7 +103,8 @@ class ProgramSplitter:
 
 
 def predicate_key_from_literal_symbolic(literal: ast.LiteralSymbolic) -> str | None:
-    if isinstance(literal.atom, ast.TermFunction):
+    # NOTE: is this correct? or just ast.TermFunction?
+    if util.is_function(literal.atom):
         name, args = util.function_arguments(literal.atom)
         return f"{name}/{len(args)}"
-    return None
+    return None  # pragma: no cover

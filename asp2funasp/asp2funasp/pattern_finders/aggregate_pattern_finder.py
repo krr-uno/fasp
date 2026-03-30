@@ -138,39 +138,131 @@ class AggregatePatternFinder:
 
         return self.functionalPredicates
 
-    # def identifyCountConstraintPattern(
-    #     self, statements: Iterable[StatementAST]
-    # ) -> List[FPredicate]:
-    #     """
-    #     Identifies the target pattern from constraints only.
+    def identifyCountConstraintPattern(
+        self, statements: Iterable[StatementAST]
+    ) -> List[FPredicate]:
+        """
+        Identifies the target pattern from constraints only.
 
-    #     Target Pattern (example):
-    #       { assign(N,C) } :- node(N), color(C), ...
-    #       :- #count{ C,N : assign(N,C) } != 1, node(N).
+        Target Pattern (example):
+          { assign(N,C) } :- node(N), color(C), ...
+          :- #count{ C,N : assign(N,C) } != 1, node(N).
 
-    #     The idea:
-    #       1. In constraints (reconstructed from main_class.constraints), look for a body aggregate
-    #          (#count aggregate) with guard '!= 1'.
-    #       2. For such a constraint, extract the predicate from the aggregate body.
-    #       3. Use util.pred_to_key on that predicate to check main_class.definitions.
-    #          Proceed only if exactly one (choice?) rule defines that predicate.
-    #       4. Extract literal sets from both the constraint's body (non-aggregate parts) and the
-    #          defining rule's body. Ensure the constraint's literal set is a subset of the defining rule's.
-    #       5. Finally, using getParameterList(), extract parameters from:
-    #          - The choice literal of the defining rule (the functional predicate).
-    #          - The constraint body literals.
-    #       6. For each parameter in the functional predicate's parameter list, if it appears in the
-    #          constraint body, record its index as an argument; otherwise, record it as a return value.
-    #       7. If all parameters are accounted for, create an FPredicate namedtuple and append it to
-    #          main_class.functionalPredicates.
-    #     """
-    #     statements = collect_statements_from_pased(statements)
-    #     self.constraints, self.predicate_definitions = split_program(statements)
-    #     for rule in self.constraints:
-    #         for bodyElement in rule.body:
-    #             if isinstance(bodyElement, ast.BodyAggregate):
-    #                 pass
-    #     return []
+        The idea:
+          1. In constraints (#count aggregate) with guard '!= 1'.
+          2. For such a constraint, extract the predicate from the aggregate body.
+          3. Use util.pred_to_key on that predicate to check main_class.definitions.
+             Proceed only if exactly one (choice?) rule defines that predicate.
+          4. Extract literal sets from both the constraint's body (non-aggregate parts) and the
+             defining rule's body. Ensure the constraint's literal set is a subset of the defining rule's.
+          5. Finally, using getParameterList(), extract parameters from:
+             - The choice literal of the defining rule (the functional predicate).
+             - The constraint body literals.
+          6. For each parameter in the functional predicate's parameter list, if it appears in the
+             constraint body, record its index as an argument; otherwise, record it as a return value.
+          7. If all parameters are accounted for, create an FPredicate namedtuple and append it to
+            functionalPredicates and return the list.
+        """
+        statements = collect_statements_from_pased(statements)
+        self.constraints, self.predicate_definitions = split_program(statements)
+
+        def _collect_symbolic_body_literals(
+            body: Iterable[ast.BodyLiteral],
+        ) -> list[ast.LiteralSymbolic]:
+            literals: list[ast.LiteralSymbolic] = []
+            for body_literal in body:
+                if isinstance(body_literal, ast.BodySimpleLiteral) and isinstance(
+                    body_literal.literal, ast.LiteralSymbolic
+                ):
+                    literals.append(body_literal.literal)
+            return literals
+
+        for rule in self.constraints:
+            for body_element in rule.body:
+                if not isinstance(body_element, ast.BodyAggregate):
+                    continue
+                if body_element.function != ast.AggregateFunction.Count:
+                    continue
+
+                left = body_element.left
+                if left is None or not self.guardCheck(left, ast.Relation.NotEqual, 1):
+                    continue
+
+                # This pattern expects a single aggregate element with one symbolic condition literal.
+                if len(body_element.elements) != 1:
+                    continue
+
+                aggregate_element = body_element.elements[0]
+                if not aggregate_element.condition:
+                    continue
+
+                choice_literal: ast.LiteralSymbolic | None = None
+                for cond in aggregate_element.condition:
+                    if isinstance(cond, ast.LiteralSymbolic):
+                        choice_literal = cond
+                        break
+                if choice_literal is None:
+                    continue
+
+                choice_key = predicate_key_from_literal_symbolic(choice_literal)
+
+                assert choice_key is not None
+                # if choice_key is None:
+                #     continue
+
+                defining_rules = self.predicate_definitions.get(choice_key, [])
+                if len(defining_rules) != 1:
+                    continue
+                defining_rule = defining_rules[0]
+                defining_literals = {
+                    str(lit)
+                    for lit in _collect_symbolic_body_literals(defining_rule.body)
+                }
+                constraint_literals = {
+                    str(lit) for lit in _collect_symbolic_body_literals(rule.body)
+                }
+                if not constraint_literals.issubset(defining_literals):
+                    continue
+
+                choice_parameters = get_parameter_list(choice_literal)
+                if not choice_parameters:
+                    continue
+
+                constraint_body_params: list[str] = []
+                for body_lit in rule.body:
+                    if isinstance(body_lit, ast.BodySimpleLiteral):
+                        constraint_body_params.extend(
+                            get_parameter_list(body_lit.literal)
+                        )
+
+                aggregate_head_vars = [str(term) for term in aggregate_element.tuple]
+
+                argument_list: list[int] = []
+                return_value_list: list[int] = []
+                for idx, param in enumerate(choice_parameters):
+                    if param in constraint_body_params:
+                        argument_list.append(idx)
+                    elif param in aggregate_head_vars:
+                        return_value_list.append(idx)
+
+                all_indices = set(argument_list + return_value_list)
+                if (
+                    len(all_indices) == len(choice_parameters)
+                    and set(aggregate_head_vars).issubset(set(choice_parameters))
+                    and len(argument_list) > 0
+                    and len(return_value_list) > 0
+                ):
+                    fpredicate = FPredicate(
+                        name=choice_key.split("/")[0],
+                        arity=len(choice_parameters),
+                        arguments=tuple(argument_list),
+                        values=tuple(return_value_list),
+                        condition=[],
+                    )
+                    if fpredicate not in self.functionalPredicates:
+                        self.functionalPredicates.append(fpredicate)
+
+        return self.functionalPredicates
 
     # def identifyCountConstraintPattern(self):
     #     """

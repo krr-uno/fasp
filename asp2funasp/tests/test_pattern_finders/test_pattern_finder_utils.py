@@ -139,6 +139,7 @@ class PatternFinderUtilsTest(unittest.TestCase):
                 """
         expected_constraints:List[str] = []
         expected_definitions = {
+                    'a/0': ['a; b(X); r(a); c(a,b) :- b(X).'],
                     'b/1': ['a; b(X); r(a); c(a,b) :- b(X).'],
                     'r/1': ['a; b(X); r(a); c(a,b) :- b(X).'],
                     'c/2': ['a; b(X); r(a); c(a,b) :- b(X).'],
