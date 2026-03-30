@@ -35,16 +35,16 @@ class FunctionalPredicateFinderTest(unittest.TestCase):
             f"\nFPredicate mismatch:\n"
             f"Missing: {missing_fp}\n"
             f"Unexpected: {unexpected_fp}\n"
-            f"Expected: {expectedFPredicates}\n"
-            f"Found: {foundFPredicates}"
+            # f"Expected: {expectedFPredicates}\n"
+            # f"Found: {foundFPredicates}"
         )
 
         assert not missing_fr and not unexpected_fr, (
             f"\nFRelation mismatch:\n"
             f"Missing: {missing_fr}\n"
             f"Unexpected: {unexpected_fr}\n"
-            f"Expected: {expectedFRelations}\n"
-            f"Found: {foundFRelations}"
+            # f"Expected: {expectedFRelations}\n"
+            # f"Found: {foundFRelations}"
         )
 
     ## TESTS ##
@@ -79,6 +79,17 @@ class FunctionalPredicateFinderTest(unittest.TestCase):
     def test_aggregate_pattern(self) -> None:
         program = "1 { assign(N,C) : color(C)}  1 :- node(N), pos(Z)."
         expected = [[FPredicate(name='assign', arity=2, arguments=(0,), values=(1,), condition=[])],
+                    [FRelation(name='assign', arity=2, arguments=(0,), values=[(1,)])]]
+
+        self.assertFPredicateEqual(program, expected)
+
+    def test_aggregate_inequality_count_constraint_pattern(self) -> None:
+        program = """
+            { assign(N,C) } :- node(N), color(C), pos(X).
+            :- #count{ C,N : assign(N,C) } != 1, node(N).
+            """
+        
+        expected = [[FPredicate(name='assign', arity=2, arguments=(0,), values=(1,), condition=[])], 
                     [FRelation(name='assign', arity=2, arguments=(0,), values=[(1,)])]]
 
         self.assertFPredicateEqual(program, expected)

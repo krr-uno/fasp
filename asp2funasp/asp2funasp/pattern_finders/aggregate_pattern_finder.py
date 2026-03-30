@@ -15,9 +15,12 @@ from asp2funasp.util.util import collect_statements_from_pased, get_parameter_li
 class AggregatePatternFinder:
     def __init__(self, library: Library) -> None:
         self.library = library
-        self.constraints: list[ast.StatementRule]
-        self.predicate_definitions: dict[str, list[ast.StatementRule]]
-        self.functionalPredicates: list[FPredicate] = []
+        self.constraints: List[ast.StatementRule]
+        self.predicate_definitions: dict[str, List[ast.StatementRule]]
+        self.functionalPredicates: List[FPredicate] = []
+
+    def getFunctionalPredicates(self) -> List[FPredicate]:
+        return self.functionalPredicates
 
     def identifyAggregatePattern(
         self, statements: Iterable[StatementAST]

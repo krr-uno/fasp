@@ -72,11 +72,10 @@ class FunctionalPredicateFinder:
         self.functionalPredicates.extend(found_inequalityFunctionalPredicates)
 
         APF = AggregatePatternFinder(self.lib)
-        found_aggregateFunctionalPredicates = APF.identifyAggregatePattern(
-            self.statements
-        )
+        APF.identifyAggregatePattern(self.statements)
+        APF.identifyCountConstraintPattern(self.statements)
 
-        self.functionalPredicates.extend(found_aggregateFunctionalPredicates)
+        self.functionalPredicates.extend(APF.getFunctionalPredicates())
 
         return self.functionalPredicates, self.processFoundPredicates()
 
