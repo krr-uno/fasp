@@ -23,24 +23,17 @@ class FunctionalPredicateFinder:
         self.constraints: List[StatementAST] = []
         self.definitions: Dict[str, Any] = {}
 
-    # def getFunctionalPredicates(self) -> List[FPredicate]:
-    #     return self.functionalPredicates
+    def getFunctionalPredicates(self) -> List[FPredicate]:
+        return self.functionalPredicates
 
     # def foundFunctionalPredicate(self) -> bool:
     #     return len(self.functionalPredicates) > 0
 
-    # def getFunctionalRelations(self) -> List[FRelation]:
-    #     return self.functionalRelations
+    def getFunctionalRelations(self) -> List[FRelation]:
+        return self.functionalRelations
 
     # def foundFunctionalRelation(self) -> bool:
     #     return len(self.functionalRelations) > 0
-
-    # def update_program_string(self):
-    #     rule_strings = []
-    #     for node in self.statements:
-    #         rule_strings.append(str(node))
-    #     self.asp_program = util.clean_program_base("\n".join(rule_strings), removeDirective=True)
-    #     return self.asp_program
 
     def processProgram(
         self, statements: List[StatementAST] | List[ast.StatementRule]

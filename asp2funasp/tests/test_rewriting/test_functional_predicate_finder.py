@@ -22,7 +22,8 @@ class FunctionalPredicateFinderTest(unittest.TestCase):
         program = textwrap.dedent(program).strip()
         nodes: list[ast.StatementRule] = collect_statements(self.lib, program)
 
-        return self.finder.processProgram(nodes)
+        self.finder.processProgram(nodes)
+        return self.finder.getFunctionalPredicates(), self.finder.getFunctionalRelations()
 
     def assertFPredicateEqual(self, program:str, expected: Tuple[List[FPredicate], List[FRelation]]) -> None:
         foundFPredicates, foundFRelations = self._apply(program)
