@@ -55,9 +55,19 @@ class NormalForm2PredicateTransformer:
     ) -> ast.TermFunction:
         """Builds a function term given its assigned function and its value."""
         name, arguments = function_arguments_ast(self.library, assigned_function)
-        assert (
-            SymbolSignature(name, len(arguments)) in self.evaluable_functions
-        ), f"Function {name}/{len(arguments)} not in evaluable functions {set(map(str, self.evaluable_functions))}."
+        if isinstance(assigned_function, ast.TermFunction):
+            candidate_arities = {len(p.arguments) for p in assigned_function.pool}
+        else:
+            candidate_arities = {len(arguments)}
+        arity_str = (
+            str(next(iter(candidate_arities)))
+            if len(candidate_arities) == 1
+            else str(sorted(candidate_arities))
+        )
+        assert any(
+            SymbolSignature(name, arity) in self.evaluable_functions
+            for arity in candidate_arities
+        ), f"Function {name}/{arity_str} not in evaluable functions {set(map(str, self.evaluable_functions))}."
 
         return ast.TermFunction(
             self.library,
@@ -231,7 +241,14 @@ class NormalForm2PredicateTransformer:
         ):
             return None
         name, arguments = function_arguments_ast(self.library, node.left)
-        if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
+        if isinstance(node.left, ast.TermFunction):
+            candidate_arities = {len(p.arguments) for p in node.left.pool}
+        else:
+            candidate_arities = {len(arguments)}
+        if not any(
+            SymbolSignature(name, arity) in self.evaluable_functions
+            for arity in candidate_arities
+        ):
             return None
         return self.function_to_literal(node.left, node.right[0].term, node.location)
 

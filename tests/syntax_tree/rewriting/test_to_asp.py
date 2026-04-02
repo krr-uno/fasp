@@ -113,3 +113,77 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             "#count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
             "#count { 0,ass(king(f(C)),X): Fking(g(C),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
         )
+
+
+    ## TESTS FOR REVIEW ##
+    def test_pool_not_evaluable(self):
+        """Test pool to_asp transformation: not evaluable function."""
+        self.assertRewrite(
+            {"a/0", "b/0"},
+            "f(1;a,b)=c.",
+            "f(1;a,b)=c.",
+        )
+
+    # LiteralComparisons get rewritten with prefix by to_asp.
+    def test_no_pool_equality_comparison(self):
+        """Test to_asp transformation: comparison."""
+        self.assertRewrite(
+            {"f/1", "b/0"},
+            "f(1)=c.",
+            "Ff(1,c).",
+        )
+    
+    # HeadSimpleAssignment get rewritten with prefix by to_asp.
+    def test_no_pool_assignment(self):
+        """Test to_asp transformation: assignment."""
+        self.assertRewrite(
+            {"f/1", "b/0"},
+            "f(1):=c.",
+            "Ff(1,c).",
+        )
+
+    # Both `f(1)=c.` and `f(1):=c.` get rewritten into `Ff(1,c).` by to_asp. 
+    # Is this correct? How do we distinguish between them ?
+    # This is how to_asp behaves even before changes to allow it to work on TermFunctions with pools.
+
+    # Same behaviour with pools.
+    def test_pool_rewrite_if_f1_is_evaluable(self):
+        """Rewrite pooled function equality when f/1 is evaluable."""
+        self.assertRewrite(
+            {"f/1"},
+            "f(1;a,b) = c.",
+            "Ff((1,;a,b),c).",
+        )
+
+    def test_pool_rewrite_if_f1_is_evaluable_assignment(self):
+        """Rewrite pooled assignment when f/1 is evaluable."""
+        self.assertRewrite(
+            {"f/1"},
+            "f(1;a,b) := c.",
+            "Ff((1,;a,b),c).",
+        )
+
+    def test_pool_rewrite_if_f2_is_evaluable(self):
+        """Rewrite pooled function equality when f/2 is evaluable."""
+        self.assertRewrite(
+            {"f/2"},
+            "f(1;a,b) = c.",
+            "Ff((1,;a,b),c).",
+        )
+
+    def test_pool_rewrite_if_f2_is_evaluable_assignment(self):
+        """Rewrite pooled assignment when f/2 is evaluable."""
+        self.assertRewrite(
+            {"f/2"},
+            "f(1;a,b) := c.",
+            "Ff((1,;a,b),c).",
+        )
+
+    def test_pool_assignment(self):
+        """Rewrite pooled assignment when f/2 is evaluable."""
+        self.assertRewrite(
+            {"f/2"},
+            "f(1;a,b) := c.",
+            "Ff((1,;a,b),c).",
+        )
+        

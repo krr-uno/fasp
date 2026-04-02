@@ -304,6 +304,10 @@ def function_arguments_ast(
     node: ast.TermFunction | ast.TermSymbolic,
 ) -> tuple[str, Sequence[ast.Term]]:
     """Return function arguments as AST terms for the given function-like node."""
+    if isinstance(node, ast.TermFunction) and len(node.pool) > 1:
+        # Preserve pooled alternatives as one tuple argument: f(1;a,b) -> f((1;a,b)).
+        return node.name, [ast.TermTuple(library, node.location, list(node.pool))]
+
     name, arguments = function_arguments(node)
     if arguments and isinstance(arguments[0], ast.Term):
         return name, cast(Sequence[ast.Term], arguments)
