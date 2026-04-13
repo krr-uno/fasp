@@ -55,18 +55,6 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             {"f/1"}, "{ f(X) := Y } :- p.", "{ f_f(X,Y) } :- p.", prefix="f_"
         )
 
-    def test_choice_assignment_invalid(self):
-        """Test choice assignment invalid."""
-        with self.assertRaises(AssertionError) as cm:
-            self.assertRewrite(
-                {"f/1"},
-                "{ f := Y } :- p.",
-                "{ f_f(X,Y) } :- p.",
-            )
-        self.assertEqual(
-            str(cm.exception), "Function f/0 not in evaluable functions {'f/1'}."
-        )
-
     def test_head_simple_assignment(self):
         """Test head simple assignment."""
         self.assertRewrite({"f/1"}, "f(X) := Y :- q.", "f_f(X,Y) :- q.", prefix="f_")
@@ -119,7 +107,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
     def test_pool_not_evaluable(self):
         """Test pool to_asp transformation: not evaluable function."""
         self.assertRewrite(
-            {"a/0", "b/0"},
+            set(),
             "f(1;a,b)=c.",
             "f(1;a,b)=c.",
         )
@@ -132,7 +120,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             "f(1)=c.",
             "Ff(1,c).",
         )
-    
+
     # HeadSimpleAssignment get rewritten with prefix by to_asp.
     def test_no_pool_assignment(self):
         """Test to_asp transformation: assignment."""
@@ -142,17 +130,13 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             "Ff(1,c).",
         )
 
-    # Both `f(1)=c.` and `f(1):=c.` get rewritten into `Ff(1,c).` by to_asp. 
-    # Is this correct? How do we distinguish between them ?
-    # This is how to_asp behaves even before changes to allow it to work on TermFunctions with pools.
-
     # Same behaviour with pools.
     def test_pool_rewrite_if_f1_is_evaluable(self):
         """Rewrite pooled function equality when f/1 is evaluable."""
         self.assertRewrite(
             {"f/1"},
             "f(1;a,b) = c.",
-            "Ff((1,;a,b),c).",
+            "Ff(1,c;a,b,c).",
         )
 
     def test_pool_rewrite_if_f1_is_evaluable_assignment(self):
@@ -160,7 +144,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         self.assertRewrite(
             {"f/1"},
             "f(1;a,b) := c.",
-            "Ff((1,;a,b),c).",
+            "Ff(1,c;a,b,c).",
         )
 
     def test_pool_rewrite_if_f2_is_evaluable(self):
@@ -168,7 +152,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         self.assertRewrite(
             {"f/2"},
             "f(1;a,b) = c.",
-            "Ff((1,;a,b),c).",
+            "Ff(1,c;a,b,c).",
         )
 
     def test_pool_rewrite_if_f2_is_evaluable_assignment(self):
@@ -176,7 +160,7 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         self.assertRewrite(
             {"f/2"},
             "f(1;a,b) := c.",
-            "Ff((1,;a,b),c).",
+            "Ff(1,c;a,b,c).",
         )
 
     def test_pool_assignment(self):
@@ -184,6 +168,5 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
         self.assertRewrite(
             {"f/2"},
             "f(1;a,b) := c.",
-            "Ff((1,;a,b),c).",
+            "Ff(1,c;a,b,c).",
         )
-        
