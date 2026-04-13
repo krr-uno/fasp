@@ -2,6 +2,7 @@ from functools import singledispatchmethod
 from typing import Any, Iterable
 
 from clingo import ast
+from clingo.symbol import SymbolType
 
 from funasp.syntax_tree._context import RewriteContext
 from funasp.syntax_tree.types import SymbolSignature
@@ -14,21 +15,26 @@ def _restore_literal(
 ) -> ast.LiteralComparison | None:
     """Restore prefixed function literals into equalities for non-evaluable signatures."""
     atom = node.atom
-    if not isinstance(atom, (ast.TermFunction, ast.TermSymbolic)):
-        return None  # pragma: no cover #TODO: Need to consider if this is the right approach
+    if isinstance(atom, ast.TermFunction):
+        prefixed_name = atom.name
+    elif isinstance(atom, ast.TermSymbolic) and atom.symbol.type == SymbolType.Function:
+        prefixed_name = atom.symbol.name
+    else:
+        # TODO: Need to add test for this
+        return None  # pragma: no cover
 
     prefix = context.prefix_function
-    prefixed_name, arguments = function_arguments_ast(context.lib.library, atom)
     if not prefixed_name.startswith(prefix):
         return None
 
-    base_name = prefixed_name[len(prefix) :]
-    assert base_name is not None, "Base name should be non-empty after prefix removal"
+    base_name, arguments = function_arguments_ast(context.lib.library, atom)
+    base_name = base_name[len(prefix) :]
+    assert base_name is not None
+    # if not base_name:
+    #     return None
 
     arguments = list(arguments)
-    assert len(arguments) >= 1, "At least one argument is required for restoration"
-    # if len(arguments) < 1:
-    #     return None
+    assert len(arguments) >= 1
 
     original_arity = len(arguments) - 1
     if SymbolSignature(base_name, original_arity) in context.evaluable_functions:
@@ -63,33 +69,83 @@ class _RestoreNonEvaluableFunctionsTransformer:
         self.library = context.lib.library
 
     @singledispatchmethod
-    def dispatch(self, node: Any) -> Any:  # pragma: no cover
+    def dispatch(self, node: Any) -> Any | None:  # pragma: no cover
         """Dispatch restoration recursively across AST nodes."""
-        return node.transform(self.library, self.dispatch) or node
+        return node.transform(self.library, self.dispatch)
 
     @dispatch.register
-    def _(
-        self, node: ast.LiteralSymbolic
-    ) -> ast.LiteralComparison | ast.LiteralSymbolic:
+    def _(self, node: ast.LiteralSymbolic) -> ast.LiteralComparison | None:
         """Restore a protected prefixed literal when it maps to a non-evaluable function."""
-        return _restore_literal(self.context, node) or node
+        new = _restore_literal(self.context, node)
+        return new
 
     # @dispatch.register
-    # def _(self, node: ast.HeadSimpleLiteral) -> ast.HeadSimpleLiteral:
-    #     """Keep simple rule heads unchanged.
-
-    #     Restoring to comparisons is only valid in body literals for this transformer.
-    #     """
-    #     return node
+    # def _(self, node: ast.HeadConditionalLiteral) -> ast.HeadConditionalLiteral | None:
+    #     """Restore prefixed literals inside disjunctive head elements."""
+    #     new_literal = self.dispatch(node.literal)
+    #     if new_literal is None:
+    #         return None
+    #     assert isinstance(new_literal, ast.Literal)
+    #     return node.update(self.library, literal=new_literal)
 
     # @dispatch.register
-    # def _(self, node: ast.HeadDisjunction) -> ast.HeadDisjunction:
-    #     """Keep disjunctive heads unchanged during non-evaluable restoration."""
-    #     return node
+    # def _(self, node: ast.HeadDisjunction) -> ast.HeadDisjunction | None:
+    #     """Restore prefixed literals in all disjunctive head elements."""
+    #     new_elements: list[ast.HeadConditionalLiteral] = []
+    #     changed = False
+    #     for element in node.elements:
+    #         rewritten = self.dispatch(element)
+    #         if rewritten is None:
+    #             assert isinstance(element, ast.HeadConditionalLiteral)
+    #             new_elements.append(element)
+    #         else:
+    #             # Type narrowing: isinstance checks type but singledispatchmethod returns
+    #             # a union of all handler return types, preventing mypy from narrowing.
+    #             # The registered handler for HeadConditionalLiteral returns HeadConditionalLiteral | None.
+    #             assert isinstance(rewritten, ast.HeadConditionalLiteral)
+    #             new_elements.append(rewritten)
+    #             changed = True
+    #     if not changed:
+    #         return None
+    #     return node.update(self.library, elements=new_elements)
+
+    @dispatch.register
+    def _(self, node: ast.StatementRule) -> ast.StatementRule | None:
+        """Restore prefixed literals in both rule heads and bodies."""
+        rewritten_head = self.dispatch(node.head)
+        if rewritten_head is None:
+            new_head = node.head
+            head_changed = False
+        else:
+            assert isinstance(rewritten_head, (ast.HeadLiteral, ast.HeadDisjunction))
+            new_head = rewritten_head
+            head_changed = True
+
+        new_body: list[ast.BodyLiteral] = []
+        changed = head_changed
+        for literal in node.body:
+            rewritten = self.dispatch(literal)
+            if rewritten is None:
+                new_body.append(literal)
+            else:
+                assert isinstance(rewritten, ast.BodyLiteral)
+                new_body.append(rewritten)
+                changed = True
+
+        if not changed:
+            return None
+        return ast.StatementRule(self.library, node.location, new_head, new_body)
+
+    # @dispatch.register
+    # def _(self, node: ast.LiteralBoolean | ast.LiteralComparison) -> None:
+    #     """Leave booleans and existing comparisons unchanged."""
+    #     return None
 
     def rewrite(self, statement: ast.Statement) -> ast.Statement:
         """Apply restoration to one clingo statement."""
-        rewritten = statement.transform(self.library, self.dispatch) or statement
+        rewritten = self.dispatch(statement)
+        if rewritten is None:
+            return statement
         assert isinstance(rewritten, ast.Statement)
         return rewritten
 
