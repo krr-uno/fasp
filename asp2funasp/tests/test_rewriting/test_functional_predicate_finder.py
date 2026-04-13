@@ -74,6 +74,8 @@ class FunctionalPredicateFinderTest(unittest.TestCase):
                 FPredicate(name="pos",arity=3,arguments=(0,),values=(2,),condition=[])],
                 [FRelation(name='pos', arity=3, arguments=(0,), values=[(1,),(2,)])]
                 )
+        # :- pos1(I) = X; pos2(I) = Y; pos1(I) = X1; pos2(I) = Y1; X1 != X.
+        # :- pos1(I) = X; pos2(I) = Y1; pos1(I) = X1; pos2(I) = Y; Y1 != Y.
 
         self.assertFPredicateEqual(program, expected)
 
@@ -89,8 +91,11 @@ class FunctionalPredicateFinderTest(unittest.TestCase):
             { assign(N,C) } :- node(N), color(C), pos(X).
             :- #count{ C,N : assign(N,C) } != 1, node(N).
             """
-        
-        expected = [[FPredicate(name='assign', arity=2, arguments=(0,), values=(1,), condition=[])], 
+
+        expected = [[FPredicate(name='assign', arity=2, arguments=(0,), values=(1,), condition=[])],
                     [FRelation(name='assign', arity=2, arguments=(0,), values=[(1,)])]]
+
+        # { assign(N) := C } :- node(N), color(C), pos(X).
+        # :- #count{ C,N : assign(N) = C } != 1, node(N).
 
         self.assertFPredicateEqual(program, expected)
