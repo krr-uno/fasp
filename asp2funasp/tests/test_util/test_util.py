@@ -1,7 +1,7 @@
 import textwrap
 import unittest
 
-from typing import List
+from typing import Tuple, Dict
 
 from clingo import ast
 from clingo.core import Library
@@ -10,6 +10,7 @@ from clingo.symbol import Symbol, Function as SymbolFunction
 
 from asp2funasp.util import util
 from asp2funasp.util.ast import AST, StatementAST
+from asp2funasp.util.types import FRelation, SymbolSignature
 
 from tests.util import find_in_ast, parse_and_find, collect_statements
 
@@ -146,6 +147,12 @@ class UtilTest(unittest.TestCase):
         # params = util.get_parameter_list(termSymbolic)
         # self.assertEqual(params, [])
 
+    def test_index_relations(self) -> None:
+        frels = [FRelation(name='pos', arity=3, arguments=(0,), values=[(1,),(2,)])]
+        index:Dict[SymbolSignature, FRelation] = util.index_frelations(frels)
+        assert len(index.items()) == 1
+        assert str(list(index.keys())[0]) == "pos/3"
+        assert index[SymbolSignature("pos", 3)] == frels[0]
 
 if __name__ == "__main__":
     unittest.main()

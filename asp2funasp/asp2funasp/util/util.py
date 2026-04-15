@@ -1,5 +1,6 @@
 from itertools import combinations
 from typing import (
+    Dict,
     Iterable,
     List,
     Sequence,
@@ -13,6 +14,7 @@ from clingo.core import Library
 from clingo.symbol import Symbol, SymbolType
 
 from asp2funasp.util.ast import AST, HeadLiteralAST, StatementAST, TermAST
+from asp2funasp.util.types import FRelation, SymbolSignature
 
 FunctionLikeAST = ast.TermFunction | ast.TermSymbolic | ast.TermTuple | Symbol
 
@@ -281,3 +283,10 @@ def get_parameter_list(node: AST) -> list[str]:
         return param_names
     else:
         return []
+
+
+def index_frelations(frels: List[FRelation]) -> Dict[SymbolSignature, FRelation]:
+    index: Dict[SymbolSignature, FRelation] = {}
+    for fr in frels:
+        index[SymbolSignature(fr.name, fr.arity)] = fr
+    return index

@@ -1,7 +1,11 @@
 from typing import (
+    Sequence,
+    TypeIs,
     TypeVar,
+    cast,
 )
 
+from clingo import ast
 from clingo.ast import (
     ArgumentTuple,
     BodyAggregate,
@@ -68,7 +72,8 @@ from clingo.ast import (
     TheoryTermVariable,
     UnparsedElement,
 )
-from clingo.symbol import Symbol
+from clingo.core import Library
+from clingo.symbol import Symbol, SymbolType
 
 StatementAST = (
     StatementRule
@@ -332,49 +337,49 @@ FunctionLikeAST = TermFunction | TermSymbolic | TermTuple | Symbol
 #     return ast.BodySimpleLiteral(library, create_literal(library, atom, sign))
 
 
-# def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
-#     return isinstance(node, ast.TermFunction) or (
-#         isinstance(node, ast.TermSymbolic) and node.symbol.type == SymbolType.Function
-#     )
+def is_function(node: AST) -> TypeIs[ast.TermFunction | ast.TermSymbolic]:
+    return isinstance(node, ast.TermFunction) or (
+        isinstance(node, ast.TermSymbolic) and node.symbol.type == SymbolType.Function
+    )
 
 
-# def function_arguments(
-#     node: FunctionLikeAST,
-# ) -> tuple[str, Sequence[ArgumentAST] | Sequence[Symbol]]:
-#     if isinstance(node, ast.TermTuple):
-#         name = ""
-#         assert len(node.pool) == 1 and isinstance(
-#             node.pool[0], ast.ArgumentTuple
-#         ), f"Terms must be unpooled {node}"
-#         arguments = node.pool[0].arguments
-#     elif isinstance(node, ast.TermFunction):
-#         name = node.name
-#         assert len(node.pool) == 1, f"Terms must be unpooled {node}"
-#         arguments = node.pool[0].arguments
-#     else:
-#         if isinstance(node, ast.TermSymbolic):
-#             node = node.symbol
-#         if node.type == SymbolType.Tuple:  # pragma: no cover
-#             name = ""
-#         else:
-#             assert (
-#                 node.type == SymbolType.Function
-#             ), f"Expected a symbol function, got {node}: {node.type}"
-#             name = node.name
-#         arguments = node.arguments
-#     return name, arguments
+def function_arguments(
+    node: FunctionLikeAST,
+) -> tuple[str, Sequence[ArgumentAST] | Sequence[Symbol]]:
+    if isinstance(node, ast.TermTuple):
+        name = ""
+        assert len(node.pool) == 1 and isinstance(
+            node.pool[0], ast.ArgumentTuple
+        ), f"Terms must be unpooled {node}"
+        arguments = node.pool[0].arguments
+    elif isinstance(node, ast.TermFunction):
+        name = node.name
+        assert len(node.pool) == 1, f"Terms must be unpooled {node}"
+        arguments = node.pool[0].arguments
+    else:
+        if isinstance(node, ast.TermSymbolic):
+            node = node.symbol
+        if node.type == SymbolType.Tuple:  # pragma: no cover
+            name = ""
+        else:
+            assert (
+                node.type == SymbolType.Function
+            ), f"Expected a symbol function, got {node}: {node.type}"
+            name = node.name
+        arguments = node.arguments
+    return name, arguments
 
 
-# def function_arguments_ast(
-#     library: Library,
-#     node: ast.TermFunction | ast.TermSymbolic,
-# ) -> tuple[str, Sequence[TermAST]]:
-#     name, arguments = function_arguments(node)
-#     if arguments and isinstance(arguments[0], TermAST):
-#         return name, cast(Sequence[TermAST], arguments)
-#     return name, [
-#         ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
-#     ]
+def function_arguments_ast(
+    library: Library,
+    node: ast.TermFunction | ast.TermSymbolic,
+) -> tuple[str, Sequence[TermAST]]:
+    name, arguments = function_arguments(node)
+    if arguments and isinstance(arguments[0], TermAST):
+        return name, cast(Sequence[TermAST], arguments)
+    return name, [
+        ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
+    ]
 
 
 # class FreshVariableGenerator:
