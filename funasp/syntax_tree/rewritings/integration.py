@@ -20,6 +20,9 @@ from funasp.syntax_tree.rewritings.protecting import (
     restore_assignments,
     restore_comparisons,
 )
+from funasp.syntax_tree.rewritings.restore_non_evaluable_functions import (
+    restore_non_evaluable_functions,
+)
 from funasp.syntax_tree.rewritings.showf import rewrite_showf
 from funasp.syntax_tree.rewritings.some_assignments import (
     rewrite_some_choices,
@@ -146,12 +149,16 @@ def rewrite_statements(
         )
     for stmt in new_statements:
         stmt.rewrite(context, unnest_ast)
-        stmt.rewrite_to_clingo(context, protect_assignment)
-        stmt.rewrite_clingo(context, protect_comparisons)
-        _clingo_rewrite(context, stmt)
-        stmt.rewrite_clingo(context, restore_comparisons)
-        stmt.rewrite_from_clingo(context, restore_assignments)
+        # stmt.rewrite_to_clingo(context, protect_assignment)
+        # stmt.rewrite_clingo(context, protect_comparisons)
+        # _clingo_rewrite(context, stmt)
+        # stmt.rewrite_clingo(context, restore_comparisons)
+        # stmt.rewrite_from_clingo(context, restore_assignments)
         stmt.rewrite_to_clingo(context, to_asp)
+        _clingo_rewrite(context, stmt)
+        stmt.rewrite_clingo(context, restore_non_evaluable_functions)
+        # stmt.rewrite_clingo(context, restore_comparisons)
+        # stmt.rewrite_clingo(context, restore_assignments)
 
     new_statements2 = [s for stmt in new_statements for s in stmt.clingo_rewritten]
     new_statements2.extend(functional_constraints(context))
