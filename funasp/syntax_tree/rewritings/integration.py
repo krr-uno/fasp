@@ -23,6 +23,9 @@ from funasp.syntax_tree.rewritings.protecting import (
 from funasp.syntax_tree.rewritings.restore_non_evaluable_functions import (
     restore_non_evaluable_functions,
 )
+from funasp.syntax_tree.rewritings.restore_anonymous_term_variables import (
+    restore_anonymous_term_variables,
+)
 from funasp.syntax_tree.rewritings.showf import rewrite_showf
 from funasp.syntax_tree.rewritings.some_assignments import (
     rewrite_some_choices,
@@ -156,6 +159,7 @@ def rewrite_statements(
         # stmt.rewrite_from_clingo(context, restore_assignments)
         stmt.rewrite_to_clingo(context, to_asp)
         _clingo_rewrite(context, stmt)
+        stmt.rewrite_clingo(context, restore_anonymous_term_variables)
         stmt.rewrite_clingo(context, restore_non_evaluable_functions)
         # stmt.rewrite_clingo(context, restore_comparisons)
         # stmt.rewrite_clingo(context, restore_assignments)

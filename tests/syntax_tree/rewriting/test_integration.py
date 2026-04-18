@@ -306,7 +306,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
             % female(mother(X)).
             male(Y) :- Ffather(_,Y).
             female(Y) :- Fmother(_,Y).
-            orphan(X) :- person(X); #false: Ffather(X,_); #false: Fmother(X,_).
+            orphan(X) :- person(X); #false: Ffather(X,*); #false: Fmother(X,*).
             Fn_orphan(W) :- W = #count { X: orphan(X) }.
             :- Ffather(X0,_); 1 < #count { V: Ffather(X0,V) }.
             :- Fmother(X0,_); 1 < #count { V: Fmother(X0,V) }.
