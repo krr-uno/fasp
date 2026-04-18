@@ -72,15 +72,11 @@ class TestRestoreNonEvaluableFunctions(unittest.TestCase):
         # Protect using to_asp (converts evaluable functions to prefixed predicates)
         statements = [to_asp(context, stmt) for stmt in statements]
 
-        print("Protected")
-        for stmt in statements:
-            print(str(stmt))
+        
         
         # Clingo rewrite to normalize AST
         statements = self._clingo_rewrite_wrapper(context, statements)
-        print("Rewritten")
-        for stmt in statements:
-            print(str(stmt))
+        
         # # Restore non-evaluable function predicates back to equalities
         statements = restore_non_evaluable_functions_list(context, statements)
         
