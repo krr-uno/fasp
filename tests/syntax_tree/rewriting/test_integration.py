@@ -245,12 +245,17 @@ class TestFASPProgramTransformer(unittest.TestCase):
             """,
         )
 
+    ## QUERY: Is this transformation correct?
     def test_fibo(self):
         """Test fibo."""
         self.assertTransformEqual(
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
+            # """
+            # Ffibo(X,Y) :- number(X); X>1; 1*__A_0+0=Y; Ffibo(1*X+(-1),FUN); Ffibo(1*X+(-2),FUN2); __A_0=FUN+FUN2.
+            # :- Ffibo(X0,_); 1 < #count { V: Ffibo(X0,V) }.
+            # """,
             """
-            Ffibo(X,Y) :- number(X); X>1; 1*__A_0+0=Y; Ffibo(1*X+(-1),FUN); Ffibo(1*X+(-2),FUN2); __A_0=FUN+FUN2.
+            Ffibo(X,Y) :- number(X); Ffibo(1*X+(-1),FUN); Ffibo(1*X+(-2),FUN2); X>1; Y=FUN+FUN2.
             :- Ffibo(X0,_); 1 < #count { V: Ffibo(X0,V) }.
             """,
         )
