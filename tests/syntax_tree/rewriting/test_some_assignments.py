@@ -3,10 +3,10 @@
 
 import unittest
 
-from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.ast._context import RewriteContext
+from funasp.ast.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
-from funasp.syntax_tree.rewritings.some_assignments import (
+from funasp.ast.rewritings.some_assignments import (
     rewrite_some_choices,
 )
 

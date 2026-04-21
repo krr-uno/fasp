@@ -2,8 +2,8 @@ from typing import Iterable
 
 from clingo import ast
 
-from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree._nodes import (
+from funasp.ast._context import RewriteContext
+from funasp.ast._nodes import (
     FASP_AST,
     FASP_AST_T,
     AssignmentAggregateElement,
@@ -16,10 +16,10 @@ from funasp.syntax_tree._nodes import (
     HeadSimpleAssignment,
     ShowFDirective,
 )
-from funasp.syntax_tree.rewritings.integration import (
+from funasp.ast.rewritings.integration import (
     rewrite_statements,
 )
-from funasp.syntax_tree.types import SymbolSignature
+from funasp.ast.types import SymbolSignature
 
 __all__ = [
     "FASP_AST",

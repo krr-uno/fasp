@@ -4,16 +4,16 @@ from typing import List
 
 from clingo import ast
 
-from funasp.syntax_tree._context import RewriteContext
+from funasp.ast._context import RewriteContext
 from tests.restore_anonymous_term_variables import (
     restore_anonymous_term_variables
 )
 
-from funasp.syntax_tree.rewritings.to_asp import to_asp
-from funasp.syntax_tree.parsing.parser import parse_string
-from funasp.syntax_tree.types import SymbolSignature
-from funasp.syntax_tree._nodes import AssignmentRule
-from funasp.syntax_tree import FASP_Statement
+from funasp.ast.rewritings.to_asp import to_asp
+from funasp.ast.parsing.parser import parse_string
+from funasp.ast.types import SymbolSignature
+from funasp.ast._nodes import AssignmentRule
+from funasp.ast import FASP_Statement
 from funasp.util.ast import ELibrary
 
 

@@ -1,8 +1,8 @@
 import unittest
 
 
-from funasp.syntax_tree.collectors import collect_evaluable_function_signatures, collect_variables
-from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.ast.collectors import collect_evaluable_function_signatures, collect_variables
+from funasp.ast.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
 
 

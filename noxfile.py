@@ -33,7 +33,7 @@ FTESTS = [test for test in TESTS if str(test) not in INTEGRATION_TESTS]
 
 SLOW_TESTS = [*TESTS, *SLOW_TESTS]
 
-COVERAGE_OMIT = ["tests/*", "funasp/syntax_tree/rewritings/protecting.py"]
+COVERAGE_OMIT = ["tests/*", "funasp/ast/rewritings/protecting.py"]
 
 @nox.session(python=PYTHON_VERSIONS)
 def test(session):

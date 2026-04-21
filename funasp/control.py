@@ -8,10 +8,10 @@ from clingo import ast
 from clingo import solve as clingo_solve
 from clingo import symbol
 
+from funasp.ast import rewrite_statements
+from funasp.ast._context import RewriteContext
+from funasp.ast.parsing import parser
 from funasp.solve import Model
-from funasp.syntax_tree import rewrite_statements
-from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree.parsing import parser
 from funasp.util.ast import ELibrary
 
 LIBC_NAME: str | None = None
