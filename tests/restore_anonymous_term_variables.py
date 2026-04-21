@@ -22,10 +22,7 @@ class _RestoreAnonymousTermVariablesTransformer:
     @dispatch.register
     def _(self, node: ast.TermVariable) -> ast.TermVariable | None:
         """Restore anonymous term-variable names to "_"."""
-        if not node.anonymous:
-            return None
-
-        if node.name == "_":
+        if not node.anonymous or node.name == "_":
             return None
 
         return ast.TermVariable(self.library, node.location, "_", anonymous=True)
