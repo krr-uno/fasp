@@ -49,10 +49,7 @@ class FunctionalBodyRewriteTransformer:
         term = node.atom
 
         # Only handle function atoms
-
-        # TODO: Add tests.
-        if not is_function(term):
-            return None  # pragma: no cover
+        assert is_function(term)
 
         name, arguments = function_arguments_ast(self.lib, term)
 
