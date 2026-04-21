@@ -106,19 +106,21 @@ def _clingo_rewrite(context: RewriteContext, statement: RewritingStatement) -> N
     Wrapper for clingo's statement rewriting to handle errors.
     """
     statements = statement.clingo_rewritten
-    ctx = context.ctx
-    context.lib.ignore_info = True
+    # ctx = context.ctx
+    # context.lib.ignore_info = True
     out: list[ast.Statement] = []
     errors = []
     for stmt in statements:
         assert not isinstance(stmt, AssignmentRule)
         try:
-            rewritten_list = ast.rewrite_statement(ctx, stmt)
+            context.lib.processing_statement(str(statement.original))
+            rewritten_list = ast.rewrite_statement(context.ctx, stmt)
+            context.lib.clear_processing_statement()
         except RuntimeError as e:
             errors.append((stmt, e))
             continue
         out.extend(rewritten_list)
-    context.lib.ignore_info = False
+    # context.lib.ignore_info = False
     if errors:
         raise RuntimeError("rewriting failed", errors)
     statement._clingo_rewritten = out

@@ -374,6 +374,15 @@ class ELibrary:
         )
         self.original_statements: dict[str, list[ast.Statement]] = {}
         self.ignore_info = False
+        self._processing_statement: str | None = None
+
+    def processing_statement(self, statement: str) -> None:
+        """Set the currently processing statement for more informative logging."""
+        self._processing_statement = statement
+
+    def clear_processing_statement(self) -> None:
+        """Clear the currently processing statement."""
+        self._processing_statement = None
 
     # def add_original_statement(self, statement: ast.Statement) -> None:
     #     file = statement.location.begin.file
@@ -384,22 +393,38 @@ class ELibrary:
     def handle_log_message(self, msg_type: MessageType, message: str) -> None:
         """Capture, normalize, and optionally forward messages emitted by clingo."""
         self.error_messages.append((msg_type, message))
-        message = self.normalize_log_message(msg_type, message)
-        # print(">>>>>>>>>>>>", message, self.ignore_info, msg_type, MessageType.Info, MessageType.OperationUndefined)
-        if self.logger is not None and (
-            not self.ignore_info
-            or msg_type not in {MessageType.Info, MessageType.OperationUndefined}
+        new_message = self.normalize_log_message(msg_type, message)
+        if (
+            new_message
+            and self.logger is not None
+            and (
+                not self.ignore_info
+                or msg_type not in {MessageType.Info, MessageType.OperationUndefined}
+            )
         ):  # pragma: no cover
-            self.logger(msg_type, message)
+            self.logger(msg_type, new_message)
 
-    def normalize_log_message(self, msg_type: MessageType, message: str) -> str:
+    def normalize_log_message(self, msg_type: MessageType, message: str) -> str | None:
         """Normalize selected clingo messages for FASP-specific reporting."""
         if "unsafe variable" in message:
             lines = message.split("\n")
-            lines[0] = lines[0][9:-3]
-            lines.pop(1)
+            if self._processing_statement is None:
+                lines[0] = lines[0][9:-3]
+                lines.pop(1)
+            else:
+                lines[1] = f"  {self._processing_statement}"
             message = "\n".join(lines)
-        if "undefined predicate F" in message:
+        elif (
+            "operation undefined" in message and self._processing_statement is not None
+        ):
+            lines = message.split("\n")
+            lines[0] = lines[0][:-1] + " in:"
+            lines.insert(1, f"  {self._processing_statement}")
+            lines.insert(2, "note: the following operations are undefined:")
+            message = "\n".join(lines)
+        elif "undefined predicate F" in message:
+            if message.startswith("<functional>:0:0-0:"):
+                return None
             message = message.replace(
                 "undefined predicate F", "undefined intensional function "
             )
