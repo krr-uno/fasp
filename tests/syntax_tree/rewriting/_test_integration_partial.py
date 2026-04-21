@@ -3,7 +3,7 @@ import unittest
 
 from funasp.util.ast import ELibrary
 from funasp.syntax_tree.parsing.parser import parse_string
-from .integration_partial import (
+from tests.syntax_tree.rewriting.integration_partial import (
     FASPProgramTransformer,
     PipelineStage,
 )

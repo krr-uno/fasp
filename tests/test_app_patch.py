@@ -10,7 +10,7 @@ from unittest.mock import patch, MagicMock
 from funasp.app import FaspApp, main
 from funasp.control import Control
 
-from .examples import EXAMPLES
+from tests.examples import EXAMPLES
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 

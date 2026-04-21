@@ -8,7 +8,7 @@ from funasp.control import Control
 from funasp.util.ast import ELibrary
 from funasp.solve import Model
 
-from .examples import EXAMPLES
+from tests.examples import EXAMPLES
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 
