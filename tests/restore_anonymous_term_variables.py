@@ -1,39 +1,23 @@
-from functools import singledispatchmethod
 from typing import Iterable
 
 from clingo import ast
+from clingo.core import Library
 
 from funasp.syntax_tree._context import RewriteContext
 from funasp.util.ast import AST
 
 
-class _RestoreAnonymousTermVariablesTransformer:
-    """Normalize anonymous term variables so their name is always "_"."""
+def _restore_anonymous_term_variables(library: Library, node: AST) -> AST:
+    """Restore anonymous term-variable names to "_" in an AST node."""
 
-    def __init__(self, context: RewriteContext) -> None:
-        """Initialize the transformer with the rewrite context."""
-        self.library = context.lib.library
+    def _dispatch(n: AST) -> AST | None:
+        if isinstance(n, ast.TermVariable):
+            if not n.anonymous or n.name == "_":
+                return None
+            return ast.TermVariable(library, n.location, "_", anonymous=True)
+        return n.transform(library, _dispatch)
 
-    @singledispatchmethod
-    def dispatch(self, node: AST) -> AST | None:  # pragma: no cover
-        """Recursively dispatch across AST nodes using clingo's transform API."""
-        return node.transform(self.library, self.dispatch)
-
-    @dispatch.register
-    def _(self, node: ast.TermVariable) -> ast.TermVariable | None:
-        """Restore anonymous term-variable names to "_"."""
-        if not node.anonymous or node.name == "_":
-            return None
-
-        return ast.TermVariable(self.library, node.location, "_", anonymous=True)
-
-    def rewrite(self, node: AST) -> AST:
-        """Apply anonymous-term-variable restoration to one AST node."""
-        rewritten = self.dispatch(node)
-        if rewritten is None:
-            return node
-        assert isinstance(rewritten, AST)
-        return rewritten
+    return _dispatch(node) or node
 
 
 def restore_anonymous_term_variables(
@@ -41,16 +25,7 @@ def restore_anonymous_term_variables(
     statement: ast.Statement,
 ) -> ast.Statement:
     """Restore anonymous term-variable names in a statement."""
-    rewritten = _RestoreAnonymousTermVariablesTransformer(context).rewrite(statement)
+    rewritten = _restore_anonymous_term_variables(context.lib.library, statement)
     assert isinstance(rewritten, ast.Statement)
     return rewritten
 
-
-def restore_anonymous_term_variables_list(
-    context: RewriteContext,
-    statements: Iterable[ast.Statement],
-) -> list[ast.Statement]:
-    """Restore anonymous term-variable names in a statement sequence."""
-    return [
-        restore_anonymous_term_variables(context, statement) for statement in statements
-    ]

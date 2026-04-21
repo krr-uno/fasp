@@ -6,7 +6,7 @@ from clingo import ast
 
 from funasp.syntax_tree._context import RewriteContext
 from tests.restore_anonymous_term_variables import (
-    restore_anonymous_term_variables_list
+    restore_anonymous_term_variables
 )
 
 from funasp.syntax_tree.rewritings.to_asp import to_asp
@@ -78,7 +78,7 @@ class TestRestoreNonEvaluableFunctions(unittest.TestCase):
             statements = self._clingo_rewrite_wrapper(context, statements)
 
         # Restore anonymous term variables
-        statements = restore_anonymous_term_variables_list(context, statements)
+        statements = [restore_anonymous_term_variables(context, stmt) for stmt in statements]
 
         # Skip the #program directive if present
         if statements:
