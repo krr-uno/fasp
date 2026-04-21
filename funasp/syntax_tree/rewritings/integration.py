@@ -14,17 +14,8 @@ from funasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggreg
 from funasp.syntax_tree.rewritings.negated_literals import (
     rewrite_negate_body_literals,
 )
-from funasp.syntax_tree.rewritings.protecting import (
-    protect_assignment,
-    protect_comparisons,
-    restore_assignments,
-    restore_comparisons,
-)
 from funasp.syntax_tree.rewritings.restore_non_evaluable_functions import (
     restore_non_evaluable_functions,
-)
-from funasp.syntax_tree.rewritings.restore_anonymous_term_variables import (
-    restore_anonymous_term_variables,
 )
 from funasp.syntax_tree.rewritings.showf import rewrite_showf
 from funasp.syntax_tree.rewritings.some_assignments import (
@@ -91,14 +82,14 @@ class RewritingStatement:
         assert self._clingo_rewritten is not None
         self._clingo_rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
 
-    def rewrite_from_clingo(
-        self,
-        context: RewriteContext,
-        fun: Callable[[RewriteContext, ast.Statement], FASP_Statement],
-    ) -> None:
-        """Apply a clingo-to-FASP rewrite function and switch back to FASP statements."""
-        assert self._clingo_rewritten is not None
-        self._rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
+    # def rewrite_from_clingo(
+    #     self,
+    #     context: RewriteContext,
+    #     fun: Callable[[RewriteContext, ast.Statement], FASP_Statement],
+    # ) -> None:
+    #     """Apply a clingo-to-FASP rewrite function and switch back to FASP statements."""
+    #     assert self._clingo_rewritten is not None
+    #     self._rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
 
     def rewrite_clingo_many(  # pragma: no cover
         self,
@@ -152,17 +143,9 @@ def rewrite_statements(
         )
     for stmt in new_statements:
         stmt.rewrite(context, unnest_ast)
-        # stmt.rewrite_to_clingo(context, protect_assignment)
-        # stmt.rewrite_clingo(context, protect_comparisons)
-        # _clingo_rewrite(context, stmt)
-        # stmt.rewrite_clingo(context, restore_comparisons)
-        # stmt.rewrite_from_clingo(context, restore_assignments)
         stmt.rewrite_to_clingo(context, to_asp)
         _clingo_rewrite(context, stmt)
-        stmt.rewrite_clingo(context, restore_anonymous_term_variables)
         stmt.rewrite_clingo(context, restore_non_evaluable_functions)
-        # stmt.rewrite_clingo(context, restore_comparisons)
-        # stmt.rewrite_clingo(context, restore_assignments)
 
     new_statements2 = [s for stmt in new_statements for s in stmt.clingo_rewritten]
     new_statements2.extend(functional_constraints(context))

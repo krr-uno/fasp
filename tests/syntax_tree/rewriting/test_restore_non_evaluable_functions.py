@@ -57,7 +57,7 @@ class TestRestoreNonEvaluableFunctions(unittest.TestCase):
         prefix = "pf_",
     ) -> None:
         """Assert that restoring a program produces the expected restored statements.
-        
+
         Pipeline: parse raw ASP → to_asp (protect) → clingo rewrite → restore.
         This tests the full restoration stage of the transformation pipeline.
         """
@@ -72,21 +72,21 @@ class TestRestoreNonEvaluableFunctions(unittest.TestCase):
         # Protect using to_asp (converts evaluable functions to prefixed predicates)
         statements = [to_asp(context, stmt) for stmt in statements]
 
-        
-        
+
+
         # Clingo rewrite to normalize AST
         statements = self._clingo_rewrite_wrapper(context, statements)
-        
+
         # # Restore non-evaluable function predicates back to equalities
         statements = restore_non_evaluable_functions_list(context, statements)
-        
+
         # Skip the #program directive if present
         if statements:
             statements = statements[1:]
-        
+
         restored_strs = [str(stmt).strip() for stmt in statements]
         str_restored = '\n'.join(restored_strs) if restored_strs else ""
-        
+
         self.assertEqual(
             str_restored, textwrap.dedent(expected).strip()
         )
@@ -159,9 +159,9 @@ class TestRestoreNonEvaluableFunctions(unittest.TestCase):
         expected = "p :- pf_f(a,b,c)."
         self.assertEqualRestore({SymbolSignature("f", 2)}, program, expected)
 
-    
 
-    
+
+
 
 if __name__ == "__main__":
     unittest.main()

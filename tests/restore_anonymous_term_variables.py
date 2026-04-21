@@ -1,10 +1,11 @@
 from functools import singledispatchmethod
-from typing import Any, Iterable
+from typing import Iterable
 
 from clingo import ast
 
 from funasp.syntax_tree._context import RewriteContext
 from funasp.util.ast import AST
+
 
 class _RestoreAnonymousTermVariablesTransformer:
     """Normalize anonymous term variables so their name is always "_"."""

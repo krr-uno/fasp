@@ -5,7 +5,7 @@ from typing import List
 from clingo import ast
 
 from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree.rewritings.restore_anonymous_term_variables import (
+from tests.restore_anonymous_term_variables import (
     restore_anonymous_term_variables_list
 )
 
@@ -57,7 +57,7 @@ class TestRestoreNonEvaluableFunctions(unittest.TestCase):
         rewrite:bool = True,
     ) -> None:
         """Assert that restoring a program produces the expected restored statements.
-        
+
         Pipeline: parse raw ASP → to_asp (protect) → clingo rewrite → restore.
         This tests the full restoration stage of the transformation pipeline.
         """
@@ -70,23 +70,23 @@ class TestRestoreNonEvaluableFunctions(unittest.TestCase):
         # if statements:
         #     statements = statements[1:]
 
-        
+
         # Protect using to_asp (converts evaluable functions to prefixed predicates)
         statements = [to_asp(context, stmt) for stmt in statements]
         if rewrite:
             # Clingo rewrite to normalize AST
             statements = self._clingo_rewrite_wrapper(context, statements)
-        
+
         # Restore anonymous term variables
         statements = restore_anonymous_term_variables_list(context, statements)
 
         # Skip the #program directive if present
         if statements:
             statements = statements[1:]
-        
+
         restored_strs = [str(stmt).strip() for stmt in statements]
         str_restored = '\n'.join(restored_strs) if restored_strs else ""
-        
+
         self.assertEqual(
             str_restored, textwrap.dedent(expected).strip()
         )

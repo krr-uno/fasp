@@ -2,6 +2,7 @@ from inspect import Signature
 import textwrap
 import unittest
 
+from tests.restore_anonymous_term_variables import restore_anonymous_term_variables
 from funasp.syntax_tree.types import SymbolSignature
 from funasp.util.ast import ELibrary
 from funasp.syntax_tree.parsing.parser import parse_string
@@ -44,6 +45,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
         statement_asts = parse_string(self.elib, program)
         transformed = rewrite_statements(context, statement_asts)
+        transformed = [restore_anonymous_term_variables(context, statement) for statement in transformed]
 
         transformed_str = "\n".join(
             [str(statement).strip() for statement in transformed][1:]
@@ -250,10 +252,6 @@ class TestFASPProgramTransformer(unittest.TestCase):
         """Test fibo."""
         self.assertTransformEqual(
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
-            # """
-            # Ffibo(X,Y) :- number(X); X>1; 1*__A_0+0=Y; Ffibo(1*X+(-1),FUN); Ffibo(1*X+(-2),FUN2); __A_0=FUN+FUN2.
-            # :- Ffibo(X0,_); 1 < #count { V: Ffibo(X0,V) }.
-            # """,
             """
             Ffibo(X,Y) :- number(X); Ffibo(1*X+(-1),FUN); Ffibo(1*X+(-2),FUN2); X>1; Y=FUN+FUN2.
             :- Ffibo(X0,_); 1 < #count { V: Ffibo(X0,V) }.

@@ -33,6 +33,8 @@ FTESTS = [test for test in TESTS if str(test) not in INTEGRATION_TESTS]
 
 SLOW_TESTS = [*TESTS, *SLOW_TESTS]
 
+COVERAGE_OMIT = ["tests/*", "funasp/syntax_tree/rewritings/protecting.py"]
+
 @nox.session(python=PYTHON_VERSIONS)
 def test(session):
     """Run the test suite."""
@@ -46,14 +48,14 @@ def test(session):
         *TESTS,
         "-v",
     )
-    coverage_omit = ["tests/*"]
+
     session.run(
         "coverage",
         "report",
         "--sort=cover",
         "--fail-under=100",
         "-m",
-        f"--omit={','.join(coverage_omit)}",
+        f"--omit={','.join(COVERAGE_OMIT)}",
     )
 
 @nox.session(python=PYTHON_VERSIONS)
@@ -69,14 +71,13 @@ def ftest(session):
         *FTESTS,
         "-v",
     )
-    coverage_omit = ["tests/*"]
     session.run(
         "coverage",
         "report",
         "--sort=cover",
         "--fail-under=100",
         "-m",
-        f"--omit={','.join(coverage_omit)}",
+        f"--omit={','.join(COVERAGE_OMIT)}",
     )
 
 
@@ -94,7 +95,6 @@ def slow_test(session):
         "discover",
         "-v",
     )
-    coverage_omit = ["tests/*"]
     session.run("coverage", "combine", "--append")
     session.run(
         "coverage",
@@ -102,7 +102,7 @@ def slow_test(session):
         "--sort=cover",
         "--fail-under=100",
         "-m",
-        f"--omit={','.join(coverage_omit)}",
+        f"--omit={','.join(COVERAGE_OMIT)}",
     )
 
 
