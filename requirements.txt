@@ -1,3 +1,6 @@
 colorama>=0.4.6
 tree-sitter>=0.25.1
 git+https://github.com/krr-uno/tree-sitter-fasp.git#egg=tree-sitter-fasp
+--extra-index-url https://test.pypi.org/simple/
+clingo>=6.0.0
+

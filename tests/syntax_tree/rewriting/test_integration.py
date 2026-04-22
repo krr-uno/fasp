@@ -1,4 +1,7 @@
+from contextlib import redirect_stderr, redirect_stdout
 from inspect import Signature
+import io
+import sys
 import textwrap
 import unittest
 
@@ -13,7 +16,7 @@ from funasp.ast._context import RewriteContext
 class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for each test."""
-        self.elib = ELibrary()
+        self.elib = ELibrary(logger=lambda t, m : print(m, file=sys.stderr))
         self.ctx = RewriteContext(self.elib, prefix_function="F")
         self.maxDiff = None  # Show full diff on assertion failure
 
@@ -319,10 +322,18 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
     def test_unsafe(self):
         """Test unsafe."""
-        with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
-            self.assertTransformEqual(
-                """
-                p(X) :- q(Y).
-                """,
-                ""
-            )
+        out = io.StringIO()
+        with redirect_stderr(out):
+            with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
+                self.assertTransformEqual(
+                    """
+                    p(X) :- q(Y).
+                    """,
+                    ""
+                )
+            captured_output = out.getvalue().strip()
+            self.assertEqual(captured_output, textwrap.dedent("""\
+                <string>:1:1-14: error: unsafe variables in:
+                  p(X) :- q(Y).
+                note: the following variables are unsafe:
+                  X"""))
