@@ -337,3 +337,21 @@ class TestFASPProgramTransformer(unittest.TestCase):
                   p(X) :- q(Y).
                 note: the following variables are unsafe:
                   X"""))
+
+    def test_unsafe_fun(self):
+        """Test unsafe."""
+        out = io.StringIO()
+        with redirect_stderr(out):
+            with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
+                self.assertTransformEqual(
+                    """
+                    f := X :- q(Y).
+                    """,
+                    ""
+                )
+            captured_output = out.getvalue().strip()
+            self.assertEqual(captured_output, textwrap.dedent("""\
+                <string>:1:1-16: error: unsafe variables in:
+                  f := X :- q(Y).
+                note: the following variables are unsafe:
+                  X"""))
