@@ -91,13 +91,15 @@ class NormalForm2PredicateTransformer:
         assigned_function: ast.TermFunction | ast.TermSymbolic,
         value: ast.TermOrProjection,
         location: Location,
+        *,
+        sign: ast.Sign = ast.Sign.NoSign,
     ) -> ast.LiteralSymbolic:
         """Wrap a rewritten function term in a symbolic literal."""
 
         return ast.LiteralSymbolic(
             self.library,
             location,
-            ast.Sign.NoSign,
+            sign,
             self._build_evaluable_function_to_term(assigned_function, value, location),
         )
 
@@ -248,7 +250,9 @@ class NormalForm2PredicateTransformer:
             for arity in candidate_arities
         ):
             return None
-        return self.function_to_literal(node.left, node.right[0].term, node.location)
+        return self.function_to_literal(
+            node.left, node.right[0].term, node.location, sign=node.sign
+        )
 
     @_dispatch.register
     def _(self, node: AssignmentRule | ast.StatementRule) -> ast.StatementRule:
