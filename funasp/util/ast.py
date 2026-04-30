@@ -408,7 +408,7 @@ class ELibrary:
         """Normalize selected clingo messages for FASP-specific reporting."""
         if "unsafe variable" in message:
             lines = message.split("\n")
-            if self._processing_statement is None:
+            if self._processing_statement is None:  # pragma: no cover
                 lines[0] = lines[0][9:-3]
                 lines.pop(1)
             else:

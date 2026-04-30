@@ -65,6 +65,26 @@ class Control:
         self.clingo_control.join(program)
         self._rewritten_program = "\n".join(str(s) for s in statements)
 
+    def parse_string(self, code: str) -> None:
+        """
+        Parse the given FASP string, rewrite it to clingo AST statements, and
+        add the result to the underlying clingo control. Also stores the
+        rewritten program string for later retrieval via ``get_rewritten_program``.
+
+        Parameters
+        ----------
+        files
+            The paths of the files to parse and load.
+        """
+        rewrite_ctx = RewriteContext(self.library, self.prefix)
+        statements = parser.parse_string(self.library, code)
+        statements = rewrite_statements(rewrite_ctx, statements)
+        program = ast.Program(self.library.library)
+        for statement in statements:
+            program.add(statement)
+        self.clingo_control.join(program)
+        self._rewritten_program = "\n".join(str(s) for s in statements)
+
     def ground(
         self,
         parts: Sequence[tuple[str, Sequence[symbol.Symbol]]] = (("base", ()),),

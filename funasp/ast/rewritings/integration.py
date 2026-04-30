@@ -115,10 +115,11 @@ def _clingo_rewrite(context: RewriteContext, statement: RewritingStatement) -> N
         try:
             context.lib.processing_statement(str(statement.original))
             rewritten_list = ast.rewrite_statement(context.ctx, stmt)
-            context.lib.clear_processing_statement()
         except RuntimeError as e:
             errors.append((stmt, e))
             continue
+        finally:
+            context.lib.clear_processing_statement()
         out.extend(rewritten_list)
     # context.lib.ignore_info = False
     if errors:

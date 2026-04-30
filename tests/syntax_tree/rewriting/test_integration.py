@@ -1,5 +1,4 @@
-from contextlib import redirect_stderr, redirect_stdout
-from inspect import Signature
+from contextlib import redirect_stderr
 import io
 import sys
 import textwrap
@@ -273,6 +272,38 @@ class TestFASPProgramTransformer(unittest.TestCase):
             evaluable_functions={"controlsStk/3"},
         )
 
+    def test_show(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            #show f(X) : f = X.
+            #show g(X,Y) : g(X) = Y.
+            """,
+            """
+            #show f(X): Ff(X).
+            #show g(X,Y): Fg(X,Y).
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            :- Fg(X0,_); 1 < #count { V: Fg(X0,V) }.
+            """,
+            evaluable_functions={"f/0", "g/1"},
+        )
+
+    def test_show_negation(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            #show f(X) : dom(X), not f = X.
+            #show g(X,Y) : dom(X,Y), not g(X) = Y.
+            """,
+            """
+            #show f(X): dom(X); not Ff(X).
+            #show g(X,Y): dom(X,Y); not Fg(X,Y).
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            :- Fg(X0,_); 1 < #count { V: Fg(X0,V) }.
+            """,
+            evaluable_functions={"f/0", "g/1"},
+        )
+
     def test_family_full(self):
         """Test family full."""
         self.assertTransformEqual(
@@ -355,3 +386,22 @@ class TestFASPProgramTransformer(unittest.TestCase):
                   f := X :- q(Y).
                 note: the following variables are unsafe:
                   X"""))
+
+    def test_undefined_operation_fun(self):
+        """Test unsafe."""
+        out = io.StringIO()
+        with redirect_stderr(out):
+            self.assertTransformEqual(
+                """
+                f := a + 1.
+                """,
+                """
+                :- Ff(_); 1 < #count { V: Ff(V) }.
+                """
+            )
+            captured_output = out.getvalue().strip()
+            self.assertEqual(captured_output, textwrap.dedent("""\
+                <string>:1:1-6: info: operation undefined in:
+                  f := a+1.
+                note: the following operations are undefined:
+                  a+1"""))
