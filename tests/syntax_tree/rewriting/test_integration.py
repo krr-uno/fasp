@@ -342,12 +342,12 @@ class TestFASPProgramTransformer(unittest.TestCase):
         """Test company."""
         self.assertTransformEqual(
             """
-            :- #sum{X : f = X; Y : p(Z), not f(Z) = Y} > 0.
+            :- #sum{X : f = X; Y : p(Z), q(Y), not f(Z) = Y} > 0.
             """,
             """
-            :- #sum { X: Ff(X); Y: p(Z), not Ff(Z,Y) } > 0.
+            :- #sum { X: Ff(X); Y: p(Z), q(Y), not Ff(Z,Y) } > 0.
             :- Ff(_); 1 < #count { V: Ff(V) }.
-            :- Fg(X0,_); 1 < #count { V: Ff(X0,V) }.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
             """,
             evaluable_functions={"f/0", "f/1"},
         )
