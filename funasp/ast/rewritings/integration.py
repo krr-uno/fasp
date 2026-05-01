@@ -146,6 +146,7 @@ def rewrite_statements(
         )
     for stmt in new_statements:
         stmt.rewrite(context, unnest_ast)
+        print("After unnesting:", [str(s) for s in stmt.rewritten])
         stmt.rewrite_to_clingo(context, to_asp)
         _clingo_rewrite(context, stmt)
         stmt.rewrite_clingo(context, restore_non_evaluable_functions)

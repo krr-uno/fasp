@@ -36,6 +36,7 @@ class RewriteContext:
         self.prefix_protect_assignment = prefix_protect_assignment
         self.prefix_protect_operation = prefix_protect_operation
         self.ctx = ClingoRewriteContext(self.lib.library)
+        self.ctx.project_anonymous = True
         self.evaluable_functions: set[SymbolSignature] = (
             set(evaluable_functions) if evaluable_functions is not None else set()
         )

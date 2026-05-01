@@ -10,7 +10,6 @@ from typing import (
     Optional,
     Sequence,
     TypeIs,
-    cast,
 )
 
 from clingo import ast
@@ -302,18 +301,27 @@ def function_arguments(
 def function_arguments_ast(
     library: Library,
     node: ast.TermFunction | ast.TermSymbolic,
-) -> tuple[str, Sequence[ast.Term]]:
+) -> tuple[str, Sequence[ast.TermOrProjection]]:
     """Return function arguments as AST terms for the given function-like node."""
     if isinstance(node, ast.TermFunction) and len(node.pool) > 1:
         # Preserve pooled alternatives as one tuple argument: f(1;a,b) -> f((1;a,b)).
         return node.name, [ast.TermTuple(library, node.location, list(node.pool))]
 
     name, arguments = function_arguments(node)
-    if arguments and isinstance(arguments[0], ast.Term):
-        return name, cast(Sequence[ast.Term], arguments)
-    return name, [
-        ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
-    ]
+    new_arguments: list[ast.TermOrProjection] = []
+    for a in arguments:
+        if isinstance(a, Symbol):
+            new_arguments.append(ast.TermSymbolic(library, node.location, a))
+        else:
+            new_arguments.append(a)
+
+    return name, new_arguments
+
+    # if arguments and isinstance(arguments[0], ast.Term):
+    #     return name, cast(Sequence[ast.Term], arguments)
+    # return name, [
+    #     ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
+    # ]
 
 
 class FreshVariableGenerator:

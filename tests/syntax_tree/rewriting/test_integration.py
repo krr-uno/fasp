@@ -52,7 +52,6 @@ class TestFASPProgramTransformer(unittest.TestCase):
         transformed_str = "\n".join(
             [str(statement).strip() for statement in transformed][1:]
         )
-
         self.assertEqual(transformed_str, expected_program)
 
 
@@ -328,9 +327,11 @@ class TestFASPProgramTransformer(unittest.TestCase):
         """Test company."""
         self.assertTransformEqual(
             """
+            :- #sum{X : f = X; Y : f = Y} > 0.
             :- #sum{X : f = X; Y : p(Z), f(Z) = Y} > 0.
             """,
             """
+            :- #sum { X: Ff(X); Y: Ff(Y) } > 0.
             :- #sum { X: Ff(X); Y: p(Z), Ff(Z,Y) } > 0.
             :- Ff(_); 1 < #count { V: Ff(V) }.
             :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
@@ -342,14 +343,43 @@ class TestFASPProgramTransformer(unittest.TestCase):
         """Test company."""
         self.assertTransformEqual(
             """
-            :- #sum{X : f = X; Y : p(Z), q(Y), not f(Z) = Y} > 0.
+            :- #sum{X : f = X; Y : p(Y), not f = Y} > 0.
+            :- #sum{X : f = X; Y : p(Z,Y), not f(Z) = Y} > 0.
             """,
             """
-            :- #sum { X: Ff(X); Y: p(Z), q(Y), not Ff(Z,Y) } > 0.
+            :- #sum { X: Ff(X); Y: p(Y), not Ff(Y) } > 0.
+            :- #sum { X: Ff(X); Y: p(Z,Y), not Ff(Z,Y) } > 0.
             :- Ff(_); 1 < #count { V: Ff(V) }.
             :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
             """,
             evaluable_functions={"f/0", "f/1"},
+        )
+
+    def test_aggregates4(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            :- #sum{X : f = X; Y : p(Y), not f(Y) = _} > 0.
+            """,
+            """
+            :- #sum { X: Ff(X); Y: p(Y), not Ff(Y,*) } > 0.
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+            evaluable_functions={"f/0", "f/1"},
+        )
+
+    def test_aggregates5(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            :- #sum{X : f = X; Y : Y=1, not f = _} > 0.
+            """,
+            """
+            :- #sum { X: Ff(X); 1: not Ff(*) } > 0.
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            """,
+            evaluable_functions={"f/0"},
         )
 
     def test_family_full(self):

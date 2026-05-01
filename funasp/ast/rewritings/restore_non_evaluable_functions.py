@@ -46,10 +46,15 @@ def _restore_literal(
         base_name,
         [ast.ArgumentTuple(context.lib.library, arguments[:-1])],
     )
+    right_arg = (
+        arguments[-1]
+        if isinstance(arguments[-1], ast.Term)
+        else ast.TermVariable(context.lib.library, node.location, "_", anonymous=True)
+    )
     right = ast.RightGuard(
         context.lib.library,
         ast.Relation.Equal,
-        arguments[-1],
+        right_arg,
     )
     return ast.LiteralComparison(
         context.lib.library,
