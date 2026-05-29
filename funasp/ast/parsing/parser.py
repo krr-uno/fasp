@@ -15,7 +15,7 @@ from tree_sitter import (
     Tree,
 )
 
-from funasp.syntax_tree._nodes import (
+from funasp.ast._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,
@@ -573,7 +573,7 @@ class TreeSitterParser:
     #         self._debug_print_tree(child, indent + 1)
 
 
-def parse_string(library: ELibrary, src: str) -> Iterable[AST]:
+def parse_string(library: ELibrary, src: str) -> Iterable[FASP_Statement]:
     """
     Parse the given FASP source string and return an abstract syntax tree for
     each statement.

@@ -3,14 +3,14 @@ import unittest
 from clingo import ast as clingo_ast
 
 
-from funasp.syntax_tree._nodes import FASP_AST
-from funasp.syntax_tree.parsing.parser import parse_string
-from funasp.syntax_tree.rewritings.unnesting.literals import (
+from funasp.ast._nodes import FASP_AST
+from funasp.ast.parsing.parser import parse_string
+from funasp.ast.rewritings.unnesting.literals import (
     UnnestFunctionsInLiteralsTransformer,
 )
 from funasp.util.ast import ELibrary, FreshVariableGenerator
-from funasp.syntax_tree.collectors import SymbolSignature, collect_variables
-from funasp.syntax_tree.rewritings.unnesting.rules import unnest_functions
+from funasp.ast.collectors import SymbolSignature, collect_variables
+from funasp.ast.rewritings.unnesting.rules import unnest_functions
 
 
 class TestUnnestFunctionsTransformerLowLevel(unittest.TestCase):

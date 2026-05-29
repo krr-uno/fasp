@@ -2,9 +2,9 @@ import unittest
 
 from funasp.util.ast import ELibrary
 
-from funasp.syntax_tree.types import SymbolSignature
-from funasp.syntax_tree.parsing.parser import parse_string
-from funasp.syntax_tree.rewritings.to_asp import NormalForm2PredicateTransformer
+from funasp.ast.types import SymbolSignature
+from funasp.ast.parsing.parser import parse_string
+from funasp.ast.rewritings.to_asp import NormalForm2PredicateTransformer
 
 
 class TestNormalForm2PredicateTransformer(unittest.TestCase):
@@ -55,18 +55,6 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             {"f/1"}, "{ f(X) := Y } :- p.", "{ f_f(X,Y) } :- p.", prefix="f_"
         )
 
-    def test_choice_assignment_invalid(self):
-        """Test choice assignment invalid."""
-        with self.assertRaises(AssertionError) as cm:
-            self.assertRewrite(
-                {"f/1"},
-                "{ f := Y } :- p.",
-                "{ f_f(X,Y) } :- p.",
-            )
-        self.assertEqual(
-            str(cm.exception), "Function f/0 not in evaluable functions {'f/1'}."
-        )
-
     def test_head_simple_assignment(self):
         """Test head simple assignment."""
         self.assertRewrite({"f/1"}, "f(X) := Y :- q.", "f_f(X,Y) :- q.", prefix="f_")
@@ -112,4 +100,73 @@ class TestNormalForm2PredicateTransformer(unittest.TestCase):
             # king/1 is not in evaluable functions. Error?
             "#count { 0,ass(king(f(C)),X): king(g(C)) := h(X): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
             "#count { 0,ass(king(f(C)),X): Fking(g(C),h(X)): person(e(X)); ass(king(f(C)),X): f(X): person(e(X)) } :- country(C).",
+        )
+
+
+    ## TESTS FOR REVIEW ##
+    def test_pool_not_evaluable(self):
+        """Test pool to_asp transformation: not evaluable function."""
+        self.assertRewrite(
+            set(),
+            "f(1;a,b)=c.",
+            "f(1;a,b)=c.",
+        )
+
+    # LiteralComparisons get rewritten with prefix by to_asp.
+    def test_no_pool_equality_comparison(self):
+        """Test to_asp transformation: comparison."""
+        self.assertRewrite(
+            {"f/1", "b/0"},
+            "f(1)=c.",
+            "Ff(1,c).",
+        )
+
+    # HeadSimpleAssignment get rewritten with prefix by to_asp.
+    def test_no_pool_assignment(self):
+        """Test to_asp transformation: assignment."""
+        self.assertRewrite(
+            {"f/1", "b/0"},
+            "f(1):=c.",
+            "Ff(1,c).",
+        )
+
+    # Same behaviour with pools.
+    def test_pool_rewrite_if_f1_is_evaluable(self):
+        """Rewrite pooled function equality when f/1 is evaluable."""
+        self.assertRewrite(
+            {"f/1"},
+            "f(1;a,b) = c.",
+            "Ff(1,c;a,b,c).",
+        )
+
+    def test_pool_rewrite_if_f1_is_evaluable_assignment(self):
+        """Rewrite pooled assignment when f/1 is evaluable."""
+        self.assertRewrite(
+            {"f/1"},
+            "f(1;a,b) := c.",
+            "Ff(1,c;a,b,c).",
+        )
+
+    def test_pool_rewrite_if_f2_is_evaluable(self):
+        """Rewrite pooled function equality when f/2 is evaluable."""
+        self.assertRewrite(
+            {"f/2"},
+            "f(1;a,b) = c.",
+            "Ff(1,c;a,b,c).",
+        )
+
+    def test_pool_rewrite_if_f2_is_evaluable_assignment(self):
+        """Rewrite pooled assignment when f/2 is evaluable."""
+        self.assertRewrite(
+            {"f/2"},
+            "f(1;a,b) := c.",
+            "Ff(1,c;a,b,c).",
+        )
+
+    def test_pool_assignment(self):
+        """Rewrite pooled assignment when f/2 is evaluable."""
+        self.assertRewrite(
+            {"f/2"},
+            "f(1;a,b) := c.",
+            "Ff(1,c;a,b,c).",
         )

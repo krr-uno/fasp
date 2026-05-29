@@ -10,6 +10,8 @@
     "python.testing.unittestEnabled": true,
     "cSpell.words": [
         "fasp",
+        "funasp",
+        "showf",
         "UNCOLLECTABLE"
     ]
 }

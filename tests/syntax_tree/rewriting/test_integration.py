@@ -1,18 +1,21 @@
-from inspect import Signature
+from contextlib import redirect_stderr
+import io
+import sys
 import textwrap
 import unittest
 
-from funasp.syntax_tree.types import SymbolSignature
+from tests.restore_anonymous_term_variables import restore_anonymous_term_variables
+from funasp.ast.types import SymbolSignature
 from funasp.util.ast import ELibrary
-from funasp.syntax_tree.parsing.parser import parse_string
-from funasp.syntax_tree.rewritings.integration import rewrite_statements
-from funasp.syntax_tree._context import RewriteContext
+from funasp.ast.parsing.parser import parse_string
+from funasp.ast.rewritings.integration import rewrite_statements
+from funasp.ast._context import RewriteContext
 
 
 class TestFASPProgramTransformer(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for each test."""
-        self.elib = ELibrary()
+        self.elib = ELibrary(logger=lambda t, m : print(m, file=sys.stderr))
         self.ctx = RewriteContext(self.elib, prefix_function="F")
         self.maxDiff = None  # Show full diff on assertion failure
 
@@ -44,11 +47,11 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
         statement_asts = parse_string(self.elib, program)
         transformed = rewrite_statements(context, statement_asts)
+        transformed = [restore_anonymous_term_variables(context, statement) for statement in transformed]
 
         transformed_str = "\n".join(
             [str(statement).strip() for statement in transformed][1:]
         )
-
         self.assertEqual(transformed_str, expected_program)
 
 
@@ -157,7 +160,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
             "f(X) :- g(X).",
         )
 
-    def test_aggregate(self):
+    def s2(self):
         """Test aggregate."""
         self.assertTransformEqual(
             """
@@ -245,12 +248,13 @@ class TestFASPProgramTransformer(unittest.TestCase):
             """,
         )
 
+    ## QUERY: Is this transformation correct?
     def test_fibo(self):
         """Test fibo."""
         self.assertTransformEqual(
             "fibo(X) := Y :- number(X); X>1; fibo(X-1) + fibo(X-2)=Y.",
             """
-            Ffibo(X,Y) :- number(X); X>1; 1*__A_0+0=Y; Ffibo(1*X+(-1),FUN); Ffibo(1*X+(-2),FUN2); __A_0=FUN+FUN2.
+            Ffibo(X,Y) :- number(X); Ffibo(1*X+(-1),FUN); Ffibo(1*X+(-2),FUN2); X>1; Y=FUN+FUN2.
             :- Ffibo(X0,_); 1 < #count { V: Ffibo(X0,V) }.
             """,
         )
@@ -265,6 +269,117 @@ class TestFASPProgramTransformer(unittest.TestCase):
             :- FcontrolsStk(X0,X1,X2,_); 1 < #count { V: FcontrolsStk(X0,X1,X2,V) }.
             """,
             evaluable_functions={"controlsStk/3"},
+        )
+
+    def test_show(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            #show f(X) : f = X.
+            #show g(X,Y) : g(X) = Y.
+            """,
+            """
+            #show f(X): Ff(X).
+            #show g(X,Y): Fg(X,Y).
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            :- Fg(X0,_); 1 < #count { V: Fg(X0,V) }.
+            """,
+            evaluable_functions={"f/0", "g/1"},
+        )
+
+    def test_show_negation(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            #show f(X) : dom(X), not f = X.
+            #show g(X,Y) : dom(X,Y), not g(X) = Y.
+            """,
+            """
+            #show f(X): dom(X); not Ff(X).
+            #show g(X,Y): dom(X,Y); not Fg(X,Y).
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            :- Fg(X0,_); 1 < #count { V: Fg(X0,V) }.
+            """,
+            evaluable_functions={"f/0", "g/1"},
+        )
+
+    def test_conditional_literal(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            :- p(X); q(X) : f = X.
+            :- p(X); q(X) : not f = X.
+            :- p(X,Y); q(X) : g(X) = Y.
+            :- p(X,Y); q(X) : not g(X) = Y.
+            """,
+            """
+            :- p(X); q(X): Ff(X).
+            :- p(X); q(X): not Ff(X).
+            :- p(X,Y); q(X): Fg(X,Y).
+            :- p(X,Y); q(X): not Fg(X,Y).
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            :- Fg(X0,_); 1 < #count { V: Fg(X0,V) }.
+            """,
+            evaluable_functions={"f/0", "g/1"},
+        )
+
+    def test_aggregates2(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            :- #sum{X : f = X; Y : f = Y} > 0.
+            :- #sum{X : f = X; Y : p(Z), f(Z) = Y} > 0.
+            """,
+            """
+            :- #sum { X: Ff(X); Y: Ff(Y) } > 0.
+            :- #sum { X: Ff(X); Y: p(Z), Ff(Z,Y) } > 0.
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+            evaluable_functions={"f/0", "f/1"},
+        )
+
+    def test_aggregates3(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            :- #sum{X : f = X; Y : p(Y), not f = Y} > 0.
+            :- #sum{X : f = X; Y : p(Z,Y), not f(Z) = Y} > 0.
+            """,
+            """
+            :- #sum { X: Ff(X); Y: p(Y), not Ff(Y) } > 0.
+            :- #sum { X: Ff(X); Y: p(Z,Y), not Ff(Z,Y) } > 0.
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+            evaluable_functions={"f/0", "f/1"},
+        )
+
+    def test_aggregates4(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            :- #sum{X : f = X; Y : p(Y), not f(Y) = _} > 0.
+            """,
+            """
+            :- #sum { X: Ff(X); Y: p(Y), not Ff(Y,*) } > 0.
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+            evaluable_functions={"f/0", "f/1"},
+        )
+
+    def test_aggregates5(self):
+        """Test company."""
+        self.assertTransformEqual(
+            """
+            :- #sum{X : f = X; Y : Y=1, not f = _} > 0.
+            """,
+            """
+            :- #sum { X: Ff(X); 1: not Ff(*) } > 0.
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            """,
+            evaluable_functions={"f/0"},
         )
 
     def test_family_full(self):
@@ -306,7 +421,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
             % female(mother(X)).
             male(Y) :- Ffather(_,Y).
             female(Y) :- Fmother(_,Y).
-            orphan(X) :- person(X); #false: Ffather(X,_); #false: Fmother(X,_).
+            orphan(X) :- person(X); #false: Ffather(X,*); #false: Fmother(X,*).
             Fn_orphan(W) :- W = #count { X: orphan(X) }.
             :- Ffather(X0,_); 1 < #count { V: Ffather(X0,V) }.
             :- Fmother(X0,_); 1 < #count { V: Fmother(X0,V) }.
@@ -316,10 +431,55 @@ class TestFASPProgramTransformer(unittest.TestCase):
 
     def test_unsafe(self):
         """Test unsafe."""
-        with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
+        out = io.StringIO()
+        with redirect_stderr(out):
+            with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
+                self.assertTransformEqual(
+                    """
+                    p(X) :- q(Y).
+                    """,
+                    ""
+                )
+            captured_output = out.getvalue().strip()
+            self.assertEqual(captured_output, textwrap.dedent("""\
+                <string>:1:1-14: error: unsafe variables in:
+                  p(X) :- q(Y).
+                note: the following variables are unsafe:
+                  X"""))
+
+    def test_unsafe_fun(self):
+        """Test unsafe."""
+        out = io.StringIO()
+        with redirect_stderr(out):
+            with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
+                self.assertTransformEqual(
+                    """
+                    f := X :- q(Y).
+                    """,
+                    ""
+                )
+            captured_output = out.getvalue().strip()
+            self.assertEqual(captured_output, textwrap.dedent("""\
+                <string>:1:1-16: error: unsafe variables in:
+                  f := X :- q(Y).
+                note: the following variables are unsafe:
+                  X"""))
+
+    def test_undefined_operation_fun(self):
+        """Test unsafe."""
+        out = io.StringIO()
+        with redirect_stderr(out):
             self.assertTransformEqual(
                 """
-                p(X) :- q(Y).
+                f := a + 1.
                 """,
-                ""
+                """
+                :- Ff(_); 1 < #count { V: Ff(V) }.
+                """
             )
+            captured_output = out.getvalue().strip()
+            self.assertEqual(captured_output, textwrap.dedent("""\
+                <string>:1:1-6: info: operation undefined in:
+                  f := a+1.
+                note: the following operations are undefined:
+                  a+1"""))

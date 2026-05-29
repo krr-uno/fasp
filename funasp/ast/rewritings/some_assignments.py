@@ -2,8 +2,8 @@ from typing import List
 
 from clingo import ast, symbol
 
-from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree._nodes import (
+from funasp.ast._context import RewriteContext
+from funasp.ast._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,

@@ -3,7 +3,7 @@ from typing import Any, Iterable
 
 from clingo import ast, symbol
 
-from funasp.syntax_tree._nodes import (
+from funasp.ast._nodes import (
     FASP_AST,
     AssignmentAggregateElement,
     AssignmentRule,
@@ -12,7 +12,7 @@ from funasp.syntax_tree._nodes import (
     HeadAggregateAssignmentElement,
     HeadSimpleAssignment,
 )
-from funasp.syntax_tree.types import SymbolSignature
+from funasp.ast.types import SymbolSignature
 
 
 def collect_variables(node: FASP_AST) -> set[str]:

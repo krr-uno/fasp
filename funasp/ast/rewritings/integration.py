@@ -2,33 +2,30 @@ from typing import Callable, Final, Iterable, Sequence
 
 from clingo import ast
 
-from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree._nodes import (
+from funasp.ast._context import RewriteContext
+from funasp.ast._nodes import (
     AssignmentRule,
     FASP_Statement,
 )
-from funasp.syntax_tree.collectors import (
+from funasp.ast.collectors import (
     collect_evaluable_function_signatures,
 )
-from funasp.syntax_tree.rewritings.aggregates import normalize_assignment_aggregates
-from funasp.syntax_tree.rewritings.negated_literals import (
+from funasp.ast.rewritings.aggregates import normalize_assignment_aggregates
+from funasp.ast.rewritings.negated_literals import (
     rewrite_negate_body_literals,
 )
-from funasp.syntax_tree.rewritings.protecting import (
-    protect_assignment,
-    protect_comparisons,
-    restore_assignments,
-    restore_comparisons,
+from funasp.ast.rewritings.restore_non_evaluable_functions import (
+    restore_non_evaluable_functions,
 )
-from funasp.syntax_tree.rewritings.showf import rewrite_showf
-from funasp.syntax_tree.rewritings.some_assignments import (
+from funasp.ast.rewritings.showf import rewrite_showf
+from funasp.ast.rewritings.some_assignments import (
     rewrite_some_choices,
 )
-from funasp.syntax_tree.rewritings.to_asp import (
+from funasp.ast.rewritings.to_asp import (
     functional_constraints,
     to_asp,
 )
-from funasp.syntax_tree.rewritings.unnesting.rules import (
+from funasp.ast.rewritings.unnesting.rules import (
     unnest_ast,
 )
 
@@ -85,14 +82,14 @@ class RewritingStatement:
         assert self._clingo_rewritten is not None
         self._clingo_rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
 
-    def rewrite_from_clingo(
-        self,
-        context: RewriteContext,
-        fun: Callable[[RewriteContext, ast.Statement], FASP_Statement],
-    ) -> None:
-        """Apply a clingo-to-FASP rewrite function and switch back to FASP statements."""
-        assert self._clingo_rewritten is not None
-        self._rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
+    # def rewrite_from_clingo(
+    #     self,
+    #     context: RewriteContext,
+    #     fun: Callable[[RewriteContext, ast.Statement], FASP_Statement],
+    # ) -> None:
+    #     """Apply a clingo-to-FASP rewrite function and switch back to FASP statements."""
+    #     assert self._clingo_rewritten is not None
+    #     self._rewritten = [fun(context, stmt) for stmt in self._clingo_rewritten]
 
     def rewrite_clingo_many(  # pragma: no cover
         self,
@@ -109,19 +106,22 @@ def _clingo_rewrite(context: RewriteContext, statement: RewritingStatement) -> N
     Wrapper for clingo's statement rewriting to handle errors.
     """
     statements = statement.clingo_rewritten
-    ctx = context.ctx
-    context.lib.ignore_info = True
+    # ctx = context.ctx
+    # context.lib.ignore_info = True
     out: list[ast.Statement] = []
     errors = []
     for stmt in statements:
         assert not isinstance(stmt, AssignmentRule)
         try:
-            rewritten_list = ast.rewrite_statement(ctx, stmt)
+            context.lib.processing_statement(str(statement.original))
+            rewritten_list = ast.rewrite_statement(context.ctx, stmt)
         except RuntimeError as e:
             errors.append((stmt, e))
             continue
+        finally:
+            context.lib.clear_processing_statement()
         out.extend(rewritten_list)
-    context.lib.ignore_info = False
+    # context.lib.ignore_info = False
     if errors:
         raise RuntimeError("rewriting failed", errors)
     statement._clingo_rewritten = out
@@ -146,12 +146,9 @@ def rewrite_statements(
         )
     for stmt in new_statements:
         stmt.rewrite(context, unnest_ast)
-        stmt.rewrite_to_clingo(context, protect_assignment)
-        stmt.rewrite_clingo(context, protect_comparisons)
-        _clingo_rewrite(context, stmt)
-        stmt.rewrite_clingo(context, restore_comparisons)
-        stmt.rewrite_from_clingo(context, restore_assignments)
         stmt.rewrite_to_clingo(context, to_asp)
+        _clingo_rewrite(context, stmt)
+        stmt.rewrite_clingo(context, restore_non_evaluable_functions)
 
     new_statements2 = [s for stmt in new_statements for s in stmt.clingo_rewritten]
     new_statements2.extend(functional_constraints(context))

@@ -8,10 +8,10 @@ from clingo import ast
 from clingo import solve as clingo_solve
 from clingo import symbol
 
+from funasp.ast import rewrite_statements
+from funasp.ast._context import RewriteContext
+from funasp.ast.parsing import parser
 from funasp.solve import Model
-from funasp.syntax_tree import rewrite_statements
-from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree.parsing import parser
 from funasp.util.ast import ELibrary
 
 LIBC_NAME: str | None = None
@@ -58,6 +58,26 @@ class Control:
         """
         rewrite_ctx = RewriteContext(self.library, self.prefix)
         statements = parser.parse_files(self.library, files)
+        statements = rewrite_statements(rewrite_ctx, statements)
+        program = ast.Program(self.library.library)
+        for statement in statements:
+            program.add(statement)
+        self.clingo_control.join(program)
+        self._rewritten_program = "\n".join(str(s) for s in statements)
+
+    def parse_string(self, code: str) -> None:
+        """
+        Parse the given FASP string, rewrite it to clingo AST statements, and
+        add the result to the underlying clingo control. Also stores the
+        rewritten program string for later retrieval via ``get_rewritten_program``.
+
+        Parameters
+        ----------
+        files
+            The paths of the files to parse and load.
+        """
+        rewrite_ctx = RewriteContext(self.library, self.prefix)
+        statements = parser.parse_string(self.library, code)
         statements = rewrite_statements(rewrite_ctx, statements)
         program = ast.Program(self.library.library)
         for statement in statements:

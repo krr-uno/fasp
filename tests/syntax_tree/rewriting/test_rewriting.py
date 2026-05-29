@@ -2,8 +2,8 @@ import textwrap
 import unittest
 
 
-from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree.parsing.parser import parse_string
+from funasp.ast._context import RewriteContext
+from funasp.ast.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
 from funasp.util.ast import AST
 
@@ -12,21 +12,21 @@ from typing import Iterable
 
 from clingo import ast
 
-from funasp.syntax_tree._nodes import (
+from funasp.ast._nodes import (
     FASP_Statement,
 )
-from funasp.syntax_tree.collectors import (
+from funasp.ast.collectors import (
     collect_evaluable_function_signatures,
 )
-from funasp.syntax_tree.rewritings.aggregates import (
+from funasp.ast.rewritings.aggregates import (
     normalize_assignment_aggregates,
 )
 
-from funasp.syntax_tree.rewritings.to_asp import (
+from funasp.ast.rewritings.to_asp import (
     NormalForm2PredicateTransformer,
     functional_constraints,
 )
-from funasp.syntax_tree.types import SymbolSignature
+from funasp.ast.types import SymbolSignature
 
 
 def _functional2asp(

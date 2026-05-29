@@ -4,11 +4,11 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from funasp.syntax_tree._nodes import FASP_AST
-from funasp.syntax_tree.parsing.parser import parse_string
-from funasp.syntax_tree._context import RewriteContext
+from funasp.ast._nodes import FASP_AST
+from funasp.ast.parsing.parser import parse_string
+from funasp.ast._context import RewriteContext
 
-from funasp.syntax_tree.rewritings.protecting import (
+from funasp.ast.rewritings.protecting import (
     _ComparisonRestorationTransformer,
     _protect_comparison,
     _restore_guard_arguments,

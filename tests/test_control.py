@@ -1,14 +1,17 @@
+from contextlib import redirect_stderr
+import io
 from os import PathLike
 from pathlib import Path
+import sys
+import textwrap
 from typing import Iterable
 import unittest
-
 
 from funasp.control import Control
 from funasp.util.ast import ELibrary
 from funasp.solve import Model
 
-from .examples import EXAMPLES
+from tests.examples import EXAMPLES
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 
@@ -40,6 +43,25 @@ class TestControl(unittest.TestCase):
             with self.subTest(f"{i}: {file_names}"):
                 self.assert_models(example.files, example.models)
 
-    # def test_syntactic_error(self):
-    #     with self.assertRaises(ParsingException) as e:
-    #         next(self.get_models([TEST_EXAMPLES_PATH / "ex01_syntactic_error.lp"]))
+    def test_undefined_operation_fun(self):
+        """Test unsafe."""
+        library = ELibrary(logger=lambda _, message: print(message, file=sys.stderr))
+        control = Control(library, ["0"])
+        out = io.StringIO()
+        with redirect_stderr(out):
+            control.parse_string(
+                """
+                f := a+1.
+                """
+            )
+            captured_output = out.getvalue().strip()
+            self.assertEqual(textwrap.dedent(captured_output), textwrap.dedent("""\
+                <string>:1:1-4: info: operation undefined in:
+                  f := a+1.
+                note: the following operations are undefined:
+                  a+1"""))
+        out = io.StringIO()
+        with redirect_stderr(out):
+            control.ground()
+            captured_output = out.getvalue().strip()
+            self.assertEqual(captured_output, "")

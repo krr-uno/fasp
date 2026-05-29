@@ -3,9 +3,9 @@ import unittest
 
 from clingo import ast
 from funasp.util.ast import ELibrary
-from funasp.syntax_tree.parsing.parser import parse_string
-from funasp.syntax_tree import rewrite_statement, rewrite_statements
-from funasp.syntax_tree._context import RewriteContext
+from funasp.ast.parsing.parser import parse_string
+from funasp.ast import rewrite_statements
+from funasp.ast._context import RewriteContext
 
 
 class TestSyntaxTree(unittest.TestCase):
@@ -19,7 +19,7 @@ class TestSyntaxTree(unittest.TestCase):
         statement_asts = parse_string(self.elib, program)[1:]
         rewritten_statements: list[ast.Statement] = []
         for stmt in statement_asts:
-            rewritten_statements.extend(rewrite_statement(self.ctx, stmt))
+            rewritten_statements.extend(rewrite_statements(self.ctx, [stmt]))
 
         return rewritten_statements
 

@@ -5,8 +5,8 @@ from click import Choice
 from clingo import ast
 from clingo.core import Library
 
-from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree._nodes import (
+from funasp.ast._context import RewriteContext
+from funasp.ast._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,
@@ -16,12 +16,12 @@ from funasp.syntax_tree._nodes import (
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from funasp.syntax_tree.collectors import collect_variables
-from funasp.syntax_tree.rewritings.unnesting.literals import (
+from funasp.ast.collectors import collect_variables
+from funasp.ast.rewritings.unnesting.literals import (
     UnnestFunctionsInLiteralsTransformer,
     unnest_functions,
 )
-from funasp.syntax_tree.types import SymbolSignature
+from funasp.ast.types import SymbolSignature
 from funasp.util.ast import (
     FreshVariableGenerator,
 )

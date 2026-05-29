@@ -5,11 +5,11 @@ from clingo import ast, symbol
 from clingo.core import Library, Location
 from clingo.symbol import Symbol
 
-from funasp.syntax_tree._nodes import (
+from funasp.ast._nodes import (
     FASP_AST_T,
     HeadSimpleAssignment,
 )
-from funasp.syntax_tree.types import SymbolSignature
+from funasp.ast.types import SymbolSignature
 from funasp.util.ast import (
     FreshVariableGenerator,
     is_function,

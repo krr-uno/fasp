@@ -5,8 +5,8 @@ from typing import Any, Iterable, List, Optional, Sequence, cast
 import clingo.symbol
 from clingo import ast, core
 
-from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree._nodes import (
+from funasp.ast._context import RewriteContext
+from funasp.ast._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,

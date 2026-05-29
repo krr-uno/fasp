@@ -10,7 +10,7 @@ try:
 except ImportError:
     SOURCE_CODE_PRESENT = False
 
-from .examples import EXAMPLES
+from tests.examples import EXAMPLES
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 

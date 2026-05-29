@@ -3,10 +3,10 @@ from typing import AbstractSet, Iterable, cast
 
 from clingo import ast
 from clingo.core import Library, Location, Position
-from clingo.symbol import Number
+from clingo.symbol import Number, SymbolType
 
-from funasp.syntax_tree._context import RewriteContext
-from funasp.syntax_tree._nodes import (
+from funasp.ast._context import RewriteContext
+from funasp.ast._nodes import (
     FASP_AST_T,
     AssignmentAggregateElement,
     AssignmentRule,
@@ -18,7 +18,7 @@ from funasp.syntax_tree._nodes import (
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from funasp.syntax_tree.types import (
+from funasp.ast.types import (
     SymbolSignature,
 )
 from funasp.util.ast import (
@@ -54,37 +54,52 @@ class NormalForm2PredicateTransformer:
         location: Location,
     ) -> ast.TermFunction:
         """Builds a function term given its assigned function and its value."""
-        name, arguments = function_arguments_ast(self.library, assigned_function)
-        assert (
-            SymbolSignature(name, len(arguments)) in self.evaluable_functions
-        ), f"Function {name}/{len(arguments)} not in evaluable functions {set(map(str, self.evaluable_functions))}."
+        # name, arguments = function_arguments_ast(self.library, assigned_function)
+        # if isinstance(assigned_function, ast.TermFunction):
+        #     candidate_arities = {len(p.arguments) for p in assigned_function.pool}
+        # else:
+        #     candidate_arities = {len(arguments)}
+
+        if isinstance(assigned_function, ast.TermFunction):
+            name = assigned_function.name
+            pool = [
+                ast.ArgumentTuple(self.library, [*t.arguments, value])
+                for t in assigned_function.pool
+            ]
+        elif assigned_function.symbol.type == SymbolType.Function:
+            name = assigned_function.symbol.name
+            pool = [
+                ast.ArgumentTuple(
+                    self.library,
+                    [
+                        ast.TermSymbolic(self.library, location, arg)
+                        for arg in assigned_function.symbol.arguments
+                    ]
+                    + [value],
+                )
+            ]
 
         return ast.TermFunction(
             self.library,
             location,
             f"{self.prefix}{name}",
-            [ast.ArgumentTuple(self.library, [*arguments, value])],
+            pool,
         )
-
-        # return ast.TermFunction(
-        #     self.library,
-        #     location,
-        #     f"{self.prefix}",
-        #     [ast.ArgumentTuple(self.library, [assigned_function, value])],
-        # )
 
     def function_to_literal(
         self,
         assigned_function: ast.TermFunction | ast.TermSymbolic,
         value: ast.TermOrProjection,
         location: Location,
+        *,
+        sign: ast.Sign = ast.Sign.NoSign,
     ) -> ast.LiteralSymbolic:
         """Wrap a rewritten function term in a symbolic literal."""
 
         return ast.LiteralSymbolic(
             self.library,
             location,
-            ast.Sign.NoSign,
+            sign,
             self._build_evaluable_function_to_term(assigned_function, value, location),
         )
 
@@ -112,11 +127,6 @@ class NormalForm2PredicateTransformer:
         """
         Visit a HeadSimpleAssignment node and transform it if it is an evaluable function.
         """
-        # name, arguments = function_arguments_ast(self.library, node.assigned_function)
-        # assert (
-        #     SymbolSignature(name, len(arguments)) in self.evaluable_functions
-        # ), f"Function {name}/{len(arguments)} not in evaluable functions {set(map(str, self.evaluable_functions))}."
-
         literal = self.function_to_literal(
             node.assigned_function, node.value, node.location
         )
@@ -231,9 +241,18 @@ class NormalForm2PredicateTransformer:
         ):
             return None
         name, arguments = function_arguments_ast(self.library, node.left)
-        if SymbolSignature(name, len(arguments)) not in self.evaluable_functions:
+        if isinstance(node.left, ast.TermFunction):
+            candidate_arities = {len(p.arguments) for p in node.left.pool}
+        else:
+            candidate_arities = {len(arguments)}
+        if not any(
+            SymbolSignature(name, arity) in self.evaluable_functions
+            for arity in candidate_arities
+        ):
             return None
-        return self.function_to_literal(node.left, node.right[0].term, node.location)
+        return self.function_to_literal(
+            node.left, node.right[0].term, node.location, sign=node.sign
+        )
 
     @_dispatch.register
     def _(self, node: AssignmentRule | ast.StatementRule) -> ast.StatementRule:
