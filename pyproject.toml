@@ -7,7 +7,6 @@ readme = "README.md"
 dependencies = [
     "colorama",
     "tree-sitter>=0.25",
-    "tree-sitter-fasp@git+https://github.com/krr-uno/tree-sitter-fasp.git#egg=tree-sitter-fasp"
     ]
 
 [[project.authors]]
