@@ -58,6 +58,7 @@ jobs:
         conda install --name clingo6 --file envs/requirements.txt
         pip install -r requirements.txt
         pip install -e .
+        python funasp
 
     - name: run tests
       run: nox
