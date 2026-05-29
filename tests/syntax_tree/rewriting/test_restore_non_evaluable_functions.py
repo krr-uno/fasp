@@ -7,7 +7,6 @@ from clingo import ast
 from funasp.ast._context import RewriteContext
 from funasp.ast.rewritings.restore_non_evaluable_functions import (
     _restore_literal,
-    restore_non_evaluable_functions,
     restore_non_evaluable_functions_list,
 )
 from funasp.ast.rewritings.to_asp import to_asp

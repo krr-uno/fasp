@@ -5,7 +5,6 @@ import unittest
 
 
 try:
-    from funasp.app import main
     SOURCE_CODE_PRESENT = True
 except ImportError:
     SOURCE_CODE_PRESENT = False

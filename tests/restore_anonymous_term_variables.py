@@ -1,4 +1,3 @@
-from typing import Iterable
 
 from clingo import ast
 from clingo.core import Library

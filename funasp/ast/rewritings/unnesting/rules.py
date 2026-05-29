@@ -1,7 +1,6 @@
 from functools import singledispatchmethod
 from typing import Any, List, Set
 
-from click import Choice
 from clingo import ast
 from clingo.core import Library
 

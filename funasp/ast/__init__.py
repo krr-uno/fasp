@@ -1,8 +1,3 @@
-from typing import Iterable
-
-from clingo import ast
-
-from funasp.ast._context import RewriteContext
 from funasp.ast._nodes import (
     FASP_AST,
     FASP_AST_T,

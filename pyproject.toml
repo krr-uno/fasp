@@ -4,7 +4,11 @@ version = "0.0.1"
 description = "A functional ASP solver"
 readme = "README.md"
 # requires-python = ">=3.13"
-dependencies = [ "colorama"]
+dependencies = [
+    "colorama",
+    "tree-sitter>=0.25",
+    "tree-sitter-fasp@git+https://github.com/krr-uno/tree-sitter-fasp.git#egg=tree-sitter-fasp"
+    ]
 
 [[project.authors]]
 name = "Jorge Fandinno"
