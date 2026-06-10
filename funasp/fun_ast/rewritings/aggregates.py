@@ -1,13 +1,13 @@
 from clingo import ast
 
-from funasp.ast._context import RewriteContext
-from funasp.ast._nodes import (
+from funasp.fun_ast._context import RewriteContext
+from funasp.fun_ast._nodes import (
     AssignmentRule,
     FASP_Statement,
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from funasp.ast.collectors import collect_variables
+from funasp.fun_ast.collectors import collect_variables
 from funasp.util.ast import (
     FreshVariableGenerator,
 )

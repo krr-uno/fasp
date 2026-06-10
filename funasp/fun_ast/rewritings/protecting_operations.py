@@ -4,7 +4,7 @@ from clingo import ast
 from clingo.core import Location
 from clingo.symbol import Number, Symbol, SymbolType
 
-from funasp.ast._context import RewriteContext
+from funasp.fun_ast._context import RewriteContext
 from funasp.util.ast import AST
 
 INT_TO_BINARY_OPERATOR = [

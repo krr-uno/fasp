@@ -3,8 +3,8 @@ from typing import Iterable
 from clingo import ast
 from clingo.core import Library
 
-from funasp.ast._context import RewriteContext
-from funasp.ast._nodes import (
+from funasp.fun_ast._context import RewriteContext
+from funasp.fun_ast._nodes import (
     AssignmentRule,
     FASP_Statement,
 )

@@ -10,7 +10,7 @@ from funasp.util.ast import (
     SyntacticCheckVisitor,
     SyntacticError,
 )
-from funasp.ast.collectors import collect_variables
+from funasp.fun_ast.collectors import collect_variables
 from funasp.util import ast as util_ast
 
 

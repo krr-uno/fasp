@@ -56,9 +56,15 @@ jobs:
       shell: bash -l {0}
       run: |
         conda install --name clingo6 --file envs/requirements.txt
+
+    - name: Pip install packages
+      shell: bash -l {0}
+      run: |
         pip install -r requirements.txt
         pip install -e .
-        python funasp
+
+    - name: run application
+      run: python funasp
 
     - name: run tests
       run: nox

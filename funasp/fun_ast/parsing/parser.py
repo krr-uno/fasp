@@ -15,7 +15,7 @@ from tree_sitter import (
     Tree,
 )
 
-from funasp.ast._nodes import (
+from funasp.fun_ast._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,

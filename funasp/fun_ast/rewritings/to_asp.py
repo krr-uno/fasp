@@ -5,8 +5,8 @@ from clingo import ast
 from clingo.core import Library, Location, Position
 from clingo.symbol import Number, SymbolType
 
-from funasp.ast._context import RewriteContext
-from funasp.ast._nodes import (
+from funasp.fun_ast._context import RewriteContext
+from funasp.fun_ast._nodes import (
     FASP_AST_T,
     AssignmentAggregateElement,
     AssignmentRule,
@@ -18,7 +18,7 @@ from funasp.ast._nodes import (
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from funasp.ast.types import (
+from funasp.fun_ast.types import (
     SymbolSignature,
 )
 from funasp.util.ast import (

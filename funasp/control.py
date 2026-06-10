@@ -8,9 +8,9 @@ from clingo import ast
 from clingo import solve as clingo_solve
 from clingo import symbol
 
-from funasp.ast import rewrite_statements
-from funasp.ast._context import RewriteContext
-from funasp.ast.parsing import parser
+from funasp.fun_ast import rewrite_statements
+from funasp.fun_ast._context import RewriteContext
+from funasp.fun_ast.parsing import parser
 from funasp.solve import Model
 from funasp.util.ast import ELibrary
 

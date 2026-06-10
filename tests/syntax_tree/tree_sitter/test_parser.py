@@ -4,13 +4,13 @@ import unittest
 
 from clingo import ast
 
-from funasp.ast import AssignmentRule, HeadSimpleAssignment, ShowFDirective
+from funasp.fun_ast import AssignmentRule, HeadSimpleAssignment, ShowFDirective
 
 # from fasp.ast.rewrittings.assigments import ParsingException
 from funasp.util.ast import ParsingException
 from funasp.util.ast import ELibrary
 from funasp.util.ast import AST
-from funasp.ast.parsing import parser
+from funasp.fun_ast.parsing import parser
 from funasp.util.ast import parse_string
 
 

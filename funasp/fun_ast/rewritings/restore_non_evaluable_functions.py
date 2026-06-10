@@ -4,8 +4,8 @@ from typing import Any, Iterable
 from clingo import ast
 from clingo.symbol import SymbolType
 
-from funasp.ast._context import RewriteContext
-from funasp.ast.types import SymbolSignature
+from funasp.fun_ast._context import RewriteContext
+from funasp.fun_ast.types import SymbolSignature
 from funasp.util.ast import function_arguments_ast
 
 

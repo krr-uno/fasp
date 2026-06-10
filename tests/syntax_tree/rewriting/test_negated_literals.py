@@ -2,10 +2,10 @@ import unittest
 
 from clingo import ast
 
-from funasp.ast._context import RewriteContext
-from funasp.ast.parsing.parser import parse_string
+from funasp.fun_ast._context import RewriteContext
+from funasp.fun_ast.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
-from funasp.ast.rewritings.negated_literals import (
+from funasp.fun_ast.rewritings.negated_literals import (
     rewrite_negated_body_literals_from_statements,
 )
 

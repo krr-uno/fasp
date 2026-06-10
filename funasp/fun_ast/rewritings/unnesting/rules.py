@@ -4,8 +4,8 @@ from typing import Any, List, Set
 from clingo import ast
 from clingo.core import Library
 
-from funasp.ast._context import RewriteContext
-from funasp.ast._nodes import (
+from funasp.fun_ast._context import RewriteContext
+from funasp.fun_ast._nodes import (
     AssignmentAggregateElement,
     AssignmentRule,
     ChoiceAssignment,
@@ -15,12 +15,12 @@ from funasp.ast._nodes import (
     HeadAssignmentAggregate,
     HeadSimpleAssignment,
 )
-from funasp.ast.collectors import collect_variables
-from funasp.ast.rewritings.unnesting.literals import (
+from funasp.fun_ast.collectors import collect_variables
+from funasp.fun_ast.rewritings.unnesting.literals import (
     UnnestFunctionsInLiteralsTransformer,
     unnest_functions,
 )
-from funasp.ast.types import SymbolSignature
+from funasp.fun_ast.types import SymbolSignature
 from funasp.util.ast import (
     FreshVariableGenerator,
 )

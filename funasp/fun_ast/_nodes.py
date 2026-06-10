@@ -6,7 +6,7 @@ from typing import Any, Self, TypeVar
 from clingo import ast
 from clingo.core import Library, Location
 
-from funasp.ast.types import SymbolSignature
+from funasp.fun_ast.types import SymbolSignature
 from funasp.util import ast as util_ast
 
 

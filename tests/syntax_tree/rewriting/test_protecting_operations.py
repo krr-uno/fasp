@@ -4,9 +4,9 @@ from clingo import ast
 
 from funasp.util.ast import AST,ELibrary
 
-from funasp.ast._context import RewriteContext
-from funasp.ast.rewritings.protecting_operations import protect_operations, restore_operations
-from funasp.ast.rewritings.integration import RewritingStatement, _clingo_rewrite
+from funasp.fun_ast._context import RewriteContext
+from funasp.fun_ast.rewritings.protecting_operations import protect_operations, restore_operations
+from funasp.fun_ast.rewritings.integration import RewritingStatement, _clingo_rewrite
 
 class TestProtectOperations(unittest.TestCase):
     def setUp(self):

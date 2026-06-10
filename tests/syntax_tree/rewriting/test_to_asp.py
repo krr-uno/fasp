@@ -2,9 +2,9 @@ import unittest
 
 from funasp.util.ast import ELibrary
 
-from funasp.ast.types import SymbolSignature
-from funasp.ast.parsing.parser import parse_string
-from funasp.ast.rewritings.to_asp import NormalForm2PredicateTransformer
+from funasp.fun_ast.types import SymbolSignature
+from funasp.fun_ast.parsing.parser import parse_string
+from funasp.fun_ast.rewritings.to_asp import NormalForm2PredicateTransformer
 
 
 class TestNormalForm2PredicateTransformer(unittest.TestCase):

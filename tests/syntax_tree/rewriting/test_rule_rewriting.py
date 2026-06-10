@@ -3,10 +3,10 @@ import unittest
 
 from clingo import ast
 
-from funasp.ast.parsing.parser import parse_string
+from funasp.fun_ast.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
-from funasp.ast.types import SymbolSignature
-from funasp.ast.rewritings.unnesting.rules import RuleRewriteTransformer
+from funasp.fun_ast.types import SymbolSignature
+from funasp.fun_ast.rewritings.unnesting.rules import RuleRewriteTransformer
 
 
 class TestRuleRewriteTransformer(unittest.TestCase):

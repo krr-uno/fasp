@@ -3,9 +3,9 @@ import unittest
 
 from clingo import ast
 from funasp.util.ast import ELibrary
-from funasp.ast.parsing.parser import parse_string
-from funasp.ast import rewrite_statements
-from funasp.ast._context import RewriteContext
+from funasp.fun_ast.parsing.parser import parse_string
+from funasp.fun_ast import rewrite_statements
+from funasp.fun_ast._context import RewriteContext
 
 
 class TestSyntaxTree(unittest.TestCase):

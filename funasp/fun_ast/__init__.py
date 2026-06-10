@@ -1,4 +1,4 @@
-from funasp.ast._nodes import (
+from funasp.fun_ast._nodes import (
     FASP_AST,
     FASP_AST_T,
     AssignmentAggregateElement,
@@ -11,10 +11,10 @@ from funasp.ast._nodes import (
     HeadSimpleAssignment,
     ShowFDirective,
 )
-from funasp.ast.rewritings.integration import (
+from funasp.fun_ast.rewritings.integration import (
     rewrite_statements,
 )
-from funasp.ast.types import SymbolSignature
+from funasp.fun_ast.types import SymbolSignature
 
 __all__ = [
     "FASP_AST",

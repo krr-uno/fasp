@@ -5,11 +5,11 @@ import textwrap
 import unittest
 
 from tests.restore_anonymous_term_variables import restore_anonymous_term_variables
-from funasp.ast.types import SymbolSignature
+from funasp.fun_ast.types import SymbolSignature
 from funasp.util.ast import ELibrary
-from funasp.ast.parsing.parser import parse_string
-from funasp.ast.rewritings.integration import rewrite_statements
-from funasp.ast._context import RewriteContext
+from funasp.fun_ast.parsing.parser import parse_string
+from funasp.fun_ast.rewritings.integration import rewrite_statements
+from funasp.fun_ast._context import RewriteContext
 
 
 class TestFASPProgramTransformer(unittest.TestCase):

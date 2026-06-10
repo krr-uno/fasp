@@ -2,30 +2,30 @@ from typing import Callable, Final, Iterable, Sequence
 
 from clingo import ast
 
-from funasp.ast._context import RewriteContext
-from funasp.ast._nodes import (
+from funasp.fun_ast._context import RewriteContext
+from funasp.fun_ast._nodes import (
     AssignmentRule,
     FASP_Statement,
 )
-from funasp.ast.collectors import (
+from funasp.fun_ast.collectors import (
     collect_evaluable_function_signatures,
 )
-from funasp.ast.rewritings.aggregates import normalize_assignment_aggregates
-from funasp.ast.rewritings.negated_literals import (
+from funasp.fun_ast.rewritings.aggregates import normalize_assignment_aggregates
+from funasp.fun_ast.rewritings.negated_literals import (
     rewrite_negate_body_literals,
 )
-from funasp.ast.rewritings.restore_non_evaluable_functions import (
+from funasp.fun_ast.rewritings.restore_non_evaluable_functions import (
     restore_non_evaluable_functions,
 )
-from funasp.ast.rewritings.showf import rewrite_showf
-from funasp.ast.rewritings.some_assignments import (
+from funasp.fun_ast.rewritings.showf import rewrite_showf
+from funasp.fun_ast.rewritings.some_assignments import (
     rewrite_some_choices,
 )
-from funasp.ast.rewritings.to_asp import (
+from funasp.fun_ast.rewritings.to_asp import (
     functional_constraints,
     to_asp,
 )
-from funasp.ast.rewritings.unnesting.rules import (
+from funasp.fun_ast.rewritings.unnesting.rules import (
     unnest_ast,
 )
 

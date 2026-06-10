@@ -2,12 +2,12 @@ import textwrap
 import unittest
 
 
-from funasp.ast._context import RewriteContext
-from funasp.ast.rewritings.aggregates import (
+from funasp.fun_ast._context import RewriteContext
+from funasp.fun_ast.rewritings.aggregates import (
     normalize_assignment_aggregates,
 )
 
-from funasp.ast.parsing.parser import parse_string
+from funasp.fun_ast.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
 
 

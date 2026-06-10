@@ -2,12 +2,12 @@ import textwrap
 import unittest
 
 from funasp.util.ast import ELibrary
-from funasp.ast.parsing.parser import parse_string
+from funasp.fun_ast.parsing.parser import parse_string
 from tests.syntax_tree.rewriting.integration_partial import (
     FASPProgramTransformer,
     PipelineStage,
 )
-from funasp.ast._context import RewriteContext
+from funasp.fun_ast._context import RewriteContext
 
 
 class TestFASPProgramTransformer(unittest.TestCase):

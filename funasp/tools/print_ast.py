@@ -12,7 +12,7 @@ import sys
 from typing import Any
 
 # IMPORTANT: use the parsing.parse_string that uses TreeSitter (supports ':=')
-from funasp.ast.parsing.parser import parse_string
+from funasp.fun_ast.parsing.parser import parse_string
 from funasp.util.ast import ELibrary
 
 
