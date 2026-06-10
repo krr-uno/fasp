@@ -64,7 +64,9 @@ jobs:
         pip install -e .
 
     - name: run application
-      run: python funasp
+      run: |
+        python funasp examples/family.lp || if [ $? -eq 10 ]; then echo "Handled exit code 10"; else exit $?; fi
+
 
     - name: run tests
       run: nox
