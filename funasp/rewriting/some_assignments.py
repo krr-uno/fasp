@@ -23,14 +23,14 @@ from funasp.rewriting.prefixes import PARSER_PREFIX
 
 #: The suffix appended to the prefix by the parser for ``#some`` assignments.
 SOME_MARKER = "S"
+SOME_PREFIX = PARSER_PREFIX + SOME_MARKER
 
 
 def rewrite_some_assignments(
     context: RewriteContext, statement: ast.Statement
 ) -> ast.Statement:
     """Rewrite a ``#some`` assignment head into a choice with a guard body."""
-    library = context.lib.library
-    some_prefix = PARSER_PREFIX + SOME_MARKER
+
     if not isinstance(statement, ast.StatementRule) or not isinstance(
         head := statement.head, ast.HeadAggregate
     ):
@@ -39,13 +39,14 @@ def rewrite_some_assignments(
     if (
         left is None
         or not isinstance(left.term, ast.TermFunction)
-        or not left.term.name.startswith(some_prefix)
+        or not left.term.name.startswith(SOME_PREFIX)
     ):
         return statement
     assert left.relation == ast.Relation.Equal
     assert head.right is None
+    library = context.lib.library
 
-    name = PARSER_PREFIX + left.term.name[len(some_prefix) :]
+    name = PARSER_PREFIX + left.term.name[len(SOME_PREFIX) :]
     assert len(left.term.pool) == 1, f"Terms must be unpooled {left.term}"
     arguments = left.term.pool[0].arguments
 

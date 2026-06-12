@@ -9,6 +9,7 @@ original ``:=`` syntax. It inverts exactly the shapes the parser generates
 function names cannot produce); anything else falls back to ``str()``.
 """
 
+from ast import arguments
 from typing import Sequence
 
 from clingo_funasp import ast
@@ -117,14 +118,13 @@ def _assignment_aggregate_to_str(
     else:
         name = name[len(PARSER_PREFIX) :]
         aggregate = _AGGREGATE_STR[head.function]
-    assert len(left_term.pool) == 1, f"Terms must be unpooled {left_term}"
-    arguments = ",".join(str(a) for a in left_term.pool[0].arguments)
+    pool = [",".join(str(a) for a in t.arguments) for t in left_term.pool]
     elements = [
         ",".join(str(term) for term in element.tuple)
         + _condition_to_str(element.condition)
         for element in head.elements
     ]
-    function = _function_to_str(name, [arguments])
+    function = _function_to_str(name, pool)
     return f"{function} := {aggregate}{{{'; '.join(elements)}}}"
 
 

@@ -77,6 +77,14 @@ class TestAstToStr(unittest.TestCase):
         self.assertRoundTrip("#count{ X: p(X): q(X) }.", "#count { X: p(X): q(X) }.")
         self.assertRoundTrip("{ p(X): q(X) }.", "{ p(X): q(X) }.")
 
+    def test_pooled_assignment2(self):
+        """A pooled head atom with a common value prints as a pooled assignment.
+
+        This is the form the parser produces for ``f(1;2) := 3.``.
+        """
+        self.assertRoundTrip("f(1;2) := 3.", "f(1;2) := 3.")
+        self.assertRoundTrip("f(a;b) := #some{r; g}.", "f(a;b) := #some{r; g}.")
+
     def _pooled_atom(self, values: list[int]) -> ast.Statement:
         """Build the statement ``Ff(1,v1;2,v2).`` with a pooled head atom."""
         library = self.lib.library

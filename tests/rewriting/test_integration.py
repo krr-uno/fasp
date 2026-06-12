@@ -194,6 +194,17 @@ class TestRewriteStatements(unittest.TestCase):
             """,
         )
 
+    # def test_some_assignment_with_pool(self):
+    #     """Test #some assignment."""
+    #     self.assertTransformEqual(
+    #         "f(a;b) := #some{r;g}.",
+    #         """
+    #         #count { 0,Ff(a,r): Ff(a,r); 0,Ff(a,g): Ff(a,g) } = 1.
+    #         #count { 0,Ff(b,r): Ff(b,r); 0,Ff(b,g): Ff(b,g) } = 1.
+    #         :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+    #         """,
+    #     )
+
     def test_aggregate_assignment(self):
         """Test aggregate assignment."""
         self.assertTransformEqual(
