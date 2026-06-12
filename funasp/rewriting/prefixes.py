@@ -1,0 +1,111 @@
+"""
+Renaming pass for the parser-generated function prefix.
+
+The ``clingo_funasp`` parser desugars assignments at parse time using the
+hardcoded prefix ``F`` (and ``FS`` for ``#some`` assignments). This pass
+renames those parser-generated names to the prefix configured via
+``--prefix-fun`` so that the rest of the pipeline (and model display) can use
+a custom prefix.
+
+Only the positions the parser generates are renamed:
+
+- ``HeadSimpleLiteral`` atoms (simple assignments ``Fa(v)``),
+- ``HeadSetAggregate`` element literals (choice assignments ``{ Fa(v) }``),
+- ``HeadAggregate`` left-guard terms (aggregate assignments ``Ff(X) = #agg``
+  and ``#some`` assignments ``FSf(X) = #sum``),
+- ``HeadAggregate`` element literals (assignments inside head aggregates),
+- ``StatementShowSignature`` names (``#showf p/n`` becomes ``#show Fp/n+1.``).
+
+Body atoms are never touched: the parser does not prefix body occurrences.
+The default prefix ``F`` is safe from collisions because user-written
+function names cannot start with an uppercase letter (those are variables).
+"""
+
+from clingo_funasp import ast
+
+from funasp.rewriting._context import RewriteContext
+
+#: The prefix hardcoded in the clingo_funasp parser.
+PARSER_PREFIX = "F"
+
+
+def _rename_term(context: RewriteContext, term: ast.TermFunction) -> ast.TermFunction:
+    """Rename a parser-prefixed function term to the configured prefix."""
+    assert term.name.startswith(PARSER_PREFIX)
+    new_name = context.prefix_function + term.name[len(PARSER_PREFIX) :]
+    return term.update(context.lib.library, name=new_name)
+
+
+def _rename_literal(
+    context: RewriteContext, literal: ast.LiteralSymbolic
+) -> ast.LiteralSymbolic:
+    """Rename the atom of a parser-prefixed symbolic literal."""
+    atom = literal.atom
+    if not isinstance(atom, ast.TermFunction) or not atom.name.startswith(
+        PARSER_PREFIX
+    ):
+        return literal
+    return literal.update(context.lib.library, atom=_rename_term(context, atom))
+
+
+def _rename_head(context: RewriteContext, head: ast.HeadLiteral) -> ast.HeadLiteral:
+    """Rename parser-prefixed atoms in a rule head."""
+    library = context.lib.library
+    if isinstance(head, ast.HeadSimpleLiteral):
+        literal = head.literal
+        if not isinstance(literal, ast.LiteralSymbolic):
+            return head
+        return ast.HeadSimpleLiteral(library, _rename_literal(context, literal))
+    if isinstance(head, ast.HeadSetAggregate):
+        elements = [
+            (
+                element.update(
+                    library, literal=_rename_literal(context, element.literal)
+                )
+                if isinstance(element.literal, ast.LiteralSymbolic)
+                else element
+            )
+            for element in head.elements
+        ]
+        return head.update(library, elements=elements)
+    if isinstance(head, ast.HeadAggregate):
+        update: dict[str, object] = {}
+        left = head.left
+        if (
+            left is not None
+            and isinstance(left.term, ast.TermFunction)
+            and left.term.name.startswith(PARSER_PREFIX)
+        ):
+            update["left"] = left.update(library, term=_rename_term(context, left.term))
+        elements = [
+            (
+                element.update(
+                    library, literal=_rename_literal(context, element.literal)
+                )
+                if isinstance(element.literal, ast.LiteralSymbolic)
+                else element
+            )
+            for element in head.elements
+        ]
+        update["elements"] = elements
+        return head.update(library, **update)
+    return head
+
+
+def rename_prefixes(context: RewriteContext, statement: ast.Statement) -> ast.Statement:
+    """
+    Rename parser-generated ``F``/``FS`` prefixes to the configured prefix.
+
+    This is a no-op when the configured prefix is the parser default ``F``.
+    """
+    if context.prefix_function == PARSER_PREFIX:
+        return statement
+    library = context.lib.library
+    if isinstance(statement, ast.StatementRule):
+        return statement.update(library, head=_rename_head(context, statement.head))
+    if isinstance(statement, ast.StatementShowSignature) and statement.name.startswith(
+        PARSER_PREFIX
+    ):
+        new_name = context.prefix_function + statement.name[len(PARSER_PREFIX) :]
+        return statement.update(library, name=new_name)
+    return statement

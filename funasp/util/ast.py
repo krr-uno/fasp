@@ -461,7 +461,9 @@ class ParsingException(Exception):
         super().__init__(f"Parsing failed with {len(errors)} error(s):\n{messages}")
 
 
-_PARSING_ERROR_RE = r"<(.*?)>:(\d+):(\d+)-(\d+): error: (.*)"
+# Errors for strings use an angle-bracketed name (`<string>:1:2-3: error: ...`)
+# while errors for files use the plain file name (`file.lp:1:2-3: error: ...`).
+_PARSING_ERROR_RE = r"(?:<(?P<bracketed>.*?)>|(?P<file>.*?)):(?P<line>\d+):(?P<col_start>\d+)-(?P<col_end>\d+): error: (?P<msg>.*)"
 _PARSING_ERROR_PATTERN = re.compile(_PARSING_ERROR_RE)
 
 
@@ -475,9 +477,10 @@ def _process_error(
         location = Location(position, position)
         msg = message[1]
     else:
-        file, line, col_start, col_end, msg = match.groups()
-        start = Position(library, file, int(line), int(col_start))
-        end = Position(library, file, int(line), int(col_end))
+        file = match["bracketed"] if match["bracketed"] is not None else match["file"]
+        msg = match["msg"]
+        start = Position(library, file, int(match["line"]), int(match["col_start"]))
+        end = Position(library, file, int(match["line"]), int(match["col_end"]))
         location = Location(start, end)
     return SyntacticError(
         location,
@@ -519,14 +522,9 @@ def parse_string(library: ELibrary, code: str) -> list[ast.Statement]:
     return parsed
 
 
-def parse_files(  # pragma: no cover
-    library: ELibrary, files: Sequence[str]
-) -> list[ast.Statement]:
+def parse_files(library: ELibrary, files: Sequence[str]) -> list[ast.Statement]:
     """
     Parse the given files into a list of AST statements.
-
-    Note: clingo-funasp 6.0.0.post10 segfaults in ``ast.parse_files``; this
-    wrapper is excluded from coverage until the upstream bug is fixed.
 
     Args:
         library (Library): The library to use for parsing.

@@ -8,10 +8,10 @@ from clingo_funasp import ast
 from clingo_funasp import solve as clingo_solve
 from clingo_funasp import symbol
 
-from funasp.fun_ast import rewrite_statements
-from funasp.fun_ast._context import RewriteContext
-from funasp.fun_ast.parsing import parser
+from funasp.rewriting import rewrite_statements
+from funasp.rewriting._context import RewriteContext
 from funasp.solve import Model
+from funasp.util import ast as util_ast
 from funasp.util.ast import ELibrary
 
 LIBC_NAME: str | None = None
@@ -57,7 +57,7 @@ class Control:
             The paths of the files to parse and load.
         """
         rewrite_ctx = RewriteContext(self.library, self.prefix)
-        statements = parser.parse_files(self.library, files)
+        statements = util_ast.parse_files(self.library, files)
         statements = rewrite_statements(rewrite_ctx, statements)
         program = ast.Program(self.library.library)
         for statement in statements:
@@ -77,7 +77,7 @@ class Control:
             The paths of the files to parse and load.
         """
         rewrite_ctx = RewriteContext(self.library, self.prefix)
-        statements = parser.parse_string(self.library, code)
+        statements = util_ast.parse_string(self.library, code)
         statements = rewrite_statements(rewrite_ctx, statements)
         program = ast.Program(self.library.library)
         for statement in statements:

@@ -44,7 +44,12 @@ class TestControl(unittest.TestCase):
                 self.assert_models(example.files, example.models)
 
     def test_undefined_operation_fun(self):
-        """Test unsafe."""
+        """Test unsafe.
+
+        Note: with the clingo_funasp parser the statement is reported in its
+        parsed (prefixed) form rather than the original FASP syntax, and the
+        location points at the undefined operation in the source.
+        """
         library = ELibrary(logger=lambda _, message: print(message, file=sys.stderr))
         control = Control(library, ["0"])
         out = io.StringIO()
@@ -56,8 +61,8 @@ class TestControl(unittest.TestCase):
             )
             captured_output = out.getvalue().strip()
             self.assertEqual(textwrap.dedent(captured_output), textwrap.dedent("""\
-                <string>:1:1-4: info: operation undefined in:
-                  f := a+1.
+                <string>:2:22-25: info: operation undefined in:
+                  Ff(a+1).
                 note: the following operations are undefined:
                   a+1"""))
         out = io.StringIO()

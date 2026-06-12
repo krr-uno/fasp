@@ -40,3 +40,226 @@ clingo_funasp.ast.parse_files segfaults on any input in clingo-funasp 6.0.0.post
 ---
 
 Make a plan on how to migrate the rest of the application to the new parser. For that recall the correspondence between the two abstract syntax tree of the two parsers. Make questions in case of daubt.
+
+---
+
+# Final summary:
+
+What was done
+
+Verified the upstream fix — clingo-funasp 6.0.0.post11 fixes the parse_files segfault (raw API, wrapper, and error path all work), which unblocked the full migration in one pass.
+
+New pipeline (funasp/rewriting/) — re-implements the semantic rewriting over the parser's F-encoded clingo AST: prefixes (applies --prefix-fun by renaming the hardcoded F/FS), collectors, some_assignments (FS aggregate → choice =1 + #count≥1), aggregates, negated_literals, unnesting + literals, comparisons (f(t)=v → Ff(t,v)), restore (needed after all for the mixed-arity pool case), constraints, orchestrated by integration.rewrite_statements. Validated by a differential harness before cutover: 86/86 exact string matches with the old pipeline across 31 curated programs and all 13 example files, under both F and G prefixes.
+
+Cutover — Control.parse_string/parse_files now use the clingo_funasp parser + new pipeline; the parse-error regex handles file-based locations; the two parse_files tests are live (line/file asserted correctly).
+
+Deleted — tree-sitter parser, funasp/fun_ast/ (nodes + old rewritings), funasp/tools/, funasp/util/tree_sitter.py, tests/syntax_tree/; tree-sitter dropped from pyproject, tree-sitter-fasp from requirements and env files. Reused pieces (RewriteContext, SymbolSignature, collect_variables, term-level unnesting, restore) moved into funasp/rewriting/. test_parser2.py moved to tests/parser/. CLAUDE.md/AGENTS.md rewritten for the new architecture.
+
+Verification — nox -s test, slow_test (all integration/example model expectations unchanged), typecheck (mypy --strict), format all green; 100% coverage maintained. CLI smoke: coloring solves with 6 correct models; --mode=rewrite --prefix-fun=G works.
+
+Two things you should know
+
+1. New upstream bug found: the parser loses the begin-position file of assignment statements (empty string instead of <string>/filename), which produced malformed error locations like :1:1-<string>:1:16. I added a workaround (integration._fix_statement_location, noted in CLAUDE.md) — removable once fixed in clingo-funasp.
+2. Behavioral change in messages: error/info reports now show the statement in its parsed form (operation undefined in: Ff(a+1).) rather than the original FASP syntax (f := a+1.), since the parser desugars before the pipeline sees the text. Locations still point at the right source spot. The two affected test expectations were updated and the change is documented in their docstrings. If you want the original syntax back, it would take a FASP re-printer (F-atom → := form) for processing_statement — say the word and I'll plan it.
+
+One unrelated pre-existing issue: nox -s lint fails because pylint isn't installed in this env (lint isn't part of the default or CI sessions).
+
+✻ Cooked for 26m 28s
+
+❯ /plan
+  ⎿  Current Plan
+     /home/jorge/.claude/plans/we-are-use-a-ancient-creek.md
+
+     Plan: Migrate the funasp rewriting pipeline to the new clingo_funasp parser
+
+     Context
+
+     Step 1 of the migration is done: tests/syntax_tree/tree_sitter/test_parser2.py documents the
+     old→new AST mapping, and funasp.util.ast has parse_string/parse_files wrappers over the new
+     parser (parse_files is blocked by an upstream segfault in clingo-funasp 6.0.0.post10).
+
+     Exploration verified that the new parser does syntactic desugaring only:
+     - a := t :- B. → Fa(t) :- B. (StatementRule/HeadSimpleLiteral, F-prefix + value as last arg)
+     - { a := 1 } :- B. → { Fa(1) } :- B. (HeadSetAggregate)
+     - f(X) := #agg{…} :- B. → Ff(X) = #agg { tuple: NONE: cond } :- B. (HeadAggregate, left guard
+     Ff(X) with Relation.Equal; no value slot — arity stays the original)
+     - c(X) := #some{r;g;b} :- B. → FSc(X) = #sum { r: NONE; … } :- B. (FS prefix)
+     - #showf p/1. → #show Fp/2. [true] (value is the generic show/hide flag, not a FASP marker)
+     - Body occurrences are NOT touched: b :- a = 1. keeps the plain comparison a=1.
+
+     It does not implement FASP semantics: grounding the parsed output directly is wrong (graph
+     coloring → UNSAT; b :- a=1. doesn't derive b), and the built-in ast.rewrite_statement
+     corrupts FASP-encoded statements (drops Fb(X,a+X) :- c(X). as "operation undefined"). So the
+     semantic pipeline survives and must be re-implemented over the F-encoded clingo AST, replacing
+     the FASP-node-based pipeline in funasp/fun_ast/rewritings/.
+
+     User decisions:
+     1. --prefix-fun is kept via a post-parse renaming pass (F→<prefix>, FS→<prefix>S).
+     2. Old code (tree-sitter parser, _nodes.py, obsolete rewritings, their tests) is deleted in
+     this migration.
+     3. ~~`Controlmigration postponed until upstream fixes theparse_filessegfault~~ — **UPDATE (2026-06-12): fixed in clingo-funasp 6.0.0.post11** (verified: raw + wrapper + error path). The full migration is unblocked: switchControl, un-skip the parse_files` tests,
+     delete old code (the former "Phase 2" is now in scope).
+
+     Implementation findings so far:
+     - The new pipeline (funasp/rewriting/: prefixes, collectors, some_assignments, aggregates,
+     negated_literals, unnesting, comparisons, constraints, integration) is implemented and
+     string-matches the old pipeline on the key programs except the mixed-arity pool case
+     (f(1) := 2. p(f(a;b,c)).): comparisons get prefixed before clingo unpools, so non-evaluable
+     arities end up wrongly prefixed. Fix: keep restore_non_evaluable_functions after the clingo
+     rewrite step (it is clingo-only already) — the plan's "obsolete" call was wrong for pools.
+     - File-based parse errors (file.lp:1:6-7: error: ...) don't match _PARSING_ERROR_RE in
+     funasp/util/ast.py (expects <string>-style) — extend the regex for parse_files error
+     locations.
+
+     Remaining work:
+     1. Add restore step to funasp/rewriting/integration.py (port restore_non_evaluable_functions
+     into the new package).
+     2. Tests tests/rewriting/ (per-stage + integration + differential vs old pipeline + end-to-end
+     on tests/examples.py EXAMPLES).
+     3. Fix _PARSING_ERROR_RE for file errors; un-skip the two parse_files tests in
+     test_parser2.py; drop the # pragma: no cover on the parse_files wrapper.
+     4. Switch Control.parse_string/parse_files (funasp/control.py) to funasp.util.ast.parse_* +
+     funasp.rewriting.rewrite_statements.
+     5. Delete old code, moving the reused pieces into funasp/rewriting/ first:
+     RewriteContext (trimmed), SymbolSignature, collect_variables,
+     unnesting/literals.py transformer (minus the FASP-node register), restore module.
+     Delete: funasp/fun_ast/, funasp/util/tree_sitter.py, funasp/tools/print_ast.py,
+     tests/syntax_tree/, old tests/restore_anonymous_term_variables.py helper only if unused by
+     new tests. Drop tree-sitter from pyproject and tree-sitter-fasp from requirements.txt.
+     6. Update CLAUDE.md / AGENTS.md architecture sections.
+     7. Full verification: nox -s test, nox -s slow_test (integration tests through the new
+     pipeline must keep their expected model strings), typecheck, format.
+
+     Old pipeline → new pipeline correspondence
+
+     Old pipeline (funasp/fun_ast/rewritings/integration.py:130, on custom FASP nodes):
+
+     ┌────────────────────────────────────────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+     │                                    Old step                                    │                                                                   Fate on the new representation                                                                   │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ tree-sitter parse → AssignmentRule…                                            │ replaced by funasp.util.ast.parse_string (new parser)                                                                                                              │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ rewrite_showf                                                                  │ obsolete — parser already emits #show Fp/(n+1).                                                                                                                    │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ rewrite_some_choices (#some → choice =1 + #count>=1 body)                      │ reimplement: detect FS-prefixed HeadAggregate, produce HeadSetAggregate of F-atoms with right guard = 1 + prepended body #count{…} >= 1                            │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ normalize_assignment_aggregates (f(X):=#agg{…} → f(X):=W + body agg)           │ reimplement: detect F-prefixed HeadAggregate, produce head Ff(X,W) + body BodyAggregate W = #agg{…} (fresh W var; elements lose the NONE literal slot:             │
+     │                                                                                │ HeadAggregateElement(tuple, literal=None, condition) → BodyAggregateElement(tuple, condition))                                                                     │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ rewrite_negate_body_literals (not l → #false : l)                              │ survives — already clingo-AST-level; new copy without the AssignmentRule type unions                                                                               │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ collect_evaluable_function_signatures (from AssignmentRule heads)              │ reimplement: collect from prefixed heads — HeadSimpleLiteral/HeadSetAggregate element atoms Pf/n → (f, n−1); HeadAggregate left term Pf/n → (f, n); PSf/n → (f, n) │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ unnest_ast (nested evaluable f(t) → fresh FUN var + f(t)=FUN body comparison)  │ reimplement driver on clingo-only nodes (HeadSimpleLiteral with P-atom, HeadSetAggregate, body literals/aggregates/conditionals, optimize/weak constraints); the   │
+     │                                                                                │ term-level logic in unnesting/literals.py is largely reusable (operates on unprefixed terms + evaluable_functions)                                                 │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ to_asp head rewriting (NormalForm2PredicateTransformer._rewrite_head)          │ obsolete — parser already emits prefixed heads                                                                                                                     │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ to_asp body dispatch (LiteralComparison f(t)=v → Pf(t,v) if evaluable, with    │ reimplement as its own step (comparisons.py) — body equalities are unprefixed in the new representation, including the ones emitted by unnesting                   │
+     │ pool/candidate-arity handling)                                                 │                                                                                                                                                                    │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ _clingo_rewrite (ast.rewrite_statement + lib.processing_statement error        │ survives as-is (runs after all FASP encoding is plain ASP)                                                                                                         │
+     │ plumbing)                                                                      │                                                                                                                                                                    │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ restore_non_evaluable_functions                                                │ obsolete — only evaluable comparisons get prefixed now, nothing to restore                                                                                         │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ functional_constraints (:- Pf(X…,_), 1 < #count{V: Pf(X…,V)}.)                 │ survives — signature-driven, node-type independent; new copy in the new package                                                                                    │
+     ├────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ protecting*.py                                                                 │ already dead (test-only); untouched this phase, deleted in phase 2                                                                                                 │
+     └────────────────────────────────────────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+     Reused as-is (imports, no copies): RewriteContext (funasp/fun_ast/_context.py — fields
+     lib, prefix_function, ctx, evaluable_functions are node-type independent),
+     SymbolSignature (funasp/fun_ast/types.py), collect_variables + fresh-variable generation
+     (funasp/fun_ast/collectors.py), ELibrary/parse_string/ParsingException
+     (funasp/util/ast.py).
+
+     New step: prefix renaming (--prefix-fun)
+
+     Runs first, only when prefix != "F". Renames exactly the positions the parser generates:
+     - HeadSimpleLiteral / HeadSetAggregate element atoms named F… → <prefix>…
+     - HeadAggregate left-guard terms F…/FS… → <prefix>…/<prefix>S…
+     - StatementShowSignature names F… → <prefix>…
+
+     Body atoms are untouched (the parser never prefixes bodies). Known, accepted limitation of the
+     hardcoded encoding: a user-written head atom Foo(1) is indistinguishable from oo := 1 — the
+     old parser distinguished these syntactically; the new one cannot. Document this in module
+     docstrings.
+
+     Changes (this phase)
+
+     1. New package funasp/rewriting/ (clingo-AST pipeline)
+
+     funasp/rewriting/
+       __init__.py        # exports rewrite_statements
+       prefixes.py        # renaming pass F→prefix / FS→prefixS
+       collectors.py      # collect_evaluable_function_signatures (prefixed heads)
+       some_assignments.py# FS HeadAggregate → choice =1 + #count>=1 body
+       aggregates.py      # F HeadAggregate → Pf(args,W) head + body aggregate
+       negated_literals.py# not l → #false : l   (clingo-only port)
+       unnesting.py       # driver over clingo nodes (reuses fun_ast unnesting/literals.py logic)
+       comparisons.py     # f(t)=v → Pf(t,v) for evaluable f (pools handled)
+       integration.py     # orchestrator rewrite_statements(context, statements)
+
+     integration.py order (mirrors old two-pass structure):
+     1. per statement: rename_prefixes (if needed) → rewrite_some → normalize_aggregates →
+     rewrite_negated_literals; accumulate context.evaluable_functions (collection must see all
+     statements before pass 2, same as old)
+     2. per statement: unnest → prefix_comparisons → _clingo_rewrite
+     (reuse the old _clingo_rewrite pattern incl. lib.processing_statement so the
+     "operation undefined in: …" / "undefined intensional function" error messages keep working)
+     3. append functional_constraints(context)
+
+     Output-parity goal: for the same input, the final statement strings should equal the old
+     pipeline's output (same Ff(args,v) encoding, same functional constraints). Where exact string
+     equality is impractical (fresh-variable numbering, statement ordering), semantic equality (same
+     models) is the fallback — see differential tests below.
+
+     2. Tests tests/rewriting/
+
+     Mirror the per-stage tests in tests/syntax_tree/rewriting/, but parse inputs with
+     funasp.util.ast.parse_string (new parser):
+     - test_collectors.py, test_some_assignments.py, test_aggregates.py,
+     test_negated_literals.py, test_unnesting.py, test_comparisons.py, test_prefixes.py
+     - test_integration.py — full pipeline, asserting exact rewritten strings (port expectations
+     from the old tests/syntax_tree/rewriting/test_integration.py, e.g. f(1) := Y :- g(Y). →
+     Ff(1,Y) :- g(Y). + :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.)
+     - test_differential.py — both pipelines still exist: exploit it. For the programs in
+     tests/examples.py and the old integration-test inputs, assert old-pipeline output ==
+     new-pipeline output (string-level where possible, otherwise solve both with
+     clingo_funasp.control.Control and compare model sets)
+     - test_end_to_end.py — parse_string → new pipeline → Program.add/join → ground → solve on
+     the EXAMPLES from tests/examples.py, asserting the expected model strings (same
+     expectations as tests/test_control.py, without touching Control)
+
+     During implementation, capture actual parser/pipeline outputs by running probe scripts (as in
+     step 1) before hardcoding expected strings.
+
+     3. Untouched this phase
+
+     Control, FaspApp, the tree-sitter parser, funasp/fun_ast/* (old pipeline keeps passing its
+     tests), Model/FunctionSymbol.
+
+     Phase 2 (separate, blocked on upstream parse_files fix) — for reference
+
+     1. Switch Control.parse_string/parse_files to funasp.util.ast.parse_string/parse_files +
+     funasp.rewriting.rewrite_statements; un-skip the two parse_files tests in test_parser2.py.
+     2. Delete: funasp/fun_ast/ (parser, _nodes.py, old rewritings), funasp/util/tree_sitter.py,
+     funasp/tools/print_ast.py (or port to the new parser), tests/syntax_tree/,
+     tests/restore_anonymous_term_variables.py; move the reused pieces (RewriteContext,
+     SymbolSignature, collect_variables) into funasp/rewriting/.
+     3. Drop tree-sitter from pyproject.toml and tree-sitter-fasp from requirements.txt.
+     4. Fix FunctionSymbol.from_symbol (funasp/symbol.py:24) hardcoded prefix_len=1 if
+     multi-char prefixes should work with --prefix-fun.
+     5. Update CLAUDE.md/AGENTS.md architecture sections.
+
+     Verification
+
+     1. python -m unittest discover tests/rewriting -v — new pipeline tests pass.
+     2. tests/rewriting/test_differential.py — old and new pipelines agree on all example programs.
+     3. nox -s test — entire suite (old + new) passes with the enforced 100% coverage on funasp/
+     (new package fully covered; old code untouched, keeps its coverage).
+     4. nox -s typecheck (mypy --strict) and nox -s format clean.
+     5. Sanity: end-to-end test solves graph coloring (examples/coloring.lp program) correctly via
+     the new pipeline — the case that is UNSAT without the pipeline.
+

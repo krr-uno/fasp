@@ -10,7 +10,7 @@ from funasp.util.ast import (
     SyntacticCheckVisitor,
     SyntacticError,
 )
-from funasp.fun_ast.collectors import collect_variables
+from funasp.rewriting.collectors import collect_variables
 from funasp.util import ast as util_ast
 
 
@@ -282,3 +282,36 @@ class TestParseString(unittest.TestCase):
                 ),
             ],
         )
+
+
+class TestFunctionArguments(unittest.TestCase):
+    """Tests for the function_arguments helper."""
+
+    def setUp(self):
+        """Set up test fixtures for each test."""
+        self.lib = Library()
+
+    def test_term_tuple(self):
+        """A term tuple has an empty name and its arguments."""
+        position = Position(self.lib, "<test>", 1, 1)
+        location = Location(position, position)
+        terms = [
+            ast.TermVariable(self.lib, location, "X"),
+            ast.TermVariable(self.lib, location, "Y"),
+        ]
+        tuple_term = ast.TermTuple(
+            self.lib, location, [ast.ArgumentTuple(self.lib, terms)]
+        )
+        name, arguments = util_ast.function_arguments(tuple_term)
+        self.assertEqual(name, "")
+        self.assertEqual([str(a) for a in arguments], ["X", "Y"])
+
+
+class TestSymbolSignature(unittest.TestCase):
+    """Tests for the SymbolSignature type."""
+
+    def test_str(self):
+        """The string form is name/arity."""
+        from funasp.rewriting.types import SymbolSignature
+
+        self.assertEqual(str(SymbolSignature("f", 2)), "f/2")

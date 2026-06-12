@@ -5,16 +5,16 @@
 f(t1) := t2 :- Body.          % deterministic assignment
 { f(t1) := t2 } :- Body.      % choice assignment
 f(t1) := #sum{ X : p(X) } :- Body.  % aggregate assignment
+color(X) := #some{r;g;b} :- country(X).
 ```
 
 ## Environment
 
-- **Python ≥ 3.13** and **clingo ≥ 6.0.0** are required.
+- **Python ≥ 3.13** and **clingo-funasp ≥ 6.0.0** (clingo 6 fork with the FASP parser) are required.
 - Recommended setup (conda):
   ```bash
   conda create -n clingo6 python=3.13
   conda activate clingo6
-  conda install -c potassco/label/dev-20 -c conda-forge clingo
   pip install -r requirements.txt
   pip install -e .
   ```
@@ -35,54 +35,52 @@ All dev tasks run via **nox** (uses the current env, no new venv):
 
 Run a single test file directly:
 ```bash
-coverage run -m unittest tests/syntax_tree/rewriting/test_integration.py -v
+python -m unittest tests.rewriting.test_integration -v
 ```
 
 **100% coverage is enforced** on `funasp/` (tests excluded). Every new code path needs a test.
 
 ## Architecture
 
+The `clingo_funasp` parser desugars FASP syntax at parse time into plain clingo AST with a name-prefix encoding: `f(t) := v` becomes the atom `Ff(t,v)` (prefix + value as last argument), `f(X) := #agg{…}` becomes the head aggregate `Ff(X) = #agg{…}`, `#some` uses the `FS` prefix, `#showf p/n` becomes `#show Fp/(n+1).`. Body occurrences stay untouched. The rewriting pipeline turns this syntactic encoding into semantically correct ASP.
+
 ```
 funasp/
   app.py              # CLI entry (FaspApp wraps clingo App interface)
   control.py          # FASP-aware Control: parse → rewrite → solve
-  solve.py            # Solve/model utilities
+  solve.py            # Model wrapper: renders Ff(t,v) atoms as f(t)=v
   symbol.py           # Symbol helpers
-  syntax_tree/
-    _nodes.py         # FASP AST node types (AssignmentAST hierarchy)
+  rewriting/
+    integration.py    # Pipeline orchestrator: rewrite_statements()
     _context.py       # RewriteContext (shared state across rewriting)
     types.py          # SymbolSignature
-    collectors.py     # AST collectors
-    parsing/
-      parser.py       # Tree-sitter-based FASP parser → mixed clingo+FASP AST stream
-    rewritings/
-      integration.py  # Pipeline orchestrator: rewrite_statements()
-      to_asp.py       # Final step: FASP AST → clingo AST rules
-      unnesting/      # Unnests complex terms in assignment heads/bodies
-      aggregates.py   # Normalizes aggregate assignments
-      negated_literals.py
-      protecting.py / protecting_operations.py
-      restore_anonymous_term_variables.py
-      restore_non_evaluable_functions.py
-      some_assignments.py   # Choice assignments { f(X) := v }
-      showf.py              # #showf directives
+    prefixes.py       # --prefix-fun: rename parser's F/FS to the configured prefix
+    collectors.py     # evaluable-function signatures from prefixed heads + collect_variables
+    some_assignments.py  # FS aggregate → choice =1 + #count>=1 body
+    aggregates.py     # Ff(X) = #agg{…} head → Ff(X,W) head + body aggregate
+    negated_literals.py  # not l → #false : l
+    unnesting.py      # statement-level driver: nested evaluable f(t) → FUN var + comparison
+    literals.py       # term-level unnesting logic
+    comparisons.py    # evaluable f(t)=v → Ff(t,v) (pools handled)
+    restore.py        # un-prefix unpooled non-evaluable entries after clingo rewrite
+    constraints.py    # functionality constraints :- Ff(X,_), 1 < #count{V: Ff(X,V)}.
   util/
-    ast.py            # ELibrary (ctypes clingo wrapper) + AST helpers
+    ast.py            # ELibrary (log capture/normalization), parse wrappers, AST helpers
 ```
 
 ## Key Conventions
 
-- **FASP AST nodes** subclass `AssignmentAST` (`_nodes.py`) and mirror the clingo AST interface: `to_dict()`, `update(**kwargs)`, `visit(visitor)`.
-- **Rewriting pipeline** is driven by `rewrite_statements(ctx, statements)` in `integration.py`. Each step is a separate module under `rewritings/`.
-- **Parser** uses `tree_sitter_fasp` to parse FASP-specific syntax, then merges custom FASP nodes with standard `clingo.ast` nodes ordered by source location.
-- **Integration tests** (`test_app.py`, `test_app_patch.py`, `test_control.py`) are slow and separated; fast unit tests live under `tests/syntax_tree/rewriting/`.
+- **Rewriting pipeline** is driven by `rewrite_statements(ctx, statements)` in `rewriting/integration.py`. Each step is a separate module; wire new steps there, not inline.
+- **Parsing** goes through `funasp.util.ast.parse_string`/`parse_files` (list-returning wrappers over `clingo_funasp.ast.parse_*` that raise `ParsingException`).
+- Transformers use `singledispatchmethod` + `node.transform(lib, fn, …)`; return `None` for "unchanged", a new node otherwise; rebuild with `node.update(lib, **changes)`.
+- **Integration tests** (`test_app.py`, `test_app_patch.py`, `test_control.py`) are slow and separated; fast unit tests live under `tests/rewriting/` and `tests/parser/`.
 - Code style: **black + isort + autoflake** (run `nox -s format`).
 
 ## Key Files for Understanding Patterns
 
-- [funasp/syntax_tree/_nodes.py](funasp/syntax_tree/_nodes.py) — all custom AST nodes
-- [funasp/syntax_tree/rewritings/integration.py](funasp/syntax_tree/rewritings/integration.py) — rewriting pipeline entry point
-- [funasp/syntax_tree/rewritings/to_asp.py](funasp/syntax_tree/rewritings/to_asp.py) — final clingo translation
+- [funasp/rewriting/integration.py](funasp/rewriting/integration.py) — rewriting pipeline entry point
+- [funasp/rewriting/comparisons.py](funasp/rewriting/comparisons.py) — the F-prefix encoding of functional equalities
 - [funasp/control.py](funasp/control.py) — how parse + rewrite + solve fit together
-- [tests/syntax_tree/rewriting/test_integration.py](tests/syntax_tree/rewriting/test_integration.py) — example rewriting tests
+- [tests/rewriting/test_integration.py](tests/rewriting/test_integration.py) — example rewriting tests (exact-string expectations)
+- [tests/parser/test_parser2.py](tests/parser/test_parser2.py) — documents the parser's FASP encoding
 - [examples/family.lp](examples/family.lp) — simple FASP example
