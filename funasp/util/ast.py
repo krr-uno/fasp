@@ -519,6 +519,45 @@ def parse_string(library: ELibrary, code: str) -> list[ast.Statement]:
     return parsed
 
 
+def parse_files(  # pragma: no cover
+    library: ELibrary, files: Sequence[str]
+) -> list[ast.Statement]:
+    """
+    Parse the given files into a list of AST statements.
+
+    Note: clingo-funasp 6.0.0.post10 segfaults in ``ast.parse_files``; this
+    wrapper is excluded from coverage until the upstream bug is fixed.
+
+    Args:
+        library (Library): The library to use for parsing.
+        files (Sequence[str]): The paths of the files to parse.
+
+    Returns:
+        list[ast.Statement]: The list of parsed AST statements.
+
+    Raises:
+        Raises ParsingError if parsing fails.
+    """
+    parsed = []
+    # The error messages are stored to restore them after parsing
+    # The library is set to have no error messages during parsing
+    # This avoids mixing errors from previous operations with parsing errors
+    # This errors will be returned in the ParsingError if parsing fails
+    saved_errors = library.error_messages
+    library.error_messages = []
+    try:
+        ast.parse_files(library.library, files, lambda stmt: parsed.append(stmt))
+    except RuntimeError as e:
+        if str(e) != "parsing failed":  # pragma: no cover
+            raise e
+        raise ParsingException(
+            [_process_error(library.library, error) for error in library.error_messages]
+        )
+    finally:
+        library.error_messages = saved_errors
+    return parsed
+
+
 def transform_iterable[T, R](
     library: Library, iterable: Iterable[T], fun: Callable[[Library, T], R | None]
 ) -> list[T | R] | None:
