@@ -1,6 +1,6 @@
 from typing import List
 
-from clingo import ast, symbol
+from clingo_funasp import ast, symbol
 
 from funasp.fun_ast._context import RewriteContext
 from funasp.fun_ast._nodes import (

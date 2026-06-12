@@ -1,4 +1,4 @@
-from clingo.ast import StatementShowSignature
+from clingo_funasp.ast import StatementShowSignature
 
 from funasp.fun_ast._context import RewriteContext
 from funasp.fun_ast._nodes import FASP_Statement, ShowFDirective

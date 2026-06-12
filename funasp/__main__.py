@@ -9,7 +9,7 @@ def check_versions() -> int:  # pragma: no cover
         )
         return 1
     try:
-        from clingo import core  # pylint: disable=import-outside-toplevel
+        from clingo_funasp import core  # pylint: disable=import-outside-toplevel
 
         clingo_version = core.version()
     except ImportError:

@@ -1,8 +1,8 @@
 from functools import singledispatch
 
-from clingo import ast
-from clingo.core import Location
-from clingo.symbol import Number, Symbol, SymbolType
+from clingo_funasp import ast
+from clingo_funasp.core import Location
+from clingo_funasp.symbol import Number, Symbol, SymbolType
 
 from funasp.fun_ast._context import RewriteContext
 from funasp.util.ast import AST

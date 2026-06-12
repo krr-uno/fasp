@@ -433,7 +433,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         """Test unsafe."""
         out = io.StringIO()
         with redirect_stderr(out):
-            with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
+            with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo_funasp\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
                 self.assertTransformEqual(
                     """
                     p(X) :- q(Y).
@@ -451,7 +451,7 @@ class TestFASPProgramTransformer(unittest.TestCase):
         """Test unsafe."""
         out = io.StringIO()
         with redirect_stderr(out):
-            with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
+            with self.assertRaisesRegex(RuntimeError, r"\('rewriting failed', \[\(<clingo_funasp\.ast\.StatementRule object at 0x[0-9A-Fa-f]+>, RuntimeError\('rewriting failed'\)\)\]\)"):
                 self.assertTransformEqual(
                     """
                     f := X :- q(Y).

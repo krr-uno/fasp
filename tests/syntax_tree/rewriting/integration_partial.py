@@ -1,7 +1,7 @@
 from enum import IntEnum, auto
 from typing import Iterable, cast
 
-from clingo import ast
+from clingo_funasp import ast
 
 from funasp.fun_ast._context import RewriteContext as FASPRewriteContext
 from funasp.fun_ast._nodes import (

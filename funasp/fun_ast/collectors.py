@@ -1,7 +1,7 @@
 from functools import singledispatch
 from typing import Any, Iterable
 
-from clingo import ast, symbol
+from clingo_funasp import ast, symbol
 
 from funasp.fun_ast._nodes import (
     FASP_AST,

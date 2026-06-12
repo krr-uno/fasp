@@ -3,10 +3,10 @@ import sys
 from collections.abc import Callable
 from typing import Any, Iterable, Optional, Sequence
 
-import clingo
-from clingo import ast
-from clingo import solve as clingo_solve
-from clingo import symbol
+import clingo_funasp
+from clingo_funasp import ast
+from clingo_funasp import solve as clingo_solve
+from clingo_funasp import symbol
 
 from funasp.fun_ast import rewrite_statements
 from funasp.fun_ast._context import RewriteContext
@@ -34,16 +34,16 @@ class Control:
         library: ELibrary,
         options: Sequence[str] = (),
         prefix: str = "F",
-        clingo_control: Optional[clingo.control.Control] = None,
+        clingo_control: Optional[clingo_funasp.control.Control] = None,
     ):
         """Initialize the Control instance."""
         self.library = library
-        self.clingo_control = clingo_control or clingo.control.Control(
+        self.clingo_control = clingo_control or clingo_funasp.control.Control(
             library.library, options
         )
         self.prefix = prefix
         self._rewritten_program: Optional[str]
-        self._result: Optional[clingo.solve.SolveResult] = None
+        self._result: Optional[clingo_funasp.solve.SolveResult] = None
 
     def parse_files(self, files: Sequence[str]) -> None:
         """
@@ -112,12 +112,13 @@ class Control:
 
     def solve(
         self,
-        assumptions: Sequence[tuple[clingo.symbol.Symbol, bool] | int] = (),
+        assumptions: Sequence[tuple[clingo_funasp.symbol.Symbol, bool] | int] = (),
         on_unsat: Callable[[Sequence[int]], None] | None = None,
         on_stats: (
-            Callable[[clingo.stats.Stats, clingo.stats.Stats], None] | None
+            Callable[[clingo_funasp.stats.Stats, clingo_funasp.stats.Stats], None]
+            | None
         ) = None,
-        on_finish: Callable[[clingo.solve.SolveResult], None] | None = None,
+        on_finish: Callable[[clingo_funasp.solve.SolveResult], None] | None = None,
     ) -> Iterable[Model]:
         """Solve the current grounded program and yield wrapped FASP models."""
         with self.clingo_control.start_solve(

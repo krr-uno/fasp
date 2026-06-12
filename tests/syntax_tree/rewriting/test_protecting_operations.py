@@ -1,6 +1,6 @@
 import unittest
 
-from clingo import ast
+from clingo_funasp import ast
 
 from funasp.util.ast import AST,ELibrary
 

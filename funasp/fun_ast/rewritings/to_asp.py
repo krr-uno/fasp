@@ -1,9 +1,9 @@
 from functools import singledispatchmethod
 from typing import AbstractSet, Iterable, cast
 
-from clingo import ast
-from clingo.core import Library, Location, Position
-from clingo.symbol import Number, SymbolType
+from clingo_funasp import ast
+from clingo_funasp.core import Library, Location, Position
+from clingo_funasp.symbol import Number, SymbolType
 
 from funasp.fun_ast._context import RewriteContext
 from funasp.fun_ast._nodes import (

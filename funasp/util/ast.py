@@ -12,9 +12,9 @@ from typing import (
     TypeIs,
 )
 
-from clingo import ast
-from clingo.core import Library, Location, LogLevel, MessageType, Position
-from clingo.symbol import Symbol, SymbolType
+from clingo_funasp import ast
+from clingo_funasp.core import Library, Location, LogLevel, MessageType, Position
+from clingo_funasp.symbol import Symbol, SymbolType
 
 AST = (
     ast.Statement

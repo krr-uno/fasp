@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Self, Sequence
 
-from clingo.symbol import Symbol, SymbolType
+from clingo_funasp.symbol import Symbol, SymbolType
 
 
 @dataclass(frozen=True, slots=True, order=True)

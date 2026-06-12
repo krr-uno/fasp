@@ -2,7 +2,7 @@ import textwrap
 from typing import Any, Iterable, Sequence
 import unittest
 
-from clingo import ast
+from clingo_funasp import ast
 
 from funasp.fun_ast import AssignmentRule, HeadSimpleAssignment, ShowFDirective
 

@@ -2,7 +2,7 @@ import unittest
 import textwrap
 from typing import List
 
-from clingo import ast
+from clingo_funasp import ast
 
 from funasp.fun_ast._context import RewriteContext
 from tests.restore_anonymous_term_variables import (

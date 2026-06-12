@@ -1,8 +1,8 @@
 import textwrap
 import unittest
 
-from clingo import ast
-from clingo.core import Library
+from clingo_funasp import ast
+from clingo_funasp.core import Library
 
 from funasp.fun_ast._nodes import FASP_AST
 from funasp.fun_ast.parsing.parser import parse_string

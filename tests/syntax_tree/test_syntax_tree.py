@@ -1,7 +1,7 @@
 import textwrap
 import unittest
 
-from clingo import ast
+from clingo_funasp import ast
 from funasp.util.ast import ELibrary
 from funasp.fun_ast.parsing.parser import parse_string
 from funasp.fun_ast import rewrite_statements

@@ -1,6 +1,6 @@
 import unittest
 
-from clingo import ast as clingo_ast
+from clingo_funasp import ast as clingo_ast
 
 
 from funasp.fun_ast._nodes import FASP_AST

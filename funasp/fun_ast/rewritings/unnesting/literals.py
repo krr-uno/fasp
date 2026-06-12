@@ -1,9 +1,9 @@
 from functools import singledispatchmethod
 from typing import List, Sequence, Set
 
-from clingo import ast, symbol
-from clingo.core import Library, Location
-from clingo.symbol import Symbol
+from clingo_funasp import ast, symbol
+from clingo_funasp.core import Library, Location
+from clingo_funasp.symbol import Symbol
 
 from funasp.fun_ast._nodes import (
     FASP_AST_T,
@@ -17,9 +17,9 @@ from funasp.util.ast import (
 from funasp.util.iterables import map_none
 
 
-def unnest_functions[T: (
-    ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
-)](
+def unnest_functions[
+    T: (ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic)
+](
     lib: Library,
     node: T,
     evaluable_functions: Set[SymbolSignature],
@@ -337,12 +337,16 @@ class UnnestFunctionsInLiteralsTransformer:
         | ast.TermBinaryOperation
         | ast.TermTuple
     )
-    def _[T: (
-        ast.TermAbsolute,
-        ast.TermUnaryOperation,
-        ast.TermBinaryOperation,
-        ast.TermTuple,
-    )](self, node: T, outer: bool = True, sign: ast.Sign | None = None) -> T | None:
+    def _[
+        T: (
+            ast.TermAbsolute,
+            ast.TermUnaryOperation,
+            ast.TermBinaryOperation,
+            ast.TermTuple,
+        )
+    ](
+        self, node: T, outer: bool = True, sign: ast.Sign | None = None
+    ) -> T | None:
         """Unnest evaluable functions that occur inside composite term nodes."""
         return node.transform(self.lib, self.unnest, outer=False, sign=sign)
 

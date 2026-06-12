@@ -1,4 +1,4 @@
-from clingo.ast import RewriteContext as ClingoRewriteContext
+from clingo_funasp.ast import RewriteContext as ClingoRewriteContext
 
 from funasp.fun_ast.types import SymbolSignature
 from funasp.util.ast import ELibrary

@@ -3,8 +3,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Self, TypeVar
 
-from clingo import ast
-from clingo.core import Library, Location
+from clingo_funasp import ast
+from clingo_funasp.core import Library, Location
 
 from funasp.fun_ast.types import SymbolSignature
 from funasp.util import ast as util_ast

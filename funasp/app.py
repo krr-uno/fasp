@@ -2,10 +2,10 @@ import ctypes
 import sys
 from typing import Callable, Optional, Sequence
 
-from clingo import core, solve
-from clingo.app import App, AppOptions, Flag, clingo_main
-from clingo.control import Control as ClingoControl
-from clingo.control import ControlMode as ClingoControlMode
+from clingo_funasp import core, solve
+from clingo_funasp.app import App, AppOptions, Flag, clingo_main
+from clingo_funasp.control import Control as ClingoControl
+from clingo_funasp.control import ControlMode as ClingoControlMode
 from colorama import Fore, Style
 from colorama import deinit as colorama_deinit
 from colorama import init as colorama_init

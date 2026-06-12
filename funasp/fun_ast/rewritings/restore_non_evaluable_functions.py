@@ -1,8 +1,8 @@
 from functools import singledispatchmethod
 from typing import Any, Iterable
 
-from clingo import ast
-from clingo.symbol import SymbolType
+from clingo_funasp import ast
+from clingo_funasp.symbol import SymbolType
 
 from funasp.fun_ast._context import RewriteContext
 from funasp.fun_ast.types import SymbolSignature

@@ -10,7 +10,7 @@ from funasp.util.ast import AST
 from itertools import chain
 from typing import Iterable
 
-from clingo import ast
+from clingo_funasp import ast
 
 from funasp.fun_ast._nodes import (
     FASP_Statement,

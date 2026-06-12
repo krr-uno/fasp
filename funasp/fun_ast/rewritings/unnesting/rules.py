@@ -1,8 +1,8 @@
 from functools import singledispatchmethod
 from typing import Any, List, Set
 
-from clingo import ast
-from clingo.core import Library
+from clingo_funasp import ast
+from clingo_funasp.core import Library
 
 from funasp.fun_ast._context import RewriteContext
 from funasp.fun_ast._nodes import (
@@ -62,10 +62,14 @@ class RuleRewriteTransformer:
         return self._rewrite(node, var_gen)
 
     @singledispatchmethod
-    def _rewrite_literal[T: (
-        ast.BodyLiteral,
-        ast.HeadLiteral,
-    )](self, node: T, var_gen: FreshVariableGenerator) -> T | None:
+    def _rewrite_literal[
+        T: (
+            ast.BodyLiteral,
+            ast.HeadLiteral,
+        )
+    ](
+        self, node: T, var_gen: FreshVariableGenerator
+    ) -> T | None:
         """Default: return node unchanged."""
         # print(f"Visiting literal of type {node.__class__}: {node}")
         return node.transform(self.lib, self._rewrite_literal, var_gen)
@@ -275,10 +279,14 @@ class RuleRewriteTransformer:
         ), "HeadAggregateAssignment seen during function unnesting. This should not happen."
 
     @_rewrite_literal.register(ast.HeadSimpleLiteral | HeadSimpleAssignment)
-    def _[T: (
-        ast.HeadSimpleLiteral,
-        HeadSimpleAssignment,
-    )](self, node: T, var_gen: FreshVariableGenerator) -> T | None:
+    def _[
+        T: (
+            ast.HeadSimpleLiteral,
+            HeadSimpleAssignment,
+        )
+    ](
+        self, node: T, var_gen: FreshVariableGenerator
+    ) -> T | None:
         """Rewrite a simple head node by unnesting evaluable functions within it."""
         # print(f"Visiting literal of type {node.__class__}: {node}")
         result = self.head_literal_transformer.unnest(node)
@@ -294,10 +302,14 @@ class RuleRewriteTransformer:
 
     # Rule Statements
     @_rewrite.register(ast.StatementRule | AssignmentRule)
-    def _[T: (
-        ast.StatementRule,
-        AssignmentRule,
-    )](self, node: T, var_gen: FreshVariableGenerator) -> T:
+    def _[
+        T: (
+            ast.StatementRule,
+            AssignmentRule,
+        )
+    ](
+        self, node: T, var_gen: FreshVariableGenerator
+    ) -> T:
         """Rewrite a rule statement and append any residual comparisons to its body."""
         # print("Rewriting rule:", node)
         # if isinstance(node.head, ast.HeadSimpleLiteral | HeadSimpleAssignment):

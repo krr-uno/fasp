@@ -2,9 +2,9 @@ from itertools import chain
 import textwrap
 import unittest
 
-from clingo import ast
-from clingo import core
-from clingo.core import Library
+from clingo_funasp import ast
+from clingo_funasp import core
+from clingo_funasp.core import Library
 
 
 class TestRewrite(unittest.TestCase):

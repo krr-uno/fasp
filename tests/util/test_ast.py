@@ -1,8 +1,8 @@
 from itertools import chain
 import unittest
 
-from clingo import ast
-from clingo.core import Location, Position, Library
+from clingo_funasp import ast
+from clingo_funasp.core import Location, Position, Library
 
 from funasp.util.ast import (
     ELibrary,

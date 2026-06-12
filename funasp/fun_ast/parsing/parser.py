@@ -5,8 +5,8 @@ from argparse import PARSER
 from typing import Iterable, Sequence
 
 import tree_sitter_fasp
-from clingo import ast
-from clingo.core import Location, Position
+from clingo_funasp import ast
+from clingo_funasp.core import Location, Position
 from tree_sitter import (
     Language,
     Node,

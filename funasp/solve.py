@@ -1,7 +1,7 @@
 from typing import Sequence
 
-from clingo import solve
-from clingo.symbol import Symbol, SymbolType
+from clingo_funasp import solve
+from clingo_funasp.symbol import Symbol, SymbolType
 
 from funasp.symbol import FunctionSymbol
 
