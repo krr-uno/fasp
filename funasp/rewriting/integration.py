@@ -18,7 +18,6 @@ ASP program, mirroring the old FASP-node pipeline:
 from typing import Iterable
 
 from clingo_funasp import ast
-from clingo_funasp.core import Location, Position
 
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.aggregates import normalize_assignment_aggregates
@@ -31,24 +30,6 @@ from funasp.rewriting.printer import ast_to_str
 from funasp.rewriting.restore import restore_non_evaluable_functions
 from funasp.rewriting.some_assignments import rewrite_some_assignments
 from funasp.rewriting.unnesting import unnest_statement
-
-
-def _fix_statement_location(
-    context: RewriteContext, statement: ast.Statement
-) -> ast.Statement:
-    """
-    Work around a clingo-funasp parser bug (present in 6.0.0.post11) where
-    statements with assignments lose the file of their begin position,
-    producing malformed locations in error messages.
-    """
-    location = statement.location
-    if location.begin.file or not location.end.file:
-        return statement
-    library = context.lib.library
-    begin = Position(
-        library, location.end.file, location.begin.line, location.begin.column
-    )
-    return statement.update(library, location=Location(begin, location.end))
 
 
 def _clingo_rewrite(
@@ -75,7 +56,6 @@ def rewrite_statements(
     """
     pass1: list[tuple[ast.Statement, ast.Statement]] = []
     for original in statements:
-        original = _fix_statement_location(context, original)
         stmt = rename_prefixes(context, original)
         stmt = rewrite_some_assignments(context, stmt)
         stmt = normalize_assignment_aggregates(context, stmt)

@@ -142,13 +142,11 @@ class TestRewrite(unittest.TestCase):
             errors[0],
             (
                 core.MessageType.Error,
-                textwrap.dedent(
-                    """\
+                textwrap.dedent("""\
             <string>:1:9-19: error: unsafe variables in:
               a(X) :- b.
             note: the following variables are unsafe:
-              X"""
-                ),
+              X"""),
             ),
         )
 
@@ -179,13 +177,11 @@ class TestRewrite(unittest.TestCase):
             errors[0],
             (
                 core.MessageType.Error,
-                textwrap.dedent(
-                    """\
+                textwrap.dedent("""\
             <string>:1:9-33: error: unsafe variables in:
               p(Y) :- b(X); 0*Y+7=X*X.
             note: the following variables are unsafe:
-              Y"""
-                ),
+              Y"""),
             ),
         )
 

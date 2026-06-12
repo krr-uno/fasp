@@ -13,7 +13,6 @@ from funasp.util.ast import (
 from funasp.rewriting.collectors import collect_variables
 from funasp.util import ast as util_ast
 
-
 INVALID_ASTTYPES = {
     ast.HeadSetAggregate,
     ast.BodyConditionalLiteral,
@@ -203,15 +202,13 @@ class TestParseString(unittest.TestCase):
 
     def test_parse_string_correct(self):
         """Test parse string correct."""
-        self.assertCorrectParsing(
-            """
+        self.assertCorrectParsing("""
             a :- b.
             b :- not c.
             c :- c.
             f=1 :- g=h.
             f=1 :- not g=h.
-        """
-        )
+        """)
 
     def assertParsingException(self, program, expected_errors):
         """Assert parsing exception."""

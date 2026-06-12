@@ -63,9 +63,7 @@ class TestRewriteStatements(unittest.TestCase):
         transformed_str = "\n".join(
             str(statement).strip()
             for statement in transformed
-            if not isinstance(
-                statement, ast.StatementProgram | ast.StatementComment
-            )
+            if not isinstance(statement, ast.StatementProgram | ast.StatementComment)
         )
         self.assertEqual(transformed_str, expected_program)
 
@@ -722,13 +720,11 @@ class TestRewriteStatements(unittest.TestCase):
             captured_output = out.getvalue().strip()
             self.assertEqual(
                 captured_output,
-                textwrap.dedent(
-                    """\
+                textwrap.dedent("""\
                 <string>:1:1-14: error: unsafe variables in:
                   p(X) :- q(Y).
                 note: the following variables are unsafe:
-                  X"""
-                ),
+                  X"""),
             )
 
     def test_unsafe_fun(self):
@@ -748,13 +744,11 @@ class TestRewriteStatements(unittest.TestCase):
             captured_output = out.getvalue().strip()
             self.assertEqual(
                 captured_output,
-                textwrap.dedent(
-                    """\
+                textwrap.dedent("""\
                 <string>:1:1-16: error: unsafe variables in:
                   f := X :- q(Y).
                 note: the following variables are unsafe:
-                  X"""
-                ),
+                  X"""),
             )
 
     def test_undefined_operation_fun(self):
@@ -772,11 +766,9 @@ class TestRewriteStatements(unittest.TestCase):
             captured_output = out.getvalue().strip()
             self.assertEqual(
                 captured_output,
-                textwrap.dedent(
-                    """\
+                textwrap.dedent("""\
                 <string>:1:6-11: info: operation undefined in:
                   f := a+1.
                 note: the following operations are undefined:
-                  a+1"""
-                ),
+                  a+1"""),
             )

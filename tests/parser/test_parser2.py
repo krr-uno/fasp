@@ -63,11 +63,9 @@ class TestParseAssignment2(unittest.TestCase):
         New: StatementRule with HeadSimpleLiteral head; symbol name `Fa` and
         the value as last argument.
         """
-        code = textwrap.dedent(
-            """\
+        code = textwrap.dedent("""\
             a := 1.
-            """
-        )
+            """)
         rules = self.parse(code)
         self.assertEqual(len(rules), 1)
         rule = rules[0]
@@ -83,12 +81,10 @@ class TestParseAssignment2(unittest.TestCase):
 
     def test_parse_simple_assignments(self):
         """Test parse simple assignments."""
-        code = textwrap.dedent(
-            """\
+        code = textwrap.dedent("""\
             a := 1 :- b11; b12.
             b(X) := a+X :- b21(X); b22(X).
-            """
-        )
+            """)
         rules = self.parse(code)
         self.assertEqual(len(rules), 2)
         rule = rules[0]
@@ -111,15 +107,13 @@ class TestParseAssignment2(unittest.TestCase):
 
     def test_parse_simple_assignments_with_clingo(self):
         """Test parse simple assignments mixed with plain clingo rules."""
-        code = textwrap.dedent(
-            """\
+        code = textwrap.dedent("""\
             p(X) :- q(X).
             a := 1 :- b11; b12.
             r(X) :- t(X).
             b(X) := a+X :- b21(X); b22(X).
             t(1).
-            """
-        )
+            """)
         rules = self.parse(code)
         self.assertEqual(len(rules), 5)
         # The single parser preserves statement order (no merge step needed).
@@ -143,12 +137,10 @@ class TestParseAssignment2(unittest.TestCase):
 
     def test_parse_locations(self):
         """Test parse locations."""
-        code = textwrap.dedent(
-            """\
+        code = textwrap.dedent("""\
             a := 1 :- b11; b12.
             b(X) := a+X :- b21(X); b22(X).  c := 3.
-            """
-        )
+            """)
         rules = self.parse(code)
         self.assertEqual(len(rules), 3)
         rule = rules[0]
@@ -191,18 +183,14 @@ class TestParseAssignment2(unittest.TestCase):
         New: HeadAggregate head with a left guard `Ff(args) = #fun { ... }`.
         """
         self.assertEqualParse(
-            textwrap.dedent(
-                """\
+            textwrap.dedent("""\
                 a := #sum{X: p(X); Y,X: q(X,Y)} :- b.
                 f(Y) := #count{X: p(X)} :- b(Y).
-                """
-            ),
-            textwrap.dedent(
-                """\
+                """),
+            textwrap.dedent("""\
                 Fa = #sum { X: NONE: p(X); Y,X: NONE: q(X,Y) } :- b.
                 Ff(Y) = #count { X: NONE: p(X) } :- b(Y).
-                """
-            ),
+                """),
         )
         rules = self.parse("a := #sum{X: p(X)} :- b.")
         rule = rules[0]
@@ -235,9 +223,7 @@ class TestParseAssignment2(unittest.TestCase):
         )
         self.assertEqualParse("1 <= { a := 1 } :- b.", "1 <= { Fa(1) } :- b.")
         self.assertEqualParse("{ a := 1 } <= 2 :- b.", "{ Fa(1) } <= 2 :- b.")
-        self.assertEqualParse(
-            "1 <= { a := 1 } <= 3 :- b.", "1 <= { Fa(1) } <= 3 :- b."
-        )
+        self.assertEqualParse("1 <= { a := 1 } <= 3 :- b.", "1 <= { Fa(1) } <= 3 :- b.")
         self.assertEqualParse("1{ a := 1 }3 :- b.", "1 <= { Fa(1) } <= 3 :- b.")
         self.assertEqualParse(
             "1 { a := 1: p, q; b(X) := f(X): r, not s } 5 :- c(X).",
@@ -277,53 +263,43 @@ class TestParseAssignment2(unittest.TestCase):
         assignment and plain statements in a single pass.
         """
         self.assertEqualParse(
-            textwrap.dedent(
-                """\
+            textwrap.dedent("""\
                 a := 1 :- b.
                 a := 2 :- b.
                 b.
                 c.
-                """
-            ),
-            textwrap.dedent(
-                """\
+                """),
+            textwrap.dedent("""\
                 Fa(1) :- b.
                 Fa(2) :- b.
                 b.
                 c.
-                """
-            ),
+                """),
         )
         self.assertEqualParse(
-            textwrap.dedent(
-                """\
+            textwrap.dedent("""\
                 b.
                 c.
                 a := 1 :- b.
                 a := 2 :- b.
-                """
-            ),
-            textwrap.dedent(
-                """\
+                """),
+            textwrap.dedent("""\
                 b.
                 c.
                 Fa(1) :- b.
                 Fa(2) :- b.
-                """
-            ),
+                """),
         )
 
     def test_parse_error_clingo(self):
         """Test parse error in plain clingo code."""
-        code = textwrap.dedent(
-            """\
+        code = textwrap.dedent("""\
             a :- b.
             d
             d.
             d
             e :- f.
-            """
-        )
+            """)
         with self.assertRaises(ParsingException) as cm:
             _ = self.parse(code)
         errors = cm.exception.errors
@@ -334,11 +310,9 @@ class TestParseAssignment2(unittest.TestCase):
 
     def test_parse_error_assignment_number(self):
         """Test parse error assigning to a number."""
-        code = textwrap.dedent(
-            """\
+        code = textwrap.dedent("""\
             1 := 2.
-            """
-        )
+            """)
         with self.assertRaises(ParsingException) as cm:
             _ = self.parse(code)
         errors = cm.exception.errors
@@ -353,12 +327,10 @@ class TestParseAssignment2(unittest.TestCase):
         joined statement text as message. New: clingo-style error on line 2
         where the unexpected token appears.
         """
-        code = textwrap.dedent(
-            """\
+        code = textwrap.dedent("""\
             a := 2 :- b
             c.
-            """
-        )
+            """)
         with self.assertRaises(ParsingException) as cm:
             _ = self.parse(code)
         errors = cm.exception.errors
@@ -404,11 +376,9 @@ class TestParseAssignment2(unittest.TestCase):
         Old: ShowFDirective node. New: StatementShowSignature with the `F`
         prefix and the arity incremented for the value slot.
         """
-        rules = self.parse(
-            """
+        rules = self.parse("""
                            #showf p/1.
-                           """
-        )
+                           """)
         self.assertEqual(len(rules), 1)
         rule = rules[0]
         self.assertIsInstance(rule, ast.StatementShowSignature)
@@ -418,17 +388,14 @@ class TestParseAssignment2(unittest.TestCase):
         self.assertTrue(rule.value)
         self.assertFalse(rule.sign)
 
-
     def test_parse_files(self):
         """Test that parse_files yields the same statements as parse_string."""
         import tempfile
 
-        code = textwrap.dedent(
-            """\
+        code = textwrap.dedent("""\
             a := 1 :- b11; b12.
             b(X) := a+X :- b21(X); b22(X).
-            """
-        )
+            """)
         with tempfile.NamedTemporaryFile("w", suffix=".lp") as file:
             file.write(code)
             file.flush()

@@ -93,10 +93,6 @@ Shared state lives in `RewriteContext` (`_context.py`): the `ELibrary`, the func
 
 Rewritten function predicates carry a prefix (default **`F`**, set via `--prefix-fun`). The parser hardcodes `F`/`FS`; `prefixes.py` renames to the configured prefix right after parsing. The `Model` wrapper strips the prefix so output shows function syntax rather than the internal predicates.
 
-### Known upstream quirk
-
-The parser loses the begin-position file of assignment statements (empty string instead of `<string>`); `integration._fix_statement_location` works around it — remove once fixed in clingo-funasp (present in 6.0.0.post11).
-
 ## Conventions
 
 - Each rewriting concern is its own module under `funasp/rewriting/`; wire new steps into the pipeline in `integration.py`, not inline.

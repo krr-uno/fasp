@@ -2,7 +2,8 @@ import tempfile
 
 from clingo_funasp import core, ast
 
-class TestParseString():
+
+class TestParseString:
 
     def setup_method(self):
         self.lib = core.Library()
@@ -17,7 +18,7 @@ class TestParseString():
     def parse_with_file(self, s):
         # Create a named temporary file
         with tempfile.NamedTemporaryFile(
-            mode='w+',       # Read/write mode
+            mode="w+",  # Read/write mode
         ) as temp_file:
             temp_file.write(s)
             temp_file.write("\n")
@@ -42,14 +43,30 @@ class TestParseString():
         assert self.parse_string("a(b,c,d) := 1.") == "Fa(b,c,d,1)."
 
     def test_parse_string_assignments_with_aggregates(self):
-        assert self.parse_string("a := #sum{ X : p(X)}.") == "Fa = #sum { X: NONE: p(X) }."
-        assert self.parse_string("a(b) := #sum{ X : p(X)}.") == "Fa(b) = #sum { X: NONE: p(X) }."
-        assert self.parse_string("a := #some{ X : p(X)}.") == "FSa = #sum { X: NONE: p(X) }."
-        assert self.parse_string("a(b) := #some{ X : p(X)}.") == "FSa(b) = #sum { X: NONE: p(X) }."
+        assert (
+            self.parse_string("a := #sum{ X : p(X)}.") == "Fa = #sum { X: NONE: p(X) }."
+        )
+        assert (
+            self.parse_string("a(b) := #sum{ X : p(X)}.")
+            == "Fa(b) = #sum { X: NONE: p(X) }."
+        )
+        assert (
+            self.parse_string("a := #some{ X : p(X)}.")
+            == "FSa = #sum { X: NONE: p(X) }."
+        )
+        assert (
+            self.parse_string("a(b) := #some{ X : p(X)}.")
+            == "FSa(b) = #sum { X: NONE: p(X) }."
+        )
 
     def test_parse_string_assignments_in_aggregates(self):
-        assert self.parse_string("#sum{ X : a := X : p(X)}.") == "#sum { X: Fa(X): p(X) }."
-        assert self.parse_string("#sum{ X : a(b) := X : p(X)}.") == "#sum { X: Fa(b,X): p(X) }."
+        assert (
+            self.parse_string("#sum{ X : a := X : p(X)}.") == "#sum { X: Fa(X): p(X) }."
+        )
+        assert (
+            self.parse_string("#sum{ X : a(b) := X : p(X)}.")
+            == "#sum { X: Fa(b,X): p(X) }."
+        )
 
     def test_showf(self):
         assert self.parse_string("#showf a/0.") == "#show Fa/1. [true]"
@@ -68,14 +85,32 @@ class TestParseString():
         assert self.parse_with_file("a(b,c,d) := 1.") == "Fa(b,c,d,1)."
 
     def test_file_string_assignments_with_aggregates(self):
-        assert self.parse_with_file("a := #sum{ X : p(X)}.") == "Fa = #sum { X: NONE: p(X) }."
-        assert self.parse_with_file("a(b) := #sum{ X : p(X)}.") == "Fa(b) = #sum { X: NONE: p(X) }."
-        assert self.parse_with_file("a := #some{ X : p(X)}.") == "FSa = #sum { X: NONE: p(X) }."
-        assert self.parse_with_file("a(b) := #some{ X : p(X)}.") == "FSa(b) = #sum { X: NONE: p(X) }."
+        assert (
+            self.parse_with_file("a := #sum{ X : p(X)}.")
+            == "Fa = #sum { X: NONE: p(X) }."
+        )
+        assert (
+            self.parse_with_file("a(b) := #sum{ X : p(X)}.")
+            == "Fa(b) = #sum { X: NONE: p(X) }."
+        )
+        assert (
+            self.parse_with_file("a := #some{ X : p(X)}.")
+            == "FSa = #sum { X: NONE: p(X) }."
+        )
+        assert (
+            self.parse_with_file("a(b) := #some{ X : p(X)}.")
+            == "FSa(b) = #sum { X: NONE: p(X) }."
+        )
 
     def test_file_string_assignments_in_aggregates(self):
-        assert self.parse_with_file("#sum{ X : a := X : p(X)}.") == "#sum { X: Fa(X): p(X) }."
-        assert self.parse_with_file("#sum{ X : a(b) := X : p(X)}.") == "#sum { X: Fa(b,X): p(X) }."
+        assert (
+            self.parse_with_file("#sum{ X : a := X : p(X)}.")
+            == "#sum { X: Fa(X): p(X) }."
+        )
+        assert (
+            self.parse_with_file("#sum{ X : a(b) := X : p(X)}.")
+            == "#sum { X: Fa(b,X): p(X) }."
+        )
 
     def test_file_showf(self):
         assert self.parse_with_file("#showf a/0.") == "#show Fa/1. [true]"

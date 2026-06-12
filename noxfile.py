@@ -4,7 +4,7 @@ PYTHON_VERSIONS = False
 if "GITHUB_ACTIONS" in os.environ:
     nox.options.sessions = "typecheck", "slow_test", "format"
 else:
-#     PYTHON_VERSIONS = [f"3.{i}" for i in range(13, 14)]
+    #     PYTHON_VERSIONS = [f"3.{i}" for i in range(13, 14)]
     nox.options.sessions = "typecheck", "test", "format"
 # nox.options.sessions = "test", "format"
 nox.options.default_venv_backend = None
@@ -35,6 +35,7 @@ SLOW_TESTS = [*TESTS, *SLOW_TESTS]
 
 COVERAGE_OMIT = ["tests/*"]
 
+
 @nox.session(python=PYTHON_VERSIONS)
 def test(session):
     """Run the test suite."""
@@ -57,6 +58,7 @@ def test(session):
         "-m",
         f"--omit={','.join(COVERAGE_OMIT)}",
     )
+
 
 @nox.session(python=PYTHON_VERSIONS)
 def ftest(session):
