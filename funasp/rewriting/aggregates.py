@@ -11,14 +11,15 @@ simple assignment head with a body aggregate::
 where ``W`` is a fresh variable, matching the old pipeline's
 ``normalize_assignment_aggregates`` output.
 
-This step runs after the prefix renaming pass and the ``#some`` rewriting,
-so the left-guard prefix is detected using the configured prefix.
+This step runs before the prefix renaming pass and after the ``#some``
+rewriting, so the left-guard prefix is the parser's literal ``F``.
 """
 
 from clingo_funasp import ast
 
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.collectors import collect_variables
+from funasp.rewriting.prefixes import PARSER_PREFIX
 from funasp.util.ast import FreshVariableGenerator
 
 
@@ -27,7 +28,7 @@ def normalize_assignment_aggregates(
 ) -> ast.Statement:
     """Rewrite an aggregate assignment head into a simple head plus body aggregate."""
     library = context.lib.library
-    prefix = context.prefix_function
+    prefix = PARSER_PREFIX
     if not isinstance(statement, ast.StatementRule) or not isinstance(
         head := statement.head, ast.HeadAggregate
     ):

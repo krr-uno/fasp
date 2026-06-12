@@ -6,12 +6,13 @@ plain clingo AST with prefixed atoms (``a := 1`` becomes ``Fa(1)``). This
 pipeline turns that purely syntactic encoding into a semantically correct
 ASP program, mirroring the old FASP-node pipeline:
 
-1. Per statement: rename parser prefixes to the configured prefix, rewrite
-   ``#some`` assignments, normalize aggregate assignments, rewrite negated
-   body literals, and collect evaluable function signatures.
-2. Per statement: unnest evaluable functions, rewrite functional equalities
-   into prefixed literals, run clingo's statement rewriting, and restore the
-   prefixed literals whose unpooled arity is not evaluable.
+1. Per statement: rewrite ``#some`` assignments, normalize aggregate
+   assignments, rewrite negated body literals, and collect evaluable function
+   signatures.
+2. Per statement: unnest evaluable functions, rename parser prefixes to the
+   configured prefix, rewrite functional equalities into prefixed literals,
+   run clingo's statement rewriting, and restore the prefixed literals whose
+   unpooled arity is not evaluable.
 3. Append the functionality constraints.
 """
 
@@ -56,8 +57,7 @@ def rewrite_statements(
     """
     pass1: list[tuple[ast.Statement, ast.Statement]] = []
     for original in statements:
-        stmt = rename_prefixes(context, original)
-        stmt = rewrite_some_assignments(context, stmt)
+        stmt = rewrite_some_assignments(context, original)
         stmt = normalize_assignment_aggregates(context, stmt)
         stmt = rewrite_negate_body_literals(context, stmt)
         context.evaluable_functions |= collect_evaluable_function_signatures(
@@ -68,6 +68,7 @@ def rewrite_statements(
     result: list[ast.Statement] = []
     for original, stmt in pass1:
         stmt = unnest_statement(context, stmt)
+        stmt = rename_prefixes(context, stmt)
         stmt = prefix_comparisons(context, stmt)
         result.extend(
             restore_non_evaluable_functions(context, rewritten)

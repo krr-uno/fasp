@@ -12,13 +12,14 @@ i.e. exactly one value is chosen whenever at least one candidate exists.
 The ``FS`` marker is unambiguous: user-written function names cannot start
 with an uppercase letter, so ``F`` + name never yields ``FS...``.
 
-This step runs after the prefix renaming pass, so the marker is detected
-using the configured prefix (e.g. ``GS`` when ``--prefix-fun=G``).
+This step runs before the prefix renaming pass, so the marker is always the
+parser's literal ``FS``.
 """
 
 from clingo_funasp import ast, symbol
 
 from funasp.rewriting._context import RewriteContext
+from funasp.rewriting.prefixes import PARSER_PREFIX
 
 #: The suffix appended to the prefix by the parser for ``#some`` assignments.
 SOME_MARKER = "S"
@@ -29,7 +30,7 @@ def rewrite_some_assignments(
 ) -> ast.Statement:
     """Rewrite a ``#some`` assignment head into a choice with a guard body."""
     library = context.lib.library
-    some_prefix = context.prefix_function + SOME_MARKER
+    some_prefix = PARSER_PREFIX + SOME_MARKER
     if not isinstance(statement, ast.StatementRule) or not isinstance(
         head := statement.head, ast.HeadAggregate
     ):
@@ -44,7 +45,7 @@ def rewrite_some_assignments(
     assert left.relation == ast.Relation.Equal
     assert head.right is None
 
-    name = context.prefix_function + left.term.name[len(some_prefix) :]
+    name = PARSER_PREFIX + left.term.name[len(some_prefix) :]
     assert len(left.term.pool) == 1, f"Terms must be unpooled {left.term}"
     arguments = left.term.pool[0].arguments
 

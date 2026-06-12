@@ -18,6 +18,7 @@ appear are:
 from clingo_funasp import ast
 
 from funasp.rewriting._context import RewriteContext
+from funasp.rewriting.prefixes import PARSER_PREFIX
 from funasp.rewriting.types import SymbolSignature
 from funasp.util.ast import AST
 
@@ -77,7 +78,7 @@ def collect_evaluable_function_signatures(
     """
     if not isinstance(statement, ast.StatementRule):
         return set()
-    prefix = context.prefix_function
+    prefix = PARSER_PREFIX
     head = statement.head
     signatures: set[SymbolSignature] = set()
     if isinstance(head, ast.HeadSimpleLiteral):

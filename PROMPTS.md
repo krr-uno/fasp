@@ -371,3 +371,25 @@ You mention a second bug:
 The parser silently drops pool alternatives in assignment heads: f(1;2) := 3. parses to only Ff(1,3). — the 2 branch vanishes (plain p(1;2). keeps both). The old tree-sitter pipeline correctly produced Ff(1,3). and Ff(2,3)., so this is a semantic regression that can't be fixed downstream (the information is lost at parse time). Worth fixing in clingo-funasp alongside the begin-file location bug from earlier; the printer test documents the workaround with a comment.
 ```
 Check whether this is fixed upstream. The new version is already installed in the conda environmet `funasp`. Do not install a new package. Does anything need to be done about this?
+
+# Reordering the steps in integration
+
+Looking at the function `rewrite_statements` in the file `funasp/rewriting/integration.py`, the first step is calling the function `rename_prefixes`. Move the call of this function just before the call to `prefix_comparisons`. Because of this changes, all functions in between should use `PARSER_PREFIX` instead of `context.prefix_function`. Make a plan to make the necessary changes to these functions.
+
+## Summary
+
+Moved rename_prefixes from the start of pass 1 to immediately before prefix_comparisons in pass 2, so the configurable --prefix-fun prefix is now introduced at exactly one point in the pipeline. Pass-1 desugaring and unnesting now operate on the parser's fixed F/FS encoding.
+
+Changes:
+- integration.py — moved the rename_prefixes call into the pass-2 loop (between unnest_statement and prefix_comparisons); updated the module docstring.
+- some_assignments.py, aggregates.py, collectors.py — switched detection/rebuild from context.prefix_function to the parser constant PARSER_PREFIX; updated docstrings.
+- prefixes.py — deleted the now-unreachable HeadAggregate left-guard rename branch (pass 1 consumes all such heads before the rename runs); updated the docstring's list of renamed positions.
+- CLAUDE.md — updated the two numbered pipeline items.
+
+Verification:
+- nox -s test — 101 tests pass, 100% coverage held (no new uncovered branches, no pragmas needed; the dead branch was removed rather than excluded).
+- nox -s typecheck — mypy --strict clean.
+- black/isort — all five changed files unchanged.
+- Smoke test — examples/family.lp produces identical models with the default prefix and --prefix-fun=G.
+
+The pipeline output is byte-identical, so the exact-string integration assertions (including the prefix="G" tests) pass unchanged.

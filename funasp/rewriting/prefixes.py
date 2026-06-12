@@ -7,12 +7,13 @@ renames those parser-generated names to the prefix configured via
 ``--prefix-fun`` so that the rest of the pipeline (and model display) can use
 a custom prefix.
 
-Only the positions the parser generates are renamed:
+This pass runs after the pass-1 desugaring and unnesting, so the parser's
+aggregate and ``#some`` left-guard heads have already been rewritten into
+other shapes. The positions still carrying a parser prefix are:
 
-- ``HeadSimpleLiteral`` atoms (simple assignments ``Fa(v)``),
-- ``HeadSetAggregate`` element literals (choice assignments ``{ Fa(v) }``),
-- ``HeadAggregate`` left-guard terms (aggregate assignments ``Ff(X) = #agg``
-  and ``#some`` assignments ``FSf(X) = #sum``),
+- ``HeadSimpleLiteral`` atoms (simple and normalized aggregate assignments),
+- ``HeadSetAggregate`` element literals (choice and rewritten ``#some``
+  assignments),
 - ``HeadAggregate`` element literals (assignments inside head aggregates),
 - ``StatementShowSignature`` names (``#showf p/n`` becomes ``#show Fp/n+1.``).
 
@@ -69,14 +70,6 @@ def _rename_head(context: RewriteContext, head: ast.HeadLiteral) -> ast.HeadLite
         ]
         return head.update(library, elements=elements)
     if isinstance(head, ast.HeadAggregate):
-        update: dict[str, object] = {}
-        left = head.left
-        if (
-            left is not None
-            and isinstance(left.term, ast.TermFunction)
-            and left.term.name.startswith(PARSER_PREFIX)
-        ):
-            update["left"] = left.update(library, term=_rename_term(context, left.term))
         elements = [
             (
                 element.update(
@@ -87,8 +80,7 @@ def _rename_head(context: RewriteContext, head: ast.HeadLiteral) -> ast.HeadLite
             )
             for element in head.elements
         ]
-        update["elements"] = elements
-        return head.update(library, **update)
+        return head.update(library, elements=elements)
     return head
 
 
