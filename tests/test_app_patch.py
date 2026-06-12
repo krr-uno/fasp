@@ -1,4 +1,3 @@
-
 from os import PathLike
 from pathlib import Path
 import sys
@@ -20,7 +19,10 @@ FaspAppMock = MagicMock(spec=FaspApp)
 # FaspAppMock.prefix = "F"
 FaspAppMock._control = MagicMock(spec=Control)
 FaspAppMock._control.prefix = "F"
-FaspAppMock._control.print_model = lambda model, default_printer: Control.print_model(FaspAppMock._control, model, default_printer)
+FaspAppMock._control.print_model = lambda model, default_printer: Control.print_model(
+    FaspAppMock._control, model, default_printer
+)
+
 
 def control_main_patch(self):
     """Control main patch."""
@@ -34,6 +36,7 @@ def control_main_patch(self):
         elif self._result.unsatisfiable:
             sys.stdout.write("UNSATISFIABLE\n")
 
+
 class TestControl(unittest.TestCase):
 
     def execute_app(self, files: PathLike) -> tuple[str, str]:
@@ -43,21 +46,23 @@ class TestControl(unittest.TestCase):
         output_io = io.StringIO()
         err_io = io.StringIO()
         with contextlib.redirect_stdout(output_io):
-                with contextlib.redirect_stderr(err_io):
-                    main(args_main)
+            with contextlib.redirect_stderr(err_io):
+                main(args_main)
         with patch("funasp.control.Control.main", new=control_main_patch):
             with contextlib.redirect_stdout(output_io):
                 with contextlib.redirect_stderr(err_io):
                     main(args_main)
         return output_io.getvalue(), err_io.getvalue()
 
-    def assert_models(self, files: PathLike, expected_models, *, allow_errors: bool=False):
+    def assert_models(
+        self, files: PathLike, expected_models, *, allow_errors: bool = False
+    ):
         """Assert models."""
         models = []
         line_number = 0
         output, error = self.execute_app(files)
         if not allow_errors:
-            self.assertEqual(error.strip(),"")
+            self.assertEqual(error.strip(), "")
         result = None
         for line in output.strip().splitlines():
             line = line.strip()
@@ -165,31 +170,23 @@ class TestControl(unittest.TestCase):
         example_file = TEST_EXAMPLES_PATH / "syntax_error.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app(
-            [example_file]
-        )
+        out, err = self.execute_app([example_file])
         self.assertIn("syntax error", err)
-
 
     def test_app_unsafe(self):
         """Test app unsafe."""
         example_file = TEST_EXAMPLES_PATH / "unsafe.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app(
-            [example_file]
-        )
+        out, err = self.execute_app([example_file])
         self.assertIn("the following variables are unsafe", err)
-
 
     def test_app_undefined_function(self):
         """Test app undefined function."""
         example_file = TEST_EXAMPLES_PATH / "undefined_function.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app(
-            [example_file]
-        )
+        out, err = self.execute_app([example_file])
         self.assertIn("undefined intensional function a/1", err)
         self.assert_models(
             [example_file],

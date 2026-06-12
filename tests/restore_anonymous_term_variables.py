@@ -1,4 +1,3 @@
-
 from clingo_funasp import ast
 from clingo_funasp.core import Library
 
@@ -27,4 +26,3 @@ def restore_anonymous_term_variables(
     rewritten = _restore_anonymous_term_variables(context.lib.library, statement)
     assert isinstance(rewritten, ast.Statement)
     return rewritten
-

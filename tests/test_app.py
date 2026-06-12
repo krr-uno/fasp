@@ -3,7 +3,6 @@ from os import PathLike
 from pathlib import Path
 import unittest
 
-
 try:
     SOURCE_CODE_PRESENT = True
 except ImportError:
@@ -15,28 +14,39 @@ TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 
 APP_NAME = "funasp"
 
+
 class TestControl(unittest.TestCase):
 
-    def execute_app(self, files: PathLike, extra_args: list[str] | None = None) -> tuple[str, str]:
+    def execute_app(
+        self, files: PathLike, extra_args: list[str] | None = None
+    ) -> tuple[str, str]:
         """Execute app."""
         args = [str(file) for file in files] + ["0"]
         if extra_args:
             args = extra_args + args
         if importlib.util.find_spec("coverage") is not None:
-            command = ["coverage", "run", "-a", "--data-file=.coverage.my", APP_NAME, *args]
+            command = [
+                "coverage",
+                "run",
+                "-a",
+                "--data-file=.coverage.my",
+                APP_NAME,
+                *args,
+            ]
         else:
             command = [APP_NAME, *args]
         result = subprocess.run(command, capture_output=True, text=True)
         return result.stdout, result.stderr
 
-
-    def assert_models(self, files: PathLike, expected_models, *, allow_errors: bool=False):
+    def assert_models(
+        self, files: PathLike, expected_models, *, allow_errors: bool = False
+    ):
         """Assert models."""
         models = []
         line_number = 0
         output, error = self.execute_app(files)
         if not allow_errors:
-            self.assertEqual(error.strip(),"")
+            self.assertEqual(error.strip(), "")
         result = None
         for line in output.strip().splitlines():
             line = line.strip()
@@ -102,15 +112,12 @@ class TestControl(unittest.TestCase):
     #     # Ensure outputs are equal even when prefix changes
     #     self.assertEqual(output_default, output_custom)
 
-
     def test_app_syntax_error(self):
         """Test app syntax error."""
         example_file = TEST_EXAMPLES_PATH / "syntax_error.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app(
-            [example_file]
-        )
+        out, err = self.execute_app([example_file])
         self.assertIn("syntax error", err)
         self.assertIn("*** ERROR: (fasp): parsing failed", err)
 
@@ -119,9 +126,7 @@ class TestControl(unittest.TestCase):
         example_file = TEST_EXAMPLES_PATH / "unsafe.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app(
-            [example_file]
-        )
+        out, err = self.execute_app([example_file])
         self.assertIn("UNKNOWN", out)
         self.assertIn("*** ERROR: (fasp): rewriting failed", err)
 
@@ -130,9 +135,7 @@ class TestControl(unittest.TestCase):
         example_file = TEST_EXAMPLES_PATH / "undefined_function.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app(
-            [example_file]
-        )
+        out, err = self.execute_app([example_file])
         self.assertIn("undefined intensional function a/1", err)
         self.assert_models(
             [example_file],
@@ -140,15 +143,12 @@ class TestControl(unittest.TestCase):
             allow_errors=True,
         )
 
-
     def test_prefix_and_print_rewrite(self):
         """Test prefix and print rewrite."""
         example_file = TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"
 
         # Rewrite with default prefix (F)
-        rewrite_default, _ = self.execute_app(
-            [example_file], ["--mode=rewrite"]
-        )
+        rewrite_default, _ = self.execute_app([example_file], ["--mode=rewrite"])
 
         # Rewrite with custom prefix (G)
         rewrite_custom, _ = self.execute_app(

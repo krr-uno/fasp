@@ -27,6 +27,7 @@ from funasp.rewriting.comparisons import prefix_comparisons
 from funasp.rewriting.constraints import functional_constraints
 from funasp.rewriting.negated_literals import rewrite_negate_body_literals
 from funasp.rewriting.prefixes import rename_prefixes
+from funasp.rewriting.printer import ast_to_str
 from funasp.rewriting.restore import restore_non_evaluable_functions
 from funasp.rewriting.some_assignments import rewrite_some_assignments
 from funasp.rewriting.unnesting import unnest_statement
@@ -57,7 +58,7 @@ def _clingo_rewrite(
     Wrapper for clingo's statement rewriting to handle errors.
     """
     try:
-        context.lib.processing_statement(str(original))
+        context.lib.processing_statement(ast_to_str(original))
         return list(ast.rewrite_statement(context.ctx, statement))
     except RuntimeError as e:
         raise RuntimeError("rewriting failed", [(statement, e)])

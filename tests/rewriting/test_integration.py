@@ -732,11 +732,7 @@ class TestRewriteStatements(unittest.TestCase):
             )
 
     def test_unsafe_fun(self):
-        """Test unsafe assignment.
-
-        Note: unlike the old pipeline, the statement is reported in its
-        parsed (prefixed) form rather than the original FASP syntax.
-        """
+        """Test unsafe assignment."""
         out = io.StringIO()
         with redirect_stderr(out):
             with self.assertRaisesRegex(
@@ -755,18 +751,14 @@ class TestRewriteStatements(unittest.TestCase):
                 textwrap.dedent(
                     """\
                 <string>:1:1-16: error: unsafe variables in:
-                  Ff(X) :- q(Y).
+                  f := X :- q(Y).
                 note: the following variables are unsafe:
                   X"""
                 ),
             )
 
     def test_undefined_operation_fun(self):
-        """Test undefined operation in an assignment.
-
-        Note: unlike the old pipeline, the statement is reported in its
-        parsed (prefixed) form rather than the original FASP syntax.
-        """
+        """Test undefined operation in an assignment."""
         out = io.StringIO()
         with redirect_stderr(out):
             self.assertTransformEqual(
@@ -783,7 +775,7 @@ class TestRewriteStatements(unittest.TestCase):
                 textwrap.dedent(
                     """\
                 <string>:1:6-11: info: operation undefined in:
-                  Ff(a+1).
+                  f := a+1.
                 note: the following operations are undefined:
                   a+1"""
                 ),

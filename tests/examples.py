@@ -2,7 +2,6 @@ from pathlib import Path
 import textwrap
 from typing import NamedTuple
 
-
 EXAMPLES_PATH = Path(__file__).parent.parent / "examples"
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
 

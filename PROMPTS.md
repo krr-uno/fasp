@@ -263,3 +263,47 @@ One unrelated pre-existing issue: nox -s lint fails because pylint isn't install
      5. Sanity: end-to-end test solves graph coloring (examples/coloring.lp program) correctly via
      the new pipeline — the case that is UNSAT without the pipeline.
 
+# Address printing assignents
+
+The parser migration accomplish has a behavioral change.
+
+Behavioral change in messages: error/info reports now show the statement in its parsed form (operation undefined in: Ff(a+1).) rather than the original FASP syntax (f := a+1.), since the parser desugars before the pipeline sees the text. Locations still point at the right source spot. The two affected test expectations were updated and the change is documented in their docstrings. If you want the original syntax back, it would take a FASP re-printer (F-atom → := form) for processing_statement — say the word and I'll plan it.
+
+Create a function called `ast_to_str` that produces a string from an ast node using the old syntax. If the ast note is `Ff(a+1).`, it prints `f := a+1.`. Similar for the prefix `FS`.
+
+Then use it to restore the error messages in `tests/rewriting/test_integration.py`. For example, the error message
+```
+<string>:1:6-11: info: operation undefined in:
+    Ff(a+1).
+note: the following operations are undefined:
+    a+1"""
+```
+in lines 785-788 of the file `tests/rewriting/test_integration.py` should be
+```
+<string>:1:6-11: info: operation undefined in:
+    f := a+1.
+note: the following operations are undefined:
+    a+1""
+```
+Make a plan for this change.
+
+
+## What was done
+
+funasp/rewriting/printer.py (new) — ast_to_str(statement) inverts the parser's F-encoding back to FASP syntax:
+- Ff(t…,v) heads → f(t…) := v (pooled atoms handled: common value → f(1;2) := 3, impossible differing-values pool falls back to str())
+- HeadSetAggregate with F-atoms → { f(t) := v: cond; … } with guards
+- Ff(X) = #agg{…} guards → f(X) := #agg{…}; FSf(X) → f(X) := #some{…}
+- F-atom element literals in plain head aggregates → #count{ t: f(t) := v: cond }
+- #show Ff/(n+1). → #showf f/n.
+- everything else passes through as str(statement)
+
+Wired into error reporting — integration._clingo_rewrite now calls processing_statement(ast_to_str(original)), so all "unsafe variables in:", "operation undefined in:" messages show := syntax again.
+
+Tests — tests/rewriting/test_printer.py (round-trip property for every shape + constructed-node pool fallbacks); restored the original expectations in test_integration.py (f := X :- q(Y)., f := a+1.) and test_control.py, and removed the now-obsolete "parsed form" docstring notes.
+
+Verification — nox -s test (100% coverage incl. printer.py), slow_test, typecheck, format all green; CLI smoke confirms f := a+1. in the message.
+
+⚠️ New upstream bug found while probing
+
+The parser silently drops pool alternatives in assignment heads: f(1;2) := 3. parses to only Ff(1,3). — the 2 branch vanishes (plain p(1;2). keeps both). The old tree-sitter pipeline correctly produced Ff(1,3). and Ff(2,3)., so this is a semantic regression that can't be fixed downstream (the information is lost at parse time). Worth fixing in clingo-funasp alongside the begin-file location bug from earlier; the printer test documents the workaround with a comment.
