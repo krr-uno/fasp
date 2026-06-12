@@ -363,3 +363,11 @@ You mention the following bug:
 New upstream bug found: the parser loses the begin-position file of assignment statements (empty string instead of /filename), which produced malformed error locations like :1:1-:1:16. I added a workaround (integration._fix_statement_location, noted in CLAUDE.md) — removable once fixed in clingo-funasp.
 ```
 Check whether this is fixed upstream. The new version is already installed in the conda environmet `funasp`. Do not install a new package.
+
+## Second bug
+
+You mention a second bug:
+```
+The parser silently drops pool alternatives in assignment heads: f(1;2) := 3. parses to only Ff(1,3). — the 2 branch vanishes (plain p(1;2). keeps both). The old tree-sitter pipeline correctly produced Ff(1,3). and Ff(2,3)., so this is a semantic regression that can't be fixed downstream (the information is lost at parse time). Worth fixing in clingo-funasp alongside the begin-file location bug from earlier; the printer test documents the workaround with a comment.
+```
+Check whether this is fixed upstream. The new version is already installed in the conda environmet `funasp`. Do not install a new package. Does anything need to be done about this?
