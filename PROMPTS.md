@@ -307,3 +307,59 @@ Verification — nox -s test (100% coverage incl. printer.py), slow_test, typech
 ⚠️ New upstream bug found while probing
 
 The parser silently drops pool alternatives in assignment heads: f(1;2) := 3. parses to only Ff(1,3). — the 2 branch vanishes (plain p(1;2). keeps both). The old tree-sitter pipeline correctly produced Ff(1,3). and Ff(2,3)., so this is a semantic regression that can't be fixed downstream (the information is lost at parse time). Worth fixing in clingo-funasp alongside the begin-file location bug from earlier; the printer test documents the workaround with a comment.
+
+
+# Addressing upstream bugs
+
+You mention the following bug:
+```
+New upstream bug found: the parser loses the begin-position file of assignment statements (empty string instead of /filename), which produced malformed error locations like :1:1-:1:16. I added a workaround (integration._fix_statement_location, noted in CLAUDE.md) — removable once fixed in clingo-funasp.
+```
+Provide a minimal example that showcases the bug.
+
+## Answer:
+
+Here's the verified minimal reproduction (raw clingo_funasp only, no funasp code — ready for an upstream issue):
+
+"""Assignment statements lose the begin-position file (clingo-funasp 6.0.0.post11)."""
+from clingo_funasp import ast
+from clingo_funasp.core import Library
+
+with Library(logger=lambda t, msg: print("LOG:", msg)) as lib:
+    statements = []
+    ast.parse_string(lib, "a.\nb := 1.", statements.append)
+    for statement in statements[1:]:
+        location = statement.location
+        print(str(statement), repr(location.begin.file), repr(location.end.file))
+
+    # Consequence: malformed location in error messages.
+    statements = []
+    ast.parse_string(lib, "f := X :- q(Y).", statements.append)
+    try:
+        ast.rewrite_statement(ast.RewriteContext(lib), statements[1])
+    except RuntimeError:
+        pass
+
+Output:
+
+a.      '<string>'  '<string>'      ← plain rule: both files correct
+Fb(1).  ''          '<string>'      ← assignment: begin.file is EMPTY
+
+LOG: :1:1-<string>:1:16: error: unsafe variables in:
+  Ff(X) :- q(Y).
+
+The bug: any statement containing an assignment gets location.begin.file == "" while end.file is correct ('<string>', or the filename with parse_files). Plain statements in the same parse are fine. So the desugaring step constructs the statement's begin Position without carrying the file over.
+
+The consequence: when clingo prints a location whose begin and end disagree on the file, it emits both halves, producing the malformed :1:1-<string>:1:16: instead of <string>:1:1-16: — visible in any "unsafe variables" / "operation undefined" diagnostic for an assignment rule.
+
+The downstream workaround is _fix_statement_location in funasp/rewriting/integration.py (copies end.file into the begin position when begin.file is empty) — delete it once this is fixed upstream.
+
+While you're filing that: the second upstream bug from earlier is closely related and likely lives in the same desugaring code — pool alternatives are dropped in assignment heads: ast.parse_string(lib, "f(1;2) := 3.", …) yields only Ff(1,3). (the 2 alternative is lost), whereas p(1;2). correctly keeps its pool. That one is information loss at parse time, so funasp can't work around it.
+
+## Revisit
+
+You mention the following bug:
+```
+New upstream bug found: the parser loses the begin-position file of assignment statements (empty string instead of /filename), which produced malformed error locations like :1:1-:1:16. I added a workaround (integration._fix_statement_location, noted in CLAUDE.md) — removable once fixed in clingo-funasp.
+```
+Check whether this is fixed upstream. The new version is already installed in the conda environmet `funasp`. Do not install a new package.
