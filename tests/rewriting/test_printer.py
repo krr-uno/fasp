@@ -101,8 +101,7 @@ class TestAstToStr(unittest.TestCase):
     def test_pooled_assignment(self):
         """A pooled head atom with a common value prints as a pooled assignment.
 
-        The parser currently drops pool alternatives in assignment heads, so
-        these nodes are constructed directly.
+        This is the form the parser produces for ``f(1;2) := 3.``.
         """
         statement = self._pooled_atom([3, 3])
         self.assertEqual(ast_to_str(statement), "f(1;2) := 3.")
