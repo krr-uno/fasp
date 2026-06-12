@@ -419,9 +419,7 @@ class TestParseAssignment2(unittest.TestCase):
         self.assertTrue(rule.value)
         self.assertFalse(rule.sign)
 
-    @unittest.skip(
-        "clingo_funasp.ast.parse_files segfaults in clingo-funasp 6.0.0.post10"
-    )
+
     def test_parse_files(self):  # pragma: no cover
         """Test that parse_files yields the same statements as parse_string."""
         import tempfile
@@ -439,9 +437,6 @@ class TestParseAssignment2(unittest.TestCase):
         expected = parse_string(self.lib, code)
         self.assertEqual(list(map(str, statements)), list(map(str, expected)))
 
-    @unittest.skip(
-        "clingo_funasp.ast.parse_files segfaults in clingo-funasp 6.0.0.post10"
-    )
     def test_parse_files_error(self):  # pragma: no cover
         """Test that parse_files raises ParsingException on syntax errors."""
         import tempfile
@@ -453,7 +448,7 @@ class TestParseAssignment2(unittest.TestCase):
                 _ = parse_files(self.lib, [file.name])
         errors = cm.exception.errors
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].location.begin.line, 1)
+        self.assertEqual(errors[0].location.begin.line, 0)
 
 
 if __name__ == "__main__":

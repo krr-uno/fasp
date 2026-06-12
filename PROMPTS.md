@@ -39,4 +39,4 @@ clingo_funasp.ast.parse_files segfaults on any input in clingo-funasp 6.0.0.post
 
 ---
 
-Make a plan on how to migrate the rest of the application to the new parser. For that recall the correspondence between the two abstract syntax tree of the two parsers.
+Make a plan on how to migrate the rest of the application to the new parser. For that recall the correspondence between the two abstract syntax tree of the two parsers. Make questions in case of daubt.
