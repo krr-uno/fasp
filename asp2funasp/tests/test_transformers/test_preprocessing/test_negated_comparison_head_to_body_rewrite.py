@@ -5,8 +5,6 @@ from clingo import ast
 from clingo.core import Library
 
 from asp2funasp.transformers.preprocessing.negated_comparison_head_to_body_rewrite import NegatedComparisonHeadToBodyTransformer
-from asp2funasp.util.ast import AST
-
 from tests.util import collect_statements
 
 class ChoiceGuardTransformerTest(unittest.TestCase):

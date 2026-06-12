@@ -7,7 +7,6 @@ from clingo import ast
 from clingo.core import Library
 
 from asp2funasp.transformers.preprocessing import processPipelinetransformers
-from asp2funasp.util.ast import AST
 
 from tests.util import collect_statements
 class NotAggregateConstraintTransformerTest(unittest.TestCase):

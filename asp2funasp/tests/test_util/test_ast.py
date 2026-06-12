@@ -6,7 +6,7 @@ from typing import Tuple, Dict
 from clingo import ast
 from clingo.core import Library
 
-from asp2funasp.util import ast as ast_util
+from fasp.util import ast as ast_util
 from asp2funasp.util.types import FRelation, SymbolSignature
 
 from tests.util import find_in_ast, parse_and_find, collect_statements

@@ -3,13 +3,13 @@ from typing import List
 
 from clingo import ast
 from clingo.core import Library
-
-from asp2funasp.util.ast import (
+from fasp.util.ast import (
     AST,
     function_arguments,
     function_arguments_ast,
     is_function,
 )
+
 from asp2funasp.util.types import FRelation, SymbolSignature
 from asp2funasp.util.util import index_frelations
 

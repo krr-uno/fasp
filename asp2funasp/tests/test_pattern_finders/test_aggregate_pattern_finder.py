@@ -8,7 +8,6 @@ from clingo.core import Library
 from clingo.ast import RewriteContext
 
 from asp2funasp.pattern_finders.aggregate_pattern_finder import AggregatePatternFinder
-from asp2funasp.util.ast import AST
 from asp2funasp.util.types import FPredicate, CPredicate
 from asp2funasp.transformers.preprocessing import processPipelinetransformers
 from tests.util import collect_statements

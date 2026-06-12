@@ -1,0 +1,3 @@
+from ._bootstrap import add_workspace_root_to_path as _add_workspace_root_to_path
+
+_add_workspace_root_to_path()

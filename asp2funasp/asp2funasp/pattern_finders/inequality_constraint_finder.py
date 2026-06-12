@@ -2,9 +2,9 @@ from typing import Iterable, List, Sequence, Tuple, TypedDict, cast
 
 import clingo.ast as ast
 from clingo.core import Library
+from fasp.util.ast import AST, StatementAST, TermAST
 
 import asp2funasp.util.util as util
-from asp2funasp.util.ast import AST, StatementAST, TermAST
 from asp2funasp.util.types import CPredicate, FPredicate
 
 

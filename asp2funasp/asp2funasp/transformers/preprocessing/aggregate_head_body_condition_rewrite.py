@@ -2,9 +2,9 @@ from functools import singledispatchmethod
 
 import clingo.ast as ast
 import clingo.core as core
+from fasp.util.ast import HeadLiteralAST, StatementAST
 
 from asp2funasp.transformers.preprocessing.base import PreprocessingTransformer
-from asp2funasp.util.ast import HeadLiteralAST, StatementAST
 
 
 class AggregateHeadBodyConditionTransformer(PreprocessingTransformer):

@@ -6,10 +6,10 @@ from typing import Optional, Tuple
 import clingo.ast as ast
 import clingo.core as core
 from clingo.symbol import Number
+from fasp.util.ast import HeadLiteralAST, StatementAST
 
 import asp2funasp.util.util as util
 from asp2funasp.transformers.preprocessing.base import PreprocessingTransformer
-from asp2funasp.util.ast import HeadLiteralAST, StatementAST
 
 
 class ChoiceGuardTransformer(PreprocessingTransformer):

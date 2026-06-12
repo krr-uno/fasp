@@ -9,7 +9,6 @@ from clingo.symbol import Number
 from clingo.symbol import Symbol, Function as SymbolFunction
 
 from asp2funasp.util import util
-from asp2funasp.util.ast import AST, StatementAST
 from asp2funasp.util.types import FRelation, SymbolSignature
 
 from tests.util import find_in_ast, parse_and_find, collect_statements

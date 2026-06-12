@@ -1,0 +1,6 @@
+class SymbolSignature:
+    name: str
+    arity: int
+
+    def __init__(self, name: str, arity: int) -> None: ...
+    def __str__(self) -> str: ...

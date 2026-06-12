@@ -27,7 +27,7 @@ def test(session):
         # "-s", "tests",
         "-v",
     )
-    coverage_omit = ["tests/*"]
+    coverage_omit = ["tests/*", "../fasp/*", "*/fasp/fasp/*"]
     session.run(
         "coverage",
         "report",

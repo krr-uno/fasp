@@ -8,7 +8,6 @@ from asp2funasp.transformers.preprocessing.choice_rule_guard_normalize_rewrite i
     ChoiceGuardTransformer,
 )
 
-from asp2funasp.util.ast import AST
 
 from tests.util import collect_statements
 

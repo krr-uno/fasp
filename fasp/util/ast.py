@@ -18,16 +18,68 @@ from clingo import ast
 from clingo.core import Library, Location, LogLevel, MessageType, Position
 from clingo.symbol import Symbol, SymbolType
 
+StatementAST = (
+    ast.StatementRule
+    | ast.StatementTheory
+    | ast.StatementOptimize
+    | ast.StatementWeakConstraint
+    | ast.StatementShow
+    | ast.StatementShowNothing
+    | ast.StatementShowSignature
+    | ast.StatementProject
+    | ast.StatementProjectSignature
+    | ast.StatementDefined
+    | ast.StatementExternal
+    | ast.StatementEdge
+    | ast.StatementHeuristic
+    | ast.StatementScript
+    | ast.StatementInclude
+    | ast.StatementProgram
+    | ast.StatementParts
+    | ast.StatementConst
+    | ast.StatementComment
+)
+
+TermAST = (
+    ast.TermVariable
+    | ast.TermSymbolic
+    | ast.TermAbsolute
+    | ast.TermUnaryOperation
+    | ast.TermBinaryOperation
+    | ast.TermTuple
+    | ast.TermFunction
+    | ast.TermFormatString
+)
+ArgumentAST = TermAST | ast.Projection
+LiteralAST = ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic
+
+BodyLiteralAST = (
+    ast.BodySimpleLiteral
+    | ast.BodyAggregate
+    | ast.BodySetAggregate
+    | ast.BodyTheoryAtom
+    | ast.BodyConditionalLiteral
+)
+
+HeadLiteralAST = (
+    ast.HeadSimpleLiteral
+    | ast.HeadDisjunction
+    | ast.HeadAggregate
+    | ast.HeadSetAggregate
+    | ast.HeadTheoryAtom
+    | ast.HeadConditionalLiteral
+)
+
 AST = (
-    ast.Statement
-    | ast.Term
-    | ast.Literal
+    StatementAST
+    | TermAST
+    | LiteralAST
     | ast.ArgumentTuple
-    | ast.BodyLiteral
+    | BodyLiteralAST
     | ast.BodyAggregateElement
     | ast.Edge
     | ast.HeadAggregateElement
-    | ast.HeadLiteral
+    | HeadLiteralAST
     | ast.LeftGuard
     | ast.OptimizeElement
     | ast.OptimizeTuple

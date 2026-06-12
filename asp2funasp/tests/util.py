@@ -3,7 +3,7 @@ from typing import List, Tuple, TypeVar, Type
 
 from clingo import ast
 from clingo.core import Library
-from asp2funasp.util.ast import AST, StatementAST
+from fasp.util.ast import AST
 from asp2funasp.util.util import collect_statements_from_pased
 T = TypeVar('T')
 T_AST = TypeVar('T_AST', bound=AST)

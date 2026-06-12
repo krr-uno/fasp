@@ -7,7 +7,6 @@ from clingo import ast
 from clingo.core import Library
 
 from asp2funasp.rewriting import FunctionalPredicateFinder
-from asp2funasp.util.ast import AST
 from asp2funasp.util.types import FPredicate, CPredicate, FRelation
 
 from tests.util import collect_statements, diff_namedtuples

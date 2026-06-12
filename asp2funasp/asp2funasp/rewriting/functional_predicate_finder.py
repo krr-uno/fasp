@@ -3,6 +3,7 @@ from typing import Any, Dict, Iterable, List, Tuple
 
 from clingo import ast
 from clingo.core import Library
+from fasp.util.ast import StatementAST
 
 import asp2funasp.util.util as util
 from asp2funasp.pattern_finders import (
@@ -10,7 +11,6 @@ from asp2funasp.pattern_finders import (
     InequalityConstraintFinder,
 )
 from asp2funasp.transformers.preprocessing import processPipelinetransformers
-from asp2funasp.util.ast import StatementAST
 from asp2funasp.util.types import CPredicate, FPredicate, FRelation
 
 

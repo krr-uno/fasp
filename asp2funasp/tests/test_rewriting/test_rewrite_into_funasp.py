@@ -5,7 +5,7 @@ import unittest
 from clingo import ast
 from clingo.core import Library
 
-from asp2funasp.util.ast import AST
+from fasp.util.ast import AST
 from asp2funasp.util.types import FRelation
 from asp2funasp.rewriting.rewrite_into_funasp import (
     FunctionalBodyRewriteTransformer,

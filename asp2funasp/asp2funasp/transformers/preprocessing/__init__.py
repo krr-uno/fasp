@@ -20,10 +20,10 @@ from typing import Iterable, List
 
 from clingo.ast import RewriteContext, rewrite_statement
 from clingo.core import Library
+from fasp.util.ast import StatementAST
 
 import asp2funasp.util.util as util
 from asp2funasp.transformers.preprocessing.base import PreprocessingTransformer
-from asp2funasp.util.ast import StatementAST
 
 
 def processPipelinetransformers(

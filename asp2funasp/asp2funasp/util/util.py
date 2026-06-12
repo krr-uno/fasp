@@ -12,9 +12,10 @@ from typing import (
 from clingo import ast
 from clingo.core import Library
 from clingo.symbol import Symbol, SymbolType
+from fasp.syntax_tree.types import SymbolSignature
+from fasp.util.ast import AST, HeadLiteralAST, StatementAST, TermAST
 
-from asp2funasp.util.ast import AST, HeadLiteralAST, StatementAST, TermAST
-from asp2funasp.util.types import FRelation, SymbolSignature
+from asp2funasp.util.types import FRelation
 
 FunctionLikeAST = ast.TermFunction | ast.TermSymbolic | ast.TermTuple | Symbol
 

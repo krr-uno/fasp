@@ -8,7 +8,6 @@ from asp2funasp.transformers.preprocessing.constraint_aggregate_guard_normalizat
     ConstraintAggregateGuardTransformer
 )
 
-from asp2funasp.util.ast import AST
 
 from tests.util import collect_statements
 

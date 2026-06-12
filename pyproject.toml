@@ -16,5 +16,5 @@ fasp = "fasp.__main__:main"
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["fasp"]
+[tool.setuptools.packages.find]
+include = ["fasp*"]

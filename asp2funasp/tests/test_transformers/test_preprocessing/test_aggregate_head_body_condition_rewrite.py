@@ -8,7 +8,6 @@ from asp2funasp.transformers.preprocessing.aggregate_head_body_condition_rewrite
     AggregateHeadBodyConditionTransformer,
 )
 
-from asp2funasp.util.ast import AST
 
 from tests.util import collect_statements
 

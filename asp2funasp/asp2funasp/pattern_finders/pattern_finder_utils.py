@@ -3,9 +3,9 @@ from functools import singledispatchmethod
 from typing import DefaultDict, Sequence
 
 import clingo.ast as ast
+from fasp.util.ast import AST, StatementAST, TermAST
 
 import asp2funasp.util.util as util
-from asp2funasp.util.ast import AST, StatementAST, TermAST
 from asp2funasp.util.types import FPredicate
 
 

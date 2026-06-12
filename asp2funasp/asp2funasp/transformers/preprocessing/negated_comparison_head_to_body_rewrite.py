@@ -2,9 +2,9 @@ from functools import singledispatchmethod
 
 from clingo import ast
 from clingo.core import Library
+from fasp.util.ast import StatementAST
 
 from asp2funasp.transformers.preprocessing.base import PreprocessingTransformer
-from asp2funasp.util.ast import StatementAST
 from asp2funasp.util.util import extract_comparison_terms, negate_operator
 
 

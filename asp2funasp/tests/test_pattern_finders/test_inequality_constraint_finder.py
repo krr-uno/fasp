@@ -7,7 +7,6 @@ from clingo import ast
 from clingo.core import Library
 
 from asp2funasp.pattern_finders.inequality_constraint_finder import InequalityConstraintFinder
-from asp2funasp.util.ast import AST
 from asp2funasp.util.types import FPredicate, CPredicate
 from asp2funasp.transformers.preprocessing import processPipelinetransformers
 

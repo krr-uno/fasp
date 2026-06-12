@@ -2,12 +2,12 @@ from typing import Iterable, List
 
 from clingo import ast
 from clingo.core import Library
+from fasp.util.ast import StatementAST
 
 from asp2funasp.pattern_finders.pattern_finder_utils import (
     predicate_key_from_literal_symbolic,
     split_program,
 )
-from asp2funasp.util.ast import StatementAST
 from asp2funasp.util.types import CPredicate, FPredicate
 from asp2funasp.util.util import collect_statements_from_pased, get_parameter_list
 
