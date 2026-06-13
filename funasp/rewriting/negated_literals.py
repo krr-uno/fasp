@@ -35,7 +35,7 @@ def _rewrite_body_literal(
     )
 
 
-def rewrite_negate_body_literals(
+def rewrite_negated_body_literals(
     context: RewriteContext, statement: ast.Statement
 ) -> ast.Statement:
     """Rewrite eligible negated body literals inside a single statement."""

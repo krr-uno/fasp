@@ -25,7 +25,7 @@ from funasp.rewriting.aggregates import normalize_assignment_aggregates
 from funasp.rewriting.collectors import collect_evaluable_function_signatures
 from funasp.rewriting.comparisons import prefix_comparisons
 from funasp.rewriting.constraints import functional_constraints
-from funasp.rewriting.negated_literals import rewrite_negate_body_literals
+from funasp.rewriting.negated_literals import rewrite_negated_body_literals
 from funasp.rewriting.prefixes import rename_prefixes
 from funasp.rewriting.printer import ast_to_str
 from funasp.rewriting.restore import restore_non_evaluable_functions
@@ -59,7 +59,7 @@ def rewrite_statements(
     for original in statements:
         for stmt in rewrite_some_assignments(context, original):
             stmt = normalize_assignment_aggregates(context, stmt)
-            stmt = rewrite_negate_body_literals(context, stmt)
+            stmt = rewrite_negated_body_literals(context, stmt)
             context.evaluable_functions |= collect_evaluable_function_signatures(
                 context, stmt
             )
