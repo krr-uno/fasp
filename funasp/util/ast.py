@@ -502,7 +502,7 @@ def parse_string(library: ELibrary, code: str) -> list[ast.Statement]:
     Raises:
         Raises ParsingError if parsing fails.
     """
-    parsed = []
+    parsed: list[ast.Statement] = []
     # The error messages are stored to restore them after parsing
     # The library is set to have no error messages during parsing
     # This avoids mixing errors from previous operations with parsing errors
@@ -536,7 +536,7 @@ def parse_files(library: ELibrary, files: Sequence[str]) -> list[ast.Statement]:
     Raises:
         Raises ParsingError if parsing fails.
     """
-    parsed = []
+    parsed: list[ast.Statement] = []
     # The error messages are stored to restore them after parsing
     # The library is set to have no error messages during parsing
     # This avoids mixing errors from previous operations with parsing errors
