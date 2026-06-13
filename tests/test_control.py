@@ -8,7 +8,7 @@ from typing import Iterable
 import unittest
 
 from funasp.control import Control
-from funasp.util.ast import ELibrary
+from funasp.core import ELibrary
 from funasp.solve import Model
 
 from tests.examples import EXAMPLES

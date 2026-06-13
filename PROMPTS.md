@@ -430,3 +430,9 @@ Tests
 - Enabled the previously commented-out test_some_assignment_with_pool integration test (f(a;b) := #some{r;g}. → two choice rules + the functionality constraint).
 
 Note: the dev tools live in the funasp conda env (where clingo_funasp is installed), not clingo6 as CLAUDE.md states — I ran nox via PATH="…/envs/funasp/bin:$PATH". Worth flagging in case the documented env is stale.
+
+# Refactor
+
+Create a module `funasp.core` and move the class `funasp.ast.ELibrary` to `funasp.core`. Ajust the rest of the code as necessary.
+
+Rename the class `funasp.ast.ELibrary` to `funasp.ast.ELibrary`. Ajust the rest of the code as necessary.

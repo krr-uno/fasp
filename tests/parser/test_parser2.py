@@ -26,8 +26,8 @@ import unittest
 
 from clingo_funasp import ast
 
+from funasp.core import ELibrary
 from funasp.util.ast import (
-    ELibrary,
     ParsingException,
     parse_files,
     parse_string,

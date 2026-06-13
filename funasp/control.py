@@ -8,11 +8,11 @@ from clingo_funasp import ast
 from clingo_funasp import solve as clingo_solve
 from clingo_funasp import symbol
 
+from funasp.core import ELibrary
 from funasp.rewriting import rewrite_statements
 from funasp.rewriting._context import RewriteContext
 from funasp.solve import Model
 from funasp.util import ast as util_ast
-from funasp.util.ast import ELibrary
 
 LIBC_NAME: str | None = None
 try:

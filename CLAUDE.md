@@ -86,7 +86,8 @@ Parsing itself is `funasp.util.ast.parse_string`/`parse_files`: thin wrappers ov
 
 Shared state lives in `RewriteContext` (`_context.py`): the `ELibrary`, the function-name prefix, the clingo `RewriteContext`, and the accumulated set of `SymbolSignature`s (`types.py`).
 
-- `funasp/util/ast.py` — `ELibrary` (Library wrapper that captures/normalizes log messages — e.g. "undefined predicate F…" → "undefined intensional function …" — and carries the `processing_statement` text used in error reports), parse wrappers, AST helpers (`create_literal`, `is_function`, `FreshVariableGenerator`, `ParsingException`).
+- `funasp/core.py` — `ELibrary` (Library wrapper that captures/normalizes log messages — e.g. "undefined predicate F…" → "undefined intensional function …" — and carries the `processing_statement` text used in error reports).
+- `funasp/util/ast.py` — parse wrappers, AST helpers (`create_literal`, `is_function`, `FreshVariableGenerator`, `ParsingException`).
 - `funasp/solve.py` / `funasp/symbol.py` — `Model` wrapper that re-renders `Ff(t,v)` atoms as `f(t)=v` in output, and symbol helpers.
 
 ### The function prefix

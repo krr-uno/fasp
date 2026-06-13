@@ -9,10 +9,11 @@ import unittest
 from clingo_funasp import ast
 from clingo_funasp.control import Control as ClingoControl
 
+from funasp.core import ELibrary
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting import rewrite_statements
 from funasp.solve import Model
-from funasp.util.ast import ELibrary, parse_string
+from funasp.util.ast import parse_string
 from tests.examples import EXAMPLES
 
 

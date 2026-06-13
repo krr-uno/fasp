@@ -10,7 +10,8 @@ import unittest
 
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.some_assignments import rewrite_some_assignments
-from funasp.util.ast import ELibrary, parse_string
+from funasp.core import ELibrary
+from funasp.util.ast import parse_string
 
 
 class TestRewriteSomeAssignments(unittest.TestCase):

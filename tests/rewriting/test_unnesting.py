@@ -13,7 +13,8 @@ from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.literals import UnnestFunctionsInLiteralsTransformer
 from funasp.rewriting.types import SymbolSignature
 from funasp.rewriting.unnesting import unnest_statement
-from funasp.util.ast import ELibrary, FreshVariableGenerator, parse_string
+from funasp.core import ELibrary
+from funasp.util.ast import FreshVariableGenerator, parse_string
 
 
 class TestUnnestStatement(unittest.TestCase):

@@ -4,8 +4,8 @@ import unittest
 from clingo_funasp import ast
 from clingo_funasp.core import Location, Position, Library
 
+from funasp.core import ELibrary
 from funasp.util.ast import (
-    ELibrary,
     ParsingException,
     SyntacticCheckVisitor,
     SyntacticError,
