@@ -562,3 +562,14 @@ def transform_iterable[T, R](
     return result
 ```
 from `funasp/util/ast.py` to `funasp/ast.py`.  Ajust the rest of the code as necessary.
+
+---
+
+Modify the functions `parse_string` and `parse_files` in `funasp/ast.py` to return list of objects of class `funasp.ast.Statement`. Modify `rewrite_statements` in `funasp/rewriting/integration.py` to have the following signature:
+```python
+def rewrite_statements(
+    context: RewriteContext,
+    statements: Iterable[funasp.ast.Statement],
+) -> list[funasp.ast.Statement]:
+```
+Ajust the rest of the code as necessary.
