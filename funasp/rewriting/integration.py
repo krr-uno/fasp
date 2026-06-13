@@ -57,13 +57,13 @@ def rewrite_statements(
     """
     pass1: list[tuple[ast.Statement, ast.Statement]] = []
     for original in statements:
-        stmt = rewrite_some_assignments(context, original)
-        stmt = normalize_assignment_aggregates(context, stmt)
-        stmt = rewrite_negate_body_literals(context, stmt)
-        context.evaluable_functions |= collect_evaluable_function_signatures(
-            context, stmt
-        )
-        pass1.append((original, stmt))
+        for stmt in rewrite_some_assignments(context, original):
+            stmt = normalize_assignment_aggregates(context, stmt)
+            stmt = rewrite_negate_body_literals(context, stmt)
+            context.evaluable_functions |= collect_evaluable_function_signatures(
+                context, stmt
+            )
+            pass1.append((original, stmt))
 
     result: list[ast.Statement] = []
     for original, stmt in pass1:

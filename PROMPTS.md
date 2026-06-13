@@ -393,3 +393,40 @@ Verification:
 - Smoke test — examples/family.lp produces identical models with the default prefix and --prefix-fun=G.
 
 The pipeline output is byte-identical, so the exact-string integration assertions (including the prefix="G" tests) pass unchanged.
+
+
+# Some assignments with pools
+
+The function `rewrite_some_assignments` in file `funasp/rewriting/some_assignments.py` does not allow more than one pool on the left guard of the assignment. See assert
+```python
+assert len(left.term.pool) == 1, f"Terms must be unpooled {left.term}"
+```
+in line 50 of file `funasp/rewriting/some_assignments.py`. Make a plan to allow pools.
+- The function needs to retur a list of `ast.Statement` instead of a single `ast.Statement`.
+- The list should contain exactly `ast.Statement` if `len(left.term.pool) == 1`
+- If `len(left.term.pool) == n`, then it should return `n` rules. Example:
+
+    | input                       | output |
+    |-----------------------------|--------|
+    | f(a) := #some{X : p(X)}     | #count { 0,Ff(a,X): Ff(a,X): p(X) } = 1 :- #count { X: p(X) } >= 1. |
+    | f(a;b) := #some{X : p(X)}   | #count { 0,Ff(a,X): Ff(a,X): p(X) } = 1 :- #count { X: p(X) } >= 1. #count { 0,Ff(b,X): Ff(b,X): p(X) } = 1 :- #count { X: p(X) } >= 1. |
+- Add a unittests for for the function `rewrite_some_assignments`.
+- Include at least one example of unittest in the plan.
+
+## Summary
+
+rewrite_some_assignments now supports pooled left guards on #some assignments.
+
+funasp/rewriting/some_assignments.py
+- Changed the return type from ast.Statement to list[ast.Statement]. Non-#some statements now pass through as a one-element list.
+- Removed the assert len(left.term.pool) == 1 restriction.
+- Extracted per-entry construction into a helper _rewrite_some_pool_entry(...); the public function maps it over every entry in left.term.pool, yielding one choice statement per pool entry (one for unpooled terms, n for n entries).
+
+funasp/rewriting/integration.py
+- The pass-1 loop now iterates over the returned list, sending each derived statement through normalize_assignment_aggregates → rewrite_negate_body_literals → signature collection, keeping the same original for error locations.
+
+Tests
+- New tests/rewriting/test_some_assignments.py with three direct unit tests (single pool, multiple pools, non-#some passthrough), using probe-verified output strings.
+- Enabled the previously commented-out test_some_assignment_with_pool integration test (f(a;b) := #some{r;g}. → two choice rules + the functionality constraint).
+
+Note: the dev tools live in the funasp conda env (where clingo_funasp is installed), not clingo6 as CLAUDE.md states — I ran nox via PATH="…/envs/funasp/bin:$PATH". Worth flagging in case the documented env is stale.

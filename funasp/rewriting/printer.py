@@ -9,7 +9,6 @@ original ``:=`` syntax. It inverts exactly the shapes the parser generates
 function names cannot produce); anything else falls back to ``str()``.
 """
 
-from ast import arguments
 from typing import Sequence
 
 from clingo_funasp import ast

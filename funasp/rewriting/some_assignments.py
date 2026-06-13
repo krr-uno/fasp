@@ -16,6 +16,8 @@ This step runs before the prefix renaming pass, so the marker is always the
 parser's literal ``FS``.
 """
 
+from typing import Sequence
+
 from clingo_funasp import ast, symbol
 
 from funasp.rewriting._context import RewriteContext
@@ -28,27 +30,46 @@ SOME_PREFIX = PARSER_PREFIX + SOME_MARKER
 
 def rewrite_some_assignments(
     context: RewriteContext, statement: ast.Statement
-) -> ast.Statement:
-    """Rewrite a ``#some`` assignment head into a choice with a guard body."""
+) -> list[ast.Statement]:
+    """Rewrite a ``#some`` assignment head into choices with a guard body.
+
+    Returns one statement per pool entry on the left guard, so an unpooled
+    term yields a single statement and ``f(a;b) := #some{...}`` yields one
+    statement for ``f(a)`` and one for ``f(b)``. Non-``#some`` statements pass
+    through unchanged as a one-element list.
+    """
 
     if not isinstance(statement, ast.StatementRule) or not isinstance(
         head := statement.head, ast.HeadAggregate
     ):
-        return statement
+        return [statement]
     left = head.left
     if (
         left is None
         or not isinstance(left.term, ast.TermFunction)
         or not left.term.name.startswith(SOME_PREFIX)
     ):
-        return statement
+        return [statement]
     assert left.relation == ast.Relation.Equal
     assert head.right is None
-    library = context.lib.library
 
     name = PARSER_PREFIX + left.term.name[len(SOME_PREFIX) :]
-    assert len(left.term.pool) == 1, f"Terms must be unpooled {left.term}"
-    arguments = left.term.pool[0].arguments
+    return [
+        _rewrite_some_pool_entry(context, statement, head, name, entry.arguments)
+        for entry in left.term.pool
+    ]
+
+
+def _rewrite_some_pool_entry(
+    context: RewriteContext,
+    statement: ast.StatementRule,
+    head: ast.HeadAggregate,
+    name: str,
+    arguments: Sequence[ast.Term | ast.Projection],
+) -> ast.Statement:
+    """Build the choice statement for a single pool entry of a ``#some`` head."""
+
+    library = context.lib.library
 
     choice_elements: list[ast.SetAggregateElement] = []
     count_elements: list[ast.BodyAggregateElement] = []

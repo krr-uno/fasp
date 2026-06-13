@@ -35,8 +35,8 @@ The encoding is unambiguous because user-written function names cannot start wit
 Requires **Python ≥ 3.13** and **clingo-funasp ≥ 6.0.0** (a clingo 6 fork with the FASP parser, from test.pypi via `requirements.txt`). Setup (conda):
 
 ```bash
-conda create -n clingo6 python=3.13
-conda activate clingo6
+conda create -n funasp python=3.13
+conda activate funasp
 pip install -r requirements.txt
 pip install -e .
 funasp examples/family.lp
