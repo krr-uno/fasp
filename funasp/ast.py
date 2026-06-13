@@ -2,8 +2,9 @@
 Parsing wrappers and AST iteration helpers.
 
 ``parse_string``/``parse_files`` wrap the callback-based ``clingo_funasp.ast``
-parser into functions that return a ``list[ast.Statement]`` and convert clingo
-parsing errors into :class:`~funasp.util.ast.ParsingException` carrying
+parser into functions that return a ``list[Statement]`` (each parsed clingo
+statement wrapped in a :class:`Statement`) and convert clingo parsing errors
+into :class:`~funasp.util.ast.ParsingException` carrying
 :class:`~funasp.util.ast.SyntacticError` locations. ``transform_iterable``
 applies a transformer across an iterable, preserving unchanged elements.
 """
@@ -56,8 +57,15 @@ class Statement:
     def __post_init__(self) -> None:
         self.rewritten = [self.original]
 
+    def __str__(self) -> str:
+        # Imported lazily: ``funasp.rewriting`` depends on this module, so a
+        # top-level import would create a cycle.
+        from funasp.rewriting.printer import ast_to_str
 
-def parse_string(library: core.Library, code: str) -> list[ast.Statement]:
+        return ast_to_str(self.original)
+
+
+def parse_string(library: core.Library, code: str) -> list[Statement]:
     """
     Parse a string into a list of AST statements.
 
@@ -66,12 +74,12 @@ def parse_string(library: core.Library, code: str) -> list[ast.Statement]:
         code (str): The code string to parse.
 
     Returns:
-        list[ast.Statement]: The list of parsed AST statements.
+        list[Statement]: The list of parsed statements.
 
     Raises:
         Raises ParsingError if parsing fails.
     """
-    parsed: list[ast.Statement] = []
+    parsed: list[Statement] = []
     # The error messages are stored to restore them after parsing
     # The library is set to have no error messages during parsing
     # This avoids mixing errors from previous operations with parsing errors
@@ -79,7 +87,11 @@ def parse_string(library: core.Library, code: str) -> list[ast.Statement]:
     saved_errors = library.error_messages
     library.error_messages = []
     try:
-        ast.parse_string(library.library, code, lambda stmt: parsed.append(stmt))
+        ast.parse_string(
+            library.library,
+            code,
+            lambda stmt: parsed.append(Statement(library.library, stmt)),
+        )
     except RuntimeError as e:
         if str(e) != "parsing failed":  # pragma: no cover
             raise e
@@ -91,7 +103,7 @@ def parse_string(library: core.Library, code: str) -> list[ast.Statement]:
     return parsed
 
 
-def parse_files(library: core.Library, files: Sequence[str]) -> list[ast.Statement]:
+def parse_files(library: core.Library, files: Sequence[str]) -> list[Statement]:
     """
     Parse the given files into a list of AST statements.
 
@@ -100,12 +112,12 @@ def parse_files(library: core.Library, files: Sequence[str]) -> list[ast.Stateme
         files (Sequence[str]): The paths of the files to parse.
 
     Returns:
-        list[ast.Statement]: The list of parsed AST statements.
+        list[Statement]: The list of parsed statements.
 
     Raises:
         Raises ParsingError if parsing fails.
     """
-    parsed: list[ast.Statement] = []
+    parsed: list[Statement] = []
     # The error messages are stored to restore them after parsing
     # The library is set to have no error messages during parsing
     # This avoids mixing errors from previous operations with parsing errors
@@ -113,7 +125,11 @@ def parse_files(library: core.Library, files: Sequence[str]) -> list[ast.Stateme
     saved_errors = library.error_messages
     library.error_messages = []
     try:
-        ast.parse_files(library.library, files, lambda stmt: parsed.append(stmt))
+        ast.parse_files(
+            library.library,
+            files,
+            lambda stmt: parsed.append(Statement(library.library, stmt)),
+        )
     except RuntimeError as e:
         if str(e) != "parsing failed":  # pragma: no cover
             raise e

@@ -20,6 +20,7 @@ from typing import Iterable
 
 from clingo_funasp import ast
 
+from funasp.ast import Statement
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.aggregates import normalize_assignment_aggregates
 from funasp.rewriting.collectors import collect_evaluable_function_signatures
@@ -27,20 +28,19 @@ from funasp.rewriting.comparisons import prefix_comparisons
 from funasp.rewriting.constraints import functional_constraints
 from funasp.rewriting.negated_literals import rewrite_negated_body_literals
 from funasp.rewriting.prefixes import rename_prefixes
-from funasp.rewriting.printer import ast_to_str
 from funasp.rewriting.restore import restore_non_evaluable_functions
 from funasp.rewriting.some_assignments import rewrite_some_assignments
 from funasp.rewriting.unnesting import unnest_statement
 
 
 def _clingo_rewrite(
-    context: RewriteContext, original: ast.Statement, statement: ast.Statement
+    context: RewriteContext, original: Statement, statement: ast.Statement
 ) -> list[ast.Statement]:
     """
     Wrapper for clingo's statement rewriting to handle errors.
     """
     try:
-        context.lib.processing_statement(ast_to_str(original))
+        context.lib.processing_statement(str(original))
         return list(ast.rewrite_statement(context.ctx, statement))
     except RuntimeError as e:
         raise RuntimeError("rewriting failed", [(statement, e)])
@@ -50,29 +50,37 @@ def _clingo_rewrite(
 
 def rewrite_statements(
     context: RewriteContext,
-    statements: Iterable[ast.Statement],
-) -> list[ast.Statement]:
+    statements: Iterable[Statement],
+) -> list[Statement]:
     """
     Run the pipeline over parsed statements and return transformed statements.
+
+    Each input :class:`~funasp.ast.Statement` keeps its ``original`` and has its
+    ``rewritten`` list filled with the clingo statements it expands to. The
+    functionality constraints are appended as additional wrapped statements.
     """
-    pass1: list[tuple[ast.Statement, ast.Statement]] = []
-    for original in statements:
-        for stmt in rewrite_some_assignments(context, original):
+    wrappers = list(statements)
+    pass1: list[tuple[Statement, ast.Statement]] = []
+    for wrapper in wrappers:
+        for stmt in rewrite_some_assignments(context, wrapper.original):
             stmt = normalize_assignment_aggregates(context, stmt)
             stmt = rewrite_negated_body_literals(context, stmt)
             context.evaluable_functions |= collect_evaluable_function_signatures(
                 context, stmt
             )
-            pass1.append((original, stmt))
+            pass1.append((wrapper, stmt))
 
-    result: list[ast.Statement] = []
-    for original, stmt in pass1:
+    for wrapper in wrappers:
+        wrapper.rewritten = []
+    for wrapper, stmt in pass1:
         stmt = unnest_statement(context, stmt)
         stmt = rename_prefixes(context, stmt)
         stmt = prefix_comparisons(context, stmt)
-        result.extend(
+        wrapper.rewritten.extend(
             restore_non_evaluable_functions(context, rewritten)
-            for rewritten in _clingo_rewrite(context, original, stmt)
+            for rewritten in _clingo_rewrite(context, wrapper, stmt)
         )
-    result.extend(functional_constraints(context))
-    return result
+
+    for constraint in functional_constraints(context):
+        wrappers.append(Statement(context.lib.library, constraint))
+    return wrappers

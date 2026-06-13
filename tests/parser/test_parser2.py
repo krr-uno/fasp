@@ -40,7 +40,7 @@ class TestParseAssignment2(unittest.TestCase):
 
     def parse(self, code: str) -> list[ast.Statement]:
         """Parse code with the new parser, dropping the leading `#program base.`."""
-        statements = parse_string(self.lib, code)
+        statements = [s.original for s in parse_string(self.lib, code)]
         if statements and isinstance(statements[0], ast.StatementProgram):
             statements = statements[1:]
         return statements
@@ -398,7 +398,10 @@ class TestParseAssignment2(unittest.TestCase):
             file.flush()
             statements = parse_files(self.lib, [file.name])
         expected = parse_string(self.lib, code)
-        self.assertEqual(list(map(str, statements)), list(map(str, expected)))
+        self.assertEqual(
+            [str(s.original) for s in statements],
+            [str(e.original) for e in expected],
+        )
 
     def test_parse_files_error(self):
         """Test that parse_files raises ParsingException on syntax errors."""

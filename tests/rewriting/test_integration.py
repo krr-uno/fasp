@@ -55,10 +55,10 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
         statement_asts = parse_string(self.elib, program)
-        transformed = rewrite_statements(context, statement_asts)
         transformed = [
             restore_anonymous_term_variables(context, statement)
-            for statement in transformed
+            for wrapper in rewrite_statements(context, statement_asts)
+            for statement in wrapper.rewritten
         ]
 
         transformed_str = "\n".join(

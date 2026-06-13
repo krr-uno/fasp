@@ -25,7 +25,9 @@ class TestRewriteSomeAssignments(unittest.TestCase):
         statements = parse_string(self.lib, code)
         result: list[str] = []
         for statement in statements[1:]:
-            result.extend(str(s) for s in rewrite_some_assignments(context, statement))
+            result.extend(
+                str(s) for s in rewrite_some_assignments(context, statement.original)
+            )
         return result
 
     def test_single_pool_returns_one_statement(self):

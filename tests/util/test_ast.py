@@ -193,7 +193,7 @@ class TestParseString(unittest.TestCase):
 
     def assertCorrectParsing(self, program):
         """Assert correct parsing."""
-        statements = parse_string(self.lib, program)
+        statements = [s.original for s in parse_string(self.lib, program)]
         statements = statements[1:]
         lines = program.strip().splitlines()
         lines = [sl for line in lines if (sl := line.strip())]

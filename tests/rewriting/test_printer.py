@@ -23,9 +23,9 @@ class TestAstToStr(unittest.TestCase):
         if expected is None:
             expected = program
         statements = [
-            statement
+            statement.original
             for statement in parse_string(self.lib, program)
-            if not isinstance(statement, ast.StatementProgram)
+            if not isinstance(statement.original, ast.StatementProgram)
         ]
         self.assertEqual(len(statements), 1)
         self.assertEqual(ast_to_str(statements[0]), expected)

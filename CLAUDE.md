@@ -75,7 +75,7 @@ The pipeline is **parse → rewrite → clingo ground/solve → print**. Three e
 - `funasp/app.py` — `FaspApp(clingo.app.App)`. Registers funasp CLI flags (`--order`, `--prefix-fun`), drives parse + solve, and formats errors. `fasp_main` wraps everything in a `funasp.core.Library` context.
 - `funasp/control.py` — `Control`, the funasp-aware analogue of `clingo.Control`. `parse_files`/`parse_string` call the `funasp.ast` parse wrappers + the rewrite pipeline and `join` the resulting clingo AST into the underlying clingo control. Also retains the rewritten program string (`get_rewritten_program`, shown in clingo's Rewrite mode).
 
-Parsing itself is `funasp.ast.parse_string`/`parse_files`: thin wrappers over the callback-based `clingo_funasp.ast.parse_string`/`parse_files` that return a `list[ast.Statement]` and convert errors into `ParsingException` with `SyntacticError` locations.
+Parsing itself is `funasp.ast.parse_string`/`parse_files`: thin wrappers over the callback-based `clingo_funasp.ast.parse_string`/`parse_files` that return a `list[funasp.ast.Statement]` and convert errors into `ParsingException` with `SyntacticError` locations. `funasp.ast.Statement` is a small dataclass bundling each parsed statement's `original` clingo AST with the `rewritten` clingo statements it expands to (`rewritten` starts as `[original]`); the rewrite pipeline fills `rewritten` in place.
 
 ### The rewrite pipeline (the core of the project)
 

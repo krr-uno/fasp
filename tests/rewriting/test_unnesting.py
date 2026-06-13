@@ -34,7 +34,7 @@ class TestUnnestStatement(unittest.TestCase):
             },
         )
         statements = parse_string(self.lib, code)
-        return [str(unnest_statement(context, s)) for s in statements[1:]]
+        return [str(unnest_statement(context, s.original)) for s in statements[1:]]
 
     def test_negated_body_literal(self):
         """A negated body literal with an evaluable function becomes conditional."""

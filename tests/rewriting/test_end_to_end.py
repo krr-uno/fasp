@@ -26,11 +26,12 @@ class TestEndToEnd(unittest.TestCase):
         """Parse, rewrite, ground, and solve a program; return model strings."""
         context = RewriteContext(self.library, prefix)
         statements = parse_string(self.library, program)
-        statements = rewrite_statements(context, statements)
+        rewritten = rewrite_statements(context, statements)
         control = ClingoControl(self.library.library, ["0"])
         prog = ast.Program(self.library.library)
-        for statement in statements:
-            prog.add(statement)
+        for wrapper in rewritten:
+            for statement in wrapper.rewritten:
+                prog.add(statement)
         control.join(prog)
         control.ground([("base", ())])
         models = []

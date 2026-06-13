@@ -58,12 +58,15 @@ class Control:
         """
         rewrite_ctx = RewriteContext(self.library, self.prefix)
         statements = parse_files(self.library, files)
-        statements = rewrite_statements(rewrite_ctx, statements)
+        rewritten = rewrite_statements(rewrite_ctx, statements)
         program = ast.Program(self.library.library)
-        for statement in statements:
-            program.add(statement)
+        for wrapper in rewritten:
+            for statement in wrapper.rewritten:
+                program.add(statement)
         self.clingo_control.join(program)
-        self._rewritten_program = "\n".join(str(s) for s in statements)
+        self._rewritten_program = "\n".join(
+            str(s) for wrapper in rewritten for s in wrapper.rewritten
+        )
 
     def parse_string(self, code: str) -> None:
         """
@@ -78,12 +81,15 @@ class Control:
         """
         rewrite_ctx = RewriteContext(self.library, self.prefix)
         statements = parse_string(self.library, code)
-        statements = rewrite_statements(rewrite_ctx, statements)
+        rewritten = rewrite_statements(rewrite_ctx, statements)
         program = ast.Program(self.library.library)
-        for statement in statements:
-            program.add(statement)
+        for wrapper in rewritten:
+            for statement in wrapper.rewritten:
+                program.add(statement)
         self.clingo_control.join(program)
-        self._rewritten_program = "\n".join(str(s) for s in statements)
+        self._rewritten_program = "\n".join(
+            str(s) for wrapper in rewritten for s in wrapper.rewritten
+        )
 
     def ground(
         self,
