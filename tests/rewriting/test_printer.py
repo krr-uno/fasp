@@ -8,9 +8,9 @@ import unittest
 from clingo_funasp import ast
 from clingo_funasp.core import Location, Position
 
+from funasp.ast import parse_string
 from funasp.core import Library
 from funasp.rewriting.printer import ast_to_str
-from funasp.util.ast import parse_string
 
 
 class TestAstToStr(unittest.TestCase):

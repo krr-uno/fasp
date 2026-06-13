@@ -26,12 +26,9 @@ import unittest
 
 from clingo_funasp import ast
 
+from funasp.ast import parse_files, parse_string
 from funasp.core import Library
-from funasp.util.ast import (
-    ParsingException,
-    parse_files,
-    parse_string,
-)
+from funasp.util.ast import ParsingException
 
 
 class TestParseAssignment2(unittest.TestCase):

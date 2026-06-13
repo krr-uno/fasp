@@ -73,9 +73,9 @@ The pipeline is **parse → rewrite → clingo ground/solve → print**. Three e
 
 - `funasp/__main__.py` — CLI entry point (`funasp` script). Validates Python/clingo versions, then calls `app.main`.
 - `funasp/app.py` — `FaspApp(clingo.app.App)`. Registers funasp CLI flags (`--order`, `--prefix-fun`), drives parse + solve, and formats errors. `fasp_main` wraps everything in a `funasp.core.Library` context.
-- `funasp/control.py` — `Control`, the funasp-aware analogue of `clingo.Control`. `parse_files`/`parse_string` call the `funasp.util.ast` parse wrappers + the rewrite pipeline and `join` the resulting clingo AST into the underlying clingo control. Also retains the rewritten program string (`get_rewritten_program`, shown in clingo's Rewrite mode).
+- `funasp/control.py` — `Control`, the funasp-aware analogue of `clingo.Control`. `parse_files`/`parse_string` call the `funasp.ast` parse wrappers + the rewrite pipeline and `join` the resulting clingo AST into the underlying clingo control. Also retains the rewritten program string (`get_rewritten_program`, shown in clingo's Rewrite mode).
 
-Parsing itself is `funasp.util.ast.parse_string`/`parse_files`: thin wrappers over the callback-based `clingo_funasp.ast.parse_string`/`parse_files` that return a `list[ast.Statement]` and convert errors into `ParsingException` with `SyntacticError` locations.
+Parsing itself is `funasp.ast.parse_string`/`parse_files`: thin wrappers over the callback-based `clingo_funasp.ast.parse_string`/`parse_files` that return a `list[ast.Statement]` and convert errors into `ParsingException` with `SyntacticError` locations.
 
 ### The rewrite pipeline (the core of the project)
 
@@ -87,7 +87,8 @@ Parsing itself is `funasp.util.ast.parse_string`/`parse_files`: thin wrappers ov
 Shared state lives in `RewriteContext` (`_context.py`): the `funasp.core.Library`, the function-name prefix, the clingo `RewriteContext`, and the accumulated set of `SymbolSignature`s (`types.py`).
 
 - `funasp/core.py` — `Library` (a wrapper around clingo's `Library` that captures/normalizes log messages — e.g. "undefined predicate F…" → "undefined intensional function …" — and carries the `processing_statement` text used in error reports).
-- `funasp/util/ast.py` — parse wrappers, AST helpers (`create_literal`, `is_function`, `FreshVariableGenerator`, `ParsingException`).
+- `funasp/ast.py` — parse wrappers (`parse_string`/`parse_files`) and the `transform_iterable` AST-iteration helper.
+- `funasp/util/ast.py` — AST helpers (`create_literal`, `is_function`, `FreshVariableGenerator`, `ParsingException`, `SyntacticError`).
 - `funasp/solve.py` / `funasp/symbol.py` — `Model` wrapper that re-renders `Ff(t,v)` atoms as `f(t)=v` in output, and symbol helpers.
 
 ### The function prefix

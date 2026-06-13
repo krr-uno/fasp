@@ -5,10 +5,10 @@ pipeline cannot reach (head atoms are evaluable by construction there).
 
 import unittest
 
+from funasp.ast import parse_string
 from funasp.core import Library
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.restore import restore_non_evaluable_functions
-from funasp.util.ast import parse_string
 
 
 class TestRestore(unittest.TestCase):

@@ -5,6 +5,7 @@ from clingo_funasp import ast
 from clingo_funasp.core import Location, Position, Library
 
 from funasp import core
+from funasp.ast import parse_string
 from funasp.util.ast import (
     ParsingException,
     SyntacticCheckVisitor,
@@ -184,7 +185,7 @@ class TestVariableManager(unittest.TestCase):
 
 
 class TestParseString(unittest.TestCase):
-    """Tests for util_ast.parse_string."""
+    """Tests for funasp.ast.parse_string."""
 
     def setUp(self):
         """Set up test fixtures for each test."""
@@ -192,7 +193,7 @@ class TestParseString(unittest.TestCase):
 
     def assertCorrectParsing(self, program):
         """Assert correct parsing."""
-        statements = util_ast.parse_string(self.lib, program)
+        statements = parse_string(self.lib, program)
         statements = statements[1:]
         lines = program.strip().splitlines()
         lines = [sl for line in lines if (sl := line.strip())]
@@ -213,7 +214,7 @@ class TestParseString(unittest.TestCase):
     def assertParsingException(self, program, expected_errors):
         """Assert parsing exception."""
         with self.assertRaises(ParsingException) as cm:
-            util_ast.parse_string(self.lib, program)
+            parse_string(self.lib, program)
         self.assertEqual(cm.exception.errors, expected_errors)
 
     def test_parse_string_errors(self):
