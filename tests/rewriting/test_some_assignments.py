@@ -10,14 +10,14 @@ import unittest
 
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.some_assignments import rewrite_some_assignments
-from funasp.core import ELibrary
+from funasp.core import Library
 from funasp.util.ast import parse_string
 
 
 class TestRewriteSomeAssignments(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for each test."""
-        self.lib = ELibrary()
+        self.lib = Library()
 
     def rewrite(self, code: str) -> list[str]:
         """Parse a program and rewrite each statement (skipping the base directive)."""

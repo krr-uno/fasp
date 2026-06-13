@@ -1,7 +1,7 @@
 """
 Core funasp utilities shared across the package.
 
-Currently this hosts :class:`ELibrary`, a wrapper around the clingo
+Currently this hosts :class:`Library`, a wrapper around the clingo
 ``Library`` that captures and normalizes log messages (e.g. rewriting
 "undefined predicate F..." into "undefined intensional function ...") and
 carries the ``processing_statement`` text used in error reports.
@@ -10,10 +10,11 @@ carries the ``processing_statement`` text used in error reports.
 import typing
 
 from clingo_funasp import ast
-from clingo_funasp.core import Library, LogLevel, MessageType
+from clingo_funasp.core import Library as ClingoLibrary
+from clingo_funasp.core import LogLevel, MessageType
 
 
-class ELibrary:
+class Library:
 
     def __init__(
         self,
@@ -32,7 +33,7 @@ class ELibrary:
         self.log_level = log_level
         self.logger = logger
         self.message_limit = message_limit
-        self.library = Library(
+        self.library = ClingoLibrary(
             shared,
             slotted,
             log_level,

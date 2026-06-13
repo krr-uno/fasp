@@ -8,7 +8,7 @@ from typing import Iterable
 import unittest
 
 from funasp.control import Control
-from funasp.core import ELibrary
+from funasp.core import Library
 from funasp.solve import Model
 
 from tests.examples import EXAMPLES
@@ -20,7 +20,7 @@ class TestControl(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures for each test."""
-        self.library = ELibrary()
+        self.library = Library()
 
     def get_models(self, files: PathLike) -> Iterable[Model]:
         """Return models."""
@@ -49,7 +49,7 @@ class TestControl(unittest.TestCase):
         Note: with the clingo_funasp parser the location points at the
         undefined operation in the source.
         """
-        library = ELibrary(logger=lambda _, message: print(message, file=sys.stderr))
+        library = Library(logger=lambda _, message: print(message, file=sys.stderr))
         control = Control(library, ["0"])
         out = io.StringIO()
         with redirect_stderr(out):

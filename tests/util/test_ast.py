@@ -4,7 +4,7 @@ import unittest
 from clingo_funasp import ast
 from clingo_funasp.core import Location, Position, Library
 
-from funasp.core import ELibrary
+from funasp import core
 from funasp.util.ast import (
     ParsingException,
     SyntacticCheckVisitor,
@@ -188,7 +188,7 @@ class TestParseString(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures for each test."""
-        self.lib = ELibrary()
+        self.lib = core.Library()
 
     def assertCorrectParsing(self, program):
         """Assert correct parsing."""

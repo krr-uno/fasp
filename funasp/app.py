@@ -12,7 +12,7 @@ from colorama import init as colorama_init
 
 from funasp.__version__ import __version__
 from funasp.control import Control
-from funasp.core import ELibrary
+from funasp.core import Library
 from funasp.util.ast import ParsingException
 
 LIBC_NAME: str | None = None
@@ -29,7 +29,7 @@ LIBC.fflush.restype = ctypes.c_int
 
 
 class FaspApp(App):
-    def __init__(self, library: ELibrary, clingo_options: Sequence[str]) -> None:
+    def __init__(self, library: Library, clingo_options: Sequence[str]) -> None:
         """Initialize the FaspApp instance."""
         super().__init__("funasp", __version__)
         self._order = Flag()
@@ -117,7 +117,7 @@ class FaspApp(App):
 
 
 def fasp_main(
-    library: ELibrary, options: list[str] | None = None, raise_errors: bool = False
+    library: Library, options: list[str] | None = None, raise_errors: bool = False
 ) -> int:
     """
     Main function for the fasp application.
@@ -155,6 +155,6 @@ def main(options: Sequence[str] = ()) -> int:
         """Forward clingo log messages to standard error."""
         sys.stderr.write(message + "\n")
 
-    with ELibrary(logger=logger) as library:
+    with Library(logger=logger) as library:
         return fasp_main(library, list(options))
     return 1  # pragma: no cover

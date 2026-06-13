@@ -12,7 +12,7 @@ import unittest
 
 from clingo_funasp import ast
 
-from funasp.core import ELibrary
+from funasp.core import Library
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.types import SymbolSignature
 from funasp.rewriting import rewrite_statements
@@ -23,7 +23,7 @@ from tests.restore_anonymous_term_variables import restore_anonymous_term_variab
 class TestRewriteStatements(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for each test."""
-        self.elib = ELibrary(logger=lambda t, m: print(m, file=sys.stderr))
+        self.elib = Library(logger=lambda t, m: print(m, file=sys.stderr))
         self.maxDiff = None  # Show full diff on assertion failure
 
     def assertTransformEqual(

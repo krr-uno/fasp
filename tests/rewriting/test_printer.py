@@ -8,7 +8,7 @@ import unittest
 from clingo_funasp import ast
 from clingo_funasp.core import Location, Position
 
-from funasp.core import ELibrary
+from funasp.core import Library
 from funasp.rewriting.printer import ast_to_str
 from funasp.util.ast import parse_string
 
@@ -16,7 +16,7 @@ from funasp.util.ast import parse_string
 class TestAstToStr(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for each test."""
-        self.lib = ELibrary()
+        self.lib = Library()
 
     def assertRoundTrip(self, program: str, expected: str | None = None):
         """Assert that parsing then printing yields the program back."""

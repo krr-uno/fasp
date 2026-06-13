@@ -26,7 +26,7 @@ import unittest
 
 from clingo_funasp import ast
 
-from funasp.core import ELibrary
+from funasp.core import Library
 from funasp.util.ast import (
     ParsingException,
     parse_files,
@@ -39,7 +39,7 @@ class TestParseAssignment2(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for each test."""
         self.messages = []
-        self.lib = ELibrary(logger=lambda t, msg: self.messages.append((t, msg)))
+        self.lib = Library(logger=lambda t, msg: self.messages.append((t, msg)))
 
     def parse(self, code: str) -> list[ast.Statement]:
         """Parse code with the new parser, dropping the leading `#program base.`."""

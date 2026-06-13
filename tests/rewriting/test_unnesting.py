@@ -13,14 +13,14 @@ from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.literals import UnnestFunctionsInLiteralsTransformer
 from funasp.rewriting.types import SymbolSignature
 from funasp.rewriting.unnesting import unnest_statement
-from funasp.core import ELibrary
+from funasp.core import Library
 from funasp.util.ast import FreshVariableGenerator, parse_string
 
 
 class TestUnnestStatement(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for each test."""
-        self.lib = ELibrary()
+        self.lib = Library()
 
     def unnest(self, code: str, evaluable: set[str]) -> list[str]:
         """Parse a program and unnest each statement directly."""

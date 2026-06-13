@@ -72,7 +72,7 @@ python -m unittest tests.rewriting.test_integration.TestRewriteStatements.test_f
 The pipeline is **parse → rewrite → clingo ground/solve → print**. Three entry layers:
 
 - `funasp/__main__.py` — CLI entry point (`funasp` script). Validates Python/clingo versions, then calls `app.main`.
-- `funasp/app.py` — `FaspApp(clingo.app.App)`. Registers funasp CLI flags (`--order`, `--prefix-fun`), drives parse + solve, and formats errors. `fasp_main` wraps everything in an `ELibrary` context.
+- `funasp/app.py` — `FaspApp(clingo.app.App)`. Registers funasp CLI flags (`--order`, `--prefix-fun`), drives parse + solve, and formats errors. `fasp_main` wraps everything in a `funasp.core.Library` context.
 - `funasp/control.py` — `Control`, the funasp-aware analogue of `clingo.Control`. `parse_files`/`parse_string` call the `funasp.util.ast` parse wrappers + the rewrite pipeline and `join` the resulting clingo AST into the underlying clingo control. Also retains the rewritten program string (`get_rewritten_program`, shown in clingo's Rewrite mode).
 
 Parsing itself is `funasp.util.ast.parse_string`/`parse_files`: thin wrappers over the callback-based `clingo_funasp.ast.parse_string`/`parse_files` that return a `list[ast.Statement]` and convert errors into `ParsingException` with `SyntacticError` locations.
@@ -84,9 +84,9 @@ Parsing itself is `funasp.util.ast.parse_string`/`parse_files`: thin wrappers ov
 1. Per statement: `rewrite_some_assignments` (`some_assignments.py`, `FS` aggregate → choice `= 1` + `#count ≥ 1` body) → `normalize_assignment_aggregates` (`aggregates.py`, `Ff(X) = #agg{…}` → `Ff(X,W)` head + body aggregate) → `rewrite_negate_body_literals` (`negated_literals.py`, `not l` → `#false : l`), collecting evaluable-function signatures (`collectors.py`, from prefixed head atoms: arity−1). All pass-1 steps detect the parser's hardcoded `F`/`FS` directly.
 2. Per statement: `unnest_statement` (`unnesting.py` driver + `literals.py` term logic: nested evaluable `f(t)` → fresh `FUN` var + `f(t)=FUN` comparison) → `rename_prefixes` (`prefixes.py`, applies `--prefix-fun` by renaming the parser's hardcoded `F`/`FS`) → `prefix_comparisons` (`comparisons.py`, evaluable `f(t)=v` → `Ff(t,v)`, pools handled) → clingo's own `ast.rewrite_statement` → `restore.py` (un-prefixes unpooled entries whose arity is not evaluable). Finally `constraints.py` appends one functionality constraint `:- Ff(X…,_), 1 < #count{V: Ff(X…,V)}.` per evaluable function.
 
-Shared state lives in `RewriteContext` (`_context.py`): the `ELibrary`, the function-name prefix, the clingo `RewriteContext`, and the accumulated set of `SymbolSignature`s (`types.py`).
+Shared state lives in `RewriteContext` (`_context.py`): the `funasp.core.Library`, the function-name prefix, the clingo `RewriteContext`, and the accumulated set of `SymbolSignature`s (`types.py`).
 
-- `funasp/core.py` — `ELibrary` (Library wrapper that captures/normalizes log messages — e.g. "undefined predicate F…" → "undefined intensional function …" — and carries the `processing_statement` text used in error reports).
+- `funasp/core.py` — `Library` (a wrapper around clingo's `Library` that captures/normalizes log messages — e.g. "undefined predicate F…" → "undefined intensional function …" — and carries the `processing_statement` text used in error reports).
 - `funasp/util/ast.py` — parse wrappers, AST helpers (`create_literal`, `is_function`, `FreshVariableGenerator`, `ParsingException`).
 - `funasp/solve.py` / `funasp/symbol.py` — `Model` wrapper that re-renders `Ff(t,v)` atoms as `f(t)=v` in output, and symbol helpers.
 

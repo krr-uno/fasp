@@ -8,7 +8,7 @@ from clingo_funasp import ast
 from clingo_funasp import solve as clingo_solve
 from clingo_funasp import symbol
 
-from funasp.core import ELibrary
+from funasp.core import Library
 from funasp.rewriting import rewrite_statements
 from funasp.rewriting._context import RewriteContext
 from funasp.solve import Model
@@ -31,7 +31,7 @@ class Control:
 
     def __init__(
         self,
-        library: ELibrary,
+        library: Library,
         options: Sequence[str] = (),
         prefix: str = "F",
         clingo_control: Optional[clingo_funasp.control.Control] = None,

@@ -15,7 +15,7 @@ from clingo_funasp import ast
 from clingo_funasp.core import Library, Location, MessageType, Position
 from clingo_funasp.symbol import Symbol, SymbolType
 
-from funasp.core import ELibrary
+from funasp import core
 
 AST = (
     ast.Statement
@@ -394,7 +394,7 @@ def _process_error(
     )
 
 
-def parse_string(library: ELibrary, code: str) -> list[ast.Statement]:
+def parse_string(library: core.Library, code: str) -> list[ast.Statement]:
     """
     Parse a string into a list of AST statements.
 
@@ -428,7 +428,7 @@ def parse_string(library: ELibrary, code: str) -> list[ast.Statement]:
     return parsed
 
 
-def parse_files(library: ELibrary, files: Sequence[str]) -> list[ast.Statement]:
+def parse_files(library: core.Library, files: Sequence[str]) -> list[ast.Statement]:
     """
     Parse the given files into a list of AST statements.
 

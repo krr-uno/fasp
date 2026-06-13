@@ -9,7 +9,7 @@ import unittest
 from clingo_funasp import ast
 from clingo_funasp.control import Control as ClingoControl
 
-from funasp.core import ELibrary
+from funasp.core import Library
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting import rewrite_statements
 from funasp.solve import Model
@@ -20,7 +20,7 @@ from tests.examples import EXAMPLES
 class TestEndToEnd(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures for each test."""
-        self.library = ELibrary()
+        self.library = Library()
 
     def get_models(self, program: str, prefix: str = "F") -> list[str]:
         """Parse, rewrite, ground, and solve a program; return model strings."""

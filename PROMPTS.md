@@ -435,4 +435,4 @@ Note: the dev tools live in the funasp conda env (where clingo_funasp is install
 
 Create a module `funasp.core` and move the class `funasp.ast.ELibrary` to `funasp.core`. Ajust the rest of the code as necessary.
 
-Rename the class `funasp.ast.ELibrary` to `funasp.ast.ELibrary`. Ajust the rest of the code as necessary.
+Rename the class `funasp.core.ELibrary` to `funasp.core.Library`. Ajust the rest of the code as necessary.
