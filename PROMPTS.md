@@ -573,3 +573,7 @@ def rewrite_statements(
 ) -> list[funasp.ast.Statement]:
 ```
 Ajust the rest of the code as necessary.
+
+---
+
+Move module `funasp.rewriting.printer` to module `funasp.printer`. Ajust the rest of the code as necessary.

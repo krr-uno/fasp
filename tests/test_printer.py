@@ -1,5 +1,5 @@
 """
-Tests for ``funasp.rewriting.printer.ast_to_str``: rendering as-parsed
+Tests for ``funasp.printer.ast_to_str``: rendering as-parsed
 (F-encoded) statements back in FASP syntax for error messages.
 """
 
@@ -10,7 +10,7 @@ from clingo_funasp.core import Location, Position
 
 from funasp.ast import parse_string
 from funasp.core import Library
-from funasp.rewriting.printer import ast_to_str
+from funasp.printer import ast_to_str
 
 
 class TestAstToStr(unittest.TestCase):

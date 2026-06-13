@@ -58,9 +58,9 @@ class Statement:
         self.rewritten = [self.original]
 
     def __str__(self) -> str:
-        # Imported lazily: ``funasp.rewriting`` depends on this module, so a
-        # top-level import would create a cycle.
-        from funasp.rewriting.printer import ast_to_str
+        # Imported lazily: ``funasp.printer`` pulls in ``funasp.rewriting``,
+        # which depends on this module, so a top-level import would cycle.
+        from funasp.printer import ast_to_str
 
         return ast_to_str(self.original)
 
