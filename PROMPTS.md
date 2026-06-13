@@ -577,3 +577,7 @@ Ajust the rest of the code as necessary.
 ---
 
 Move module `funasp.rewriting.printer` to module `funasp.printer`. Ajust the rest of the code as necessary.
+
+---
+
+Move `PARSER_PREFIX` from `funasp/rewriting/prefixes.py` to `funasp/ast.py`. Move `SOME_MARKER` from `funasp/rewriting/some_assignments.py` to  `funasp/ast.py`. Ajust the rest of the code as necessary.
