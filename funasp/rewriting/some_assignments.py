@@ -20,11 +20,10 @@ from typing import Sequence
 
 from clingo_funasp import ast, symbol
 
+from funasp.ast import PARSER_PREFIX, SOME_MARKER
 from funasp.rewriting._context import RewriteContext
-from funasp.rewriting.prefixes import PARSER_PREFIX
 
-#: The suffix appended to the prefix by the parser for ``#some`` assignments.
-SOME_MARKER = "S"
+#: The prefix the parser generates for ``#some`` assignments.
 SOME_PREFIX = PARSER_PREFIX + SOME_MARKER
 
 

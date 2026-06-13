@@ -24,10 +24,8 @@ function names cannot start with an uppercase letter (those are variables).
 
 from clingo_funasp import ast
 
+from funasp.ast import PARSER_PREFIX
 from funasp.rewriting._context import RewriteContext
-
-#: The prefix hardcoded in the clingo_funasp parser.
-PARSER_PREFIX = "F"
 
 
 def _rename_term(context: RewriteContext, term: ast.TermFunction) -> ast.TermFunction:

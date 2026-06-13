@@ -17,9 +17,9 @@ rewriting, so the left-guard prefix is the parser's literal ``F``.
 
 from clingo_funasp import ast
 
+from funasp.ast import PARSER_PREFIX
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.collectors import collect_variables
-from funasp.rewriting.prefixes import PARSER_PREFIX
 from funasp.util.ast import FreshVariableGenerator
 
 
