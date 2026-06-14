@@ -16,6 +16,7 @@ ASP program, mirroring the old FASP-node pipeline:
 3. Append the functionality constraints.
 """
 
+from functools import partial
 from typing import Iterable
 
 from clingo_funasp import ast
@@ -59,28 +60,22 @@ def rewrite_statements(
     ``rewritten`` list filled with the clingo statements it expands to. The
     functionality constraints are appended as additional wrapped statements.
     """
-    wrappers = list(statements)
-    pass1: list[tuple[Statement, ast.Statement]] = []
-    for wrapper in wrappers:
-        for stmt in rewrite_some_assignments(context, wrapper.original):
-            stmt = normalize_assignment_aggregates(context, stmt)
-            stmt = rewrite_negated_body_literals(context, stmt)
+    for stmt in statements:
+        stmt.rewrite(partial(rewrite_some_assignments, context))
+        stmt.rewrite(partial(normalize_assignment_aggregates, context))
+        stmt.rewrite(partial(rewrite_negated_body_literals, context))
+        for clingo_stmt in stmt.rewritten:
             context.evaluable_functions |= collect_evaluable_function_signatures(
-                context, stmt
+                context, clingo_stmt
             )
-            pass1.append((wrapper, stmt))
+    for stmt in statements:
+        stmt.rewrite(partial(unnest_statement, context))
+        stmt.rewrite(partial(rename_prefixes, context))
+        stmt.rewrite(partial(prefix_comparisons, context))
+        stmt.rewrite(partial(_clingo_rewrite, context, stmt))
+        stmt.rewrite(partial(restore_non_evaluable_functions, context))
 
-    for wrapper in wrappers:
-        wrapper.rewritten = []
-    for wrapper, stmt in pass1:
-        stmt = unnest_statement(context, stmt)
-        stmt = rename_prefixes(context, stmt)
-        stmt = prefix_comparisons(context, stmt)
-        wrapper.rewritten.extend(
-            restore_non_evaluable_functions(context, rewritten)
-            for rewritten in _clingo_rewrite(context, wrapper, stmt)
-        )
-
+    new_statements = list(statements)
     for constraint in functional_constraints(context):
-        wrappers.append(Statement(context.lib.library, constraint))
-    return wrappers
+        new_statements.append(Statement(context.lib.library, constraint))
+    return new_statements
