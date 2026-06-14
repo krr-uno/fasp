@@ -62,6 +62,12 @@ def _process_error(
     )
 
 
+_REWRITE_FUNCTION = (
+    Callable[[ast.Statement], ast.Statement]
+    | Callable[[ast.Statement], list[ast.Statement]]
+)
+
+
 @dataclass
 class Statement:
     """A wrapper for clingo_funasp.ast.Statement that keeps track to the original statement for better error reporting during rewriting."""
@@ -75,6 +81,21 @@ class Statement:
 
     def __str__(self) -> str:
         return ast_to_str(self.original)
+
+    def rewrite(self, func: _REWRITE_FUNCTION) -> None:
+        """
+        Apply a rewriting function to the statement, updating the rewritten list.
+
+        The rewriting function can return either a single statement or a list of statements. In the first case, the rewritten list is updated to contain only the returned statement; in the second case, it is updated to contain all returned statements.
+        """
+        new_rewritten: list[ast.Statement] = []
+        for stmt in self.rewritten:
+            result = func(stmt)
+            if isinstance(result, ast.Statement):
+                new_rewritten.append(result)
+            else:
+                new_rewritten.extend(result)
+            self.rewritten = new_rewritten
 
 
 def parse_string(library: core.Library, code: str) -> list[Statement]:
