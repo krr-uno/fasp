@@ -11,7 +11,7 @@ def map_none[T](
     None results are replaced by the item itself.
     """
     all_none = True
-    new_list = []
+    new_list: list[T] = []
     for item in lst:
         result = func(item)
         if result is not None:
