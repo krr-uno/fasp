@@ -663,4 +663,5 @@ Remember this for future contributions.
 
 # Future work
 
-Move `RewriteContext` from `funasp.rewriting._context` to `funasp/ast.py`. Move `rewrite_statements` from `funasp/rewriting/integration.py` to `funasp/ast.py`. Ajust the rest of the code as necessary.
+- Good error messages during grounding.
+- Consider. Move `RewriteContext` from `funasp.rewriting._context` to `funasp/ast.py`. Move `rewrite_statements` from `funasp/rewriting/integration.py` to `funasp/ast.py`. Ajust the rest of the code as necessary.
