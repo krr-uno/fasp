@@ -1,10 +1,10 @@
 """
-Collection of evaluable function signatures from the prefixed representation.
+Collection of intensional function signatures from the prefixed representation.
 
 The ``clingo_funasp`` parser encodes an assignment ``f(t1,...,tn) := v`` as
 the atom ``Ff(t1,...,tn,v)``: the function name gets the prefix and the
 assigned value is appended as the last argument. Consequently, a prefixed
-head atom of arity ``n+1`` declares the evaluable function ``f/n``.
+head atom of arity ``n+1`` declares the intensional function ``f/n``.
 
 Collection must run after ``#some`` and aggregate assignments have been
 normalized (see ``integration.py``), so the only places where assignments
@@ -70,11 +70,11 @@ def _signatures_from_literal(prefix: str, literal: ast.Literal) -> set[SymbolSig
     }
 
 
-def collect_evaluable_function_signatures(
+def collect_intensional_function_signatures(
     context: RewriteContext, statement: ast.Statement
 ) -> set[SymbolSignature]:
     """
-    Collect the evaluable function signatures declared by a statement head.
+    Collect the intensional function signatures declared by a statement head.
     """
     if not isinstance(statement, ast.StatementRule):
         return set()

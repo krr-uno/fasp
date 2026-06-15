@@ -2,7 +2,7 @@
 Rewriting of negated body literals.
 
 Single-negation body literals ``not l`` are rewritten into the conditional
-literal ``#false : l`` so that later unnesting of evaluable functions inside
+literal ``#false : l`` so that later unnesting of intensional functions inside
 them can use anonymous projections.
 """
 

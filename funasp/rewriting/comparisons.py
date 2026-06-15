@@ -1,11 +1,11 @@
 """
 Rewriting of functional equalities into prefixed predicate literals.
 
-The parser does not touch body occurrences of evaluable functions: an
+The parser does not touch body occurrences of intensional functions: an
 equality ``f(t) = v`` (written by the user or produced by unnesting) stays a
 plain comparison. This step rewrites every such equality whose signature is
-evaluable into the predicate literal ``Ff(t,v)``, completing the encoding.
-Comparisons over non-evaluable functions are left untouched, so no
+intensional into the predicate literal ``Ff(t,v)``, completing the encoding.
+Comparisons over non-intensional functions are left untouched, so no
 restoration step is needed afterwards.
 """
 
@@ -23,23 +23,23 @@ from funasp.util.ast import AST, function_arguments_ast, is_function
 
 class ComparisonTransformer:
     """
-    Rewrites evaluable functional equalities into prefixed predicate literals.
+    Rewrites intensional functional equalities into prefixed predicate literals.
     """
 
     def __init__(
         self,
         library: Library,
-        evaluable_functions: AbstractSet[SymbolSignature],
+        intensional_functions: AbstractSet[SymbolSignature],
         prefix: str = "F",
     ) -> None:
         """
-        Initialize the transformer with the set of evaluable functions.
+        Initialize the transformer with the set of intensional functions.
         """
         self.library = library
-        self.evaluable_functions = evaluable_functions
+        self.intensional_functions = intensional_functions
         self.prefix = prefix
 
-    def _build_evaluable_function_to_term(
+    def _build_intensional_function_to_term(
         self,
         assigned_function: ast.TermFunction | ast.TermSymbolic,
         value: ast.TermOrProjection,
@@ -95,7 +95,7 @@ class ComparisonTransformer:
         else:
             candidate_arities = {len(arguments)}
         if not any(
-            SymbolSignature(name, arity) in self.evaluable_functions
+            SymbolSignature(name, arity) in self.intensional_functions
             for arity in candidate_arities
         ):
             return None
@@ -103,13 +103,13 @@ class ComparisonTransformer:
             self.library,
             node.location,
             node.sign,
-            self._build_evaluable_function_to_term(
+            self._build_intensional_function_to_term(
                 node.left, node.right[0].term, node.location
             ),
         )
 
     def rewrite(self, node: ast.Statement) -> ast.Statement:
-        """Rewrite all evaluable functional equalities in a statement."""
+        """Rewrite all intensional functional equalities in a statement."""
         result = self._dispatch(node) or node
         return cast(ast.Statement, result)
 
@@ -118,8 +118,8 @@ def prefix_comparisons(
     context: RewriteContext,
     statement: ast.Statement,
 ) -> ast.Statement:
-    """Rewrite evaluable functional equalities in a single statement."""
+    """Rewrite intensional functional equalities in a single statement."""
     transformer = ComparisonTransformer(
-        context.lib.library, context.evaluable_functions, context.prefix_function
+        context.lib.library, context.intensional_functions, context.prefix_function
     )
     return transformer.rewrite(statement)

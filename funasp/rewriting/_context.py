@@ -18,13 +18,13 @@ class RewriteContext:
         lib: Library = Library(),
         prefix_function: str = "F",
         *,
-        evaluable_functions: set[SymbolSignature] | None = None,
+        intensional_functions: set[SymbolSignature] | None = None,
     ):
         """Initialize the RewriteContext instance."""
         self.lib = lib
         self.prefix_function = prefix_function
         self.ctx = ClingoRewriteContext(self.lib.library)
         self.ctx.project_anonymous = True
-        self.evaluable_functions: set[SymbolSignature] = (
-            set(evaluable_functions) if evaluable_functions is not None else set()
+        self.intensional_functions: set[SymbolSignature] = (
+            set(intensional_functions) if intensional_functions is not None else set()
         )

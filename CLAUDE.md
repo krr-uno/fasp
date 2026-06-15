@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`funasp` extends **clingo 6** with evaluable (intensional) functions defined by the user. The headline syntax is the assignment rule:
+`funasp` extends **clingo 6** with intensional functions defined by the user. The headline syntax is the assignment rule:
 
 ```prolog
 f(t1) := t2 :- Body.                 % deterministic assignment
@@ -28,7 +28,7 @@ The `clingo_funasp` parser desugars assignments **at parse time** into ordinary 
 | `#showf p/1.` | `#show Fp/2.` (arity+1) |
 | body occurrences | **untouched** — `b :- a = 1.` keeps the plain comparison |
 
-The encoding is unambiguous because user-written function names cannot start with an uppercase letter. The semantic work (unnesting, functionality constraints, `#some` semantics, body equalities) is done by `funasp/rewriting/` — grounding the parsed output directly gives wrong answers.
+The encoding is unambiguous because user-written function names cannot start with an uppercase letter. The semantic work (unnesting, uniqueness constraints, `#some` semantics, body equalities) is done by `funasp/rewriting/` — grounding the parsed output directly gives wrong answers.
 
 ## Environment
 
@@ -81,8 +81,8 @@ Parsing itself is `funasp.ast.parse_string`/`parse_files`: thin wrappers over th
 
 `funasp/rewriting/` turns the parser's syntactic F-encoding into a semantically correct program. Everything is orchestrated by **`rewrite_statements(context, statements)`** in `rewriting/integration.py` — read this first; it is the spine of the system. Two passes over plain clingo statements:
 
-1. Per statement: `rewrite_some_assignments` (`some_assignments.py`, `FS` aggregate → choice `= 1` + `#count ≥ 1` body) → `normalize_assignment_aggregates` (`aggregates.py`, `Ff(X) = #agg{…}` → `Ff(X,W)` head + body aggregate) → `rewrite_negate_body_literals` (`negated_literals.py`, `not l` → `#false : l`), collecting evaluable-function signatures (`collectors.py`, from prefixed head atoms: arity−1). All pass-1 steps detect the parser's hardcoded `F`/`FS` directly.
-2. Per statement: `unnest_statement` (`unnesting.py` driver + `literals.py` term logic: nested evaluable `f(t)` → fresh `FUN` var + `f(t)=FUN` comparison) → `rename_prefixes` (`prefixes.py`, applies `--prefix-fun` by renaming the parser's hardcoded `F`/`FS`) → `prefix_comparisons` (`comparisons.py`, evaluable `f(t)=v` → `Ff(t,v)`, pools handled) → clingo's own `ast.rewrite_statement` → `restore.py` (un-prefixes unpooled entries whose arity is not evaluable). Finally `constraints.py` appends one functionality constraint `:- Ff(X…,_), 1 < #count{V: Ff(X…,V)}.` per evaluable function.
+1. Per statement: `rewrite_some_assignments` (`some_assignments.py`, `FS` aggregate → choice `= 1` + `#count ≥ 1` body) → `normalize_assignment_aggregates` (`aggregates.py`, `Ff(X) = #agg{…}` → `Ff(X,W)` head + body aggregate) → `rewrite_negate_body_literals` (`negated_literals.py`, `not l` → `#false : l`), collecting intensional-function signatures (`collectors.py`, from prefixed head atoms: arity−1). All pass-1 steps detect the parser's hardcoded `F`/`FS` directly.
+2. Per statement: `unnest_statement` (`unnesting.py` driver + `literals.py` term logic: nested intensional `f(t)` → fresh `FUN` var + `f(t)=FUN` comparison) → `rename_prefixes` (`prefixes.py`, applies `--prefix-fun` by renaming the parser's hardcoded `F`/`FS`) → `prefix_comparisons` (`comparisons.py`, intensional `f(t)=v` → `Ff(t,v)`, pools handled) → clingo's own `ast.rewrite_statement` → `restore.py` (un-prefixes unpooled entries whose arity is not intensional). Finally `constraints.py` appends one uniqueness constraint `:- Ff(X…,_), 1 < #count{V: Ff(X…,V)}.` per intensional function.
 
 Shared state lives in `RewriteContext` (`_context.py`): the `funasp.core.Library`, the function-name prefix, the clingo `RewriteContext`, and the accumulated set of `SymbolSignature`s (`types.py`).
 

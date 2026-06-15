@@ -1,7 +1,7 @@
 """
-Term-level unnesting of evaluable functions inside literals.
+Term-level unnesting of intensional functions inside literals.
 
-A nested evaluable function term is replaced by a fresh ``FUN`` variable and
+A nested intensional function term is replaced by a fresh ``FUN`` variable and
 an equality comparison linking the term to the variable is recorded, to be
 placed by the statement-level driver (``funasp.rewriting.unnesting``).
 """
@@ -57,7 +57,7 @@ def unnest_functions[
 ](
     lib: Library,
     node: T,
-    evaluable_functions: Set[SymbolSignature],
+    intensional_functions: Set[SymbolSignature],
     variable_generator: FreshVariableGenerator,
     *,
     outer: bool = True,
@@ -66,11 +66,11 @@ def unnest_functions[
     allowed_in_negated_literals: bool = True,
 ) -> tuple[T | None, List[ast.LiteralComparison]]:
     """
-    Unnest evaluable functions in a given rule and return the list of generated comparisons.
+    Unnest intensional functions in a given rule and return the list of generated comparisons.
     """
     transformer = UnnestFunctionsInLiteralsTransformer(
         lib,
-        evaluable_functions,
+        intensional_functions,
         variable_generator,
         unnest_left_guard_equality,
         allowed_in_negated_literals,
@@ -86,20 +86,20 @@ def unnest_functions[
 
 class UnnestFunctionsInLiteralsTransformer:
     """
-    Recursively unnest evaluable functions in Clingo AST.
+    Recursively unnest intensional functions in Clingo AST.
     """
 
     def __init__(
         self,
         lib: Library,
-        evaluable_functions: Set[SymbolSignature],
+        intensional_functions: Set[SymbolSignature],
         variable_generator: FreshVariableGenerator,
         unnest_left_guard_equality: bool = False,
         allowed_in_negated_literals: bool = True,
     ):
         """Initialize the literal unnesting transformer and its state."""
         self.lib = lib
-        self.evaluable_functions = evaluable_functions
+        self.intensional_functions = intensional_functions
         self.var_gen = variable_generator
         self.unnested_functions: List[ast.LiteralComparison] = []
         self.unnest_left_guard_equality = unnest_left_guard_equality
@@ -111,19 +111,21 @@ class UnnestFunctionsInLiteralsTransformer:
         self.unnested_functions = []
         return unnested
 
-    def _is_evaluable(self, name: str, arity: int) -> bool:
-        """Return whether the given function signature is evaluable."""
-        return SymbolSignature(name, arity) in self.evaluable_functions
+    def _is_intensional(self, name: str, arity: int) -> bool:
+        """Return whether the given function signature is intensional."""
+        return SymbolSignature(name, arity) in self.intensional_functions
 
-    def _is_evaluable_term(self, term: ast.Term) -> bool:
-        """Return whether the given term is an evaluable function term."""
+    def _is_intensional_term(self, term: ast.Term) -> bool:
+        """Return whether the given term is an intensional function term."""
         if isinstance(term, ast.TermFunction):
-            return self._is_evaluable(term.name, len(term.pool[0].arguments))
+            return self._is_intensional(term.name, len(term.pool[0].arguments))
         if (
             isinstance(term, ast.TermSymbolic)
             and term.symbol.type == symbol.SymbolType.Function
         ):
-            return self._is_evaluable(str(term.symbol.name), len(term.symbol.arguments))
+            return self._is_intensional(
+                str(term.symbol.name), len(term.symbol.arguments)
+            )
         return False
 
     def _make_comparison(
@@ -150,7 +152,7 @@ class UnnestFunctionsInLiteralsTransformer:
         sign: ast.Sign | None = None,
     ) -> AST_T | None:
         """
-        Unnest evaluable functions in the given AST node.
+        Unnest intensional functions in the given AST node.
         It returns a new node if changes were made, or None otherwise.
         """
         return node.transform(self.lib, self.unnest, outer, sign)
@@ -162,7 +164,7 @@ class UnnestFunctionsInLiteralsTransformer:
         outer: bool = True,
         sign: ast.Sign | None = None,
     ) -> ast.LiteralSymbolic | None:
-        """Unnest evaluable functions inside a symbolic literal."""
+        """Unnest intensional functions inside a symbolic literal."""
         return node.transform(self.lib, self.unnest, outer=True, sign=node.sign)
 
     def _flip_equality(
@@ -184,14 +186,14 @@ class UnnestFunctionsInLiteralsTransformer:
         sign: ast.Sign | None = None,
     ) -> ast.LiteralComparison | None:
         """
-        Normalize comparisons to have evaluable functions on the left side of equality only
+        Normalize comparisons to have intensional functions on the left side of equality only
         """
         outer_left = False
         is_new_node = False
         # Special case: equality with a single right guard
         if len(node.right) == 1 and node.right[0].relation == ast.Relation.Equal:
-            # Flip if evaluable only on right-hand side
-            if not self._is_evaluable_term(node.left) and self._is_evaluable_term(
+            # Flip if intensional only on right-hand side
+            if not self._is_intensional_term(node.left) and self._is_intensional_term(
                 node.right[0].term
             ):
                 node = self._flip_equality(node)
@@ -220,7 +222,7 @@ class UnnestFunctionsInLiteralsTransformer:
         sign: ast.Sign | None,
         location: Location,
     ) -> tuple[ast.TermFunction | None, str, Sequence[Symbol] | Sequence[ast.Term]]:
-        """Unnest evaluable functions appearing inside a symbolic function argument list."""
+        """Unnest intensional functions appearing inside a symbolic function argument list."""
         arguments: list[Symbol | ast.Term] = []
         has_new_argument = False
         for arg in node.arguments:
@@ -257,7 +259,7 @@ class UnnestFunctionsInLiteralsTransformer:
         sign: ast.Sign | None = None,
         location: Location | None = None,
     ) -> ast.TermFunction | ast.TermSymbolic | ast.TermVariable | None:
-        """Unnest evaluable function terms and replace inner calls with fresh variables."""
+        """Unnest intensional function terms and replace inner calls with fresh variables."""
 
         if not isinstance(node, Symbol) and not is_function(node):
             return None
@@ -273,7 +275,7 @@ class UnnestFunctionsInLiteralsTransformer:
             new_node, name, arguments = self._unnest_symbol_function(
                 node, sign, location
             )
-            if outer or not self._is_evaluable(name, len(arguments)):
+            if outer or not self._is_intensional(name, len(arguments)):
                 return new_node
         else:
             new_node = node.transform(
@@ -286,7 +288,7 @@ class UnnestFunctionsInLiteralsTransformer:
                 return new_node
             name = node.name
             for arguments in node.pool:
-                if self._is_evaluable(name, len(arguments.arguments)):
+                if self._is_intensional(name, len(arguments.arguments)):
                     break
             else:
                 return new_node
@@ -296,7 +298,7 @@ class UnnestFunctionsInLiteralsTransformer:
 
         if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
             raise RuntimeError(
-                f"Evaluable functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {location}."
+                f"Intensional functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {location}."
             )
         fresh: ast.TermVariable = self.var_gen.fresh_variable(self.lib, location, "FUN")
         if isinstance(node, Symbol):
@@ -321,12 +323,12 @@ class UnnestFunctionsInLiteralsTransformer:
     ](
         self, node: T, outer: bool = True, sign: ast.Sign | None = None
     ) -> T | None:
-        """Unnest evaluable functions that occur inside composite term nodes."""
+        """Unnest intensional functions that occur inside composite term nodes."""
         return node.transform(self.lib, self.unnest, outer=False, sign=sign)
 
     @unnest.register
     def _(
         self, node: ast.OptimizeTuple, outer: bool = True, sign: ast.Sign | None = None
     ) -> ast.OptimizeTuple | None:
-        """Unnest evaluable functions that occur inside optimize tuples."""
+        """Unnest intensional functions that occur inside optimize tuples."""
         return node.transform(self.lib, self.unnest, outer=False, sign=sign)

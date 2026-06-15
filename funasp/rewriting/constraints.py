@@ -1,7 +1,7 @@
 """
-Generation of functionality constraints.
+Generation of uniqueness constraints.
 
-For every evaluable function ``f/n`` collected during rewriting, a constraint
+For every intensional function ``f/n`` collected during rewriting, a constraint
 
     :- Ff(X0,...,Xn-1,_), 1 < #count{ V : Ff(X0,...,Xn-1,V) }.
 
@@ -23,10 +23,10 @@ def _functional_constraint(
     library: Library, function: SymbolSignature, prefix: str = "F"
 ) -> ast.StatementRule:
     """
-    Generate a functional constraint for a single evaluable function.
+    Generate a functional constraint for a single intensional function.
 
     Args:
-        function (SymbolSignature): The evaluable function to generate the constraint for.
+        function (SymbolSignature): The intensional function to generate the constraint for.
         prefix (str): The prefix to use for the function name.
 
     Returns:
@@ -81,16 +81,16 @@ def functional_constraints(
     context: RewriteContext,
 ) -> Iterable[ast.StatementRule]:
     """
-    Generate functional constraints for evaluable functions.
+    Generate functional constraints for intensional functions.
 
     Args:
         context (RewriteContext): The rewrite context with the collected
-            evaluable functions.
+            intensional functions.
 
     Returns:
         list[ast.AST]: A list of constraints for the functional normal form.
     """
     return (
         _functional_constraint(context.lib.library, fun, context.prefix_function)
-        for fun in sorted(context.evaluable_functions)
+        for fun in sorted(context.intensional_functions)
     )

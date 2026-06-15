@@ -31,20 +31,20 @@ class TestRewriteStatements(unittest.TestCase):
         program: str,
         expected_program: str | None,
         *,
-        evaluable_functions: set[str] | None = None,
+        intensional_functions: set[str] | None = None,
         prefix: str = "F",
     ):
         """Assert transform equal."""
-        if evaluable_functions is None:
-            evaluable_functions = set()
+        if intensional_functions is None:
+            intensional_functions = set()
 
-        evaluable_functions = {
+        intensional_functions = {
             SymbolSignature(name, int(arity))
-            for name, arity in (s.split("/") for s in evaluable_functions)
+            for name, arity in (s.split("/") for s in intensional_functions)
         }
 
         context = RewriteContext(
-            self.elib, prefix, evaluable_functions=evaluable_functions
+            self.elib, prefix, intensional_functions=intensional_functions
         )
 
         program = textwrap.dedent(program).strip()
@@ -308,7 +308,7 @@ class TestRewriteStatements(unittest.TestCase):
             :- Fcontroller(X0,_); 1 < #count { V: Fcontroller(X0,V) }.
             :- FcontrolsStk(X0,X1,X2,_); 1 < #count { V: FcontrolsStk(X0,X1,X2,V) }.
             """,
-            evaluable_functions={"controlsStk/3"},
+            intensional_functions={"controlsStk/3"},
         )
 
     def test_show(self):
@@ -324,7 +324,7 @@ class TestRewriteStatements(unittest.TestCase):
             :- Ff(_); 1 < #count { V: Ff(V) }.
             :- Fg(X0,_); 1 < #count { V: Fg(X0,V) }.
             """,
-            evaluable_functions={"f/0", "g/1"},
+            intensional_functions={"f/0", "g/1"},
         )
 
     def test_show_negation(self):
@@ -340,7 +340,7 @@ class TestRewriteStatements(unittest.TestCase):
             :- Ff(_); 1 < #count { V: Ff(V) }.
             :- Fg(X0,_); 1 < #count { V: Fg(X0,V) }.
             """,
-            evaluable_functions={"f/0", "g/1"},
+            intensional_functions={"f/0", "g/1"},
         )
 
     def test_showf_directive(self):
@@ -374,7 +374,7 @@ class TestRewriteStatements(unittest.TestCase):
             :- Ff(_); 1 < #count { V: Ff(V) }.
             :- Fg(X0,_); 1 < #count { V: Fg(X0,V) }.
             """,
-            evaluable_functions={"f/0", "g/1"},
+            intensional_functions={"f/0", "g/1"},
         )
 
     def test_aggregates2(self):
@@ -390,7 +390,7 @@ class TestRewriteStatements(unittest.TestCase):
             :- Ff(_); 1 < #count { V: Ff(V) }.
             :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
             """,
-            evaluable_functions={"f/0", "f/1"},
+            intensional_functions={"f/0", "f/1"},
         )
 
     def test_aggregates3(self):
@@ -406,7 +406,7 @@ class TestRewriteStatements(unittest.TestCase):
             :- Ff(_); 1 < #count { V: Ff(V) }.
             :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
             """,
-            evaluable_functions={"f/0", "f/1"},
+            intensional_functions={"f/0", "f/1"},
         )
 
     def test_aggregates4(self):
@@ -420,7 +420,7 @@ class TestRewriteStatements(unittest.TestCase):
             :- Ff(_); 1 < #count { V: Ff(V) }.
             :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
             """,
-            evaluable_functions={"f/0", "f/1"},
+            intensional_functions={"f/0", "f/1"},
         )
 
     def test_aggregates5(self):
@@ -433,7 +433,7 @@ class TestRewriteStatements(unittest.TestCase):
             :- #sum { X: Ff(X); 1: not Ff(*) } > 0.
             :- Ff(_); 1 < #count { V: Ff(V) }.
             """,
-            evaluable_functions={"f/0"},
+            intensional_functions={"f/0"},
         )
 
     def test_optimize(self):
@@ -444,7 +444,7 @@ class TestRewriteStatements(unittest.TestCase):
             :~ Ff(X). [X]
             :- Ff(_); 1 < #count { V: Ff(V) }.
             """,
-            evaluable_functions={"f/0"},
+            intensional_functions={"f/0"},
         )
         self.assertTransformEqual(
             ":~ p(X); f = X. [X@1]",
@@ -452,7 +452,7 @@ class TestRewriteStatements(unittest.TestCase):
             :~ p(X); Ff(X). [X@1]
             :- Ff(_); 1 < #count { V: Ff(V) }.
             """,
-            evaluable_functions={"f/0"},
+            intensional_functions={"f/0"},
         )
 
     def test_family_full(self):
@@ -554,8 +554,8 @@ class TestRewriteStatements(unittest.TestCase):
             "a; b :- c.",
         )
 
-    def test_non_evaluable_equality(self):
-        """Test equalities over non-evaluable functions are left untouched.
+    def test_non_intensional_equality(self):
+        """Test equalities over non-intensional functions are left untouched.
 
         The ground comparison is constant-folded away by clingo's rewriting,
         which drops the trivially unsatisfiable rule.
@@ -572,7 +572,7 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
     def test_conditional_literal_main(self):
-        """Test an evaluable function in the main literal of a conditional literal."""
+        """Test an intensional function in the main literal of a conditional literal."""
         self.assertTransformEqual(
             """
             a := 1.
@@ -586,7 +586,7 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
     def test_head_aggregate_element_unnesting(self):
-        """Test evaluable functions inside head aggregate elements."""
+        """Test intensional functions inside head aggregate elements."""
         self.assertTransformEqual(
             """
             a := 1.
@@ -601,7 +601,7 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
     def test_choice_condition_unnesting(self):
-        """Test evaluable functions inside choice assignment conditions."""
+        """Test intensional functions inside choice assignment conditions."""
         self.assertTransformEqual(
             """
             a := 1.
@@ -616,7 +616,7 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
     def test_optimize_unnesting(self):
-        """Test evaluable functions inside optimize elements and weak constraints."""
+        """Test intensional functions inside optimize elements and weak constraints."""
         self.assertTransformEqual(
             """
             a := 1.
@@ -641,7 +641,7 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
     def test_ground_nested_function(self):
-        """Test ground nested evaluable functions (symbolic terms)."""
+        """Test ground nested intensional functions (symbolic terms)."""
         self.assertTransformEqual(
             """
             f(1) := 2.
@@ -666,7 +666,7 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
     def test_flipped_equality(self):
-        """Test an equality with the evaluable function on the right side."""
+        """Test an equality with the intensional function on the right side."""
         self.assertTransformEqual(
             """
             f := 1.
@@ -680,7 +680,7 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
     def test_comparison_guard(self):
-        """Test an evaluable function in a non-equality comparison guard."""
+        """Test an intensional function in a non-equality comparison guard."""
         self.assertTransformEqual(
             """
             f := 1.
@@ -701,11 +701,11 @@ class TestRewriteStatements(unittest.TestCase):
             prefix="G",
         )
 
-    def test_evaluable_in_negated_condition(self):
-        """Test that evaluable functions in negated condition literals are rejected."""
+    def test_intensional_in_negated_condition(self):
+        """Test that intensional functions in negated condition literals are rejected."""
         with self.assertRaisesRegex(
             RuntimeError,
-            r"Evaluable functions are not allowed in negated literals",
+            r"Intensional functions are not allowed in negated literals",
         ):
             self.assertTransformEqual(
                 """

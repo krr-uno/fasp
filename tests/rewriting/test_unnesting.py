@@ -23,35 +23,35 @@ class TestUnnestStatement(unittest.TestCase):
         """Set up test fixtures for each test."""
         self.lib = Library()
 
-    def unnest(self, code: str, evaluable: set[str]) -> list[str]:
+    def unnest(self, code: str, intensional: set[str]) -> list[str]:
         """Parse a program and unnest each statement directly."""
         context = RewriteContext(
             self.lib,
             "F",
-            evaluable_functions={
+            intensional_functions={
                 SymbolSignature(name, int(arity))
-                for name, arity in (s.split("/") for s in evaluable)
+                for name, arity in (s.split("/") for s in intensional)
             },
         )
         statements = parse_string(self.lib, code)
         return [str(unnest_statement(context, s.original)) for s in statements[1:]]
 
     def test_negated_body_literal(self):
-        """A negated body literal with an evaluable function becomes conditional."""
+        """A negated body literal with an intensional function becomes conditional."""
         self.assertEqual(
             self.unnest("p(X) :- q(X); not r(f(X)).", {"f/1"}),
             ["p(X) :- q(X); #false: r(FUN), f(X)=FUN."],
         )
 
     def test_negated_body_literal_no_change(self):
-        """A negated body literal without evaluable functions is unchanged."""
+        """A negated body literal without intensional functions is unchanged."""
         self.assertEqual(
             self.unnest("p(X) :- q(X); not r(X).", {"f/1"}),
             ["p(X) :- q(X); not r(X)."],
         )
 
     def test_symbolic_function(self):
-        """An evaluable function nested in a symbolic term is unnested.
+        """An intensional function nested in a symbolic term is unnested.
 
         The parser does not produce symbolic function terms, but
         programmatically constructed ASTs may contain them.

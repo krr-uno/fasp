@@ -7,13 +7,13 @@ pipeline turns that purely syntactic encoding into a semantically correct
 ASP program, mirroring the old FASP-node pipeline:
 
 1. Per statement: rewrite ``#some`` assignments, normalize aggregate
-   assignments, rewrite negated body literals, and collect evaluable function
+   assignments, rewrite negated body literals, and collect intensional function
    signatures.
-2. Per statement: unnest evaluable functions, rename parser prefixes to the
+2. Per statement: unnest intensional functions, rename parser prefixes to the
    configured prefix, rewrite functional equalities into prefixed literals,
    run clingo's statement rewriting, and restore the prefixed literals whose
-   unpooled arity is not evaluable.
-3. Append the functionality constraints.
+   unpooled arity is not intensional.
+3. Append the uniqueness constraints.
 """
 
 from functools import partial
@@ -24,12 +24,12 @@ from clingo_funasp import ast
 from funasp.ast import Statement
 from funasp.rewriting._context import RewriteContext
 from funasp.rewriting.aggregates import normalize_assignment_aggregates
-from funasp.rewriting.collectors import collect_evaluable_function_signatures
+from funasp.rewriting.collectors import collect_intensional_function_signatures
 from funasp.rewriting.comparisons import prefix_comparisons
 from funasp.rewriting.constraints import functional_constraints
 from funasp.rewriting.negated_literals import rewrite_negated_body_literals
 from funasp.rewriting.prefixes import rename_prefixes
-from funasp.rewriting.restore import restore_non_evaluable_functions
+from funasp.rewriting.restore import restore_non_intensional_functions
 from funasp.rewriting.some_assignments import rewrite_some_assignments
 from funasp.rewriting.unnesting import unnest_statement
 
@@ -58,7 +58,7 @@ def rewrite_statements(
 
     Each input :class:`~funasp.ast.Statement` keeps its ``original`` and has its
     ``rewritten`` list filled with the clingo statements it expands to. The
-    functionality constraints are appended as additional wrapped statements.
+    uniqueness constraints are appended as additional wrapped statements.
     """
     new_statements: list[Statement] = []
     for stmt in statements:
@@ -66,7 +66,7 @@ def rewrite_statements(
         stmt.rewrite(partial(normalize_assignment_aggregates, context))
         stmt.rewrite(partial(rewrite_negated_body_literals, context))
         for clingo_stmt in stmt.rewritten:
-            context.evaluable_functions |= collect_evaluable_function_signatures(
+            context.intensional_functions |= collect_intensional_function_signatures(
                 context, clingo_stmt
             )
         new_statements.append(stmt)
@@ -75,7 +75,7 @@ def rewrite_statements(
         stmt.rewrite(partial(rename_prefixes, context))
         stmt.rewrite(partial(prefix_comparisons, context))
         stmt.rewrite(partial(_clingo_rewrite, context, stmt))
-        stmt.rewrite(partial(restore_non_evaluable_functions, context))
+        stmt.rewrite(partial(restore_non_intensional_functions, context))
 
     for constraint in functional_constraints(context):
         new_statements.append(Statement(context.lib.library, constraint))

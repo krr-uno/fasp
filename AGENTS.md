@@ -1,6 +1,6 @@
 # funasp — Agent Instructions
 
-**funasp** extends [clingo 6](https://potassco.org/clingo-preview/python-api/clingo.html) with evaluable (intensional) functions via assignment rules:
+**funasp** extends [clingo 6](https://potassco.org/clingo-preview/python-api/clingo.html) with intensional functions via assignment rules:
 ```prolog
 f(t1) := t2 :- Body.          % deterministic assignment
 { f(t1) := t2 } :- Body.      % choice assignment
@@ -55,15 +55,15 @@ funasp/
     _context.py       # RewriteContext (shared state across rewriting)
     types.py          # SymbolSignature
     prefixes.py       # --prefix-fun: rename parser's F/FS to the configured prefix
-    collectors.py     # evaluable-function signatures from prefixed heads + collect_variables
+    collectors.py     # intensional-function signatures from prefixed heads + collect_variables
     some_assignments.py  # FS aggregate → choice =1 + #count>=1 body
     aggregates.py     # Ff(X) = #agg{…} head → Ff(X,W) head + body aggregate
     negated_literals.py  # not l → #false : l
-    unnesting.py      # statement-level driver: nested evaluable f(t) → FUN var + comparison
+    unnesting.py      # statement-level driver: nested intensional f(t) → FUN var + comparison
     literals.py       # term-level unnesting logic
-    comparisons.py    # evaluable f(t)=v → Ff(t,v) (pools handled)
-    restore.py        # un-prefix unpooled non-evaluable entries after clingo rewrite
-    constraints.py    # functionality constraints :- Ff(X,_), 1 < #count{V: Ff(X,V)}.
+    comparisons.py    # intensional f(t)=v → Ff(t,v) (pools handled)
+    restore.py        # un-prefix unpooled non-intensional entries after clingo rewrite
+    constraints.py    # uniqueness constraints :- Ff(X,_), 1 < #count{V: Ff(X,V)}.
   util/
     ast.py            # ELibrary (log capture/normalization), parse wrappers, AST helpers
 ```

@@ -1,7 +1,7 @@
 """
-Unnesting of evaluable functions over the prefixed clingo representation.
+Unnesting of intensional functions over the prefixed clingo representation.
 
-A term ``f(t)`` whose signature is evaluable and which occurs in a nested
+A term ``f(t)`` whose signature is intensional and which occurs in a nested
 position is replaced by a fresh ``FUN`` variable, and the equality
 ``f(t) = FUN`` is appended to the enclosing body or condition. The
 term-level logic lives in ``funasp.rewriting.literals``; this module
@@ -35,11 +35,11 @@ class StatementUnnestTransformer:
     def __init__(
         self,
         lib: Library,
-        evaluable_functions: Set[SymbolSignature],
+        intensional_functions: Set[SymbolSignature],
     ):
         """Initialize the statement-level unnesting transformer."""
         self.lib = lib
-        self.evaluable_functions = evaluable_functions
+        self.intensional_functions = intensional_functions
 
     def transform_statement(self, node: ast.Statement) -> ast.Statement:
         """
@@ -49,12 +49,12 @@ class StatementUnnestTransformer:
         var_gen = FreshVariableGenerator(used)
         self.head_literal_transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
-            self.evaluable_functions,
+            self.intensional_functions,
             var_gen,
             unnest_left_guard_equality=True,
         )
         self.body_literal_transformer = UnnestFunctionsInLiteralsTransformer(
-            self.lib, self.evaluable_functions, var_gen
+            self.lib, self.intensional_functions, var_gen
         )
         return self._rewrite(node, var_gen)
 
@@ -84,7 +84,7 @@ class StatementUnnestTransformer:
             return node.update(self.lib, literal=literal)
         else:
             literal, comparisons = unnest_functions(
-                self.lib, node.literal, self.evaluable_functions, var_gen
+                self.lib, node.literal, self.intensional_functions, var_gen
             )
             if not comparisons:
                 return None
@@ -120,7 +120,7 @@ class StatementUnnestTransformer:
             new_cond, comps = unnest_functions(
                 self.lib,
                 cond,
-                self.evaluable_functions,
+                self.intensional_functions,
                 var_gen,
                 allowed_in_negated_literals=False,
             )
@@ -175,7 +175,7 @@ class StatementUnnestTransformer:
         """Rewrite aggregate elements by unnesting tuples, conditions, and literals."""
         transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
-            self.evaluable_functions,
+            self.intensional_functions,
             var_gen,
             allowed_in_negated_literals=False,
         )
@@ -207,7 +207,7 @@ class StatementUnnestTransformer:
         """Rewrite a set aggregate element by unnesting its literal and condition."""
         transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
-            self.evaluable_functions,
+            self.intensional_functions,
             var_gen,
             allowed_in_negated_literals=False,
         )
@@ -234,7 +234,7 @@ class StatementUnnestTransformer:
         """Rewrite an optimize element and append any generated comparisons to its condition."""
         transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
-            self.evaluable_functions,
+            self.intensional_functions,
             var_gen,
             allowed_in_negated_literals=False,
         )
@@ -256,7 +256,7 @@ class StatementUnnestTransformer:
     def _(
         self, node: ast.HeadSimpleLiteral, var_gen: FreshVariableGenerator
     ) -> ast.HeadSimpleLiteral | None:
-        """Rewrite a simple head literal by unnesting evaluable functions within it."""
+        """Rewrite a simple head literal by unnesting intensional functions within it."""
         result = self.head_literal_transformer.unnest(node)
         return result if result is not None else node
 
@@ -322,7 +322,7 @@ class StatementUnnestTransformer:
         """Rewrite a weak constraint by unnesting its tuple and body literals."""
         transformer = UnnestFunctionsInLiteralsTransformer(
             self.lib,
-            self.evaluable_functions,
+            self.intensional_functions,
             var_gen,
             allowed_in_negated_literals=False,
         )
@@ -370,8 +370,8 @@ def unnest_statement(
     context: RewriteContext,
     statement: ast.Statement,
 ) -> ast.Statement:
-    """Unnest evaluable functions in a single statement."""
+    """Unnest intensional functions in a single statement."""
     transformer = StatementUnnestTransformer(
-        context.lib.library, context.evaluable_functions
+        context.lib.library, context.intensional_functions
     )
     return transformer.transform_statement(statement)

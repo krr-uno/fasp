@@ -1,11 +1,11 @@
 """
-Restoration of non-evaluable prefixed function literals.
+Restoration of non-intensional prefixed function literals.
 
 The comparisons step prefixes a pooled equality ``f(a;b,c) = V`` whenever any
-of its candidate arities is evaluable. After clingo's rewriting unpools the
-statements, the entries whose arity is *not* evaluable must be restored to
+of its candidate arities is intensional. After clingo's rewriting unpools the
+statements, the entries whose arity is *not* intensional must be restored to
 plain comparisons (e.g. ``Ff(b,c,V)`` back to ``f(b,c) = V`` when only ``f/1``
-is evaluable).
+is intensional).
 """
 
 from functools import singledispatchmethod
@@ -23,7 +23,7 @@ def _restore_literal(
     context: RewriteContext,
     node: ast.LiteralSymbolic,
 ) -> ast.LiteralComparison | None:
-    """Restore prefixed function literals into equalities for non-evaluable signatures."""
+    """Restore prefixed function literals into equalities for non-intensional signatures."""
     atom = node.atom
     if isinstance(atom, ast.TermFunction):
         prefixed_name = atom.name
@@ -45,7 +45,7 @@ def _restore_literal(
     assert len(arguments) >= 1
 
     original_arity = len(arguments) - 1
-    if SymbolSignature(base_name, original_arity) in context.evaluable_functions:
+    if SymbolSignature(base_name, original_arity) in context.intensional_functions:
         return None
 
     left = ast.TermFunction(
@@ -73,8 +73,8 @@ def _restore_literal(
     )
 
 
-class _RestoreNonEvaluableFunctionsTransformer:
-    """Restore non-evaluable prefixed literals throughout a statement AST."""
+class _RestoreNonIntensionalFunctionsTransformer:
+    """Restore non-intensional prefixed literals throughout a statement AST."""
 
     def __init__(self, context: RewriteContext) -> None:
         """Initialize the transformer with the rewrite context."""
@@ -88,7 +88,7 @@ class _RestoreNonEvaluableFunctionsTransformer:
 
     @dispatch.register
     def _(self, node: ast.LiteralSymbolic) -> ast.LiteralComparison | None:
-        """Restore a prefixed literal when it maps to a non-evaluable function."""
+        """Restore a prefixed literal when it maps to a non-intensional function."""
         return _restore_literal(self.context, node)
 
     @dispatch.register
@@ -127,9 +127,9 @@ class _RestoreNonEvaluableFunctionsTransformer:
         return rewritten
 
 
-def restore_non_evaluable_functions(
+def restore_non_intensional_functions(
     context: RewriteContext,
     statement: ast.Statement,
 ) -> ast.Statement:
-    """Restore non-evaluable prefixed function literals in a statement."""
-    return _RestoreNonEvaluableFunctionsTransformer(context).rewrite(statement)
+    """Restore non-intensional prefixed function literals in a statement."""
+    return _RestoreNonIntensionalFunctionsTransformer(context).rewrite(statement)
