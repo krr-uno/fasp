@@ -60,6 +60,7 @@ def rewrite_statements(
     ``rewritten`` list filled with the clingo statements it expands to. The
     functionality constraints are appended as additional wrapped statements.
     """
+    new_statements: list[Statement] = []
     for stmt in statements:
         stmt.rewrite(partial(rewrite_some_assignments, context))
         stmt.rewrite(partial(normalize_assignment_aggregates, context))
@@ -68,6 +69,7 @@ def rewrite_statements(
             context.evaluable_functions |= collect_evaluable_function_signatures(
                 context, clingo_stmt
             )
+        new_statements.append(stmt)
     for stmt in statements:
         stmt.rewrite(partial(unnest_statement, context))
         stmt.rewrite(partial(rename_prefixes, context))
@@ -75,7 +77,6 @@ def rewrite_statements(
         stmt.rewrite(partial(_clingo_rewrite, context, stmt))
         stmt.rewrite(partial(restore_non_evaluable_functions, context))
 
-    new_statements = list(statements)
     for constraint in functional_constraints(context):
         new_statements.append(Statement(context.lib.library, constraint))
     return new_statements
