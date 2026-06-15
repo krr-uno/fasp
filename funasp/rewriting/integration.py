@@ -70,7 +70,7 @@ def rewrite_statements(
                 context, clingo_stmt
             )
         new_statements.append(stmt)
-    for stmt in statements:
+    for stmt in new_statements:
         stmt.rewrite(partial(unnest_statement, context))
         stmt.rewrite(partial(rename_prefixes, context))
         stmt.rewrite(partial(prefix_comparisons, context))
