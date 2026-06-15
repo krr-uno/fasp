@@ -17,7 +17,6 @@ produce); anything else falls back to ``str()``.
 """
 
 import re
-from dataclasses import dataclass, field
 from typing import Callable, Iterable, Sequence
 
 from clingo_funasp import ast
@@ -68,16 +67,13 @@ _REWRITE_FUNCTION = (
 )
 
 
-@dataclass
 class Statement:
     """A wrapper for clingo_funasp.ast.Statement that keeps track to the original statement for better error reporting during rewriting."""
 
-    lib: Library
-    original: ast.Statement
-    rewritten: list[ast.Statement] = field(init=False)
-
-    def __post_init__(self) -> None:
-        self.rewritten = [self.original]
+    def __init__(self, lib: Library, original: ast.Statement) -> None:
+        self.lib = lib
+        self.original = original
+        self.rewritten: list[ast.Statement] = [original]
 
     def __str__(self) -> str:
         return ast_to_str(self.original)
