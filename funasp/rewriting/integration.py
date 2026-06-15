@@ -23,7 +23,7 @@ from clingo_funasp import ast
 
 from funasp.ast import Statement
 from funasp.rewriting._context import RewriteContext
-from funasp.rewriting.aggregates import normalize_assignment_aggregates
+from funasp.rewriting.aggregates import rewrite_assignment_aggregates
 from funasp.rewriting.collectors import collect_intensional_function_signatures
 from funasp.rewriting.comparisons import prefix_comparisons
 from funasp.rewriting.constraints import functional_constraints
@@ -63,7 +63,7 @@ def rewrite_statements(
     new_statements: list[Statement] = []
     for stmt in statements:
         stmt.rewrite(partial(rewrite_some_assignments, context))
-        stmt.rewrite(partial(normalize_assignment_aggregates, context))
+        stmt.rewrite(partial(rewrite_assignment_aggregates, context))
         stmt.rewrite(partial(rewrite_negated_body_literals, context))
         for clingo_stmt in stmt.rewritten:
             context.intensional_functions |= collect_intensional_function_signatures(

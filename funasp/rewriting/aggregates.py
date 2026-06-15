@@ -23,7 +23,7 @@ from funasp.rewriting.collectors import collect_variables
 from funasp.util.ast import FreshVariableGenerator
 
 
-def normalize_assignment_aggregates(
+def rewrite_assignment_aggregates(
     context: RewriteContext, statement: ast.Statement
 ) -> ast.Statement:
     """Rewrite an aggregate assignment head into a simple head plus body aggregate."""
