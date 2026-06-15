@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(coverage report *)",
+      "Bash(pip show *)"
+    ]
+  }
+}
