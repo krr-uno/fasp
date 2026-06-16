@@ -76,7 +76,7 @@ class Statement:
         self.rewritten: list[ast.Statement] = [original]
 
     def __str__(self) -> str:
-        return ast_to_str(self.original)
+        return _ast_to_str(self.original)
 
     def rewrite(self, func: _REWRITE_FUNCTION) -> None:
         """
@@ -254,7 +254,7 @@ def _guards_to_str(
     left: ast.LeftGuard | None, inner: str, right: ast.RightGuard | None
 ) -> str:
     """Render a guarded aggregate given the rendered inner part."""
-    parts = []
+    parts: list[str] = []
     if left is not None:
         parts.append(f"{left.term} {_RELATION_STR[left.relation]} ")
     parts.append(inner)
@@ -265,7 +265,7 @@ def _guards_to_str(
 
 def _set_aggregate_to_str(head: ast.HeadSetAggregate) -> str | None:
     """Render a choice with assignment elements as ``{ f(t) := v: cond; … }``."""
-    elements = []
+    elements: list[str] = []
     has_assignment = False
     for element in head.elements:
         literal = element.literal
@@ -296,8 +296,8 @@ def _assignment_aggregate_to_str(
     else:
         name = name[len(PARSER_PREFIX) :]
         aggregate = _AGGREGATE_STR[head.function]
-    pool = [",".join(str(a) for a in t.arguments) for t in left_term.pool]
-    elements = [
+    pool: list[str] = [",".join(str(a) for a in t.arguments) for t in left_term.pool]
+    elements: list[str] = [
         ",".join(str(term) for term in element.tuple)
         + _condition_to_str(element.condition)
         for element in head.elements
@@ -318,7 +318,7 @@ def _head_aggregate_to_str(head: ast.HeadAggregate) -> str | None:
         assert head.right is None
         return _assignment_aggregate_to_str(head, left.term)
 
-    elements = []
+    elements: list[str] = []
     has_assignment = False
     for element in head.elements:
         literal = element.literal
@@ -354,7 +354,7 @@ def _head_to_str(head: ast.HeadLiteral) -> str | None:
     return None
 
 
-def ast_to_str(statement: ast.Statement) -> str:
+def _ast_to_str(statement: ast.Statement) -> str:
     """
     Render an as-parsed statement in FASP syntax.
 
