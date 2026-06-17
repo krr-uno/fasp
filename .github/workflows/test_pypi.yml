@@ -50,8 +50,8 @@ jobs:
       - name: Install PyPi Test
         if: ${{ inputs.index != 'pypi' }}
         run: |
-          pip install --extra-index-url https://test.pypi.org/simple clingo
-          pip install -r requirements.txt
+          # pip install --extra-index-url https://test.pypi.org/simple clingo
+          # pip install -r requirements.txt
           pip install -i https://test.pypi.org/simple/ funasp
 
       - name: Remove code
