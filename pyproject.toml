@@ -3,10 +3,10 @@ name = "funasp"
 version = "0.0.1"
 description = "A functional ASP solver"
 readme = "README.md"
-# requires-python = ">=3.13"
+requires-python = ">=3.13"
 dependencies = [
     "colorama>=0.4.6",
-    "clingo-funasp>=6.0.0.post13",
+    "clingo-funasp>=6.0.0",
     ]
 
 [[project.authors]]
