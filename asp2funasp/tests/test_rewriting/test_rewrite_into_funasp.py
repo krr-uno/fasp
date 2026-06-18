@@ -3,20 +3,19 @@ import textwrap
 import unittest
 
 from clingo import ast
-from clingo.core import Library
 
-from funasp.util.ast import AST
+from funasp.util.ast import AST, ELibrary
 from asp2funasp.util.types import FRelation
 from asp2funasp.rewriting.rewrite_into_funasp import (
-    FunctionalBodyRewriteTransformer,
+    FunctionalPredicateRewriteTransformer,
 )
 
-from tests.util import collect_statements
+from tests.util import collect_statements_funasp
 
 
-class FunctionalBodyRewriteTest(unittest.TestCase):
+class FunctionalPredicateRewriteTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.lib = Library()
+        self.lib = ELibrary()
 
     # APPLY TRANSFORMER
     def _rewrite(
@@ -26,9 +25,9 @@ class FunctionalBodyRewriteTest(unittest.TestCase):
     ) -> List[AST]:
         program = textwrap.dedent(program).strip()
 
-        nodes: List[AST] = collect_statements(self.lib, program)
+        nodes: List[AST] = collect_statements_funasp(self.lib, program)
 
-        transformer = FunctionalBodyRewriteTransformer(self.lib, frels)
+        transformer = FunctionalPredicateRewriteTransformer(self.lib, frels)
 
         new_nodes: List[AST] = []
 
@@ -50,7 +49,7 @@ class FunctionalBodyRewriteTest(unittest.TestCase):
         frels: List[FRelation],
     ):
         actual_nodes = self._rewrite(program, frels)
-        expected_nodes = collect_statements(
+        expected_nodes = collect_statements_funasp(
             self.lib,
             textwrap.dedent(expected).strip(),
         )
@@ -63,6 +62,24 @@ class FunctionalBodyRewriteTest(unittest.TestCase):
             actual_str,
             expected_str,
             msg=f"\nEXPECTED:\n{expected_str}\n\nACTUAL:\n{actual_str}",
+        )
+    
+    def _make_non_function_symbolic_literal(self) -> ast.LiteralSymbolic:
+        nodes = collect_statements_funasp(self.lib, "a.")
+        rule = nodes[0]
+        assert isinstance(rule, ast.StatementRule)
+
+        variable_atom = ast.TermVariable(
+            self.lib.library,
+            rule.location,
+            "X",
+        )
+
+        return ast.LiteralSymbolic(
+            self.lib.library,
+            rule.location,
+            ast.Sign.NoSign,
+            variable_atom,
         )
 
     ## TESTS ##
@@ -114,7 +131,7 @@ class FunctionalBodyRewriteTest(unittest.TestCase):
 
         self.assertEqualRewrite(program, expected, frels)
 
-    def test_no_rewrite_if_not_functional(self):
+    def test_no_rewrite_if_not_functional_body(self):
         program = """
         :- assign(N,C), node(N), a.
         """
@@ -166,3 +183,131 @@ class FunctionalBodyRewriteTest(unittest.TestCase):
         ]
 
         self.assertEqualRewrite(program, expected, frels)
+    
+    def test_rewrites_functional_predicate_in_simple_head(self):
+        program = """
+        p(X,Y) :- q(X,Y).
+        """
+
+        expected = """
+        p(X) := Y :- q(X,Y).
+        """
+
+        frels = [
+            FRelation(
+                name="p",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_no_rewrite_if_not_functional_head(self):
+        program = """
+        p(X,Y) :- q(X,Y).
+        """
+
+        expected = """
+        p(X,Y) :- q(X,Y).
+        """
+
+        frels: List[FRelation] = []  # nothing functional
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_does_not_rewrite_disjunction_head(self):
+        program = """
+        p(X,Y) | q(X,Y) :- r(X,Y).
+        """
+
+        expected = """
+        p(X,Y) | q(X,Y) :- r(X,Y).
+        """
+
+        frels = [
+            FRelation(
+                name="p",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_does_not_rewrite_signed_head_literal(self):
+        nodes = collect_statements_funasp(
+            self.lib,
+            textwrap.dedent(
+                """
+                :- not p(X,Y).
+                """
+            ).strip(),
+        )
+
+        rule = nodes[0]
+        assert isinstance(rule, ast.StatementRule)
+
+        signed_literal = rule.body[0].literal
+        assert isinstance(signed_literal, ast.LiteralSymbolic)
+        self.assertNotEqual(signed_literal.sign, ast.Sign.NoSign)
+
+        head = ast.HeadSimpleLiteral(
+            self.lib.library,
+            signed_literal,
+        )
+
+        transformer = FunctionalPredicateRewriteTransformer(
+            self.lib,
+            [
+                FRelation(
+                    name="p",
+                    arity=2,
+                    arguments=(0,),
+                    values=[(1,)],
+                )
+            ],
+        )
+
+        self.assertIsNone(transformer._rewrite_head(head))
+
+    def test_does_not_rewrite_head_literal_if_atom_is_not_function(self):
+        literal = self._make_non_function_symbolic_literal()
+
+        head = ast.HeadSimpleLiteral(
+            self.lib.library,
+            literal,
+        )
+
+        transformer = FunctionalPredicateRewriteTransformer(
+            self.lib,
+            [
+                FRelation(
+                    name="p",
+                    arity=2,
+                    arguments=(0,),
+                    values=[(1,)],
+                )
+            ],
+        )
+
+        self.assertIsNone(transformer._rewrite_head(head))
+
+    def test_does_not_rewrite_body_literal_if_atom_is_not_function(self):
+        literal = self._make_non_function_symbolic_literal()
+
+        transformer = FunctionalPredicateRewriteTransformer(
+            self.lib,
+            [
+                FRelation(
+                    name="p",
+                    arity=2,
+                    arguments=(0,),
+                    values=[(1,)],
+                )
+            ],
+        )
+
+        self.assertIsNone(transformer._rewrite(literal))

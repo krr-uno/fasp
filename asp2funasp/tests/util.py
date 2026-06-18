@@ -3,8 +3,11 @@ from typing import List, Tuple, TypeVar, Type
 
 from clingo import ast
 from clingo.core import Library
-from funasp.util.ast import AST
-from asp2funasp.util.util import collect_statements_from_pased
+from funasp.util.ast import AST, ELibrary
+from funasp.fun_ast._nodes import FASP_Statement
+from asp2funasp.util.util import collect_statements_from_parsed, collect_statements_from_parsed_funasp
+from funasp.fun_ast.parsing.parser import parse_string
+
 T = TypeVar('T')
 T_AST = TypeVar('T_AST', bound=AST)
 
@@ -12,7 +15,14 @@ def collect_statements(lib: Library,program:str) -> List[ast.StatementRule]:
     """Helper to collect StatementRule nodes program str."""
     nodes:List[AST] = []
     ast.parse_string(lib, program, nodes.append)
-    return collect_statements_from_pased(nodes)
+    return collect_statements_from_parsed(nodes)
+
+
+def collect_statements_funasp(lib: ELibrary,program:str) -> List[FASP_Statement]:
+    """Helper to collect StatementRule | AssignmentRule nodes program str."""
+    nodes:List[AST] = []
+    nodes = parse_string(lib, program)
+    return collect_statements_from_parsed_funasp(nodes)
 
 def find_in_ast(node:AST, typ: Type[T_AST]) -> None | T_AST:
     result = None

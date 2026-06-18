@@ -12,6 +12,7 @@ from typing import (
 from clingo import ast
 from clingo.core import Library
 from clingo.symbol import Symbol, SymbolType
+from funasp.fun_ast._nodes import AssignmentRule, FASP_Statement
 from funasp.fun_ast.types import SymbolSignature
 from funasp.util.ast import AST
 
@@ -243,12 +244,22 @@ def get_variant_subsets(
     return all_subsets
 
 
-def collect_statements_from_pased(
+def collect_statements_from_parsed(
     statements: Iterable[ast.Statement] | Iterable[AST],
 ) -> List[ast.StatementRule]:
     stmts: List[ast.StatementRule] = []
     for stmt in statements:
         if isinstance(stmt, ast.StatementRule):
+            stmts.append(stmt)
+    return stmts
+
+
+def collect_statements_from_parsed_funasp(
+    statements: Iterable[ast.Statement] | Iterable[AST],
+) -> List[FASP_Statement]:
+    stmts: List[FASP_Statement] = []
+    for stmt in statements:
+        if isinstance(stmt, ast.StatementRule) or isinstance(stmt, AssignmentRule):
             stmts.append(stmt)
     return stmts
 

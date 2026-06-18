@@ -8,7 +8,7 @@ from asp2funasp.pattern_finders.pattern_finder_utils import (
     split_program,
 )
 from asp2funasp.util.types import CPredicate, FPredicate
-from asp2funasp.util.util import collect_statements_from_pased, get_parameter_list
+from asp2funasp.util.util import collect_statements_from_parsed, get_parameter_list
 
 
 class AggregatePatternFinder:
@@ -30,7 +30,7 @@ class AggregatePatternFinder:
           - Either left or right (or both) equals 1.
         Uses the main_class.clingoParseString module with a local callback function.
         """
-        statements = collect_statements_from_pased(statements)
+        statements = collect_statements_from_parsed(statements)
         self.constraints, self.predicate_definitions = split_program(statements)
         for rule in statements:
             if isinstance(rule, ast.StatementRule):
@@ -165,7 +165,7 @@ class AggregatePatternFinder:
           7. If all parameters are accounted for, create an FPredicate namedtuple and append it to
             functionalPredicates and return the list.
         """
-        statements = collect_statements_from_pased(statements)
+        statements = collect_statements_from_parsed(statements)
         self.constraints, self.predicate_definitions = split_program(statements)
 
         def _collect_symbolic_body_literals(
