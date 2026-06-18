@@ -34,7 +34,7 @@ from funasp.rewriting.some_assignments import rewrite_some_assignments
 from funasp.rewriting.unnesting import unnest_statement
 
 
-def _clingo_rewrite(
+def clingo_rewrite_wrapper(
     context: RewriteContext, original: Statement, statement: ast.Statement
 ) -> list[ast.Statement]:
     """
@@ -74,7 +74,7 @@ def rewrite_statements(
         stmt.rewrite(partial(unnest_statement, context))
         stmt.rewrite(partial(rename_prefixes, context))
         stmt.rewrite(partial(prefix_comparisons, context))
-        stmt.rewrite(partial(_clingo_rewrite, context, stmt))
+        stmt.rewrite(partial(clingo_rewrite_wrapper, context, stmt))
         stmt.rewrite(partial(restore_non_intensional_functions, context))
 
     for constraint in functional_constraints(context):
