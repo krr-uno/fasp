@@ -52,7 +52,7 @@ jobs:
         run: |
           # pip install --extra-index-url https://test.pypi.org/simple clingo
           # pip install -r requirements.txt
-          pip install -i https://test.pypi.org/simple/ funasp
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/  funasp
 
       - name: Remove code
         run: |
