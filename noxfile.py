@@ -139,8 +139,10 @@ def format(session):
 
     black_args = [PROJECT_NAME]
     if check:
-        black_args.insert(0, "--check")
-        black_args.insert(1, "--diff")
+        black_args.append("--check")
+        black_args.append("--diff")
+    black_args.append("--target-version")
+    black_args.append("py314")
     session.run("black", *black_args)
 
 

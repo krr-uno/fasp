@@ -1,2 +1,0 @@
---extra-index-url https://test.pypi.org/simple/
-clingo_funasp>=6.0.0
