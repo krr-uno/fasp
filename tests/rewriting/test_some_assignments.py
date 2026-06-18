@@ -9,8 +9,8 @@ left guard.
 
 import unittest
 
-from funasp.ast import RewriteContext, parse_string
-from funasp.ast._rewritings.some_assignments import rewrite_some_assignments
+from funasp.astt import RewriteContext, parse_string
+from funasp.astt._rewritings.some_assignments import rewrite_some_assignments
 from funasp.core import Library
 
 

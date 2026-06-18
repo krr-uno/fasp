@@ -5,8 +5,8 @@ pipeline cannot reach (head atoms are intensional by construction there).
 
 import unittest
 
-from funasp.ast import RewriteContext, parse_string
-from funasp.ast._rewritings.restore import restore_non_intensional_functions
+from funasp.astt import RewriteContext, parse_string
+from funasp.astt._rewritings.restore import restore_non_intensional_functions
 from funasp.core import Library
 
 

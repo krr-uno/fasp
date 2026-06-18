@@ -5,13 +5,13 @@ from clingo_funasp import ast
 from clingo_funasp.core import Location, Position, Library
 
 from funasp import core
-from funasp.ast import parse_string
+from funasp.astt import parse_string
 from funasp.util.ast import (
     ParsingException,
     SyntacticCheckVisitor,
     SyntacticError,
 )
-from funasp.ast._rewritings.collectors import collect_variables
+from funasp.astt._rewritings.collectors import collect_variables
 from funasp.util import ast as util_ast
 
 INVALID_ASTTYPES = {
@@ -310,6 +310,6 @@ class TestSymbolSignature(unittest.TestCase):
 
     def test_str(self):
         """The string form is name/arity."""
-        from funasp.ast._rewritings.types import SymbolSignature
+        from funasp.astt._rewritings.types import SymbolSignature
 
         self.assertEqual(str(SymbolSignature("f", 2)), "f/2")
