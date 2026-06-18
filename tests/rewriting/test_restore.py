@@ -7,8 +7,8 @@ import unittest
 
 from funasp.ast import parse_string
 from funasp.core import Library
-from funasp.ast.rewriting._context import RewriteContext
-from funasp.ast.rewriting.restore import restore_non_intensional_functions
+from funasp.ast._rewritings._context import RewriteContext
+from funasp.ast._rewritings.restore import restore_non_intensional_functions
 
 
 class TestRestore(unittest.TestCase):

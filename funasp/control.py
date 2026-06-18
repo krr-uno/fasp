@@ -9,8 +9,8 @@ from clingo_funasp import solve as clingo_solve
 from clingo_funasp import symbol
 
 from funasp.ast import parse_files, parse_string
-from funasp.ast.rewriting import rewrite_statements
-from funasp.ast.rewriting._context import RewriteContext
+from funasp.ast._rewritings import rewrite_statements
+from funasp.ast._rewritings._context import RewriteContext
 from funasp.core import Library
 from funasp.solve import Model
 

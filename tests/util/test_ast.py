@@ -11,7 +11,7 @@ from funasp.util.ast import (
     SyntacticCheckVisitor,
     SyntacticError,
 )
-from funasp.ast.rewriting.collectors import collect_variables
+from funasp.ast._rewritings.collectors import collect_variables
 from funasp.util import ast as util_ast
 
 INVALID_ASTTYPES = {
@@ -310,6 +310,6 @@ class TestSymbolSignature(unittest.TestCase):
 
     def test_str(self):
         """The string form is name/arity."""
-        from funasp.ast.rewriting.types import SymbolSignature
+        from funasp.ast._rewritings.types import SymbolSignature
 
         self.assertEqual(str(SymbolSignature("f", 2)), "f/2")

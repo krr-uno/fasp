@@ -9,10 +9,10 @@ import unittest
 from clingo_funasp import ast, symbol
 from clingo_funasp.core import Location, Position
 
-from funasp.ast.rewriting._context import RewriteContext
-from funasp.ast.rewriting.literals import UnnestFunctionsInLiteralsTransformer
-from funasp.ast.rewriting.types import SymbolSignature
-from funasp.ast.rewriting.unnesting import unnest_statement
+from funasp.ast._rewritings._context import RewriteContext
+from funasp.ast._rewritings.literals import UnnestFunctionsInLiteralsTransformer
+from funasp.ast._rewritings.types import SymbolSignature
+from funasp.ast._rewritings.unnesting import unnest_statement
 from funasp.ast import parse_string
 from funasp.core import Library
 from funasp.util.ast import FreshVariableGenerator
