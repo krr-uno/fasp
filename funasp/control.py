@@ -140,10 +140,8 @@ class Control:
 
     def print_model(self, model: clingo_solve.Model, _: Callable[[], None]) -> None:
         """Print a model using the FASP-aware model formatter."""
-        LIBC.fflush(None)  # Flush C's stdout
         sys.stdout.write(str(Model(model, self.prefix)))
         sys.stdout.write("\n")
-        sys.stdout.flush()
 
     def main(self) -> None:
         """
