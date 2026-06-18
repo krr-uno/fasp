@@ -8,6 +8,7 @@ from ._parsing import (
     parse_files,
     parse_string,
 )
+from ._rewritings._context import RewriteContext
 
 __all__ = [
     "PARSER_PREFIX",
@@ -16,4 +17,5 @@ __all__ = [
     "parse_string",
     "parse_files",
     "transform_iterable",
+    "RewriteContext",
 ]
