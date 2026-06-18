@@ -1,4 +1,3 @@
-import ctypes
 import sys
 from typing import Callable, Optional, Sequence
 
@@ -15,17 +14,17 @@ from funasp.control import Control
 from funasp.core import Library
 from funasp.util.ast import ParsingException
 
-LIBC_NAME: str | None = None
-try:
-    if sys.platform.startswith("win"):  # pragma: no cover
-        LIBC_NAME = "msvcrt"
-except Exception as e:  # pragma: no cover
-    pass
-LIBC = ctypes.CDLL(LIBC_NAME)  # None = current process's libc
+# LIBC_NAME: str | None = None
+# try:
+#     if sys.platform.startswith("win"):  # pragma: no cover
+#         LIBC_NAME = "msvcrt"
+# except Exception as e:  # pragma: no cover
+#     pass
+# LIBC = ctypes.CDLL(LIBC_NAME)  # None = current process's libc
 
-# Declare fflush prototype
-LIBC.fflush.argtypes = [ctypes.c_void_p]
-LIBC.fflush.restype = ctypes.c_int
+# # Declare fflush prototype
+# LIBC.fflush.argtypes = [ctypes.c_void_p]
+# LIBC.fflush.restype = ctypes.c_int
 
 
 class FaspApp(App):
