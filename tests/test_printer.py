@@ -8,7 +8,8 @@ import unittest
 from clingo_funasp import ast
 from clingo_funasp.core import Location, Position
 
-from funasp.ast import _ast_to_str, parse_string
+from funasp.ast import parse_string
+from funasp.ast._core import _ast_to_str
 from funasp.core import Library
 
 
