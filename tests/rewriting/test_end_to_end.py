@@ -11,7 +11,7 @@ from clingo_funasp.control import Control as ClingoControl
 
 from funasp.ast import parse_string
 from funasp.core import Library
-from funasp.ast._rewritings._context import RewriteContext
+from funasp.ast._rewritings.context import RewriteContext
 from funasp.ast._rewritings import rewrite_statements
 from funasp.solve import Model
 from tests.examples import EXAMPLES

@@ -7,7 +7,7 @@ import unittest
 
 from funasp.ast import parse_string
 from funasp.core import Library
-from funasp.ast._rewritings._context import RewriteContext
+from funasp.ast._rewritings.context import RewriteContext
 from funasp.ast._rewritings.restore import restore_non_intensional_functions
 
 

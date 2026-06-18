@@ -1,7 +1,7 @@
 from clingo_funasp import ast
 from clingo_funasp.core import Library
 
-from funasp.ast._rewritings._context import RewriteContext
+from funasp.ast._rewritings.context import RewriteContext
 from funasp.util.ast import AST
 
 

@@ -9,7 +9,7 @@ import unittest
 from clingo_funasp import ast, symbol
 from clingo_funasp.core import Location, Position
 
-from funasp.ast._rewritings._context import RewriteContext
+from funasp.ast._rewritings.context import RewriteContext
 from funasp.ast._rewritings.literals import UnnestFunctionsInLiteralsTransformer
 from funasp.ast._rewritings.types import SymbolSignature
 from funasp.ast._rewritings.unnesting import unnest_statement
