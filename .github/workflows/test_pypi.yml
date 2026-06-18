@@ -18,11 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest']
-        # os: ['ubuntu-latest', 'macos-latest']
-        # os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
-        python-version: ['3.13']
-        # python-version: ['3.13', '3.14']
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+        python-version: ['3.13', '3.14']
     defaults:
       run:
         shell: bash -l {0}
@@ -52,7 +49,7 @@ jobs:
         run: |
           # pip install --extra-index-url https://test.pypi.org/simple clingo
           # pip install -r requirements.txt
-          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/  funasp
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ funasp
 
       - name: Remove code
         run: |
