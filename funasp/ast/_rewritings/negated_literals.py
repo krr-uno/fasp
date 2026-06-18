@@ -9,8 +9,8 @@ them can use anonymous projections.
 from clingo_funasp import ast
 from clingo_funasp.core import Library
 
-from funasp.astt import transform_iterable
-from funasp.astt._rewritings.context import RewriteContext
+from funasp.ast import transform_iterable
+from funasp.ast._rewritings.context import RewriteContext
 
 
 def _rewrite_body_literal(

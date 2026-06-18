@@ -8,7 +8,7 @@ from clingo_funasp import ast
 from clingo_funasp import solve as clingo_solve
 from clingo_funasp import symbol
 
-from funasp.astt import (
+from funasp.ast import (
     RewriteContext,
     parse_files,
     parse_string,

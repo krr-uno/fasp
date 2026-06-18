@@ -21,17 +21,17 @@ from typing import Iterable
 
 from clingo_funasp import ast
 
-from funasp.astt import Statement
-from funasp.astt._rewritings.aggregates import rewrite_assignment_aggregates
-from funasp.astt._rewritings.collectors import collect_intensional_function_signatures
-from funasp.astt._rewritings.comparisons import prefix_comparisons
-from funasp.astt._rewritings.constraints import functional_constraints
-from funasp.astt._rewritings.context import RewriteContext
-from funasp.astt._rewritings.negated_literals import rewrite_negated_body_literals
-from funasp.astt._rewritings.prefixes import rename_prefixes
-from funasp.astt._rewritings.restore import restore_non_intensional_functions
-from funasp.astt._rewritings.some_assignments import rewrite_some_assignments
-from funasp.astt._rewritings.unnesting import unnest_statement
+from funasp.ast import Statement
+from funasp.ast._rewritings.aggregates import rewrite_assignment_aggregates
+from funasp.ast._rewritings.collectors import collect_intensional_function_signatures
+from funasp.ast._rewritings.comparisons import prefix_comparisons
+from funasp.ast._rewritings.constraints import functional_constraints
+from funasp.ast._rewritings.context import RewriteContext
+from funasp.ast._rewritings.negated_literals import rewrite_negated_body_literals
+from funasp.ast._rewritings.prefixes import rename_prefixes
+from funasp.ast._rewritings.restore import restore_non_intensional_functions
+from funasp.ast._rewritings.some_assignments import rewrite_some_assignments
+from funasp.ast._rewritings.unnesting import unnest_statement
 
 
 def clingo_rewrite_wrapper(

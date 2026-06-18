@@ -13,7 +13,7 @@ from clingo_funasp import ast, symbol
 from clingo_funasp.core import Library, Location
 from clingo_funasp.symbol import Symbol
 
-from funasp.astt._rewritings.types import SymbolSignature
+from funasp.ast._rewritings.types import SymbolSignature
 from funasp.util.ast import (
     FreshVariableGenerator,
     is_function,

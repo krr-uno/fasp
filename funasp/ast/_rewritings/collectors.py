@@ -17,9 +17,9 @@ appear are:
 
 from clingo_funasp import ast
 
-from funasp.astt import PARSER_PREFIX
-from funasp.astt._rewritings.context import RewriteContext
-from funasp.astt._rewritings.types import SymbolSignature
+from funasp.ast import PARSER_PREFIX
+from funasp.ast._rewritings.context import RewriteContext
+from funasp.ast._rewritings.types import SymbolSignature
 from funasp.util.ast import AST
 
 

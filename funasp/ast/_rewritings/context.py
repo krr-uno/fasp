@@ -1,6 +1,6 @@
 from clingo_funasp.ast import RewriteContext as ClingoRewriteContext
 
-from funasp.astt._rewritings.types import SymbolSignature
+from funasp.ast._rewritings.types import SymbolSignature
 from funasp.core import Library
 
 

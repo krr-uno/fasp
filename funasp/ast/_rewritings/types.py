@@ -1,8 +1,8 @@
-from dataclasses import dataclass
+# from dataclasses import dataclass
+from typing import NamedTuple
 
 
-@dataclass(frozen=True, slots=True, order=True)
-class SymbolSignature:
+class SymbolSignature(NamedTuple):
     """
     Represents a function symbol with its name and arity.
 
