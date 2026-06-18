@@ -1,5 +1,6 @@
 """
-Unit tests for ``funasp.rewriting.some_assignments.rewrite_some_assignments``.
+Unit tests for
+``funasp.ast._rewritings.some_assignments.rewrite_some_assignments``.
 
 The function rewrites the parser's ``FS``-marked ``#some`` head aggregate into
 a choice with a count guard, producing one statement per pool entry on the
@@ -8,9 +9,8 @@ left guard.
 
 import unittest
 
-from funasp.ast._rewritings.context import RewriteContext
+from funasp.ast import RewriteContext, parse_string
 from funasp.ast._rewritings.some_assignments import rewrite_some_assignments
-from funasp.ast import parse_string
 from funasp.core import Library
 
 

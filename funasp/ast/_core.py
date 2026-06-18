@@ -1,17 +1,17 @@
 """
-Parsing wrappers and AST iteration helpers.
+Core AST types, prefix constants, and AST iteration/printing helpers.
 
-``parse_string``/``parse_files`` wrap the callback-based ``clingo_funasp.ast``
-parser into functions that return a ``list[Statement]`` (each parsed clingo
-statement wrapped in a :class:`Statement`) and convert clingo parsing errors
-into :class:`~funasp.util.ast.ParsingException` carrying
-:class:`~funasp.util.ast.SyntacticError` locations. ``transform_iterable``
-applies a transformer across an iterable, preserving unchanged elements.
+This module holds the building blocks shared across parsing and rewriting:
+the :class:`Statement` wrapper, the parser-prefix constants
+(``PARSER_PREFIX``, ``SOME_MARKER``, ``PARSER_SOME_PREFIX``), and
+``transform_iterable``, which applies a transformer across an iterable while
+preserving unchanged elements. (The ``parse_string``/``parse_files`` wrappers
+live in :mod:`funasp.ast._parsing`.)
 
-``ast_to_str`` re-prints an as-parsed (F-encoded) statement in FASP syntax:
+``_ast_to_str`` re-prints an as-parsed (F-encoded) statement in FASP syntax:
 the parser desugars assignments into prefixed atoms before the pipeline sees
 any text (``f := a+1.`` becomes ``Ff(a+1).``), so for error and info messages
-``ast_to_str`` inverts exactly the shapes the parser generates (detected via
+``_ast_to_str`` inverts exactly the shapes the parser generates (detected via
 the hardcoded ``F``/``FS`` markers, which user-written function names cannot
 produce); anything else falls back to ``str()``.
 """
@@ -38,7 +38,14 @@ _REWRITE_FUNCTION = (
 
 
 class Statement:
-    """A wrapper for clingo_funasp.ast.Statement that keeps track to the original statement for better error reporting during rewriting."""
+    """
+    A wrapper around a ``clingo_funasp.ast.Statement``.
+
+    It bundles the ``original`` parsed statement together with the list of
+    ``rewritten`` statements it expands to. ``rewritten`` starts as
+    ``[original]`` and is filled in place by the rewrite pipeline; keeping the
+    original around enables better error reporting during rewriting.
+    """
 
     def __init__(self, lib: Library, original: ast.Statement) -> None:
         self.lib = lib

@@ -1,5 +1,5 @@
 """
-Integration tests for the new rewriting pipeline (``funasp.rewriting``) over
+Integration tests for the rewriting pipeline (``funasp.ast._rewritings``) over
 the ``clingo_funasp`` parser, mirroring the old pipeline tests in
 ``tests/syntax_tree/rewriting/test_integration.py``.
 """
@@ -12,11 +12,9 @@ import unittest
 
 from clingo_funasp import ast
 
-from funasp.ast import parse_string
-from funasp.core import Library
-from funasp.ast._rewritings.context import RewriteContext
+from funasp.ast import RewriteContext, parse_string, rewrite_statements
 from funasp.ast._rewritings.types import SymbolSignature
-from funasp.ast._rewritings import rewrite_statements
+from funasp.core import Library
 from tests.restore_anonymous_term_variables import restore_anonymous_term_variables
 
 

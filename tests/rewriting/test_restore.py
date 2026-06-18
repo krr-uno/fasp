@@ -1,14 +1,13 @@
 """
-Unit tests for ``funasp.rewriting.restore`` paths that the integrated
+Unit tests for ``funasp.ast._rewritings.restore`` paths that the integrated
 pipeline cannot reach (head atoms are intensional by construction there).
 """
 
 import unittest
 
-from funasp.ast import parse_string
-from funasp.core import Library
-from funasp.ast._rewritings.context import RewriteContext
+from funasp.ast import RewriteContext, parse_string
 from funasp.ast._rewritings.restore import restore_non_intensional_functions
+from funasp.core import Library
 
 
 class TestRestore(unittest.TestCase):

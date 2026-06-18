@@ -7,7 +7,7 @@ assigned value is appended as the last argument. Consequently, a prefixed
 head atom of arity ``n+1`` declares the intensional function ``f/n``.
 
 Collection must run after ``#some`` and aggregate assignments have been
-normalized (see ``integration.py``), so the only places where assignments
+normalized (see ``rewrite_statements.py``), so the only places where assignments
 appear are:
 
 - ``HeadSimpleLiteral`` atoms (``Ff(t,v) :- B.``),

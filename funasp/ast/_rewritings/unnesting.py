@@ -4,7 +4,7 @@ Unnesting of intensional functions over the prefixed clingo representation.
 A term ``f(t)`` whose signature is intensional and which occurs in a nested
 position is replaced by a fresh ``FUN`` variable, and the equality
 ``f(t) = FUN`` is appended to the enclosing body or condition. The
-term-level logic lives in ``funasp.rewriting.literals``; this module
+term-level logic lives in ``funasp.ast._rewritings.literals``; this module
 provides the statement-level driver over plain clingo nodes (heads are
 already prefixed atoms).
 """

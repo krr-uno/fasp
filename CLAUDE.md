@@ -28,7 +28,7 @@ The `clingo_funasp` parser desugars assignments **at parse time** into ordinary 
 | `#showf p/1.` | `#show Fp/2.` (arity+1) |
 | body occurrences | **untouched** — `b :- a = 1.` keeps the plain comparison |
 
-The encoding is unambiguous because user-written function names cannot start with an uppercase letter. The semantic work (unnesting, uniqueness constraints, `#some` semantics, body equalities) is done by `funasp/rewriting/` — grounding the parsed output directly gives wrong answers.
+The encoding is unambiguous because user-written function names cannot start with an uppercase letter. The semantic work (unnesting, uniqueness constraints, `#some` semantics, body equalities) is done by `funasp/ast/_rewritings/` — grounding the parsed output directly gives wrong answers.
 
 ## Environment
 
@@ -79,15 +79,15 @@ Parsing itself is `funasp.ast.parse_string`/`parse_files`: thin wrappers over th
 
 ### The rewrite pipeline (the core of the project)
 
-`funasp/rewriting/` turns the parser's syntactic F-encoding into a semantically correct program. Everything is orchestrated by **`rewrite_statements(context, statements)`** in `rewriting/integration.py` — read this first; it is the spine of the system. Two passes over plain clingo statements:
+`funasp/ast/_rewritings/` turns the parser's syntactic F-encoding into a semantically correct program. Everything is orchestrated by **`rewrite_statements(context, statements)`** in `_rewritings/rewrite_statements.py` — read this first; it is the spine of the system. Two passes over plain clingo statements:
 
-1. Per statement: `rewrite_some_assignments` (`some_assignments.py`, `FS` aggregate → choice `= 1` + `#count ≥ 1` body) → `normalize_assignment_aggregates` (`aggregates.py`, `Ff(X) = #agg{…}` → `Ff(X,W)` head + body aggregate) → `rewrite_negate_body_literals` (`negated_literals.py`, `not l` → `#false : l`), collecting intensional-function signatures (`collectors.py`, from prefixed head atoms: arity−1). All pass-1 steps detect the parser's hardcoded `F`/`FS` directly.
-2. Per statement: `unnest_statement` (`unnesting.py` driver + `literals.py` term logic: nested intensional `f(t)` → fresh `FUN` var + `f(t)=FUN` comparison) → `rename_prefixes` (`prefixes.py`, applies `--prefix-fun` by renaming the parser's hardcoded `F`/`FS`) → `prefix_comparisons` (`comparisons.py`, intensional `f(t)=v` → `Ff(t,v)`, pools handled) → clingo's own `ast.rewrite_statement` → `restore.py` (un-prefixes unpooled entries whose arity is not intensional). Finally `constraints.py` appends one uniqueness constraint `:- Ff(X…,_), 1 < #count{V: Ff(X…,V)}.` per intensional function.
+1. Per statement: `rewrite_some_assignments` (`some_assignments.py`, `FS` aggregate → choice `= 1` + `#count ≥ 1` body) → `rewrite_assignment_aggregates` (`aggregates.py`, `Ff(X) = #agg{…}` → `Ff(X,W)` head + body aggregate) → `rewrite_negated_body_literals` (`negated_literals.py`, `not l` → `#false : l`), collecting intensional-function signatures (`collect_intensional_function_signatures` in `collectors.py`, from prefixed head atoms: arity−1). All pass-1 steps detect the parser's hardcoded `F`/`FS` directly.
+2. Per statement: `unnest_statement` (`unnesting.py` driver + `literals.py` term logic: nested intensional `f(t)` → fresh `FUN` var + `f(t)=FUN` comparison) → `rename_prefixes` (`prefixes.py`, applies `--prefix-fun` by renaming the parser's hardcoded `F`/`FS`) → `prefix_comparisons` (`comparisons.py`, intensional `f(t)=v` → `Ff(t,v)`, pools handled) → clingo's own `ast.rewrite_statement` → `restore_non_intensional_functions` (`restore.py`, un-prefixes unpooled entries whose arity is not intensional). Finally `functional_constraints` (`constraints.py`) appends one uniqueness constraint `:- Ff(X…,_), 1 < #count{V: Ff(X…,V)}.` per intensional function.
 
-Shared state lives in `RewriteContext` (`_context.py`): the `funasp.core.Library`, the function-name prefix, the clingo `RewriteContext`, and the accumulated set of `SymbolSignature`s (`types.py`).
+Shared state lives in `RewriteContext` (`_rewritings/context.py`): the `funasp.core.Library`, the function-name prefix, the clingo `RewriteContext`, and the accumulated set of `SymbolSignature`s (`types.py`).
 
 - `funasp/core.py` — `Library` (a wrapper around clingo's `Library` that captures/normalizes log messages — e.g. "undefined predicate F…" → "undefined intensional function …" — and carries the `processing_statement` text used in error reports).
-- `funasp/ast.py` — parse wrappers (`parse_string`/`parse_files`), the `Statement` dataclass, the `transform_iterable` AST-iteration helper, the parser-prefix constants (`PARSER_PREFIX`, `SOME_MARKER`, `PARSER_SOME_PREFIX`), and `ast_to_str` (re-prints an as-parsed F-encoded statement back in FASP syntax for error/info messages).
+- `funasp/ast/` — the `ast` package. `__init__.py` re-exports the public API; `_core.py` holds the `Statement` wrapper, the `transform_iterable` AST-iteration helper, the parser-prefix constants (`PARSER_PREFIX`, `SOME_MARKER`, `PARSER_SOME_PREFIX`), and `_ast_to_str` (re-prints an as-parsed F-encoded statement back in FASP syntax for error/info messages); `_parsing.py` holds the parse wrappers (`parse_string`/`parse_files`); `_rewritings/` holds the rewrite pipeline.
 - `funasp/util/ast.py` — AST helpers (`create_literal`, `is_function`, `FreshVariableGenerator`, `ParsingException`, `SyntacticError`).
 - `funasp/solve.py` / `funasp/symbol.py` — `Model` wrapper that re-renders `Ff(t,v)` atoms as `f(t)=v` in output, and symbol helpers.
 
@@ -97,7 +97,7 @@ Rewritten function predicates carry a prefix (default **`F`**, set via `--prefix
 
 ## Conventions
 
-- Each rewriting concern is its own module under `funasp/rewriting/`; wire new steps into the pipeline in `integration.py`, not inline.
+- Each rewriting concern is its own module under `funasp/ast/_rewritings/`; wire new steps into the pipeline in `rewrite_statements.py`, not inline.
 - Transformers follow the clingo AST visitor contract: `singledispatchmethod` + `node.transform(lib, fn, …)` returning `None` for "unchanged" and a new node otherwise; rebuild via `node.update(lib, **changes)`.
 - Integration tests (`tests/test_app.py`, `test_app_patch.py`, `test_control.py`) are slow and excluded from the fast sessions; pipeline unit tests live under `tests/rewriting/`, parser tests under `tests/parser/`.
 - `tests/rewriting/test_integration.py` asserts exact rewritten-program strings; when adding pipeline behavior, capture the actual output with a probe script first, sanity-check it, then hardcode it.

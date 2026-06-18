@@ -3,7 +3,7 @@ Term-level unnesting of intensional functions inside literals.
 
 A nested intensional function term is replaced by a fresh ``FUN`` variable and
 an equality comparison linking the term to the variable is recorded, to be
-placed by the statement-level driver (``funasp.rewriting.unnesting``).
+placed by the statement-level driver (``funasp.ast._rewritings.unnesting``).
 """
 
 from functools import singledispatchmethod

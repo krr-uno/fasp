@@ -1,5 +1,5 @@
 """
-Unit tests for ``funasp.rewriting.unnesting`` paths that the integrated
+Unit tests for ``funasp.ast._rewritings.unnesting`` paths that the integrated
 pipeline cannot reach (negated body literals are converted to conditional
 literals before unnesting runs there).
 """
@@ -9,11 +9,10 @@ import unittest
 from clingo_funasp import ast, symbol
 from clingo_funasp.core import Location, Position
 
-from funasp.ast._rewritings.context import RewriteContext
+from funasp.ast import RewriteContext, parse_string
 from funasp.ast._rewritings.literals import UnnestFunctionsInLiteralsTransformer
 from funasp.ast._rewritings.types import SymbolSignature
 from funasp.ast._rewritings.unnesting import unnest_statement
-from funasp.ast import parse_string
 from funasp.core import Library
 from funasp.util.ast import FreshVariableGenerator
 

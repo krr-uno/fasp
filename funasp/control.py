@@ -8,9 +8,12 @@ from clingo_funasp import ast
 from clingo_funasp import solve as clingo_solve
 from clingo_funasp import symbol
 
-from funasp.ast import parse_files, parse_string
-from funasp.ast._rewritings import rewrite_statements
-from funasp.ast._rewritings.context import RewriteContext
+from funasp.ast import (
+    RewriteContext,
+    parse_files,
+    parse_string,
+    rewrite_statements,
+)
 from funasp.core import Library
 from funasp.solve import Model
 
@@ -76,8 +79,8 @@ class Control:
 
         Parameters
         ----------
-        files
-            The paths of the files to parse and load.
+        code
+            The FASP program text to parse and load.
         """
         rewrite_ctx = RewriteContext(self.library, self.prefix)
         statements = parse_string(self.library, code)
