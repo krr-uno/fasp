@@ -30,37 +30,18 @@ jobs:
           - os: 'macos-latest'
             runAll: false
 
-    defaults:
-      run:
-        shell: bash -l {0}
-
     steps:
-    - name: Conda
-      uses: conda-incubator/setup-miniconda@v3
+    - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
-        channels: conda-forge
-        channel-priority: strict
-        activate-environment: clingo6
-        auto-update-conda: true
-
-    - name: Conda install clingo
-      shell: bash -l {0}
-      run: |
-        conda install --name clingo6 -c potassco/label/dev-20 clingo
 
     - name: "checkout repository"
       uses: actions/checkout@v3
 
-    - name: Conda install packages
-      shell: bash -l {0}
-      run: |
-        conda install --name clingo6 --file envs/requirements.txt
-
     - name: Pip install packages
       shell: bash -l {0}
       run: |
-        pip install -r requirements.txt
+        pip install -r envs/requirements.txt
         pip install -e .
 
     - name: run application
