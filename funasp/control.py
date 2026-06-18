@@ -9,9 +9,9 @@ from clingo_funasp import solve as clingo_solve
 from clingo_funasp import symbol
 
 from funasp.ast import parse_files, parse_string
+from funasp.ast.rewriting import rewrite_statements
+from funasp.ast.rewriting._context import RewriteContext
 from funasp.core import Library
-from funasp.rewriting import rewrite_statements
-from funasp.rewriting._context import RewriteContext
 from funasp.solve import Model
 
 LIBC_NAME: str | None = None

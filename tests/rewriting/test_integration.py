@@ -14,9 +14,9 @@ from clingo_funasp import ast
 
 from funasp.ast import parse_string
 from funasp.core import Library
-from funasp.rewriting._context import RewriteContext
-from funasp.rewriting.types import SymbolSignature
-from funasp.rewriting import rewrite_statements
+from funasp.ast.rewriting._context import RewriteContext
+from funasp.ast.rewriting.types import SymbolSignature
+from funasp.ast.rewriting import rewrite_statements
 from tests.restore_anonymous_term_variables import restore_anonymous_term_variables
 
 
