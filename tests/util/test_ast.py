@@ -3,6 +3,7 @@ import unittest
 
 from clingo_funasp import ast
 from clingo_funasp.core import Location, Position, Library
+from clingo_funasp.symbol import Symbol, SymbolType, parse_term, parse_term
 
 from funasp import core
 from funasp.ast import parse_string
@@ -20,6 +21,7 @@ INVALID_ASTTYPES = {
     ast.HeadDisjunction,
 }
 
+LOC = Location(Position(Library(), "<test>", 1, 1), Position(Library(), "<test>", 1, 1))
 
 class TestSyntacticChecker(unittest.TestCase):
     """
@@ -313,3 +315,60 @@ class TestSymbolSignature(unittest.TestCase):
         from funasp.ast._rewritings.types import SymbolSignature
 
         self.assertEqual(str(SymbolSignature("f", 2)), "f/2")
+
+
+
+class TestTermTransformer(unittest.TestCase):
+    """Tests for the TermTransformer class."""
+
+    def setUp(self):
+        """Set up test fixtures for each test."""
+        self.lib = Library()
+
+    def assertTransformed(self, term, expected_str, function):
+        """Assert that the term is transformed correctly."""
+        transformer = util_ast.TermTransformer(
+            self.lib, function
+        )
+        transformed_term = transformer(term)
+        if expected_str is None:
+            self.assertIsNone(transformed_term)
+        else:
+            self.assertEqual(str(transformed_term), expected_str)
+
+    def test_transform_order(self):
+        """Test that the transformation is applied in the correct order."""
+        names = []
+        def function(term):
+            # print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'}")
+            if isinstance(term, ast.TermFunction):
+                names.append("F" + term.name)
+            elif isinstance(term, Symbol) and term.type == SymbolType.Function:
+                names.append("S" + term.name)
+            return None
+
+        self.assertTransformed(ast.parse_term(self.lib, "a(b(c(X),d(Y)),e(Z))"), None, function)
+        self.assertEqual(names, ["Fa", "Fb", "Fc", "Fd", "Fe"])
+
+        names = []
+        self.assertTransformed(parse_term(self.lib, "a(b(c,d),e)"), None, function)
+        self.assertEqual(names, ["Sa", "Sb", "Sc", "Sd", "Se"])
+
+    def test_replacement(self):
+        """Test that the transformation can replace terms."""
+        traversed_terms = []
+        def function(term):
+            # print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'}")
+            traversed_terms.append(term)
+            if isinstance(term, ast.TermFunction) and term.name == "b":
+                return ast.TermFunction(self.lib, term.location, "x", term.pool)
+            if isinstance(term, Symbol) and term.type == SymbolType.Function and term.name == "b":
+                return ast.TermFunction(self.lib, LOC, "x", [])
+            return None
+
+        self.assertTransformed(ast.parse_term(self.lib, "a(b(c,d),e)"), "a(x(c,d),e)", function)
+        self.assertEqual([str(t) for t in traversed_terms], ['a(b(c,d),e)', 'b(c,d)', 'e'])
+
+        traversed_terms = []
+        self.assertTransformed(parse_term(self.lib, "a(b(c,d),e)"), "a(x(),e)", function)
+        self.assertEqual([str(t) for t in traversed_terms], ['a(b(c,d),e)', 'b(c,d)', 'e'])

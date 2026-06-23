@@ -1,7 +1,9 @@
 import sys
+from functools import singledispatchmethod
 from typing import (
     AbstractSet,
     Any,
+    Callable,
     NamedTuple,
     Optional,
     Sequence,
@@ -360,3 +362,85 @@ class ParsingException(Exception):
         self.errors = errors
         messages = "\n".join(str(error) for error in errors)
         super().__init__(f"Parsing failed with {len(errors)} error(s):\n{messages}")
+
+
+TRANSFORM_FUNC = Callable[[ast.TermOrProjection | Symbol], ast.TermOrProjection | None]
+
+
+class TermTransformer:
+
+    def __init__(
+        self,
+        library: Library,
+        transform_func: TRANSFORM_FUNC,
+    ):
+        self.library = library
+        self.transform_func = transform_func
+        self._last_location: Location = Location(
+            Position(library, "<unknown>", 0, 0), Position(library, "<unknown>", 0, 0)
+        )
+
+    def apply_to_symbol(
+        self, symbol: Symbol, location: Location
+    ) -> ast.TermOrProjection | None:
+        """
+        Transform a Symbol using the provided transformation function. If the Symbol is replaced by a Term, it will be wrapped in a TermSymbolic node.
+
+        Args:
+            library (Library): The library to use for creating new AST nodes.
+            symbol (Symbol): The Symbol to transform.
+        """
+        transformed = self.transform_func(symbol)
+        if transformed is not None or symbol.type != SymbolType.Function:
+            return transformed
+        all_none = True
+        new_arguments: list[ast.TermOrProjection | Symbol | None] = []
+        for arg in symbol.arguments:
+            transformed_arg = self.apply_to_symbol(arg, location)
+            new_arguments.append(transformed_arg)
+            if transformed_arg is not None:
+                all_none = False
+        if all_none:
+            return None
+        new_arguments2: list[ast.TermOrProjection] = []
+        for new, old in zip(new_arguments, symbol.arguments):
+            new = new or old
+            if isinstance(new, Symbol):
+                new = ast.TermSymbolic(self.library, location, new)
+            new_arguments2.append(new)
+        arguments_tuple = ast.ArgumentTuple(self.library, new_arguments2)
+        return ast.TermFunction(self.library, location, symbol.name, [arguments_tuple])
+
+    @singledispatchmethod
+    def __call__(
+        self,
+        term: ast.TermOrProjection | ast.ArgumentTuple | Symbol,
+    ) -> ast.TermOrProjection | ast.ArgumentTuple | None:
+        """
+        Transform a term AST node using the provided transformation function. If a Symbol is replaced by a Term, it will be wrapped in a TermSymbolic node and the tree will be accordingly transformed.
+
+        Args:
+            library (Library): The library to use for creating new AST nodes.
+            term (ast.Term): The term AST node to transform.
+            transform_func (callable): A function that takes a term and returns a transformed term.
+
+        Returns:
+            ast.Term: The transformed term AST node.
+        """
+        raise NotImplementedError(
+            f"Unsupported term type: {type(term)}"
+        )  # pragma: no cover
+
+    @__call__.register
+    def _(self, term: ast.TermOrProjection | Symbol) -> ast.TermOrProjection | None:
+        if isinstance(term, Symbol):
+            return self.apply_to_symbol(term, self._last_location)
+        self._last_location = term.location
+        new_term = self.transform_func(term)
+        if new_term is not None:
+            return new_term
+        return term.transform(self.library, self.__call__)
+
+    @__call__.register
+    def _(self, term: ast.ArgumentTuple) -> ast.ArgumentTuple | None:
+        return term.transform(self.library, self.__call__)
