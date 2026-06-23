@@ -311,3 +311,202 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         )
 
         self.assertIsNone(transformer._rewrite(literal))
+
+    def test_rewrites_head_set_aggregate_element(self):
+        program = """
+        { assign(N,C) : color(C) } :- node(N).
+        """
+
+        expected = """
+        { assign(N) := C: color(C) } :- node(N).
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_head_set_aggregate_without_changes_remains_unchanged(self):
+        program = """
+        { color(C) } :- node(N).
+        """
+
+        expected = """
+        { color(C) } :- node(N).
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_nonfunctional_head_set_aggregate_element_condition(self):
+        program = """
+        { color(C) : assign(N,C) } :- node(N).
+        """
+
+        expected = """
+        { color(C): assign(N) = C } :- node(N).
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_comparison_head_set_aggregate_element_condition(self):
+        program = """
+        { C = 1 : assign(N,C) } :- node(N).
+        """
+
+        expected = """
+        { C = 1: assign(N) = C } :- node(N).
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_comparison_head_set_aggregate_without_changes_remains_unchanged(self):
+        program = """
+        { C = 1 } :- node(N).
+        """
+
+        expected = """
+        { C = 1 } :- node(N).
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_head_aggregate_element(self):
+        program = """
+        #count { assign(N,C): color(C) } = 1 :- node(N).
+        """
+
+        # How should this be transformed?
+        expected = """
+        #count { assign(N,C): color(C) } = 1 :- node(N). 
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_head_aggregate_element_condition(self):
+        program = """
+        #count { C: q(C): assign(N,C) } = 1 :- node(N).
+        """
+
+        expected = """
+        #count { C: q(C): assign(N) = C } = 1 :- node(N).
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_head_conditional_literal_condition(self):
+        nodes = collect_statements_funasp(self.lib, "p(X): assign(N,C).")
+        expected_nodes = collect_statements_funasp(self.lib, "p(X): assign(N) = C.")
+
+        rule = nodes[0]
+        expected_rule = expected_nodes[0]
+        assert isinstance(rule, ast.StatementRule)
+        assert isinstance(expected_rule, ast.StatementRule)
+
+        conditional_literal = rule.head.elements[0]
+        expected_conditional_literal = expected_rule.head.elements[0]
+
+        transformer = FunctionalPredicateRewriteTransformer(
+            self.lib,
+            [
+                FRelation(
+                    name="assign",
+                    arity=2,
+                    arguments=(0,),
+                    values=[(1,)],
+                )
+            ],
+        )
+
+        new_conditional_literal, changed = (
+            transformer._rewrite_head_conditional_literal(conditional_literal)
+        )
+
+        self.assertTrue(changed)
+        self.assertEqual(str(new_conditional_literal), str(expected_conditional_literal))
+
+    def test_head_conditional_literal_without_changes_remains_unchanged(self):
+        nodes = collect_statements_funasp(self.lib, "p(X): q(X).")
+
+        rule = nodes[0]
+        assert isinstance(rule, ast.StatementRule)
+
+        conditional_literal = rule.head.elements[0]
+
+        transformer = FunctionalPredicateRewriteTransformer(
+            self.lib,
+            [
+                FRelation(
+                    name="assign",
+                    arity=2,
+                    arguments=(0,),
+                    values=[(1,)],
+                )
+            ],
+        )
+
+        new_conditional_literal, changed = (
+            transformer._rewrite_head_conditional_literal(conditional_literal)
+        )
+
+        self.assertFalse(changed)
+        self.assertEqual(str(new_conditional_literal), str(conditional_literal))
