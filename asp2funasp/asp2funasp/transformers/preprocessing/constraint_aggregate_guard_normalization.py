@@ -64,14 +64,10 @@ class ConstraintAggregateGuardTransformer(PreprocessingTransformer):
             return rule.update(self._lib, body=new_body)
         return None
 
-    def _normalize_guard[
-        T: (
-            ast.LeftGuard,
-            ast.RightGuard,
-        )
-    ](
-        self, guard: Optional[T], is_left: bool = True
-    ) -> Tuple[Optional[T], bool]:
+    def _normalize_guard[T: (
+        ast.LeftGuard,
+        ast.RightGuard,
+    )](self, guard: Optional[T], is_left: bool = True) -> Tuple[Optional[T], bool]:
         if guard is None:
             return None, False
         if guard.relation != ast.Relation.Less:

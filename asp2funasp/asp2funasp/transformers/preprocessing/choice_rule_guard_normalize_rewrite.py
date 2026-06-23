@@ -60,14 +60,10 @@ class ChoiceGuardTransformer(PreprocessingTransformer):
     def _is_choice_head(head: ast.HeadLiteral) -> bool:
         return isinstance(head, (ast.HeadSetAggregate, ast.HeadAggregate))
 
-    def _normalize_guard[
-        T: (
-            ast.LeftGuard,
-            ast.RightGuard,
-        )
-    ](
-        self, guard: Optional[T], is_left: bool = True
-    ) -> Tuple[Optional[T], bool]:
+    def _normalize_guard[T: (
+        ast.LeftGuard,
+        ast.RightGuard,
+    )](self, guard: Optional[T], is_left: bool = True) -> Tuple[Optional[T], bool]:
         if guard is None:
             return None, False
         if guard.relation != ast.Relation.Less:

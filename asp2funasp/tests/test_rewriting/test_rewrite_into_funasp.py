@@ -63,7 +63,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
             expected_str,
             msg=f"\nEXPECTED:\n{expected_str}\n\nACTUAL:\n{actual_str}",
         )
-    
+
     def _make_non_function_symbolic_literal(self) -> ast.LiteralSymbolic:
         nodes = collect_statements_funasp(self.lib, "a.")
         rule = nodes[0]
@@ -183,7 +183,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         ]
 
         self.assertEqualRewrite(program, expected, frels)
-    
+
     def test_rewrites_functional_predicate_in_simple_head(self):
         program = """
         p(X,Y) :- q(X,Y).
@@ -419,7 +419,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         # How should this be transformed?
         expected = """
-        #count { assign(N,C): color(C) } = 1 :- node(N). 
+        #count { assign(N,C): color(C) } = 1 :- node(N).
         """
 
         frels = [
@@ -428,6 +428,64 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
                 arity=2,
                 arguments=(0,),
                 values=[(1,)],
+            ),
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_with_conflicts_1(self):
+        program = """
+        #count { assign(N,C): color(C) } = 1 :- node(N).
+        assign_1(N,C,V).
+        """
+
+        # How should this be transformed?
+        expected = """
+        #count { assign(N,C): color(C) } = 1 :- node(N).
+        assign_1(N,C) := V.
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            ),
+            FRelation(
+                name="assign",
+                arity=3,
+                arguments=(0, 1),
+                values=[(2,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_with_conflicts_2(self):
+        program = """
+        color(assign(N,C)) :- node(N), c(C).
+        assign_1(N,C,V).
+        """
+
+        # How should this be transformed?
+        expected = """
+        color(assign(N,C)) :- node(N), c(C).
+        assign_1(N,C) := V.
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            ),
+            FRelation(
+                name="assign",
+                arity=3,
+                arguments=(0, 1),
+                values=[(2,)],
             )
         ]
 
