@@ -117,20 +117,14 @@ class UnnestFunctionsInLiteralsTransformer:
         """Return whether the given function signature is intensional."""
         return SymbolSignature(name, arity) in self.intensional_functions
 
-    def _is_intensional_term(self, term: ast.Term | Symbol) -> bool:
+    def _is_intensional_term(self, term: ast.TermOrProjection | Symbol) -> bool:
         """Return whether the given term is an intensional function term."""
-        print(f"Checking if term is intensional: {term} --- {type(term)}")
         if isinstance(term, ast.TermFunction):
             return any(
                 self._is_intensional(term.name, len(p.arguments)) for p in term.pool
             )
-        if (
-            isinstance(term, ast.TermSymbolic)
-            and term.symbol.type == symbol.SymbolType.Function
-        ):
-            return self._is_intensional(
-                str(term.symbol.name), len(term.symbol.arguments)
-            )
+        if isinstance(term, ast.TermSymbolic):
+            term = term.symbol
         if isinstance(term, symbol.Symbol) and term.type == symbol.SymbolType.Function:
             return self._is_intensional(str(term.name), len(term.arguments))
         return False
@@ -206,8 +200,6 @@ class UnnestFunctionsInLiteralsTransformer:
         if not update:
             return node if is_new_node else None
         return node.update(self.lib, **update)
-
-
 
     @unnest.register
     def _(
