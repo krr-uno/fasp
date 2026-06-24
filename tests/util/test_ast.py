@@ -23,6 +23,13 @@ INVALID_ASTTYPES = {
 
 LOC = Location(Position(Library(), "<test>", 1, 1), Position(Library(), "<test>", 1, 1))
 
+
+def parse_symbolic_term(lib, term_str):
+    """Parse a symbolic term from a string."""
+    term = parse_term(lib, term_str)
+    return ast.TermSymbolic(lib, LOC, term)
+
+
 class TestSyntacticChecker(unittest.TestCase):
     """
     Test class for the syntactic checker.
@@ -317,7 +324,6 @@ class TestSymbolSignature(unittest.TestCase):
         self.assertEqual(str(SymbolSignature("f", 2)), "f/2")
 
 
-
 class TestTermTransformer(unittest.TestCase):
     """Tests for the TermTransformer class."""
 
@@ -327,9 +333,7 @@ class TestTermTransformer(unittest.TestCase):
 
     def assertTransformed(self, term, expected_str, function):
         """Assert that the term is transformed correctly."""
-        transformer = util_ast.TermTransformer(
-            self.lib, function
-        )
+        transformer = util_ast.TermTransformer(self.lib, function)
         transformed_term = transformer(term)
         if expected_str is None:
             self.assertIsNone(transformed_term)
@@ -339,36 +343,54 @@ class TestTermTransformer(unittest.TestCase):
     def test_transform_order(self):
         """Test that the transformation is applied in the correct order."""
         names = []
-        def function(term):
+
+        def function(term, depth):
             # print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'}")
             if isinstance(term, ast.TermFunction):
-                names.append("F" + term.name)
+                names.append(("F" + term.name, depth))
             elif isinstance(term, Symbol) and term.type == SymbolType.Function:
-                names.append("S" + term.name)
+                names.append(("S" + term.name, depth))
             return None
 
-        self.assertTransformed(ast.parse_term(self.lib, "a(b(c(X),d(Y)),e(Z))"), None, function)
-        self.assertEqual(names, ["Fa", "Fb", "Fc", "Fd", "Fe"])
+        self.assertTransformed(
+            ast.parse_term(self.lib, "a(b(c(X),d(Y)),e(Z))"), None, function
+        )
+        self.assertEqual(names, [("Fa", 0), ("Fb", 1), ("Fc", 2), ("Fd", 2), ("Fe", 1)])
 
         names = []
-        self.assertTransformed(parse_term(self.lib, "a(b(c,d),e)"), None, function)
-        self.assertEqual(names, ["Sa", "Sb", "Sc", "Sd", "Se"])
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(c,d),e)"), None, function
+        )
+        self.assertEqual(names, [("Sa", 0), ("Sb", 1), ("Sc", 2), ("Sd", 2), ("Se", 1)])
 
     def test_replacement(self):
         """Test that the transformation can replace terms."""
         traversed_terms = []
-        def function(term):
+
+        def function(term, _):
             # print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'}")
             traversed_terms.append(term)
             if isinstance(term, ast.TermFunction) and term.name == "b":
                 return ast.TermFunction(self.lib, term.location, "x", term.pool)
-            if isinstance(term, Symbol) and term.type == SymbolType.Function and term.name == "b":
+            if (
+                isinstance(term, Symbol)
+                and term.type == SymbolType.Function
+                and term.name == "b"
+            ):
                 return ast.TermFunction(self.lib, LOC, "x", [])
             return None
 
-        self.assertTransformed(ast.parse_term(self.lib, "a(b(c,d),e)"), "a(x(c,d),e)", function)
-        self.assertEqual([str(t) for t in traversed_terms], ['a(b(c,d),e)', 'b(c,d)', 'e'])
+        self.assertTransformed(
+            ast.parse_term(self.lib, "a(b(c,d),e)"), "a(x(c,d),e)", function
+        )
+        self.assertEqual(
+            [str(t) for t in traversed_terms], ["a(b(c,d),e)", "b(c,d)", "e"]
+        )
 
         traversed_terms = []
-        self.assertTransformed(parse_term(self.lib, "a(b(c,d),e)"), "a(x(),e)", function)
-        self.assertEqual([str(t) for t in traversed_terms], ['a(b(c,d),e)', 'b(c,d)', 'e'])
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(c,d),e)"), "a(x(),e)", function
+        )
+        self.assertEqual(
+            [str(t) for t in traversed_terms], ["a(b(c,d),e)", "b(c,d)", "e"]
+        )
