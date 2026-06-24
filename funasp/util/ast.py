@@ -519,7 +519,7 @@ class TermReplacer[**P]:
     def __init__(
         self,
         library: Library,
-        condition: Callable[Concatenate[ast.TermOrProjection | Symbol, int, P], bool],
+        condition: Callable[Concatenate[ast.Term | Symbol, int, P], bool],
         callback: Callable[[ast.LiteralComparison], None],
         variable_generator: FreshVariableGenerator,
         sign: ast.Sign = ast.Sign.NoSign,
@@ -551,16 +551,22 @@ class TermReplacer[**P]:
         recursive_function: Callable[
             [ast.TermOrProjection, int], ast.TermOrProjection | None
         ],
-    ) -> ast.TermOrProjection | None:
-        if not self.condition(node, depth, *self.args, **self.kwargs):
+    ) -> ast.Term | None:
+        if isinstance(node, ast.Projection) or not self.condition(
+            node, depth, *self.args, **self.kwargs
+        ):
             return None
         if isinstance(node, Symbol):
             node = ast.TermSymbolic(self.library, location, node)
-        node = recursive_function(node, depth + 1) or node
+        new_node = recursive_function(node, depth + 1)
+        if new_node is not None:
+            assert not isinstance(
+                new_node, ast.Projection
+            ), f"Cannot replace a projection with a projection: {new_node}"
+            node = new_node
         fresh: ast.TermVariable = self.variable_generator.fresh_variable(
             self.library, location, "FUN"
         )
-        assert isinstance(node, ast.Term)
         comp = make_equation(self.library, location, node, fresh, self.sign)
         self.callback(comp)
         return fresh
@@ -569,7 +575,7 @@ class TermReplacer[**P]:
 def replace_term[**P](
     library: Library,
     node: ast.TermOrProjection,
-    condition: Callable[Concatenate[ast.TermOrProjection | Symbol, int, P], bool],
+    condition: Callable[Concatenate[ast.Term | Symbol, int, P], bool],
     callback: Callable[[ast.LiteralComparison], None],
     variable_generator: FreshVariableGenerator,
     sign: ast.Sign,
