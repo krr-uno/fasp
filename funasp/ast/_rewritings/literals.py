@@ -7,7 +7,7 @@ placed by the statement-level driver (``funasp.ast._rewritings.unnesting``).
 """
 
 from functools import singledispatchmethod
-from typing import List, Sequence, Set, TypeVar
+from typing import List, Set, TypeVar
 
 from clingo_funasp import ast, symbol
 from clingo_funasp.core import Library, Location
@@ -217,99 +217,64 @@ class UnnestFunctionsInLiteralsTransformer:
             return node if is_new_node else None
         return node.update(self.lib, **update)
 
-    def _unnest_symbol_function(
+    def _transform_argument(
         self,
-        node: Symbol,
-        sign: ast.Sign | None,
+        node: ast.TermOrProjection | Symbol,
+        depth: int,
+        sign: ast.Sign,
         location: Location,
-    ) -> tuple[ast.TermFunction | None, str, Sequence[Symbol] | Sequence[ast.Term]]:
-        """Unnest intensional functions appearing inside a symbolic function argument list."""
-        arguments: list[Symbol | ast.Term] = []
-        has_new_argument = False
-        for arg in node.arguments:
-            new_arg = self.unnest(arg, False, sign, location)
-            if new_arg is not None:
-                arguments.append(new_arg)
-                has_new_argument = True
-            else:
-                arguments.append(arg)
-        if not has_new_argument:
-            return None, node.name, node.arguments
-        new_arguments = [
-            (
-                arg
-                if not isinstance(arg, Symbol)
-                else ast.TermSymbolic(self.lib, location, arg)
-            )
-            for arg in arguments
-        ]
-        new_node = ast.TermFunction(
-            self.lib,
-            location,
-            node.name,
-            [ast.ArgumentTuple(self.lib, new_arguments)],
-            external=False,
+    ) -> ast.TermOrProjection | None:
+        print(
+            f"Transforming argument: {node} --- {type(node)}, depth={depth}, sign={sign}"
         )
-        return new_node, node.name, new_arguments
+        if depth <= 0:
+            return None
+        if isinstance(node, Symbol) and node.type == symbol.SymbolType.Function:
+            if not self._is_intensional(node.name, len(node.arguments)):
+                return None
+            node = ast.TermSymbolic(self.lib, location, node)
+        elif not isinstance(node, ast.TermFunction) or not any(
+            self._is_intensional(node.name, len(t.arguments)) for t in node.pool
+        ):
+            return None
+        print(f"Unnesting intensional function: {node} --- {type(node)}...")
+        node = (
+            node.transform(
+                self.lib,
+                self._unnest_term,
+                depth + 1,
+                sign,
+                location,
+            )
+            or node
+        )
+        print(f"Unnested intensional function: {node} --- {type(node)}")
+        if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
+            raise RuntimeError(
+                f"Intensional functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {location}."
+            )
+        fresh: ast.TermVariable = self.var_gen.fresh_variable(self.lib, location, "FUN")
+        comp = self._make_comparison(location, node, fresh, sign)
+        self.unnested_functions.append(comp)
+        return fresh
 
     def _unnest_term(
         self,
-        node: ast.TermOrProjection,
-        outer: bool = True,
-        sign: ast.Sign | None = None,
-        location: Location | None = None,
+        node: ast.TermOrProjection | ast.ArgumentTuple,
+        depth: int,
+        sign: ast.Sign,
+        location: Location,
     ) -> ast.TermOrProjection | None:
         """Unnest intensional functions appearing inside a term or projection."""
 
-        def transform_argument(
-            arg: ast.TermOrProjection | Symbol,
-            outer: bool,
-            location: Location,
-            depth: int,
-        ) -> ast.TermOrProjection | None:
-            # print(
-            #     f"Transforming argument: {arg} --- {type(arg)}, depth={depth}, sign={sign}"
-            # )
-            if depth <= 0:
-                return None
-            if isinstance(arg, Symbol) and arg.type == symbol.SymbolType.Function:
-                if not self._is_intensional(arg.name, len(arg.arguments)):
-                    return None
-                arg = ast.TermSymbolic(self.lib, location, arg)
-            elif not isinstance(arg, ast.TermFunction) or not any(
-                self._is_intensional(arg.name, len(t.arguments)) for t in arg.pool
-            ):
-                return None
-            # print(f"Unnesting intensional function: {arg} --- {type(arg)}...")
-            arg = (
-                arg.transform(
-                    self.lib,
-                    self._unnest_term,
-                    outer=False,
-                    sign=sign,
-                    location=location,
-                )
-                or arg
-            )
-            # print(f"Unnested intensional function: {arg} --- {type(arg)}")
-            if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
-                raise RuntimeError(
-                    f"Intensional functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {location}."
-                )
-            fresh: ast.TermVariable = self.var_gen.fresh_variable(
-                self.lib, location, "FUN"
-            )
-            comp = self._make_comparison(location, arg, fresh, sign=sign)
-            self.unnested_functions.append(comp)
-            return fresh
+        if not isinstance(node, ast.ArgumentTuple):
+            location = node.location
 
         transformer = TermTransformer(
             self.lib,
-            lambda arg, depth: transform_argument(
-                arg, outer, location or node.location, depth
-            ),
+            lambda arg, depth: self._transform_argument(arg, depth, sign, location),
         )
-        return transformer(node, depth=0 if outer else 1)
+        return transformer(node, depth)
 
     @unnest.register
     def _(
@@ -317,84 +282,11 @@ class UnnestFunctionsInLiteralsTransformer:
         node: ast.TermOrProjection,
         outer: bool = True,
         sign: ast.Sign | None = None,
-        location: Location | None = None,
     ) -> ast.TermOrProjection | None:
         """Unnest intensional function terms and replace inner calls with fresh variables."""
-        return self._unnest_term(node, outer, sign, location)
-
-    # @unnest.register
-    # def _(
-    #     self,
-    #     node: ast.TermFunction | ast.TermSymbolic | Symbol,
-    #     outer: bool = True,
-    #     sign: ast.Sign | None = None,
-    #     location: Location | None = None,
-    # ) -> ast.TermFunction | ast.TermSymbolic | ast.TermVariable | None:
-    #     """Unnest intensional function terms and replace inner calls with fresh variables."""
-    #     if not isinstance(node, Symbol) and not is_function(node):
-    #         return None
-
-    #     if isinstance(node, ast.TermSymbolic):
-    #         return self.unnest(
-    #             node.symbol, outer=outer, sign=sign, location=node.location
-    #         )
-    #     elif isinstance(node, Symbol):
-    #         assert location is not None, "Location must be provided for Symbol nodes"
-    #         if node.type != symbol.SymbolType.Function:
-    #             return None
-    #         new_node, name, arguments = self._unnest_symbol_function(
-    #             node, sign, location
-    #         )
-    #         if outer or not self._is_intensional(name, len(arguments)):
-    #             return new_node
-    #     else:
-    #         new_node = node.transform(
-    #             self.lib,
-    #             self.unnest,
-    #             outer=False,
-    #             sign=sign,
-    #         )
-    #         if outer:
-    #             return new_node
-    #         name = node.name
-    #         for arguments in node.pool:
-    #             if self._is_intensional(name, len(arguments.arguments)):
-    #                 break
-    #         else:
-    #             return new_node
-    #         location = node.location
-
-    #     node = new_node or node
-
-    #     if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
-    #         raise RuntimeError(
-    #             f"Intensional functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {location}."
-    #         )
-    #     fresh: ast.TermVariable = self.var_gen.fresh_variable(self.lib, location, "FUN")
-    #     if isinstance(node, Symbol):
-    #         node = ast.TermSymbolic(self.lib, location, node)
-    #     comp = self._make_comparison(location, node, fresh, sign=sign)
-    #     self.unnested_functions.append(comp)
-    #     return fresh
-
-    # @unnest.register(
-    #     ast.TermAbsolute
-    #     | ast.TermUnaryOperation
-    #     | ast.TermBinaryOperation
-    #     | ast.TermTuple
-    # )
-    # def _[
-    #     T: (
-    #         ast.TermAbsolute,
-    #         ast.TermUnaryOperation,
-    #         ast.TermBinaryOperation,
-    #         ast.TermTuple,
-    #     )
-    # ](
-    #     self, node: T, outer: bool = True, sign: ast.Sign | None = None
-    # ) -> T | None:
-    #     """Unnest intensional functions that occur inside composite term nodes."""
-    #     return node.transform(self.lib, self.unnest, outer=False, sign=sign)
+        return self._unnest_term(
+            node, 0 if outer else 1, sign or ast.Sign.NoSign, node.location
+        )
 
     @unnest.register
     def _(

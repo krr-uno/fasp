@@ -36,12 +36,12 @@ class TestUnnestStatement(unittest.TestCase):
         statements = parse_string(self.lib, code)
         return [str(unnest_statement(context, s.original)) for s in statements[1:]]
 
-    # def test_negated_body_literal(self):
-    #     """A negated body literal with an intensional function becomes conditional."""
-    #     self.assertEqual(
-    #         self.unnest("p(X) :- q(X); not r(f(X)).", {"f/1"}),
-    #         ["p(X) :- q(X); #false: r(FUN), f(X)=FUN."],
-    #     )
+    def test_negated_body_literal(self):
+        """A negated body literal with an intensional function becomes conditional."""
+        self.assertEqual(
+            self.unnest("p(X) :- q(X); not r(f(X)).", {"f/1"}),
+            ["p(X) :- q(X); #false: r(FUN), f(X)=FUN."],
+        )
 
     def test_negated_body_literal_no_change(self):
         """A negated body literal without intensional functions is unchanged."""
@@ -138,6 +138,7 @@ class TestUnnestStatement(unittest.TestCase):
         evaluable_functions: list[str],
         expected_literal_str: str | None,
         unnest_left_guard_equality: bool = False,
+        expected_unnested_functions: list[str] | None = None,
     ):
         """Assert equal unnesting literal."""
         literal = ast.parse_literal(self.lib.library, literal_str)
@@ -152,6 +153,7 @@ class TestUnnestStatement(unittest.TestCase):
             expected_literal,
             outer=False,
             unnest_left_guard_equality=unnest_left_guard_equality,
+            expected_unnested_functions=expected_unnested_functions,
         )
 
     def test_function(self):
@@ -180,3 +182,12 @@ class TestUnnestStatement(unittest.TestCase):
         """Test symbolic literal1."""
         self.assertEqualUnnestingLiteral("a(a)", ["a/0"], "a(FUN)")
         self.assertEqualUnnestingLiteral("a(a)", ["a/0", "a/1"], "a(FUN)")
+
+    def test_symbolic_literal_hamiltonian1(self):
+        """Test symbolic literal hamiltonian1."""
+        self.assertEqualUnnestingLiteral(
+            "visited(next(start))",
+            ["next/1", "start/0"],
+            "visited(FUN2)",
+            expected_unnested_functions=["start=FUN", "next(FUN)=FUN2" ],
+        )

@@ -451,7 +451,7 @@ class TermTransformer:
         return term.transform(self.library, self._apply, depth)
 
     def __call__(
-        self, term: ast.TermOrProjection | Symbol, depth: int = 0
+        self, term: ast.TermOrProjection | ast.ArgumentTuple, depth: int = 0
     ) -> ast.TermOrProjection | None:
         """Transform the given term AST node using the provided transformation function."""
         return self._apply(term, depth)
