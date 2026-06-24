@@ -4,6 +4,7 @@ from typing import (
     AbstractSet,
     Any,
     Callable,
+    Concatenate,
     NamedTuple,
     Optional,
     Sequence,
@@ -371,41 +372,55 @@ TERM_OR_ARGTUPLE_T = TypeVar(
     ast.ArgumentTuple,
 )
 
-TRANSFORM_FUNC_REC = Callable[..., ast.TermOrProjection | None]
 
-TRANSFORM_FUNC = Callable[
-    [ast.TermOrProjection | Symbol, int, TRANSFORM_FUNC_REC],
-    ast.TermOrProjection | None,
-]
-
-
-class TermTransformer:
+class TermTransformer[**P]:
 
     def __init__(
         self,
         library: Library,
-        transform_func: TRANSFORM_FUNC,
+        transform_func: Callable[
+            Concatenate[
+                ast.TermOrProjection | Symbol,
+                int,
+                Callable[
+                    Concatenate[ast.TermOrProjection, int, P],
+                    ast.TermOrProjection | None,
+                ],
+                P,
+            ],
+            ast.TermOrProjection | None,
+        ],
     ):
+        """
+        Transform a term AST node using the provided transformation function. If a Symbol is replaced by a Term, it will be wrapped in a TermSymbolic node and the tree will be accordingly transformed.
+
+        Args:
+            library (Library): The library to use for creating new AST nodes.
+            term (ast.Term): The term AST node to transform.
+            transform_func (callable): A function that takes a term, integer representing the depth of recursion and a recursive function, and returns a transformed term. The function may have additional parameters, which will be passed through to the recursive function. The transform_func should return None if no transformation is needed, or a new term if a transformation is applied. If a transformation happens, the transformer will not recurse into the children of the term, as it is assumed that the transform_func has already handled them. The recursive function passed to transform_func can be used to apply the transformation to child nodes.
+
+        The resulting object is callable and can be used to transform a term AST node by calling it with the term and any additional parameters required by the transform_func.
+        """
         self.library = library
         self.transform_func = transform_func
 
     def apply_to_symbol(
-        self, symbol: Symbol, location: Location, depth: int
+        self, symbol: Symbol, location: Location, depth: int, *args: Any, **kwargs: Any
     ) -> ast.TermOrProjection | None:
         """
-        Transform a Symbol using the provided transformation function. If the Symbol is replaced by a Term, it will be wrapped in a TermSymbolic node.
-
-        Args:
-            library (Library): The library to use for creating new AST nodes.
-            symbol (Symbol): The Symbol to transform.
+        Apply the transformation to a Symbol node.
         """
-        transformed = self.transform_func(symbol, depth, self._apply_recursive)
+        transformed = self.transform_func(
+            symbol, depth, self._apply_recursive, *args, **kwargs
+        )
         if transformed is not None or symbol.type != SymbolType.Function:
             return transformed
         all_none = True
         new_arguments: list[ast.TermOrProjection | Symbol | None] = []
         for arg in symbol.arguments:
-            transformed_arg = self.apply_to_symbol(arg, location, depth + 1)
+            transformed_arg = self.apply_to_symbol(
+                arg, location, depth + 1, *args, **kwargs
+            )
             new_arguments.append(transformed_arg)
             if transformed_arg is not None:
                 all_none = False
@@ -429,15 +444,7 @@ class TermTransformer:
         **kwargs: Any,
     ) -> TERM_OR_ARGTUPLE_T | None:
         """
-        Transform a term AST node using the provided transformation function. If a Symbol is replaced by a Term, it will be wrapped in a TermSymbolic node and the tree will be accordingly transformed.
-
-        Args:
-            library (Library): The library to use for creating new AST nodes.
-            term (ast.Term): The term AST node to transform.
-            transform_func (callable): A function that takes a term and returns a transformed term.
-
-        Returns:
-            ast.Term: The transformed term AST node.
+        Apply the transformation to a term or argument tuple node.
         """
         assert False, f"Unhandled term type {type(term)}"  # pragma: no cover
 
@@ -447,8 +454,12 @@ class TermTransformer:
     ) -> ast.TermOrProjection | None:
         print(f"Applying transformation to term: {term} --- {type(term)}")
         if isinstance(term, ast.TermSymbolic):
-            return self.apply_to_symbol(term.symbol, term.location, depth)
-        new_term = self.transform_func(term, depth, self._apply_recursive)
+            return self.apply_to_symbol(
+                term.symbol, term.location, depth, *args, **kwargs
+            )
+        new_term = self.transform_func(
+            term, depth, self._apply_recursive, *args, **kwargs
+        )
         # print(f"Transformed term: {new_term} --- {type(new_term)}")
         if new_term is not None:
             return new_term
@@ -461,18 +472,92 @@ class TermTransformer:
         return term.transform(self.library, self._apply, depth, *args, **kwargs)
 
     def __call__(
-        self, term: ast.TermOrProjection | ast.ArgumentTuple, depth: int = 0
+        self,
+        term: ast.TermOrProjection | ast.ArgumentTuple,
+        depth: int = 0,
+        *args: Any,
+        **kwargs: Any,
     ) -> ast.TermOrProjection | None:
         """Transform the given term AST node using the provided transformation function."""
-        return self._apply(term, depth)
+        return self._apply(term, depth, *args, **kwargs)
 
     def _apply_recursive(
-        self, term: ast.TermOrProjection, depth: int, *args: Any, **kwargs: Any
+        self, term: ast.TermOrProjection, depth: int, /, *args: Any, **kwargs: Any
     ) -> ast.TermOrProjection | None:
         """Recursively transform the given term AST node using the provided transformation function."""
         if isinstance(term, ast.TermSymbolic):
             if term.symbol.type != SymbolType.Function:
                 return None
             for arg in term.symbol.arguments:
-                self.apply_to_symbol(arg, term.location, depth)
+                self.apply_to_symbol(arg, term.location, depth, *args, **kwargs)
         return term.transform(self.library, self._apply, depth, *args, **kwargs)
+
+
+def make_equation(
+    library: Library,
+    loc: Location,
+    left: ast.Term,
+    right: ast.Term,
+    sign: ast.Sign | None = None,
+) -> ast.LiteralComparison:
+    """Build an equality comparison linking an unnested function to a fresh variable."""
+    return ast.LiteralComparison(
+        library,
+        loc,
+        ast.Sign.Double if sign == ast.Sign.Double else ast.Sign.NoSign,
+        left,
+        [ast.RightGuard(library, ast.Relation.Equal, right)],
+    )
+
+
+def _replace_term[**P](
+    node: ast.TermOrProjection | Symbol,
+    depth: int,
+    recursive_function: Callable[
+        [ast.TermOrProjection, int, ast.Sign, Location], ast.TermOrProjection | None
+    ],
+    condition: Callable[Concatenate[ast.TermOrProjection | Symbol, int, P], bool],
+    callback: Callable[[ast.LiteralComparison], None],
+    variable_generator: FreshVariableGenerator,
+    library: Library,
+    location: Location,
+    sign: ast.Sign,
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> ast.TermOrProjection | None:
+    if not condition(node, depth, *args, **kwargs):
+        return None
+    if isinstance(node, Symbol):
+        node = ast.TermSymbolic(library, location, node)
+    node = recursive_function(node, depth + 1, sign, location) or node
+    fresh: ast.TermVariable = variable_generator.fresh_variable(library, location, "FUN")
+    assert isinstance(node, ast.Term)
+    comp = make_equation(library, location, node, fresh, sign)
+    callback(comp)
+    return fresh
+
+def replace_term[**P](
+    library: Library,
+    node: ast.TermOrProjection,
+    condition: Callable[Concatenate[ast.TermOrProjection | Symbol, int, P], bool],
+    callback: Callable[[ast.LiteralComparison], None],
+    variable_generator: FreshVariableGenerator,
+) -> ast.TermOrProjection | None:
+    """
+    Replace a term in the AST with a fresh variable if it satisfies the given condition.
+
+    Args:
+        library (Library): The library to use for creating new AST nodes.
+        node (ast.TermOrProjection): The term AST node to transform.
+        condition (callable): A function that takes a term and the recursion depth and returns True if it should be replaced.
+        callback (callable): A function that takes a LiteralComparison and is called when a replacement occurs.
+        variable_generator (FreshVariableGenerator): A generator for creating fresh variable names.
+    Returns:
+        ast.TermOrProjection | None: The transformed term AST node, or None if no transformation occurred.
+    """
+    transformer = TermTransformer(
+        library,
+        _replace_term,
+    )
+    return transformer(node, 0, condition, callback, variable_generator, library)
+
