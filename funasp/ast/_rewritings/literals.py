@@ -241,22 +241,14 @@ class UnnestFunctionsInLiteralsTransformer:
         ):
             return None
         print(f"Unnesting intensional function: {node} --- {type(node)}...")
-        node = (
-            node.transform(
-                self.lib,
-                self._unnest_term,
-                depth + 1,
-                sign,
-                location,
-            )
-            or node
-        )
+        node = recursive_function(node, depth + 1, sign, location) or node
         print(f"Unnested intensional function: {node} --- {type(node)}")
         if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
             raise RuntimeError(
                 f"Intensional functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {location}."
             )
         fresh: ast.TermVariable = self.var_gen.fresh_variable(self.lib, location, "FUN")
+        assert isinstance(node, ast.Term)
         comp = self._make_comparison(location, node, fresh, sign)
         self.unnested_functions.append(comp)
         return fresh

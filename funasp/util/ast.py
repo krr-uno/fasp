@@ -371,7 +371,7 @@ TERM_OR_ARGTUPLE_T = TypeVar(
     ast.ArgumentTuple,
 )
 
-TRANSFORM_FUNC_REC = Callable[..., ast.TermOrProjection | ast.ArgumentTuple | None]
+TRANSFORM_FUNC_REC = Callable[..., ast.TermOrProjection | None]
 
 TRANSFORM_FUNC = Callable[
     [ast.TermOrProjection | Symbol, int, TRANSFORM_FUNC_REC],
@@ -425,6 +425,8 @@ class TermTransformer:
         self,
         term: TERM_OR_ARGTUPLE_T,
         depth: int,
+        *args: Any,
+        **kwargs: Any,
     ) -> TERM_OR_ARGTUPLE_T | None:
         """
         Transform a term AST node using the provided transformation function. If a Symbol is replaced by a Term, it will be wrapped in a TermSymbolic node and the tree will be accordingly transformed.
@@ -440,7 +442,9 @@ class TermTransformer:
         assert False, f"Unhandled term type {type(term)}"  # pragma: no cover
 
     @_apply.register(ast.TermOrProjection)
-    def _(self, term: ast.TermOrProjection, depth: int) -> ast.TermOrProjection | None:
+    def _(
+        self, term: ast.TermOrProjection, depth: int, *args: Any, **kwargs: Any
+    ) -> ast.TermOrProjection | None:
         print(f"Applying transformation to term: {term} --- {type(term)}")
         if isinstance(term, ast.TermSymbolic):
             return self.apply_to_symbol(term.symbol, term.location, depth)
@@ -448,11 +452,13 @@ class TermTransformer:
         # print(f"Transformed term: {new_term} --- {type(new_term)}")
         if new_term is not None:
             return new_term
-        return term.transform(self.library, self._apply, depth + 1)
+        return term.transform(self.library, self._apply, depth + 1, *args, **kwargs)
 
     @_apply.register(ast.ArgumentTuple)
-    def _(self, term: ast.ArgumentTuple, depth: int) -> ast.ArgumentTuple | None:
-        return term.transform(self.library, self._apply, depth)
+    def _(
+        self, term: ast.ArgumentTuple, depth: int, *args: Any, **kwargs: Any
+    ) -> ast.ArgumentTuple | None:
+        return term.transform(self.library, self._apply, depth, *args, **kwargs)
 
     def __call__(
         self, term: ast.TermOrProjection | ast.ArgumentTuple, depth: int = 0
@@ -461,7 +467,7 @@ class TermTransformer:
         return self._apply(term, depth)
 
     def _apply_recursive(
-        self, term: ast.TermOrProjection, depth: int
+        self, term: ast.TermOrProjection, depth: int, *args: Any, **kwargs: Any
     ) -> ast.TermOrProjection | None:
         """Recursively transform the given term AST node using the provided transformation function."""
         if isinstance(term, ast.TermSymbolic):
@@ -469,4 +475,4 @@ class TermTransformer:
                 return None
             for arg in term.symbol.arguments:
                 self.apply_to_symbol(arg, term.location, depth)
-        return term.transform(self.library, self._apply, depth)
+        return term.transform(self.library, self._apply, depth, *args, **kwargs)
