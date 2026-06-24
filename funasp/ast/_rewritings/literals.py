@@ -207,47 +207,7 @@ class UnnestFunctionsInLiteralsTransformer:
             return node if is_new_node else None
         return node.update(self.lib, **update)
 
-    # def _transform_argument(
-    #     self,
-    #     node: ast.TermOrProjection | Symbol,
-    #     depth: int,
-    #     recursive_function: Callable[
-    #         [ast.TermOrProjection, int, ast.Sign, Location], ast.TermOrProjection | None
-    #     ],
-    #     sign: ast.Sign,
-    #     location: Location,
-    # ) -> ast.TermOrProjection | None:
-    #     # print(
-    #     #     f"Transforming argument: {node} --- {type(node)}, depth={depth}, sign={sign}"
-    #     # )
-    #     if depth <= 0:
-    #         return None
-    #     if isinstance(node, Symbol) and node.type == symbol.SymbolType.Function:
-    #         if not self._is_intensional(node.name, len(node.arguments)):
-    #             return None
-    #         node = ast.TermSymbolic(self.lib, location, node)
-    #     elif not isinstance(node, ast.TermFunction) or not any(
-    #         self._is_intensional(node.name, len(t.arguments)) for t in node.pool
-    #     ):
-    #         return None
-    #     # print(f"Unnesting intensional function: {node} --- {type(node)}...")
-    #     node = recursive_function(node, depth + 1, sign, location) or node
-    #     # print(f"Unnested intensional function: {node} --- {type(node)}")
-    #     if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
-    #         raise RuntimeError(
-    #             f"Intensional functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {location}."
-    #         )
-    #     fresh: ast.TermVariable = self.var_gen.fresh_variable(self.lib, location, "FUN")
-    #     assert isinstance(node, ast.Term)
-    #     comp = make_equation(self.lib, location, node, fresh, sign)
-    #     self.unnested_functions.append(comp)
-    #     return fresh
 
-    # def _replace_term_condition(
-    #     self, term: ast.TermOrProjection, depth: int
-    # ) -> bool:
-    #     """Return whether the term should be replaced."""
-    #     return self._is_intensional_term(term) and depth > 0
 
     @unnest.register
     def _(
