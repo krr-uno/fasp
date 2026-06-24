@@ -7,7 +7,7 @@ placed by the statement-level driver (``funasp.ast._rewritings.unnesting``).
 """
 
 from functools import singledispatchmethod
-from typing import List, Set, TypeVar
+from typing import Callable, List, Set, TypeVar
 
 from clingo_funasp import ast, symbol
 from clingo_funasp.core import Library, Location
@@ -221,6 +221,9 @@ class UnnestFunctionsInLiteralsTransformer:
         self,
         node: ast.TermOrProjection | Symbol,
         depth: int,
+        recursive_function: Callable[
+            ..., ast.TermOrProjection | ast.ArgumentTuple | None
+        ],
         sign: ast.Sign,
         location: Location,
     ) -> ast.TermOrProjection | None:
@@ -272,7 +275,9 @@ class UnnestFunctionsInLiteralsTransformer:
 
         transformer = TermTransformer(
             self.lib,
-            lambda arg, depth: self._transform_argument(arg, depth, sign, location),
+            lambda arg, depth, fun: self._transform_argument(
+                arg, depth, fun, sign, location
+            ),
         )
         return transformer(node, depth)
 

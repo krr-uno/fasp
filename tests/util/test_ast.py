@@ -344,7 +344,7 @@ class TestTermTransformer(unittest.TestCase):
         """Test that the transformation is applied in the correct order."""
         names = []
 
-        def function(term, depth):
+        def function(term, depth, fun):
             # print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'}")
             if isinstance(term, ast.TermFunction):
                 names.append(("F" + term.name, depth))
@@ -367,7 +367,7 @@ class TestTermTransformer(unittest.TestCase):
         """Test that the transformation can replace terms."""
         traversed_terms = []
 
-        def function(term, _):
+        def function(term, depth, fun):
             # print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'}")
             traversed_terms.append(term)
             if isinstance(term, ast.TermFunction) and term.name == "b":
@@ -394,3 +394,49 @@ class TestTermTransformer(unittest.TestCase):
         self.assertEqual(
             [str(t) for t in traversed_terms], ["a(b(c,d),e)", "b(c,d)", "e"]
         )
+
+
+        traversed_terms = []
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(c(d(b))))"), "a(x())", function
+        )
+        self.assertEqual(
+            [str(t) for t in traversed_terms], ['a(b(c(d(b))))', 'b(c(d(b)))']
+        )
+
+
+    def test_replacement_recursive(self):
+
+        traversed_terms = []
+
+        def function(term, depth, fun):
+            print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'} {fun.__name__}")
+            traversed_terms.append((str(term), depth))
+            if isinstance(term, ast.TermFunction) and term.name == "b":
+                fun(term, depth + 1)
+                return ast.TermFunction(self.lib, term.location, "x", term.pool)
+            if isinstance(term, Symbol):
+                print(f"Transforming symbolic term: {term} --- {type(term)}")
+                if (term.type == SymbolType.Function and term.name == "b"):
+                    fun(ast.TermSymbolic(self.lib, LOC, term), depth + 1)
+                    return ast.TermFunction(self.lib, LOC, "x", [])
+                if (term.type != SymbolType.Function):
+                    fun(ast.TermSymbolic(self.lib, LOC, term), depth + 1)
+                    return ast.TermFunction(self.lib, LOC, "y", [])
+            return None
+
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(c(d(b))))"), "a(x())", function
+        )
+        self.assertEqual(
+            traversed_terms, [('a(b(c(d(b))))', 0), ('b(c(d(b)))', 1), ('c(d(b))', 2), ('d(b)', 3), ('b', 4)]
+        )
+
+        traversed_terms = []
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(1))"), "a(x())", function
+        )
+        self.assertEqual(
+            traversed_terms, [('a(b(1))', 0), ('b(1)', 1), ('1', 2)]
+        )
+

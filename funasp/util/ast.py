@@ -365,14 +365,18 @@ class ParsingException(Exception):
         super().__init__(f"Parsing failed with {len(errors)} error(s):\n{messages}")
 
 
-TRANSFORM_FUNC = Callable[
-    [ast.TermOrProjection | Symbol, int], ast.TermOrProjection | None
-]
 TERM_OR_ARGTUPLE_T = TypeVar(
     "TERM_OR_ARGTUPLE_T",
     ast.TermOrProjection,
     ast.ArgumentTuple,
 )
+
+TRANSFORM_FUNC_REC = Callable[..., ast.TermOrProjection | ast.ArgumentTuple | None]
+
+TRANSFORM_FUNC = Callable[
+    [ast.TermOrProjection | Symbol, int, TRANSFORM_FUNC_REC],
+    ast.TermOrProjection | None,
+]
 
 
 class TermTransformer:
@@ -395,7 +399,7 @@ class TermTransformer:
             library (Library): The library to use for creating new AST nodes.
             symbol (Symbol): The Symbol to transform.
         """
-        transformed = self.transform_func(symbol, depth)
+        transformed = self.transform_func(symbol, depth, self._apply_recursive)
         if transformed is not None or symbol.type != SymbolType.Function:
             return transformed
         all_none = True
@@ -437,10 +441,10 @@ class TermTransformer:
 
     @_apply.register(ast.TermOrProjection)
     def _(self, term: ast.TermOrProjection, depth: int) -> ast.TermOrProjection | None:
-        # print(f"Applying transformation to term: {term} --- {type(term)}")
+        print(f"Applying transformation to term: {term} --- {type(term)}")
         if isinstance(term, ast.TermSymbolic):
             return self.apply_to_symbol(term.symbol, term.location, depth)
-        new_term = self.transform_func(term, depth)
+        new_term = self.transform_func(term, depth, self._apply_recursive)
         # print(f"Transformed term: {new_term} --- {type(new_term)}")
         if new_term is not None:
             return new_term
@@ -455,3 +459,14 @@ class TermTransformer:
     ) -> ast.TermOrProjection | None:
         """Transform the given term AST node using the provided transformation function."""
         return self._apply(term, depth)
+
+    def _apply_recursive(
+        self, term: ast.TermOrProjection, depth: int
+    ) -> ast.TermOrProjection | None:
+        """Recursively transform the given term AST node using the provided transformation function."""
+        if isinstance(term, ast.TermSymbolic):
+            if term.symbol.type != SymbolType.Function:
+                return None
+            for arg in term.symbol.arguments:
+                self.apply_to_symbol(arg, term.location, depth)
+        return term.transform(self.library, self._apply, depth)
