@@ -344,7 +344,7 @@ class TestTermTransformer(unittest.TestCase):
         """Test that the transformation is applied in the correct order."""
         names = []
 
-        def function(term, depth, fun):
+        def function(term, depth, loc, fun):
             # print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'}")
             if isinstance(term, ast.TermFunction):
                 names.append(("F" + term.name, depth))
@@ -367,7 +367,7 @@ class TestTermTransformer(unittest.TestCase):
         """Test that the transformation can replace terms."""
         traversed_terms = []
 
-        def function(term, depth, fun):
+        def function(term, depth, loc, fun):
             # print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'}")
             traversed_terms.append(term)
             if isinstance(term, ast.TermFunction) and term.name == "b":
@@ -409,7 +409,7 @@ class TestTermTransformer(unittest.TestCase):
 
         traversed_terms = []
 
-        def function(term, depth, fun):
+        def function(term, depth, loc, fun):
             print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'} {fun.__name__}")
             traversed_terms.append((str(term), depth))
             if isinstance(term, ast.TermFunction) and term.name == "b":
@@ -439,4 +439,38 @@ class TestTermTransformer(unittest.TestCase):
         self.assertEqual(
             traversed_terms, [('a(b(1))', 0), ('b(1)', 1), ('1', 2)]
         )
+
+
+
+class TestReplaceTerm(unittest.TestCase):
+    """Tests for the TermTransformer class."""
+
+    def setUp(self):
+        """Set up test fixtures for each test."""
+        self.lib = Library()
+        self.var_gen = util_ast.FreshVariableGenerator()
+
+    def assertTransformed(self, term, expected_str, function, expected_comparisons=None):
+        """Assert that the term is transformed correctly."""
+        comparisons = []
+        transformed_term = util_ast.replace_term(self.lib, term, function, comparisons.append, self.var_gen, ast.Sign.NoSign)
+        if expected_str is None:
+            self.assertIsNone(transformed_term)
+        else:
+            self.assertEqual(str(transformed_term), expected_str)
+
+        if expected_comparisons is not None:
+            self.assertEqual(list(map(str, comparisons)), expected_comparisons)
+
+    def condition1(self, term, depth):
+        """Condition to check if the term is a function named 'b'."""
+        return isinstance(term, ast.TermFunction) and term.name == "b"
+
+    def test_replace_term(self):
+        """Test that the transformation can replace terms."""
+        self.assertTransformed(ast.parse_term(self.lib, "a(b(X,d),e)"), "a(FUN,e)", self.condition1, ["b(X,d)=FUN"])
+
+    def test_replace_term_recursive(self):
+        self.assertTransformed(ast.parse_term(self.lib, "a(b(d(b(X))),e)"), "a(FUN2,e)", self.condition1, ['b(X)=FUN', 'b(d(FUN))=FUN2'])
+
 

@@ -382,6 +382,7 @@ class TermTransformer[**P]:
             Concatenate[
                 ast.TermOrProjection | Symbol,
                 int,
+                Location,
                 Callable[
                     Concatenate[ast.TermOrProjection, int, P],
                     ast.TermOrProjection | None,
@@ -411,7 +412,7 @@ class TermTransformer[**P]:
         Apply the transformation to a Symbol node.
         """
         transformed = self.transform_func(
-            symbol, depth, self._apply_recursive, *args, **kwargs
+            symbol, depth, location, self._apply_recursive, *args, **kwargs
         )
         if transformed is not None or symbol.type != SymbolType.Function:
             return transformed
@@ -457,8 +458,11 @@ class TermTransformer[**P]:
             return self.apply_to_symbol(
                 term.symbol, term.location, depth, *args, **kwargs
             )
+        print(
+            f"Transforming term: {term} --- {type(term)}, depth={depth} {args}, {kwargs}"
+        )
         new_term = self.transform_func(
-            term, depth, self._apply_recursive, *args, **kwargs
+            term, depth, term.location, self._apply_recursive, *args, **kwargs
         )
         # print(f"Transformed term: {new_term} --- {type(new_term)}")
         if new_term is not None:
@@ -510,31 +514,57 @@ def make_equation(
     )
 
 
-def _replace_term[**P](
-    node: ast.TermOrProjection | Symbol,
-    depth: int,
-    recursive_function: Callable[
-        [ast.TermOrProjection, int, ast.Sign, Location], ast.TermOrProjection | None
-    ],
-    condition: Callable[Concatenate[ast.TermOrProjection | Symbol, int, P], bool],
-    callback: Callable[[ast.LiteralComparison], None],
-    variable_generator: FreshVariableGenerator,
-    library: Library,
-    location: Location,
-    sign: ast.Sign,
-    *args: P.args,
-    **kwargs: P.kwargs,
-) -> ast.TermOrProjection | None:
-    if not condition(node, depth, *args, **kwargs):
-        return None
-    if isinstance(node, Symbol):
-        node = ast.TermSymbolic(library, location, node)
-    node = recursive_function(node, depth + 1, sign, location) or node
-    fresh: ast.TermVariable = variable_generator.fresh_variable(library, location, "FUN")
-    assert isinstance(node, ast.Term)
-    comp = make_equation(library, location, node, fresh, sign)
-    callback(comp)
-    return fresh
+class TermReplacer[**P]:
+
+    def __init__(
+        self,
+        library: Library,
+        condition: Callable[Concatenate[ast.TermOrProjection | Symbol, int, P], bool],
+        callback: Callable[[ast.LiteralComparison], None],
+        variable_generator: FreshVariableGenerator,
+        sign: ast.Sign = ast.Sign.NoSign,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ):
+        """
+        Initialize the TermReplacer with the given parameters.
+
+        Args:
+            library (Library): The library to use for creating new AST nodes.
+            condition (callable): A function that takes a term and the recursion depth and returns True if it should be replaced.
+            callback (callable): A function that takes a LiteralComparison and is called when a replacement occurs.
+            variable_generator (FreshVariableGenerator): A generator for creating fresh variable names.
+        """
+        self.library = library
+        self.condition = condition
+        self.callback = callback
+        self.variable_generator = variable_generator
+        self.sign = sign
+        self.args = args
+        self.kwargs = kwargs
+
+    def replace_term(
+        self,
+        node: ast.TermOrProjection | Symbol,
+        depth: int,
+        location: Location,
+        recursive_function: Callable[
+            [ast.TermOrProjection, int], ast.TermOrProjection | None
+        ],
+    ) -> ast.TermOrProjection | None:
+        if not self.condition(node, depth, *self.args, **self.kwargs):
+            return None
+        if isinstance(node, Symbol):
+            node = ast.TermSymbolic(self.library, location, node)
+        node = recursive_function(node, depth + 1) or node
+        fresh: ast.TermVariable = self.variable_generator.fresh_variable(
+            self.library, location, "FUN"
+        )
+        assert isinstance(node, ast.Term)
+        comp = make_equation(self.library, location, node, fresh, self.sign)
+        self.callback(comp)
+        return fresh
+
 
 def replace_term[**P](
     library: Library,
@@ -542,6 +572,9 @@ def replace_term[**P](
     condition: Callable[Concatenate[ast.TermOrProjection | Symbol, int, P], bool],
     callback: Callable[[ast.LiteralComparison], None],
     variable_generator: FreshVariableGenerator,
+    sign: ast.Sign,
+    *args: P.args,
+    **kwargs: P.kwargs,
 ) -> ast.TermOrProjection | None:
     """
     Replace a term in the AST with a fresh variable if it satisfies the given condition.
@@ -555,9 +588,17 @@ def replace_term[**P](
     Returns:
         ast.TermOrProjection | None: The transformed term AST node, or None if no transformation occurred.
     """
+    term_replacer = TermReplacer(
+        library,
+        condition,
+        callback,
+        variable_generator,
+        sign,
+        *args,
+        **kwargs,
+    )
     transformer = TermTransformer(
         library,
-        _replace_term,
+        term_replacer.replace_term,
     )
-    return transformer(node, 0, condition, callback, variable_generator, library)
-
+    return transformer(node, 0)
