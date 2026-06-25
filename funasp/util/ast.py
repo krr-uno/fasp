@@ -416,11 +416,29 @@ class TermTransformer[T2: ast.TermOrProjection, **P]:
         )
         if transformed is not None or symbol.type != SymbolType.Function:
             return transformed
+        return self._transform_symbol_arguments(
+            symbol, location, depth + 1, *args, **kwargs
+        )
+
+    def _transform_symbol_arguments(
+        self,
+        symbol: Symbol,
+        location: Location,
+        child_depth: int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> ast.TermFunction | None:
+        """
+        Recurse into a function symbol's arguments at ``child_depth`` and rebuild
+        it as a ``TermFunction`` if any argument was transformed, otherwise return
+        ``None``. The rebuilt node carries the (possibly) transformed arguments so
+        that callers see the substitutions rather than the original symbol.
+        """
         all_none = True
         new_arguments: list[ast.TermOrProjection | Symbol | None] = []
         for arg in symbol.arguments:
             transformed_arg = self.apply_to_symbol(
-                arg, location, depth + 1, *args, **kwargs
+                arg, location, child_depth, *args, **kwargs
             )
             new_arguments.append(transformed_arg)
             if transformed_arg is not None:
@@ -453,14 +471,10 @@ class TermTransformer[T2: ast.TermOrProjection, **P]:
     def _(
         self, term: ast.TermOrProjection, depth: int, *args: Any, **kwargs: Any
     ) -> ast.TermOrProjection | None:
-        print(f"Applying transformation to term: {term} --- {type(term)}")
         if isinstance(term, ast.TermSymbolic):
             return self.apply_to_symbol(
                 term.symbol, term.location, depth, *args, **kwargs
             )
-        print(
-            f"Transforming term: {term} --- {type(term)}, depth={depth} {args}, {kwargs}"
-        )
         new_term = self.transform_func(
             term, depth, term.location, self._apply_recursive, *args, **kwargs
         )
@@ -492,8 +506,9 @@ class TermTransformer[T2: ast.TermOrProjection, **P]:
         if isinstance(term, ast.TermSymbolic):
             if term.symbol.type != SymbolType.Function:
                 return None
-            for arg in term.symbol.arguments:
-                self.apply_to_symbol(arg, term.location, depth, *args, **kwargs)
+            return self._transform_symbol_arguments(
+                term.symbol, term.location, depth, *args, **kwargs
+            )
         return term.transform(self.library, self._apply, depth, *args, **kwargs)
 
 

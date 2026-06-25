@@ -72,6 +72,30 @@ class TestUnnestStatement(unittest.TestCase):
             ["f(1)=FUN"],
         )
 
+    def test_symbolic_nested_intensional(self):
+        """Intensional functions nested inside another intensional symbolic term.
+
+        Regression test: the inner replacement must be substituted into the
+        comparison generated for the outer term, i.e. ``f(FUN)=FUN2`` and not
+        ``f(f(1))=FUN2``.
+        """
+        library = self.lib.library
+        position = Position(library, "<test>", 1, 1)
+        location = Location(position, position)
+        inner = symbol.Function(library, "f", [symbol.Number(library, 1)])
+        middle = symbol.Function(library, "f", [inner])
+        outer = symbol.Function(library, "g", [middle, symbol.Number(library, 2)])
+        term = ast.TermSymbolic(library, location, outer)
+        transformer = UnnestFunctionsInLiteralsTransformer(
+            library, {SymbolSignature("f", 1)}, FreshVariableGenerator()
+        )
+        unnested = transformer.unnest(term, False)
+        self.assertEqual(str(unnested), "g(FUN2,2)")
+        self.assertEqual(
+            [str(c) for c in transformer.pop_all_unnested_functions()],
+            ["f(1)=FUN", "f(FUN)=FUN2"],
+        )
+
     def assertEqualUnnesting(
         self,
         node: AST,

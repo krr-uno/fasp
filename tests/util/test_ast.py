@@ -410,13 +410,11 @@ class TestTermTransformer(unittest.TestCase):
         traversed_terms = []
 
         def function(term, depth, loc, fun):
-            print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'} {fun.__name__}")
             traversed_terms.append((str(term), depth))
             if isinstance(term, ast.TermFunction) and term.name == "b":
                 fun(term, depth + 1)
                 return ast.TermFunction(self.lib, term.location, "x", term.pool)
             if isinstance(term, Symbol):
-                print(f"Transforming symbolic term: {term} --- {type(term)}")
                 if (term.type == SymbolType.Function and term.name == "b"):
                     fun(ast.TermSymbolic(self.lib, LOC, term), depth + 1)
                     return ast.TermFunction(self.lib, LOC, "x", [])
@@ -466,11 +464,31 @@ class TestReplaceTerm(unittest.TestCase):
         """Condition to check if the term is a function named 'b'."""
         return isinstance(term, ast.TermFunction) and term.name == "b"
 
+
     def test_replace_term(self):
         """Test that the transformation can replace terms."""
         self.assertTransformed(ast.parse_term(self.lib, "a(b(X,d),e)"), "a(FUN,e)", self.condition1, ["b(X,d)=FUN"])
 
     def test_replace_term_recursive(self):
         self.assertTransformed(ast.parse_term(self.lib, "a(b(d(b(X))),e)"), "a(FUN2,e)", self.condition1, ['b(X)=FUN', 'b(d(FUN))=FUN2'])
+
+    def condition2(self, term, depth):
+        """Condition matching a function named 'b', whether AST or symbolic."""
+        if isinstance(term, ast.TermFunction):
+            return term.name == "b"
+        return (
+            isinstance(term, Symbol)
+            and term.type == SymbolType.Function
+            and term.name == "b"
+        )
+
+    def test_replace_term_symbolic_recursive(self):
+        """Nested matches inside a symbolic term must be substituted, not dropped."""
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(d(b(c))),e)"),
+            "a(FUN2,e)",
+            self.condition2,
+            ["b(c)=FUN", "b(d(FUN))=FUN2"],
+        )
 
 
