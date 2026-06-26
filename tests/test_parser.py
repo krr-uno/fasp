@@ -416,7 +416,7 @@ class TestParseAssignment2(unittest.TestCase):
         file.close
         with self.assertRaises(ParsingException) as cm:
             _ = parse_files(self.lib, [file.name])
-        os.unamelink(file.name)
+        os.unlink(file.name)
         errors = cm.exception.errors
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].location.begin.line, 1)
