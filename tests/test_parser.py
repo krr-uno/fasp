@@ -422,7 +422,7 @@ class TestParseAssignment2(unittest.TestCase):
         self.assertEqual(errors[0].location.begin.line, 1)
         # clingo may relativize the path; compare the file name only.
         self.assertTrue(
-            errors[0].location.begin.file.endswith(file.name.rsplit("/", 1)[-1])
+            errors[0].location.begin.file.endswith(os.path.basename(file.name))
         )
 
 
