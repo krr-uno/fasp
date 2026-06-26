@@ -397,7 +397,6 @@ class TestParseAssignment2(unittest.TestCase):
         with tempfile.NamedTemporaryFile("w", suffix=".lp", delete=False) as file:
             file.write(code)
             file.flush()
-
         file.close()
         statements = parse_files(self.lib, [file.name])
         os.unlink(file.name)
@@ -407,22 +406,24 @@ class TestParseAssignment2(unittest.TestCase):
             [str(e.original) for e in expected],
         )
 
-    # def test_parse_files_error(self):
-    #     """Test that parse_files raises ParsingException on syntax errors."""
-    #     import tempfile
+    def test_parse_files_error(self):
+        """Test that parse_files raises ParsingException on syntax errors."""
+        import tempfile
 
-    #     with tempfile.NamedTemporaryFile("w", suffix=".lp", delete=False) as file:
-    #         file.write("1 := 2.\n")
-    #         file.flush()
-    #         with self.assertRaises(ParsingException) as cm:
-    #             _ = parse_files(self.lib, [file.name])
-    #     errors = cm.exception.errors
-    #     self.assertEqual(len(errors), 1)
-    #     self.assertEqual(errors[0].location.begin.line, 1)
-    #     # clingo may relativize the path; compare the file name only.
-    #     self.assertTrue(
-    #         errors[0].location.begin.file.endswith(file.name.rsplit("/", 1)[-1])
-    #     )
+        with tempfile.NamedTemporaryFile("w", suffix=".lp", delete=False) as file:
+            file.write("1 := 2.\n")
+            file.flush()
+        file.close
+        with self.assertRaises(ParsingException) as cm:
+            _ = parse_files(self.lib, [file.name])
+        os.unamelink(file.name)
+        errors = cm.exception.errors
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].location.begin.line, 1)
+        # clingo may relativize the path; compare the file name only.
+        self.assertTrue(
+            errors[0].location.begin.file.endswith(file.name.rsplit("/", 1)[-1])
+        )
 
 
 if __name__ == "__main__":
