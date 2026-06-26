@@ -45,6 +45,7 @@ jobs:
         pip install -e .
 
     - name: run application
+      shell: bash -l {0}
       run: |
         python funasp examples/family.lp || if [ $? -eq 10 ]; then echo "Handled exit code 10"; else exit $?; fi
 

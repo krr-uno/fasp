@@ -396,6 +396,7 @@ class TestParseAssignment2(unittest.TestCase):
         with tempfile.NamedTemporaryFile("w", suffix=".lp") as file:
             file.write(code)
             file.flush()
+            file.close()
             statements = parse_files(self.lib, [file.name])
         expected = parse_string(self.lib, code)
         self.assertEqual(
