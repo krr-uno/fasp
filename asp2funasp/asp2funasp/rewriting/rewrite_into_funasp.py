@@ -7,6 +7,10 @@ from clingo_funasp.core import Library, Location
 from funasp.ast._core import PARSER_PREFIX
 from funasp.util.ast import AST, function_arguments_ast, is_function
 
+from asp2funasp.rewriting.util import (
+    FreshFunctionNameGenerator,
+    build_function_name_index,
+)
 from asp2funasp.util.types import FRelation, SymbolSignature
 from asp2funasp.util.util import index_frelations
 
@@ -18,17 +22,18 @@ class FunctionalPredicateRewriteTransformer:
     def __init__(self, lib: Library, frelations: List[FRelation]):
         self.lib = lib
         self.frelation_index = index_frelations(frelations)
+        self.function_name_index = build_function_name_index(frelations)
 
     def transform_rule(self, node: AST) -> RewriteResult:
         return self._rewrite(node)
 
-    def _function_name(self, name: str) -> str:
+    def _function_name(self, key: SymbolSignature) -> str:
+        name = self.function_name_index[key]
         return f"{PARSER_PREFIX}{name}"
 
     def _split_functional_atom(
         self,
-        location: Location,
-        name: str,
+        key: SymbolSignature,
         arguments: Sequence[ast.TermOrProjection],
         frel: FRelation,
     ) -> tuple[str, ast.ArgumentTuple]:
@@ -52,7 +57,7 @@ class FunctionalPredicateRewriteTransformer:
         prefixed_arguments = [*lhs_args, *rhs_terms]
 
         return (
-            self._function_name(name),
+            self._function_name(key),
             ast.ArgumentTuple(self.lib, prefixed_arguments),
         )
 
@@ -72,8 +77,7 @@ class FunctionalPredicateRewriteTransformer:
 
         frel = self.frelation_index[key]
         prefixed_name, prefixed_argument_tuple = self._split_functional_atom(
-            location,
-            name,
+            key,
             arguments,
             frel,
         )
@@ -250,7 +254,7 @@ class FunctionalPredicateRewriteTransformer:
 
     @singledispatchmethod
     def _rewrite_head(self, node: ast.HeadLiteral) -> HeadRewriteResult:
-        return None # pragma: no cover
+        return None  # pragma: no cover
 
     @_rewrite_head.register
     def _(self, node: ast.HeadSimpleLiteral) -> ast.HeadSimpleLiteral | None:

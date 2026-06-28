@@ -316,63 +316,138 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         self.assertEqualRewrite(program, expected, frels)
 
-    # def test_rewrites_with_conflicts_1(self):
-    #     program = """
-    #     #count { assign(N,C): color(C) } = 1 :- node(N).
-    #     assign_1(N,C,V).
-    #     """
+    def test_rewrites_with_conflicts_1(self):
+        program = """
+        #count { assign(N,C): color(C) } = 1 :- node(N).
+        assign(N,C,V).
+        """
 
-    #     # How should this be transformed?
-    #     expected = """
-    #     #count { assign(N,C): color(C) } = 1 :- node(N).
-    #     assign_1(N,C) := V.
-    #     """
+        # How should this be transformed?
+        expected = """
+        #count { assign(N,C): color(C) } = 1 :- node(N).
+        Fassign_1(N,C,V).
+        """
 
-    #     frels = [
-    #         FRelation(
-    #             name="assign",
-    #             arity=2,
-    #             arguments=(0,),
-    #             values=[(1,)],
-    #         ),
-    #         FRelation(
-    #             name="assign",
-    #             arity=3,
-    #             arguments=(0, 1),
-    #             values=[(2,)],
-    #         )
-    #     ]
+        # assign_1(N,C) := V.
 
-    #     self.assertEqualRewrite(program, expected, frels)
 
-    # def test_rewrites_with_conflicts_2(self):
-    #     program = """
-    #     color(assign(N,C)) :- node(N), c(C).
-    #     assign_1(N,C,V).
-    #     """
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            ),
+            FRelation(
+                name="assign",
+                arity=3,
+                arguments=(0, 1),
+                values=[(2,)],
+            )
+        ]
 
-    #     # How should this be transformed?
-    #     expected = """
-    #     color(assign(N,C)) :- node(N), c(C).
-    #     assign_1(N,C) := V.
-    #     """
+        self.assertEqualRewrite(program, expected, frels)
 
-    #     frels = [
-    #         FRelation(
-    #             name="assign",
-    #             arity=2,
-    #             arguments=(0,),
-    #             values=[(1,)],
-    #         ),
-    #         FRelation(
-    #             name="assign",
-    #             arity=3,
-    #             arguments=(0, 1),
-    #             values=[(2,)],
-    #         )
-    #     ]
+    def test_rewrites_with_conflicts_2(self):
+        program = """
+        color(assign(N,C)) :- node(N); c(C).
+        assign(N,C,V).
+        """
 
-    #     self.assertEqualRewrite(program, expected, frels)
+        # How should this be transformed?
+        expected = """
+        color(assign(N,C)) :- node(N); c(C).
+        Fassign_1(N,C,V).
+        """
+
+        # assign(N,C) := V.
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            ),
+            FRelation(
+                name="assign",
+                arity=3,
+                arguments=(0, 1),
+                values=[(2,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_with_conflicts_3(self):
+        program = """
+        color(assign(N,C)) :- node(N); c(C).
+        assign(N,C,V).
+        assign(N,C,V,W).
+        """
+
+        expected = """
+        color(assign(N,C)) :- node(N); c(C).
+        Fassign_1(N,C,V).
+        Fassign_2(N,C,V,W).
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            ),
+            FRelation(
+                name="assign",
+                arity=3,
+                arguments=(0, 1),
+                values=[(2,)],
+            ),
+            FRelation(
+                name="assign",
+                arity=4,
+                arguments=(0, 1, 2),
+                values=[(3,)],
+            ),
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_with_conflicts_4(self):
+        program = """
+        assign(N,C,V).
+        assign(N,C,V,W).
+        """
+
+        expected = """
+        Fassign_1(N,C,V).
+        Fassign_2(N,C,V,W).
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            ),
+            FRelation(
+                name="assign",
+                arity=3,
+                arguments=(0, 1),
+                values=[(2,)],
+            ),
+            FRelation(
+                name="assign",
+                arity=4,
+                arguments=(0, 1, 2),
+                values=[(3,)],
+            ),
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
 
     def test_rewrites_head_aggregate_element_condition(self):
         program = """
