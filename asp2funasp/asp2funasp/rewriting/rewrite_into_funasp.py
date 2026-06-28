@@ -3,13 +3,9 @@ from functools import singledispatchmethod
 from typing import List, cast
 
 from clingo_funasp import ast
-from clingo_funasp.core import Location, Library
+from clingo_funasp.core import Library, Location
 from funasp.ast._core import PARSER_PREFIX
-from funasp.util.ast import (
-    AST,
-    function_arguments_ast,
-    is_function,
-)
+from funasp.util.ast import AST, function_arguments_ast, is_function
 
 from asp2funasp.util.types import FRelation, SymbolSignature
 from asp2funasp.util.util import index_frelations
@@ -88,6 +84,7 @@ class FunctionalPredicateRewriteTransformer:
             prefixed_name,
             [prefixed_argument_tuple],
         )
+
     def _rewrite_symbolic_literal_as_prefixed_literal(
         self,
         literal: ast.LiteralSymbolic,
@@ -215,7 +212,7 @@ class FunctionalPredicateRewriteTransformer:
 
         assert isinstance(new_element, ast.Literal)
         return new_element, True
-    
+
     @singledispatchmethod
     def _rewrite(self, node: AST) -> RewriteResult:
         return node.transform(self.lib, self._rewrite)
