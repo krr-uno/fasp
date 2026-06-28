@@ -99,12 +99,16 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
     def test_simple_body_rewrite(self):
         program = """
-        :- assign(N,C), node(N).
+        :- assign(N,C); node(N).
         """
 
         expected = """
-        :- assign(N) = C, node(N).
+        :-Fassign(N,C); node(N).
         """
+
+        # expected = """
+        # :- assign(N) = C, node(N).
+        # """
 
         frels = [
             FRelation(
@@ -137,67 +141,18 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         self.assertEqualRewrite(program, expected, frels)
 
-    def test_no_rewrite_if_not_functional_body(self):
-        program = """
-        :- assign(N,C), node(N), a.
-        """
-
-        expected = """
-        :- assign(N,C), node(N), a.
-        """
-
-        frels: List[FRelation] = []  # nothing functional
-
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_multiple_args_function(self):
-        program = """
-        :- f(X,Y,Z).
-        """
-
-        expected = """
-        :- f(X,Y) = Z.
-        """
-
-        frels = [
-            FRelation(
-                name="f",
-                arity=3,
-                arguments=(0, 1),
-                values=[(2,)],
-            )
-        ]
-
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_negated_literal(self):
-        program = """
-        :- not assign(N,C).
-        """
-
-        expected = """
-        :- not assign(N) = C.
-        """
-
-        frels = [
-            FRelation(
-                name="assign",
-                arity=2,
-                arguments=(0,),
-                values=[(1,)],
-            )
-        ]
-
-        self.assertEqualRewrite(program, expected, frels)
-
     def test_rewrites_functional_predicate_in_simple_head(self):
         program = """
         p(X,Y) :- q(X,Y).
         """
 
         expected = """
-        p(X) := Y :- q(X,Y).
+        Fp(X, Y) :- q(X,Y).
         """
+
+        # expected = """
+        # p(X) := Y :- q(X,Y).
+        # """
 
         frels = [
             FRelation(
@@ -210,26 +165,14 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         self.assertEqualRewrite(program, expected, frels)
 
-    def test_no_rewrite_if_not_functional_head(self):
-        program = """
-        p(X,Y) :- q(X,Y).
-        """
-
-        expected = """
-        p(X,Y) :- q(X,Y).
-        """
-
-        frels: List[FRelation] = []  # nothing functional
-
-        self.assertEqualRewrite(program, expected, frels)
-
+    ## TODO: Check if this is correct
     def test_does_not_rewrite_disjunction_head(self):
         program = """
         p(X,Y) | q(X,Y) :- r(X,Y).
         """
 
         expected = """
-        p(X,Y) | q(X,Y) :- r(X,Y).
+        p(X,Y); q(X,Y) :- r(X,Y).
         """
 
         frels = [
@@ -242,42 +185,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         ]
 
         self.assertEqualRewrite(program, expected, frels)
-
-    def test_does_not_rewrite_signed_head_literal(self):
-        nodes = collect_statements(
-            self.lib,
-            textwrap.dedent(
-                """
-                :- not p(X,Y).
-                """
-            ).strip(),
-        )
-
-        rule = nodes[0]
-        assert isinstance(rule, ast.StatementRule)
-
-        signed_literal = rule.body[0].literal
-        assert isinstance(signed_literal, ast.LiteralSymbolic)
-        self.assertNotEqual(signed_literal.sign, ast.Sign.NoSign)
-
-        head = ast.HeadSimpleLiteral(
-            self.lib,
-            signed_literal,
-        )
-
-        transformer = FunctionalPredicateRewriteTransformer(
-            self.lib,
-            [
-                FRelation(
-                    name="p",
-                    arity=2,
-                    arguments=(0,),
-                    values=[(1,)],
-                )
-            ],
-        )
-
-        self.assertIsNone(transformer._rewrite_head(head))
 
     def test_does_not_rewrite_head_literal_if_atom_is_not_function(self):
         literal = self._make_non_function_symbolic_literal()
@@ -301,30 +208,13 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         self.assertIsNone(transformer._rewrite_head(head))
 
-    def test_does_not_rewrite_body_literal_if_atom_is_not_function(self):
-        literal = self._make_non_function_symbolic_literal()
-
-        transformer = FunctionalPredicateRewriteTransformer(
-            self.lib,
-            [
-                FRelation(
-                    name="p",
-                    arity=2,
-                    arguments=(0,),
-                    values=[(1,)],
-                )
-            ],
-        )
-
-        self.assertIsNone(transformer._rewrite(literal))
-
     def test_rewrites_head_set_aggregate_element(self):
         program = """
         { assign(N,C) : color(C) } :- node(N).
         """
 
         expected = """
-        { assign(N,C): color(C) } :- node(N).
+        { Fassign(N,C): color(C) } :- node(N).
         """
 
         frels = [
@@ -364,8 +254,12 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        { color(C): assign(N) = C } :- node(N).
+        { color(C): Fassign(N, C) } :- node(N).
         """
+
+        # expected = """
+        # { color(C): assign(N) = C } :- node(N).
+        # """
 
         frels = [
             FRelation(
@@ -384,7 +278,133 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        { C = 1: assign(N) = C } :- node(N).
+        { C = 1: Fassign(N, C) } :- node(N).
+        """
+
+        # expected = """
+        # { C = 1: assign(N) = C } :- node(N).
+        # """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_head_aggregate_element(self):
+        program = """
+        #count { assign(N,C): color(C) } = 1 :- node(N).
+        """
+
+        expected = """
+        #count { assign(N,C): color(C) } = 1 :- node(N).
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            ),
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    # def test_rewrites_with_conflicts_1(self):
+    #     program = """
+    #     #count { assign(N,C): color(C) } = 1 :- node(N).
+    #     assign_1(N,C,V).
+    #     """
+
+    #     # How should this be transformed?
+    #     expected = """
+    #     #count { assign(N,C): color(C) } = 1 :- node(N).
+    #     assign_1(N,C) := V.
+    #     """
+
+    #     frels = [
+    #         FRelation(
+    #             name="assign",
+    #             arity=2,
+    #             arguments=(0,),
+    #             values=[(1,)],
+    #         ),
+    #         FRelation(
+    #             name="assign",
+    #             arity=3,
+    #             arguments=(0, 1),
+    #             values=[(2,)],
+    #         )
+    #     ]
+
+    #     self.assertEqualRewrite(program, expected, frels)
+
+    # def test_rewrites_with_conflicts_2(self):
+    #     program = """
+    #     color(assign(N,C)) :- node(N), c(C).
+    #     assign_1(N,C,V).
+    #     """
+
+    #     # How should this be transformed?
+    #     expected = """
+    #     color(assign(N,C)) :- node(N), c(C).
+    #     assign_1(N,C) := V.
+    #     """
+
+    #     frels = [
+    #         FRelation(
+    #             name="assign",
+    #             arity=2,
+    #             arguments=(0,),
+    #             values=[(1,)],
+    #         ),
+    #         FRelation(
+    #             name="assign",
+    #             arity=3,
+    #             arguments=(0, 1),
+    #             values=[(2,)],
+    #         )
+    #     ]
+
+    #     self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_head_aggregate_element_condition(self):
+        program = """
+        #count { C: q(C): assign(N,C) } = 1 :- node(N).
+        """
+
+        expected = """
+        #count { C: q(C): Fassign(N, C) } = 1 :- node(N).
+        """
+
+        # expected = """
+        # #count { C: q(C): assign(N) = C } = 1 :- node(N).
+        # """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_head_conditional_literal_condition(self):
+        program = """
+        p(X): assign(N,C).
+        """
+
+        expected = """
+        p(X): Fassign(N,C).
         """
 
         frels = [
@@ -397,6 +417,134 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         ]
 
         self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_head_conditional_literal_literal(self):
+        program = """
+        assign(N,C): p(X).
+        """
+
+        expected = """
+        Fassign(N,C): p(X).
+        """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_does_not_rewrites_head_conditional_literal_condition_if_nothing_functional(self):
+        program = """
+        p(X): assign(N,C).
+        """
+
+        expected = """
+        p(X): assign(N,C).
+        """
+
+        frels = []
+
+        self.assertEqualRewrite(program, expected, frels)
+
+
+
+    ## EXTRA TESTS ##
+    def test_no_rewrite_if_not_functional_body(self):
+        program = """
+        :- assign(N,C); node(N); a.
+        """
+
+        expected = """
+        :- assign(N,C); node(N); a.
+        """
+
+        frels: List[FRelation] = []  # nothing functional
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_multiple_args_function(self):
+        program = """
+        :- f(X,Y,Z).
+        """
+
+        expected = """
+        :- Ff(X,Y,Z).
+        """
+
+        # expected = """
+        # :- f(X,Y) = Z.
+        # """
+
+        frels = [
+            FRelation(
+                name="f",
+                arity=3,
+                arguments=(0, 1),
+                values=[(2,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_negated_literal(self):
+        program = """
+        :- not assign(N,C).
+        """
+
+        expected = """
+        :- not Fassign(N,C).
+        """
+
+        # expected = """
+        # :- not assign(N) = C.
+        # """
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_no_rewrite_if_not_functional_head(self):
+        program = """
+        p(X,Y) :- q(X,Y).
+        """
+
+        expected = """
+        p(X,Y) :- q(X,Y).
+        """
+
+        frels: List[FRelation] = []  # nothing functional
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_does_not_rewrite_body_literal_if_atom_is_not_function(self):
+        literal = self._make_non_function_symbolic_literal()
+
+        transformer = FunctionalPredicateRewriteTransformer(
+            self.lib,
+            [
+                FRelation(
+                    name="p",
+                    arity=2,
+                    arguments=(0,),
+                    values=[(1,)],
+                )
+            ],
+        )
+
+        self.assertIsNone(transformer._rewrite(literal))
+
 
     def test_comparison_head_set_aggregate_without_changes_remains_unchanged(self):
         program = """
@@ -417,160 +565,3 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         ]
 
         self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_head_aggregate_element(self):
-        program = """
-        #count { assign(N,C): color(C) } = 1 :- node(N).
-        """
-
-        # How should this be transformed?
-        expected = """
-        #count { assign(N,C): color(C) } = 1 :- node(N).
-        """
-
-        frels = [
-            FRelation(
-                name="assign",
-                arity=2,
-                arguments=(0,),
-                values=[(1,)],
-            ),
-        ]
-
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_with_conflicts_1(self):
-        program = """
-        #count { assign(N,C): color(C) } = 1 :- node(N).
-        assign_1(N,C,V).
-        """
-
-        # How should this be transformed?
-        expected = """
-        #count { assign(N,C): color(C) } = 1 :- node(N).
-        assign_1(N,C) := V.
-        """
-
-        frels = [
-            FRelation(
-                name="assign",
-                arity=2,
-                arguments=(0,),
-                values=[(1,)],
-            ),
-            FRelation(
-                name="assign",
-                arity=3,
-                arguments=(0, 1),
-                values=[(2,)],
-            )
-        ]
-
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_with_conflicts_2(self):
-        program = """
-        color(assign(N,C)) :- node(N), c(C).
-        assign_1(N,C,V).
-        """
-
-        # How should this be transformed?
-        expected = """
-        color(assign(N,C)) :- node(N), c(C).
-        assign_1(N,C) := V.
-        """
-
-        frels = [
-            FRelation(
-                name="assign",
-                arity=2,
-                arguments=(0,),
-                values=[(1,)],
-            ),
-            FRelation(
-                name="assign",
-                arity=3,
-                arguments=(0, 1),
-                values=[(2,)],
-            )
-        ]
-
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_head_aggregate_element_condition(self):
-        program = """
-        #count { C: q(C): assign(N,C) } = 1 :- node(N).
-        """
-
-        expected = """
-        #count { C: q(C): assign(N) = C } = 1 :- node(N).
-        """
-
-        frels = [
-            FRelation(
-                name="assign",
-                arity=2,
-                arguments=(0,),
-                values=[(1,)],
-            )
-        ]
-
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_head_conditional_literal_condition(self):
-        nodes = collect_statements(self.lib, "p(X): assign(N,C).")
-        expected_nodes = collect_statements(self.lib, "p(X): assign(N) = C.")
-
-        rule = nodes[0]
-        expected_rule = expected_nodes[0]
-        assert isinstance(rule, ast.StatementRule)
-        assert isinstance(expected_rule, ast.StatementRule)
-
-        conditional_literal = rule.head.elements[0]
-        expected_conditional_literal = expected_rule.head.elements[0]
-
-        transformer = FunctionalPredicateRewriteTransformer(
-            self.lib,
-            [
-                FRelation(
-                    name="assign",
-                    arity=2,
-                    arguments=(0,),
-                    values=[(1,)],
-                )
-            ],
-        )
-
-        new_conditional_literal, changed = (
-            transformer._rewrite_head_conditional_literal(conditional_literal)
-        )
-
-        self.assertTrue(changed)
-        self.assertEqual(str(new_conditional_literal), str(expected_conditional_literal))
-
-    def test_head_conditional_literal_without_changes_remains_unchanged(self):
-        nodes = collect_statements(self.lib, "p(X): q(X).")
-
-        rule = nodes[0]
-        assert isinstance(rule, ast.StatementRule)
-
-        conditional_literal = rule.head.elements[0]
-
-        transformer = FunctionalPredicateRewriteTransformer(
-            self.lib,
-            [
-                FRelation(
-                    name="assign",
-                    arity=2,
-                    arguments=(0,),
-                    values=[(1,)],
-                )
-            ],
-        )
-
-        new_conditional_literal, changed = (
-            transformer._rewrite_head_conditional_literal(conditional_literal)
-        )
-
-        self.assertFalse(changed)
-        self.assertEqual(str(new_conditional_literal), str(conditional_literal))

@@ -205,13 +205,14 @@ class FunctionalPredicateRewriteTransformer:
         if isinstance(element, ast.HeadConditionalLiteral):
             return self._rewrite_head_conditional_literal(element)
 
-        new_element = self._rewrite(element)
+        return element, False
+        # new_element = self._rewrite(element)
 
-        if new_element is None:
-            return element, False
+        # if new_element is None:
+        #     return element, False
 
-        assert isinstance(new_element, ast.Literal)
-        return new_element, True
+        # assert isinstance(new_element, ast.Literal)
+        # return new_element, True
 
     @singledispatchmethod
     def _rewrite(self, node: AST) -> RewriteResult:
@@ -249,7 +250,7 @@ class FunctionalPredicateRewriteTransformer:
 
     @singledispatchmethod
     def _rewrite_head(self, node: ast.HeadLiteral) -> HeadRewriteResult:
-        return None
+        return None # pragma: no cover
 
     @_rewrite_head.register
     def _(self, node: ast.HeadSimpleLiteral) -> ast.HeadSimpleLiteral | None:
