@@ -91,13 +91,24 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
     ## TESTS ##
 
     def test_no_functions(self):
-        program = ":- a."
-        expected = ":- a."
         frels = []
 
+        program = ":- a."
+        expected = ":- a."
+        
         self.assertEqualRewrite(program, expected, frels)
 
     def test_simple_body_rewrite(self):
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
         program = """
         :- assign(N,C); node(N).
         """
@@ -110,6 +121,11 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         # :- assign(N) = C, node(N).
         # """
 
+        
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_aggregate_rewrite(self):
         frels = [
             FRelation(
                 name="assign",
@@ -119,9 +135,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_aggregate_rewrite(self):
         program = """
         :- #count { C,N: assign(N,C) } != 1; node(N).
         """
@@ -130,18 +143,18 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         :- #count { C,N: Fassign(N,C) } != 1; node(N).
         """
 
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_functional_predicate_in_simple_head(self):
         frels = [
             FRelation(
-                name="assign",
+                name="p",
                 arity=2,
                 arguments=(0,),
                 values=[(1,)],
             )
         ]
 
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_functional_predicate_in_simple_head(self):
         program = """
         p(X,Y) :- q(X,Y).
         """
@@ -154,15 +167,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         # p(X) := Y :- q(X,Y).
         # """
 
-        frels = [
-            FRelation(
-                name="p",
-                arity=2,
-                arguments=(0,),
-                values=[(1,)],
-            )
-        ]
-
         self.assertEqualRewrite(program, expected, frels)
 
     ## TODO: Check if this is correct
@@ -171,14 +175,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         When a predicate occurs in a disjunction head, the predicate is not rewritten into a functional predicate, even if it is functional, in any rule of the program.
         That is, we remove it from the list of functional predicates for the rewriting of that program.
         """
-        program = """
-        p(X,Y) | q(X,Y) :- r(X,Y).
-        """
-
-        expected = """
-        p(X,Y); q(X,Y) :- r(X,Y).
-        """
-
         frels = [
             FRelation(
                 name="p",
@@ -187,6 +183,14 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
                 values=[(1,)],
             )
         ]
+
+        program = """
+        p(X,Y) | q(X,Y) :- r(X,Y).
+        """
+
+        expected = """
+        p(X,Y); q(X,Y) :- r(X,Y).
+        """
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -213,6 +217,15 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         self.assertIsNone(transformer._rewrite_head(head))
 
     def test_rewrites_head_set_aggregate_element(self):
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
         program = """
         { assign(N,C) : color(C) } :- node(N).
         """
@@ -221,6 +234,9 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         { Fassign(N,C): color(C) } :- node(N).
         """
 
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_head_set_aggregate_without_changes_remains_unchanged(self):
         frels = [
             FRelation(
                 name="assign",
@@ -230,9 +246,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_head_set_aggregate_without_changes_remains_unchanged(self):
         program = """
         { color(C) } :- node(N).
         """
@@ -241,6 +254,9 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         { color(C) } :- node(N).
         """
 
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_nonfunctional_head_set_aggregate_element_condition(self):
         frels = [
             FRelation(
                 name="assign",
@@ -250,9 +266,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_nonfunctional_head_set_aggregate_element_condition(self):
         program = """
         { color(C) : assign(N,C) } :- node(N).
         """
@@ -265,6 +278,9 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         # { color(C): assign(N) = C } :- node(N).
         # """
 
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_comparison_head_set_aggregate_element_condition(self):
         frels = [
             FRelation(
                 name="assign",
@@ -274,9 +290,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_comparison_head_set_aggregate_element_condition(self):
         program = """
         { C = 1 : assign(N,C) } :- node(N).
         """
@@ -288,15 +301,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         # expected = """
         # { C = 1: assign(N) = C } :- node(N).
         # """
-
-        frels = [
-            FRelation(
-                name="assign",
-                arity=2,
-                arguments=(0,),
-                values=[(1,)],
-            )
-        ]
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -428,16 +432,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         self.assertEqualRewrite(program, expected, frels)
 
     def test_rewrites_with_conflicts_4(self):
-        program = """
-        assign(N,C,V).
-        assign(N,C,V,W).
-        """
-
-        expected = """
-        Fassign_1(N,C,V).
-        Fassign_2(N,C,V,W).
-        """
-
         frels = [
             FRelation(
                 name="assign",
@@ -459,9 +453,28 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
             ),
         ]
 
+        program = """
+        assign(N,C,V).
+        assign(N,C,V,W).
+        """
+
+        expected = """
+        Fassign_1(N,C,V).
+        Fassign_2(N,C,V,W).
+        """
+
         self.assertEqualRewrite(program, expected, frels)
 
     def test_rewrites_head_aggregate_element_condition(self):
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
         program = """
         #count { C: q(C): assign(N,C) } = 1 :- node(N).
         """
@@ -474,6 +487,9 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         # #count { C: q(C): assign(N) = C } = 1 :- node(N).
         # """
 
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_head_conditional_literal_condition(self):
         frels = [
             FRelation(
                 name="assign",
@@ -483,9 +499,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_head_conditional_literal_condition(self):
         program = """
         p(X): assign(N,C).
         """
@@ -494,6 +507,9 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         p(X): Fassign(N,C).
         """
 
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_head_conditional_literal_literal(self):
         frels = [
             FRelation(
                 name="assign",
@@ -503,9 +519,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_head_conditional_literal_literal(self):
         program = """
         assign(N,C): p(X).
         """
@@ -514,18 +527,11 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         Fassign(N,C): p(X).
         """
 
-        frels = [
-            FRelation(
-                name="assign",
-                arity=2,
-                arguments=(0,),
-                values=[(1,)],
-            )
-        ]
-
         self.assertEqualRewrite(program, expected, frels)
 
     def test_does_not_rewrites_head_conditional_literal_condition_if_nothing_functional(self):
+        frels = []
+
         program = """
         p(X): assign(N,C).
         """
@@ -533,8 +539,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         expected = """
         p(X): assign(N,C).
         """
-
-        frels = []
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -542,6 +546,8 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
     ## EXTRA TESTS ##
     def test_no_rewrite_if_not_functional_body(self):
+        frels: List[FRelation] = []  # nothing functional
+
         program = """
         :- assign(N,C); node(N); a.
         """
@@ -550,11 +556,18 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         :- assign(N,C); node(N); a.
         """
 
-        frels: List[FRelation] = []  # nothing functional
-
         self.assertEqualRewrite(program, expected, frels)
 
     def test_multiple_args_function(self):
+        frels = [
+            FRelation(
+                name="f",
+                arity=3,
+                arguments=(0, 1),
+                values=[(2,)],
+            )
+        ]
+
         program = """
         :- f(X,Y,Z).
         """
@@ -567,18 +580,18 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         # :- f(X,Y) = Z.
         # """
 
-        frels = [
-            FRelation(
-                name="f",
-                arity=3,
-                arguments=(0, 1),
-                values=[(2,)],
-            )
-        ]
-
         self.assertEqualRewrite(program, expected, frels)
 
     def test_negated_literal(self):
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
         program = """
         :- not assign(N,C).
         """
@@ -591,18 +604,11 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         # :- not assign(N) = C.
         # """
 
-        frels = [
-            FRelation(
-                name="assign",
-                arity=2,
-                arguments=(0,),
-                values=[(1,)],
-            )
-        ]
-
         self.assertEqualRewrite(program, expected, frels)
 
     def test_no_rewrite_if_not_functional_head(self):
+        frels: List[FRelation] = []  # nothing functional
+
         program = """
         p(X,Y) :- q(X,Y).
         """
@@ -610,8 +616,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         expected = """
         p(X,Y) :- q(X,Y).
         """
-
-        frels: List[FRelation] = []  # nothing functional
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -634,14 +638,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
 
     def test_comparison_head_set_aggregate_without_changes_remains_unchanged(self):
-        program = """
-        { C = 1 } :- node(N).
-        """
-
-        expected = """
-        { C = 1 } :- node(N).
-        """
-
         frels = [
             FRelation(
                 name="assign",
@@ -650,5 +646,13 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
                 values=[(1,)],
             )
         ]
+
+        program = """
+        { C = 1 } :- node(N).
+        """
+
+        expected = """
+        { C = 1 } :- node(N).
+        """
 
         self.assertEqualRewrite(program, expected, frels)
