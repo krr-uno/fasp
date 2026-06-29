@@ -21,7 +21,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
     def _normalize(self, s: str) -> str:
         return re.sub(r"\s+", "", s)
-    
+
     # APPLY TRANSFORMER
     def _rewrite(
         self,
@@ -167,6 +167,10 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
     ## TODO: Check if this is correct
     def test_does_not_rewrite_disjunction_head(self):
+        """
+        When a predicate occurs in a disjunction head, the predicate is not rewritten into a functional predicate, even if it is functional, in any rule of the program.
+        That is, we remove it from the list of functional predicates for the rewriting of that program.
+        """
         program = """
         p(X,Y) | q(X,Y) :- r(X,Y).
         """
@@ -297,13 +301,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         self.assertEqualRewrite(program, expected, frels)
 
     def test_rewrites_head_aggregate_element(self):
-        program = """
-        #count { assign(N,C): color(C) } = 1 :- node(N).
-        """
-
-        expected = """
-        #count { assign(N,C): color(C) } = 1 :- node(N).
-        """
 
         frels = [
             FRelation(
@@ -314,9 +311,34 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
             ),
         ]
 
+        program = """
+        #count { assign(N,C): color(C) } = 1 :- node(N).
+        """
+
+        expected = """
+        #count { assign(N,C): color(C) } = 1 :- node(N).
+        """
+
+
         self.assertEqualRewrite(program, expected, frels)
 
     def test_rewrites_with_conflicts_1(self):
+
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            ),
+            FRelation(
+                name="assign",
+                arity=3,
+                arguments=(0, 1),
+                values=[(2,)],
+            )
+        ]
+
         program = """
         #count { assign(N,C): color(C) } = 1 :- node(N).
         assign(N,C,V).
@@ -330,6 +352,9 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         # assign_1(N,C) := V.
 
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_with_conflicts_2(self):
 
         frels = [
             FRelation(
@@ -346,9 +371,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
             )
         ]
 
-        self.assertEqualRewrite(program, expected, frels)
-
-    def test_rewrites_with_conflicts_2(self):
         program = """
         color(assign(N,C)) :- node(N); c(C).
         assign(N,C,V).
@@ -362,35 +384,11 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         # assign(N,C) := V.
 
-        frels = [
-            FRelation(
-                name="assign",
-                arity=2,
-                arguments=(0,),
-                values=[(1,)],
-            ),
-            FRelation(
-                name="assign",
-                arity=3,
-                arguments=(0, 1),
-                values=[(2,)],
-            )
-        ]
+
 
         self.assertEqualRewrite(program, expected, frels)
 
     def test_rewrites_with_conflicts_3(self):
-        program = """
-        color(assign(N,C)) :- node(N); c(C).
-        assign(N,C,V).
-        assign(N,C,V,W).
-        """
-
-        expected = """
-        color(assign(N,C)) :- node(N); c(C).
-        Fassign_1(N,C,V).
-        Fassign_2(N,C,V,W).
-        """
 
         frels = [
             FRelation(
@@ -412,6 +410,20 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
                 values=[(3,)],
             ),
         ]
+
+        program = """
+        color(assign(N,C)) :- node(N); c(C).
+        assign(N,C,V).
+        assign(N,C,V,W).
+        """
+
+        expected = """
+        color(assign(N,C)) :- node(N); c(C).
+        Fassign_1(N,C,V).
+        Fassign_2(N,C,V,W).
+        """
+
+        # no conflict for Fassign_2(N,C,V,W).
 
         self.assertEqualRewrite(program, expected, frels)
 
