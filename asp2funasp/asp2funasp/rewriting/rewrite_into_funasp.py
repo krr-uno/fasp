@@ -8,7 +8,7 @@ from funasp.ast._core import PARSER_PREFIX
 from funasp.util.ast import AST, function_arguments_ast, is_function
 
 from asp2funasp.rewriting.util import (
-    FreshFunctionNameGenerator,
+    SurvivingSymbolSignatureCollector,
     build_function_name_index,
 )
 from asp2funasp.util.types import FRelation, SymbolSignature
@@ -19,10 +19,37 @@ HeadRewriteResult = ast.HeadLiteral | None
 
 
 class FunctionalPredicateRewriteTransformer:
-    def __init__(self, lib: Library, frelations: List[FRelation]):
+    def __init__(
+        self,
+        lib: Library,
+        frelations: List[FRelation],
+        conflicting_signatures: set[SymbolSignature] | None = None,
+    ):
         self.lib = lib
         self.frelation_index = index_frelations(frelations)
-        self.function_name_index = build_function_name_index(frelations)
+        self.function_name_index = build_function_name_index(
+            frelations,
+            conflicting_signatures or set(),
+        )
+
+    @classmethod
+    def from_program(
+        cls,
+        lib: Library,
+        frelations: List[FRelation],
+        nodes: Sequence[AST],
+    ) -> "FunctionalPredicateRewriteTransformer":
+        frelation_index = index_frelations(frelations)
+        conflicting_signatures = SurvivingSymbolSignatureCollector(
+            lib,
+            frelation_index,
+        ).collect(nodes)
+
+        return cls(
+            lib,
+            frelations,
+            conflicting_signatures=conflicting_signatures,
+        )
 
     def transform_rule(self, node: AST) -> RewriteResult:
         return self._rewrite(node)

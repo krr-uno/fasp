@@ -32,7 +32,11 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         nodes: List[AST] = collect_statements(self.lib, program)
 
-        transformer = FunctionalPredicateRewriteTransformer(self.lib, frels)
+        transformer = FunctionalPredicateRewriteTransformer.from_program(
+            self.lib,
+            frels,
+            nodes,
+        )
 
         new_nodes: List[AST] = []
 
@@ -424,7 +428,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         expected = """
         color(assign(N,C)) :- node(N); c(C).
         Fassign_1(N,C,V).
-        Fassign_2(N,C,V,W).
+        Fassign(N,C,V,W).
         """
 
         # no conflict for Fassign_2(N,C,V,W).
@@ -459,8 +463,8 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        Fassign_1(N,C,V).
-        Fassign_2(N,C,V,W).
+        Fassign(N,C,V).
+        Fassign(N,C,V,W).
         """
 
         self.assertEqualRewrite(program, expected, frels)
