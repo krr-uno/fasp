@@ -6,11 +6,13 @@ import re
 
 from clingo_funasp import ast
 from clingo_funasp.core import Library
+from clingo_funasp.symbol import parse_term
 from funasp.util.ast import AST
 from asp2funasp.util.types import FRelation
 from asp2funasp.rewriting.rewrite_into_funasp import (
     FunctionalPredicateRewriteTransformer,
 )
+from asp2funasp.rewriting.filter_disjunctions import remove_frelations_in_head_disjunctions
 
 from tests.util import collect_statements
 
@@ -32,9 +34,14 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         nodes: List[AST] = collect_statements(self.lib, program)
 
+        safe_frelations = remove_frelations_in_head_disjunctions(
+            self.lib,
+            nodes,
+            frels,
+        )
         transformer = FunctionalPredicateRewriteTransformer.from_program(
             self.lib,
-            frels,
+            safe_frelations,
             nodes,
         )
 
@@ -75,21 +82,17 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         )
 
     def _make_non_function_symbolic_literal(self) -> ast.LiteralSymbolic:
-        nodes = collect_statements(self.lib, "a.")
-        rule = nodes[0]
-        assert isinstance(rule, ast.StatementRule)
-
-        variable_atom = ast.TermVariable(
-            self.lib,
-            rule.location,
-            "X",
-        )
+        location = collect_statements(self.lib, "a.")[0].location
 
         return ast.LiteralSymbolic(
             self.lib,
-            rule.location,
+            location,
             ast.Sign.NoSign,
-            variable_atom,
+            ast.TermSymbolic(
+                self.lib,
+                location,
+                parse_term(self.lib, "42"),
+            ),
         )
 
     ## TESTS ##
@@ -173,7 +176,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         self.assertEqualRewrite(program, expected, frels)
 
-    ## TODO: Check if this is correct
     def test_does_not_rewrite_disjunction_head(self):
         """
         When a predicate occurs in a disjunction head, the predicate is not rewritten into a functional predicate, even if it is functional, in any rule of the program.
