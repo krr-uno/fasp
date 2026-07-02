@@ -705,6 +705,14 @@ The auxiliary predicates `RD1`, `RD2` are created by incrementing a counter and 
 
 Create a plan to do this.
 
+--- Instead of appending the auxiliary statements to `context.auxiliary_statements`, make that `rewrite_negated_head_literals` returns a list of statments. That is, the signature becomes
+```python
+def rewrite_negated_head_literals(
+    context: RewriteContext, statement: ast.Statement
+) -> list[ast.Statement]:
+```
+
+
 # Future work
 
 - Good error messages during grounding.

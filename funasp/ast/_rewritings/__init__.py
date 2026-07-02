@@ -78,12 +78,12 @@ def rewrite_statements(
     for stmt in statements:
         stmt.rewrite(partial(rewrite_some_assignments, context))
         stmt.rewrite(partial(rewrite_assignment_aggregates, context))
-        stmt.rewrite(partial(rewrite_negated_condition_literals, context))
         for clingo_stmt in stmt.rewritten:
             context.intensional_functions |= collect_intensional_function_signatures(
                 clingo_stmt
             )
         new_statements.append(stmt)
+        stmt.rewrite(partial(rewrite_negated_condition_literals, context))
     for auxiliary in context.auxiliary_statements:
         new_statements.append(Statement(context.lib.library, auxiliary))
     for stmt in new_statements:
