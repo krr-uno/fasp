@@ -663,8 +663,17 @@ Remember this for future contributions.
 
 I refactor files `funasp/util/ast.py` and `funasp/ast/_rewritings/literals.py` and added test in files `tests/util/test_ast.py` and `tests/rewriting/test_unnesting.py`. Update your understanding of the project and look for possible bugs.
 
+---
+
+In `funasp/util/collectors.py` create a function with signature `def collect_predicates(node: AST) -> set[SymbolSignature]:` that returs the set of all predicate symbols in `node`. Examples:
+- For rule `a, b(X) :- c(d,X), not e, not f(7).` we get the set `{a/0, b/1, c/2, e/0, f/1}`.
+- For the rule `a : b(X) :- c(d,X), e(Y) : f(Y).` we get the set `{a/0, b/1, c/2, e/1, f/1}`.
+- For the rule `:- a(X), #count{ Y : b(X,Y)} > 5.` we get the set `{a/1, b/2}`.
 
 ---
+
+Function ``rewrite_negated_body_literals`` in ``funasp/ast/_rewritings/negated_literals.py`` rewrites body literal ``not l`` is rewritten into the conditional literal ``#false : l``. We are going to expand this rewriting to negative literals insed conditional literals. We are going to replace every negated literal of the form ``not p(a,X)`` inside a conditional literals with a new literals ``not RD1(X)` and add the rule `RD1(X) :- p(a,C).`
+Examples 
 
 # Future work
 
