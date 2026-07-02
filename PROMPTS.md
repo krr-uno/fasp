@@ -682,7 +682,6 @@ in `funasp/ast/_rewritings/negated_literals.py` that moves negated literals from
 - `a, not b, not not c :- d.` becomes `a :- d, not not b, not c.`
 - `a(X), not b(X), not not c(X) :- d(X,Y).` becomes `a(X) :- d(X,Y), not not b(X), not c(X).`
 
-
 ---
 
 Function ``rewrite_negated_body_literals`` in ``funasp/ast/_rewritings/negated_literals.py`` rewrites body literal ``not l`` is rewritten into the conditional literal ``#false : l``. We are going to expand this rewriting to negative literals insed conditional literals. We are going to replace every negated literal of the form ``not p(a,X)`` inside a conditional literals with a new literals ``not RD1(X)` and add the rule `RD1(X) :- p(a,C).`

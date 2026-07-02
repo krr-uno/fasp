@@ -7,8 +7,8 @@ pipeline turns that purely syntactic encoding into a semantically correct
 ASP program, mirroring the old FASP-node pipeline:
 
 1. Per statement: rewrite ``#some`` assignments, normalize aggregate
-   assignments, rewrite negated body literals, and collect intensional function
-   signatures.
+   assignments, move negated head literals to the body, rewrite negated body
+   literals, and collect intensional function signatures.
 2. Per statement: unnest intensional functions, rename parser prefixes to the
    configured prefix, rewrite functional equalities into prefixed literals,
    run clingo's statement rewriting, and restore the prefixed literals whose
@@ -28,7 +28,10 @@ from .collectors import collect_intensional_function_signatures
 from .comparisons import prefix_comparisons
 from .constraints import functional_constraints
 from .context import RewriteContext
-from .negated_literals import rewrite_negated_body_literals
+from .negated_literals import (
+    rewrite_negated_body_literals,
+    rewrite_negated_head_literals,
+)
 from .prefixes import rename_prefixes
 from .restore import restore_non_intensional_functions
 from .some_assignments import rewrite_some_assignments
@@ -65,6 +68,7 @@ def rewrite_statements(
     for stmt in statements:
         stmt.rewrite(partial(rewrite_some_assignments, context))
         stmt.rewrite(partial(rewrite_assignment_aggregates, context))
+        stmt.rewrite(partial(rewrite_negated_head_literals, context))
         stmt.rewrite(partial(rewrite_negated_body_literals, context))
         for clingo_stmt in stmt.rewritten:
             context.intensional_functions |= collect_intensional_function_signatures(
