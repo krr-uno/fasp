@@ -15,8 +15,8 @@ from clingo_funasp import ast
 from clingo_funasp.symbol import SymbolType
 
 from funasp.ast._rewritings.context import RewriteContext
-from funasp.ast._rewritings.types import SymbolSignature
 from funasp.util.ast import function_arguments_ast
+from funasp.util.types import SymbolSignature
 
 
 def _restore_literal(

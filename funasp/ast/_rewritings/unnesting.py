@@ -15,15 +15,15 @@ from typing import Any, List, Set
 from clingo_funasp import ast
 from clingo_funasp.core import Library
 
-from funasp.ast._rewritings.collectors import collect_variables
 from funasp.ast._rewritings.context import RewriteContext
 from funasp.ast._rewritings.literals import (
     UnnestFunctionsInLiteralsTransformer,
     unnest_functions,
 )
-from funasp.ast._rewritings.types import SymbolSignature
 from funasp.util.ast import FreshVariableGenerator
+from funasp.util.collectors import collect_variables
 from funasp.util.iterables import map_none
+from funasp.util.types import SymbolSignature
 
 
 class StatementUnnestTransformer:

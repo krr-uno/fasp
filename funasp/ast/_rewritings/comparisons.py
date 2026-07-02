@@ -17,8 +17,8 @@ from clingo_funasp.core import Library, Location
 from clingo_funasp.symbol import SymbolType
 
 from funasp.ast._rewritings.context import RewriteContext
-from funasp.ast._rewritings.types import SymbolSignature
 from funasp.util.ast import AST, function_arguments_ast, is_function
+from funasp.util.types import SymbolSignature
 
 
 class ComparisonTransformer:

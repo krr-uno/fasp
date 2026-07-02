@@ -13,7 +13,7 @@ import unittest
 from clingo_funasp import ast
 
 from funasp.ast import RewriteContext, parse_string, rewrite_statements
-from funasp.ast._rewritings.types import SymbolSignature
+from funasp.util.types import SymbolSignature
 from funasp.core import Library
 from tests.restore_anonymous_term_variables import restore_anonymous_term_variables
 
