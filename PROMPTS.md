@@ -773,6 +773,8 @@ Untouched: not not literals, comparisons, the conditional's main literal, non-ru
 
 ---
 
+Plan how to extend this to comparisons as well. Before executing further elaborating the plan, write a couple of examples for each case and show them to me for aproval.
+
 
 # Future work
 
