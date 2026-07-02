@@ -761,6 +761,19 @@ Tests updated accordingly (unit tests now assert the returned list; integration 
 
 The variables do not need to be writen in order of occurrence. Write them in the order produced by `sorted()`. As a ressult, you can use `collect_variables` instead of `collect_variables_ordered`. You can remove the later.
 
+---
+
+Let us plan how to extend this rewriting to `Aggregregates` and `SetAggregates` both in the head and in the body. Apply it to `HeadConditionalLiteral` if you did not do it already. Before executing further elaborating the plan, write a couple of examples for each case and show them to me for aproval.
+
+---
+
+Only LiteralSymbolic with sign == ast.Sign.Single. Comparisons (not f = X) and double negation are untouched (consistent with rewrite_negated_body_literals, which also only handles Sign.Single).
+
+Untouched: not not literals, comparisons, the conditional's main literal, non-rule statements.
+
+---
+
+
 # Future work
 
 - Good error messages during grounding.

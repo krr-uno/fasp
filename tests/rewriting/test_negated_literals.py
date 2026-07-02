@@ -151,6 +151,96 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             ["q :- r(X): s(X), not RD1(X).", "RD1(X) :- t(X,_)."],
         )
 
+    def test_lifts_head_conditional_literal(self):
+        """A negated literal in a conditional disjunct condition is lifted."""
+        self.assertEqual(
+            self._rewrite("a(X) : b(X), not c(X) :- d(X)."),
+            ["a(X): b(X), not RD1(X) :- d(X).", "RD1(X) :- c(X)."],
+        )
+
+    def test_lifts_head_conditional_literal_in_disjunction(self):
+        """Bare disjuncts stay while conditional disjunct conditions are lifted."""
+        self.assertEqual(
+            self._rewrite("p; q(Y) : r(Y,Z), not s(Y,Z) :- t(Y)."),
+            [
+                "p; q(Y): r(Y,Z), not RD1(Y,Z) :- t(Y).",
+                "RD1(Y,Z) :- s(Y,Z).",
+            ],
+        )
+
+    def test_lifts_choice_element_condition(self):
+        """A negated literal in a choice element condition is lifted."""
+        self.assertEqual(
+            self._rewrite("{ p(X) : q(X), not r(X) } :- s(X)."),
+            ["{ p(X): q(X), not RD1(X) } :- s(X).", "RD1(X) :- r(X)."],
+        )
+
+    def test_lifts_choice_with_multiple_elements(self):
+        """Each choice element condition gets its own auxiliary predicate."""
+        self.assertEqual(
+            self._rewrite("1 { a : not b; c(X) : d(X), not e(f(X)) } :- g(X)."),
+            [
+                "1 <= { a: not RD1; c(X): d(X), not RD2(X) } :- g(X).",
+                "RD1 :- b.",
+                "RD2(X) :- e(f(X)).",
+            ],
+        )
+
+    def test_lifts_head_aggregate_element_condition(self):
+        """A negated literal in a head aggregate element condition is lifted."""
+        self.assertEqual(
+            self._rewrite("1 <= #count{ X : p(X) : q(X), not r(X) } :- s."),
+            [
+                "1 <= #count { X: p(X): q(X), not RD1(X) } :- s.",
+                "RD1(X) :- r(X).",
+            ],
+        )
+
+    def test_lifts_head_aggregate_element_condition_with_variables(self):
+        """The lifted head aggregate condition carries the literal's variables."""
+        self.assertEqual(
+            self._rewrite("2 = #sum{ Y,1 : p(Y) : q(Y), not r(Y,Z), t(Z) } :- u."),
+            [
+                "2 = #sum { Y,1: p(Y): q(Y), not RD1(Y,Z), t(Z) } :- u.",
+                "RD1(Y,Z) :- r(Y,Z).",
+            ],
+        )
+
+    def test_lifts_body_aggregate_element_condition(self):
+        """A negated literal in a body aggregate element condition is lifted."""
+        self.assertEqual(
+            self._rewrite(":- #count{ X : p(X), not q(X) } > 5."),
+            [" :- #count { X: p(X), not RD1(X) } > 5.", "RD1(X) :- q(X)."],
+        )
+
+    def test_lifts_body_aggregate_element_condition_nested_term(self):
+        """The lifted literal keeps its nested argument terms in the aux rule."""
+        self.assertEqual(
+            self._rewrite("a :- #count{ X : p(X), not q(f(X)) } > 0."),
+            [
+                "a :- #count { X: p(X), not RD1(X) } > 0.",
+                "RD1(X) :- q(f(X)).",
+            ],
+        )
+
+    def test_lifts_body_set_aggregate_element_condition(self):
+        """A negated literal in a body set aggregate condition is lifted."""
+        self.assertEqual(
+            self._rewrite("b :- 1 { p(X) : q(X), not r(X) }."),
+            ["b :- 1 <= { p(X): q(X), not RD1(X) }.", "RD1(X) :- r(X)."],
+        )
+
+    def test_lifts_body_set_aggregate_with_multiple_elements(self):
+        """Each body set aggregate element condition is lifted independently."""
+        self.assertEqual(
+            self._rewrite(":- { a : not b(Y), c(Y); d : not e } 0."),
+            [
+                " :- { a: not RD1(Y), c(Y); d: not RD2 } <= 0.",
+                "RD1(Y) :- b(Y).",
+                "RD2 :- e.",
+            ],
+        )
+
     def test_non_rule_statement_unchanged(self):
         """A non-rule statement is returned unchanged."""
         self._assert_unchanged(parse_string(self.lib, "a :- d.")[0].original)
@@ -171,10 +261,40 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             parse_string(self.lib, "a :- b(X) : c(X), not X = 3.")[1].original
         )
 
+    def test_positive_aggregate_conditions_unchanged(self):
+        """Aggregates and choices without negated condition literals are unchanged."""
+        self._assert_unchanged(
+            parse_string(self.lib, "{ p(X) : q(X) } :- s(X).")[1].original
+        )
+        self._assert_unchanged(
+            parse_string(self.lib, ":- #count{ X : p(X), q(X) } > 5.")[1].original
+        )
+        self._assert_unchanged(
+            parse_string(self.lib, "b :- 1 { p(X) : q(X) }.")[1].original
+        )
+
+    def test_bare_disjunction_unchanged(self):
+        """A disjunction without conditional disjuncts is unchanged."""
+        self._assert_unchanged(parse_string(self.lib, "a; not b :- d.")[1].original)
+
+    def test_negated_aggregate_element_literal_unchanged(self):
+        """The main literal of an aggregate element is never lifted."""
+        self._assert_unchanged(
+            parse_string(self.lib, "{ not p(X) : q(X) } :- s(X).")[1].original
+        )
+
     def test_double_negation_unchanged(self):
         """Doubly negated condition literals are left untouched."""
         self._assert_unchanged(
             parse_string(self.lib, "a :- b(X) : c(X), not not d(X).")[1].original
+        )
+
+    def test_double_negation_in_aggregate_condition_unchanged(self):
+        """Doubly negated literals in aggregate conditions are untouched."""
+        self._assert_unchanged(
+            parse_string(self.lib, ":- #count{ X : p(X), not not q(X) } > 5.")[
+                1
+            ].original
         )
 
     def test_double_negation_only_condition_unchanged(self):

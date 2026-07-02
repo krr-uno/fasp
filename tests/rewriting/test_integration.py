@@ -699,19 +699,49 @@ class TestRewriteStatements(unittest.TestCase):
             prefix="G",
         )
 
-    def test_intensional_in_negated_aggregate_condition(self):
-        """Test that intensional functions in negated aggregate conditions are rejected."""
+    def test_intensional_in_negated_weak_constraint_literal(self):
+        """Test that intensional functions in negated weak-constraint literals are rejected."""
         with self.assertRaisesRegex(
             RuntimeError,
             r"Intensional functions are not allowed in negated literals",
         ):
             self.assertTransformEqual(
                 """
-                f := 1.
-                :- 0 < #count{ X : p(X), not q(f) }.
+                f(1) := 2.
+                :~ p(X), not q(f(X)). [1@0,X]
                 """,
                 "",
             )
+
+    def test_intensional_in_negated_aggregate_condition(self):
+        """Test that negated aggregate condition literals are lifted."""
+        self.assertTransformEqual(
+            """
+            f := 1.
+            :- 0 < #count{ X : p(X), not q(f) }.
+            """,
+            """
+            Ff(1).
+            :- 0 < #count { X: p(X), not RD1 }.
+            RD1 :- q(FUN); Ff(FUN).
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            """,
+        )
+
+    def test_negated_condition_literals_in_head(self):
+        """Test that head conditional and choice conditions are lifted."""
+        self.assertTransformEqual(
+            """
+            a(X) : b(X), not c(X) :- d(X).
+            { p(X) : q(X), not r(X) } :- s(X).
+            """,
+            """
+            a(X): b(X), not RD1(X) :- d(X).
+            RD1(X) :- c(X).
+            #count { 0,p(X): p(X): q(X), not RD2(X) } :- s(X).
+            RD2(X) :- r(X).
+            """,
+        )
 
     def test_intensional_in_negated_condition(self):
         """Test that negated condition literals are lifted into auxiliary rules."""

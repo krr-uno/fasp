@@ -8,11 +8,13 @@ them can use anonymous projections.
 Negated head literals are moved to the body with their sign complemented, so
 ``a, not b, not not c :- d.`` becomes ``a :- d, not not b, not c.``.
 
-Negated literals inside conditional-literal conditions cannot become nested
-conditional literals, so each ``not p(t1,...,tk)`` in a condition is replaced
-by ``not RDi(v1,...,vm)`` (the distinct variables of the literal) and defined
-by an auxiliary rule ``RDi(v1,...,vm) :- p(t1,...,tk).`` where the literal
-appears positively.
+Negated literals inside conditions cannot become nested conditional literals,
+so each ``not p(t1,...,tk)`` in a condition is replaced by
+``not RDi(v1,...,vm)`` (the distinct variables of the literal) and defined by
+an auxiliary rule ``RDi(v1,...,vm) :- p(t1,...,tk).`` where the literal
+appears positively. This applies to the conditions of conditional literals
+(body and head disjunction elements) and of aggregate and set-aggregate
+elements (head and body).
 """
 
 from functools import partial
@@ -114,23 +116,88 @@ def _lift_condition_literal(
     return replacement
 
 
-def _rewrite_conditional_literal(
+def _rewrite_element_condition[
+    ElementT: (
+        ast.BodyConditionalLiteral,
+        ast.HeadConditionalLiteral,
+        ast.SetAggregateElement,
+        ast.HeadAggregateElement,
+        ast.BodyAggregateElement,
+    )
+](
     context: RewriteContext,
     auxiliary: list[ast.Statement],
     library: Library,
-    body_literal: ast.BodyLiteral,
-) -> ast.BodyConditionalLiteral | None:
-    """Lift the negated literals inside a conditional literal's condition."""
-    if not isinstance(body_literal, ast.BodyConditionalLiteral):
-        return None
+    element: ElementT,
+) -> ElementT | None:
+    """Lift the negated literals inside an element's condition."""
     new_condition = transform_iterable(
         library,
-        body_literal.condition,
+        element.condition,
         partial(_lift_condition_literal, context, auxiliary),
     )
     if new_condition is None:
         return None
-    return body_literal.update(library, condition=new_condition)
+    return element.update(library, condition=new_condition)
+
+
+def _rewrite_body_element(
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    body_literal: ast.BodyLiteral,
+) -> ast.BodyLiteral | None:
+    """Lift the negated condition literals inside a single body literal."""
+    if isinstance(body_literal, ast.BodyConditionalLiteral):
+        return _rewrite_element_condition(context, auxiliary, library, body_literal)
+    if isinstance(body_literal, ast.BodyAggregate | ast.BodySetAggregate):
+        new_elements = transform_iterable(
+            library,
+            body_literal.elements,
+            partial(_rewrite_element_condition, context, auxiliary),
+        )
+        if new_elements is None:
+            return None
+        return body_literal.update(library, elements=new_elements)
+    return None
+
+
+def _rewrite_disjunction_element(
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    element: ast.DisjunctionElement,
+) -> ast.HeadConditionalLiteral | None:
+    """Lift the negated condition literals of a conditional disjunct."""
+    if not isinstance(element, ast.HeadConditionalLiteral):
+        return None
+    return _rewrite_element_condition(context, auxiliary, library, element)
+
+
+def _rewrite_head(
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    head: ast.HeadLiteral,
+) -> ast.HeadLiteral | None:
+    """Lift the negated condition literals inside a rule head."""
+    if isinstance(head, ast.HeadDisjunction):
+        new_elements = transform_iterable(
+            library,
+            head.elements,
+            partial(_rewrite_disjunction_element, context, auxiliary),
+        )
+    elif isinstance(head, ast.HeadSetAggregate | ast.HeadAggregate):
+        new_elements = transform_iterable(
+            library,
+            head.elements,
+            partial(_rewrite_element_condition, context, auxiliary),
+        )
+    else:
+        return None
+    if new_elements is None:
+        return None
+    return head.update(library, elements=new_elements)
 
 
 def rewrite_negated_condition_literals(
@@ -146,14 +213,20 @@ def rewrite_negated_condition_literals(
         return [statement]
     library = context.lib.library
     auxiliary: list[ast.Statement] = []
+    update: dict[str, object] = {}
+    new_head = _rewrite_head(context, auxiliary, library, statement.head)
+    if new_head is not None:
+        update["head"] = new_head
     new_body = transform_iterable(
         library,
         statement.body,
-        partial(_rewrite_conditional_literal, context, auxiliary),
+        partial(_rewrite_body_element, context, auxiliary),
     )
-    if new_body is None:
+    if new_body is not None:
+        update["body"] = new_body
+    if not update:
         return [statement]
-    return [statement.update(library, body=new_body), *auxiliary]
+    return [statement.update(library, **update), *auxiliary]
 
 
 def rewrite_negated_head_literals(
