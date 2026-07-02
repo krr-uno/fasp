@@ -705,13 +705,61 @@ The auxiliary predicates `RD1`, `RD2` are created by incrementing a counter and 
 
 Create a plan to do this.
 
---- Instead of appending the auxiliary statements to `context.auxiliary_statements`, make that `rewrite_negated_head_literals` returns a list of statments. That is, the signature becomes
+---
+
+funasp/util/collectors.py — added collect_variables_ordered(node) -> list[str]: distinct variable names in order of first occurrence.
+
+funasp/ast/_rewritings/context.py — RewriteContext gained:
+- predicates init kwarg (set[SymbolSignature]) holding all program predicates,
+- auxiliary_statements: list[ast.StatementRule] accumulating the generated rules,
+- fresh_predicate_name(prefix="RD"): increments a counter and skips names colliding with predicates.
+
+funasp/ast/_rewritings/negated_literals.py — new rewrite_negated_condition_literals(context, statement): for each BodyConditionalLiteral, every symbolic single-negation condition literal not p(t…) is replaced by not RDi(v…) (the literal's variables, _ excluded) and an aux rule RDi(v…) :- p(t…). is stashed in the context.
+
+funasp/ast/_rewritings/__init__.py — pipeline: pass 0 collects all predicates via collect_predicates; the lifting runs in pass 1; aux rules are appended (wrapped as Statements) after all originals so pass 2 unnests intensional functions inside them.
+
+Key outcome — the previously rejected case now works end-to-end:
+f := 1.  :- q : not p(f).   →   :- q: not RD1.   RD1 :- p(FUN); Ff(FUN).
+(the rejection error is still raised for negated aggregate-element conditions, which remain out of scope, and stays test-covered).
+
+Both spec examples verified via the real Control API; note clingo's own rewrite step later splits the pool: RD1(Y) :- e(5,f(Y)). / RD1(Y) :- e(5,f(1*Y+2)). Also note your example-2 rule was unsafe as written (Y only in the negated literal), so the integration test binds it with e(Y) in the condition.
+
+Verification: nox -s test → 153 tests, 100% coverage; nox -s slow_test (full suite incl. test_app.py) passes; mypy --strict clean; formatting clean.
+
+---
+
+Instead of appending the auxiliary statements to `context.auxiliary_statements`, make that `rewrite_negated_head_literals` returns a list of statments. That is, the signature becomes
 ```python
 def rewrite_negated_head_literals(
     context: RewriteContext, statement: ast.Statement
 ) -> list[ast.Statement]:
 ```
 
+---
+
+Note: your message named rewrite_negated_head_literals, but the function that produces auxiliary statements is rewrite_negated_condition_literals — I applied the change there (the head-literals function creates no aux statements and kept its single-statement signature).
+
+Changes:
+
+- rewrite_negated_condition_literals now returns list[ast.Statement] — the rewritten rule followed by its auxiliary rules. Unchanged inputs return [statement] (identity element). The auxiliary list is threaded through _rewrite_conditional_literal / _lift_condition_literal via partial instead of the context.
+- RewriteContext.auxiliary_statements removed (along with the now-unused ast import); predicates and fresh_predicate_name remain.
+- rewrite_statements no longer has the append loop — Statement.rewrite handles the list return natively, so aux rules live in the originating statement's rewritten list and flow through pass 2 automatically. (I kept your relocation of the step to after signature collection.)
+
+Behavioral consequence: aux rules now appear right after their originating rule instead of at the end of the program:
+
+a :- b(X); c(X,Y): d(Y), not RD1(Y).
+RD1(Y) :- e(5,f(Y)).
+RD1(Y) :- e(5,f(1*Y+2)).
+b(2) :- c(X): d(X), e(Y), not RD2(X,Y).
+RD2(X,Y) :- p(g(X,Y)).
+
+A side benefit: since aux rules are bundled with their origin Statement, error reports during later pipeline stages point at the user's original rule.
+
+Tests updated accordingly (unit tests now assert the returned list; integration test expects the interleaved order). Verified: nox -s test → 153 tests, 100% coverage; mypy --strict clean; formatting clean.
+
+---
+
+The variables do not need to be writen in order of occurrence. Write them in the order produced by `sorted()`. As a ressult, you can use `collect_variables` instead of `collect_variables_ordered`. You can remove the later.
 
 # Future work
 

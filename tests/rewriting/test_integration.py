@@ -737,9 +737,9 @@ class TestRewriteStatements(unittest.TestCase):
             """,
             """
             a :- b(X); c(X,Y): d(Y), not RD1(Y).
-            b(2) :- c(X): d(X), e(Y), not RD2(X,Y).
             RD1(Y) :- e(5,f(Y)).
             RD1(Y) :- e(5,f(1*Y+2)).
+            b(2) :- c(X): d(X), e(Y), not RD2(X,Y).
             RD2(X,Y) :- p(g(X,Y)).
             """,
         )

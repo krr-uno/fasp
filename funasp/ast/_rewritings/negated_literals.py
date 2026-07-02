@@ -84,7 +84,10 @@ def _complement_to_body(
 
 
 def _lift_condition_literal(
-    context: RewriteContext, library: Library, literal: ast.Literal
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    literal: ast.Literal,
 ) -> ast.LiteralSymbolic | None:
     """Replace a negated symbolic condition literal by a fresh auxiliary call."""
     if not isinstance(literal, ast.LiteralSymbolic) or literal.sign != ast.Sign.Single:
@@ -105,22 +108,25 @@ def _lift_condition_literal(
     positive = ast.BodySimpleLiteral(
         library, literal.update(library, sign=ast.Sign.NoSign)
     )
-    context.auxiliary_statements.append(
-        ast.StatementRule(library, location, head, [positive])
-    )
+    auxiliary.append(ast.StatementRule(library, location, head, [positive]))
     replacement = create_literal(library, atom, ast.Sign.Single)
     assert isinstance(replacement, ast.LiteralSymbolic)
     return replacement
 
 
 def _rewrite_conditional_literal(
-    context: RewriteContext, library: Library, body_literal: ast.BodyLiteral
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    body_literal: ast.BodyLiteral,
 ) -> ast.BodyConditionalLiteral | None:
     """Lift the negated literals inside a conditional literal's condition."""
     if not isinstance(body_literal, ast.BodyConditionalLiteral):
         return None
     new_condition = transform_iterable(
-        library, body_literal.condition, partial(_lift_condition_literal, context)
+        library,
+        body_literal.condition,
+        partial(_lift_condition_literal, context, auxiliary),
     )
     if new_condition is None:
         return None
@@ -129,17 +135,25 @@ def _rewrite_conditional_literal(
 
 def rewrite_negated_condition_literals(
     context: RewriteContext, statement: ast.Statement
-) -> ast.Statement:
-    """Lift negated condition literals of a statement into auxiliary rules."""
+) -> list[ast.Statement]:
+    """
+    Lift negated condition literals of a statement into auxiliary rules.
+
+    Returns the rewritten statement followed by the auxiliary rules defining
+    the fresh predicates that replace the lifted literals.
+    """
     if not isinstance(statement, ast.StatementRule):
-        return statement
+        return [statement]
     library = context.lib.library
+    auxiliary: list[ast.Statement] = []
     new_body = transform_iterable(
-        library, statement.body, partial(_rewrite_conditional_literal, context)
+        library,
+        statement.body,
+        partial(_rewrite_conditional_literal, context, auxiliary),
     )
     if new_body is None:
-        return statement
-    return statement.update(library, body=new_body)
+        return [statement]
+    return [statement.update(library, body=new_body), *auxiliary]
 
 
 def rewrite_negated_head_literals(

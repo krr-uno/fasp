@@ -9,9 +9,9 @@ ASP program, mirroring the old FASP-node pipeline:
 0. Collect all predicates occurring in the program (used to pick fresh
    auxiliary predicate names).
 1. Per statement: rewrite ``#some`` assignments, normalize aggregate
-   assignments, lift negated condition literals into auxiliary rules, and
-   collect intensional function signatures. The auxiliary rules are appended
-   after all statements.
+   assignments, collect intensional function signatures, and lift negated
+   condition literals into auxiliary rules (kept alongside the statement
+   they originate from).
 2. Per statement: move negated head literals to the body, rewrite negated
    body literals, unnest intensional functions, rename parser prefixes to the
    configured prefix, rewrite functional equalities into prefixed literals,
@@ -83,10 +83,8 @@ def rewrite_statements(
                 clingo_stmt
             )
         new_statements.append(stmt)
-        stmt.rewrite(partial(rewrite_negated_condition_literals, context))
-    for auxiliary in context.auxiliary_statements:
-        new_statements.append(Statement(context.lib.library, auxiliary))
     for stmt in new_statements:
+        stmt.rewrite(partial(rewrite_negated_condition_literals, context))
         stmt.rewrite(partial(rewrite_negated_head_literals, context))
         stmt.rewrite(partial(rewrite_negated_body_literals, context))
         stmt.rewrite(partial(unnest_statement, context))

@@ -1,4 +1,3 @@
-from clingo_funasp import ast
 from clingo_funasp.ast import RewriteContext as ClingoRewriteContext
 
 from funasp.core import Library
@@ -33,7 +32,6 @@ class RewriteContext:
         self.predicates: set[SymbolSignature] = (
             set(predicates) if predicates is not None else set()
         )
-        self.auxiliary_statements: list[ast.StatementRule] = []
         self._aux_counter = 0
 
     def fresh_predicate_name(self, prefix: str = "RD") -> str:
