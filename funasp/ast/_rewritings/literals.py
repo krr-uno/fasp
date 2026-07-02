@@ -10,14 +10,12 @@ from functools import singledispatchmethod
 from typing import List, Set, TypeVar
 
 from clingo_funasp import ast, symbol
-from clingo_funasp.core import Library, Location
+from clingo_funasp.core import Library
 from clingo_funasp.symbol import Symbol
 
 from funasp.ast._rewritings.types import SymbolSignature
 from funasp.util.ast import (
     FreshVariableGenerator,
-    TermTransformer,
-    make_equation,
     replace_term,
 )
 from funasp.util.iterables import map_none

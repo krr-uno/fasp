@@ -68,7 +68,7 @@ def rewrite_statements(
         stmt.rewrite(partial(rewrite_negated_body_literals, context))
         for clingo_stmt in stmt.rewritten:
             context.intensional_functions |= collect_intensional_function_signatures(
-                context, clingo_stmt
+                clingo_stmt
             )
         new_statements.append(stmt)
     for stmt in new_statements:

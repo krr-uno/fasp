@@ -18,7 +18,6 @@ appear are:
 from clingo_funasp import ast
 
 from funasp.ast import PARSER_PREFIX
-from funasp.ast._rewritings.context import RewriteContext
 from funasp.ast._rewritings.types import SymbolSignature
 from funasp.util.ast import AST
 
@@ -71,7 +70,7 @@ def _signatures_from_literal(prefix: str, literal: ast.Literal) -> set[SymbolSig
 
 
 def collect_intensional_function_signatures(
-    context: RewriteContext, statement: ast.Statement
+    statement: ast.Statement,
 ) -> set[SymbolSignature]:
     """
     Collect the intensional function signatures declared by a statement head.
