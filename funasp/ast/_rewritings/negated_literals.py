@@ -24,7 +24,7 @@ from clingo_funasp.core import Library
 from funasp.ast import transform_iterable
 from funasp.ast._rewritings.context import RewriteContext
 from funasp.util.ast import create_literal
-from funasp.util.collectors import collect_variables_ordered
+from funasp.util.collectors import collect_variables
 
 # A head literal is moved to the body with its negation complemented:
 # ``not l`` (single) becomes ``not not l`` (double) and vice versa.
@@ -95,7 +95,7 @@ def _lift_condition_literal(
     location = literal.location
     variables = [
         ast.TermVariable(library, location, name)
-        for name in collect_variables_ordered(literal)
+        for name in sorted(collect_variables(literal))
         if name != "_"
     ]
     atom = ast.TermFunction(
