@@ -68,14 +68,14 @@ def rewrite_statements(
     for stmt in statements:
         stmt.rewrite(partial(rewrite_some_assignments, context))
         stmt.rewrite(partial(rewrite_assignment_aggregates, context))
-        stmt.rewrite(partial(rewrite_negated_head_literals, context))
-        stmt.rewrite(partial(rewrite_negated_body_literals, context))
         for clingo_stmt in stmt.rewritten:
             context.intensional_functions |= collect_intensional_function_signatures(
                 clingo_stmt
             )
         new_statements.append(stmt)
     for stmt in new_statements:
+        stmt.rewrite(partial(rewrite_negated_head_literals, context))
+        stmt.rewrite(partial(rewrite_negated_body_literals, context))
         stmt.rewrite(partial(unnest_statement, context))
         stmt.rewrite(partial(rename_prefixes, context))
         stmt.rewrite(partial(prefix_comparisons, context))
