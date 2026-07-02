@@ -1,5 +1,5 @@
 """
-Unit tests for ``funasp.util.collectors.collect_predicates``.
+Unit tests for ``funasp.util.collectors``.
 """
 
 import unittest
@@ -8,7 +8,7 @@ from clingo_funasp import symbol
 
 from funasp.ast import parse_string
 from funasp.core import Library
-from funasp.util.collectors import collect_predicates
+from funasp.util.collectors import collect_predicates, collect_variables_ordered
 
 
 class TestCollectPredicates(unittest.TestCase):
@@ -61,6 +61,29 @@ class TestCollectPredicates(unittest.TestCase):
             self._predicates("p(1;2,3) :- q."),
             {"p/1", "p/2", "q/0"},
         )
+
+
+class TestCollectVariablesOrdered(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures for each test."""
+        self.lib = Library()
+
+    def _variables(self, program: str) -> list[str]:
+        """Return the ordered variable names of a single rule."""
+        statement = parse_string(self.lib, program)[1].original
+        return collect_variables_ordered(statement)
+
+    def test_order_of_first_occurrence(self):
+        """Variables are returned in order of first occurrence."""
+        self.assertEqual(self._variables("p(Y,X) :- q(X,Z,Y)."), ["Y", "X", "Z"])
+
+    def test_duplicates_collapsed(self):
+        """Repeated occurrences of a variable are collapsed."""
+        self.assertEqual(self._variables("p(X,g(X,Y),X)."), ["X", "Y"])
+
+    def test_no_variables(self):
+        """A ground rule yields no variables."""
+        self.assertEqual(self._variables("p(1,a)."), [])
 
 
 if __name__ == "__main__":

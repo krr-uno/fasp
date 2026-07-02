@@ -684,9 +684,24 @@ in `funasp/ast/_rewritings/negated_literals.py` that moves negated literals from
 
 ---
 
-Function ``rewrite_negated_body_literals`` in ``funasp/ast/_rewritings/negated_literals.py`` rewrites body literal ``not l`` is rewritten into the conditional literal ``#false : l``. We are going to expand this rewriting to negative literals insed conditional literals. We are going to replace every negated literal of the form ``not p(a,X)`` inside a conditional literals with a new literals ``not RD1(X)` and add the rule `RD1(X) :- p(a,C).`
+Function ``rewrite_negated_body_literals`` in ``funasp/ast/_rewritings/negated_literals.py`` rewrites body literal ``not l``  into the conditional literal ``#false : l``. We are going to expand this rewriting to negative literals inside conditional literals. Nested conditional literals are not allowed, so we are going to replace every negated literal of the form ``not p(a,X)`` inside a conditional literals with a new literals ``not RD1(X)` and add the rule `RD1(X) :- p(a,C).`
 Examples:
-- `a :- b(X), c(X,Y) : d(Y), not e(f(Y)).` becomes `
+- `a :- b(X); c(X,Y) : d(Y), not e(5,f(Y;Y+2)).` becomes `a :- b(X); c(X,Y) : d(Y); not RD1(Y). RD1(Y) :- e(5,f(Y;Y+2)).`
+- Example with two rules:
+```
+a :- b(X); c(X,Y) : d(Y), not e(5,f(Y;Y+2)).
+b(2) :- c(X) : d(X), not f(X).
+```
+becomes
+```
+a :- b(X); c(X,Y) : d(Y); not RD1(Y).
+b(2) :- c(X) : d(X), not p(g(X,Y)).
+RD1(Y) :- e(5,f(Y;Y+2)).
+RD2(X,Y) :- p(g(X,Y)).
+```
+The auxiliary predicates `RD1`, `RD2` are created by incrementing a counter and add it to a prefix. Ensure that auxiliary predicate has not been used anywhere else in the program. To do this:
+- collect all predicates in the program at the begining of the pipeline in `funasp.ast._rewritings.rewrite_statements`. Store this in a new argument in the `context`.
+- Before using a predicate name, ensure that it is not used before by checking the set crated in the previous step.
 
 Create a plan to do this.
 

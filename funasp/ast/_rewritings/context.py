@@ -1,3 +1,4 @@
+from clingo_funasp import ast
 from clingo_funasp.ast import RewriteContext as ClingoRewriteContext
 
 from funasp.core import Library
@@ -19,6 +20,7 @@ class RewriteContext:
         prefix_function: str = "F",
         *,
         intensional_functions: set[SymbolSignature] | None = None,
+        predicates: set[SymbolSignature] | None = None,
     ):
         """Initialize the RewriteContext instance."""
         self.lib = lib
@@ -28,3 +30,17 @@ class RewriteContext:
         self.intensional_functions: set[SymbolSignature] = (
             set(intensional_functions) if intensional_functions is not None else set()
         )
+        self.predicates: set[SymbolSignature] = (
+            set(predicates) if predicates is not None else set()
+        )
+        self.auxiliary_statements: list[ast.StatementRule] = []
+        self._aux_counter = 0
+
+    def fresh_predicate_name(self, prefix: str = "RD") -> str:
+        """Return a fresh predicate name not colliding with program predicates."""
+        used_names = {signature.name for signature in self.predicates}
+        while True:
+            self._aux_counter += 1
+            candidate = f"{prefix}{self._aux_counter}"
+            if candidate not in used_names:
+                return candidate

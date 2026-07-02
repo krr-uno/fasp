@@ -6,10 +6,14 @@ plain clingo AST with prefixed atoms (``a := 1`` becomes ``Fa(1)``). This
 pipeline turns that purely syntactic encoding into a semantically correct
 ASP program, mirroring the old FASP-node pipeline:
 
+0. Collect all predicates occurring in the program (used to pick fresh
+   auxiliary predicate names).
 1. Per statement: rewrite ``#some`` assignments, normalize aggregate
-   assignments, move negated head literals to the body, rewrite negated body
-   literals, and collect intensional function signatures.
-2. Per statement: unnest intensional functions, rename parser prefixes to the
+   assignments, lift negated condition literals into auxiliary rules, and
+   collect intensional function signatures. The auxiliary rules are appended
+   after all statements.
+2. Per statement: move negated head literals to the body, rewrite negated
+   body literals, unnest intensional functions, rename parser prefixes to the
    configured prefix, rewrite functional equalities into prefixed literals,
    run clingo's statement rewriting, and restore the prefixed literals whose
    unpooled arity is not intensional.
@@ -22,6 +26,7 @@ from typing import Iterable
 from clingo_funasp import ast
 
 from funasp.ast import Statement
+from funasp.util.collectors import collect_predicates
 
 from .aggregates import rewrite_assignment_aggregates
 from .collectors import collect_intensional_function_signatures
@@ -30,6 +35,7 @@ from .constraints import functional_constraints
 from .context import RewriteContext
 from .negated_literals import (
     rewrite_negated_body_literals,
+    rewrite_negated_condition_literals,
     rewrite_negated_head_literals,
 )
 from .prefixes import rename_prefixes
@@ -64,15 +70,22 @@ def rewrite_statements(
     ``rewritten`` list filled with the clingo statements it expands to. The
     uniqueness constraints are appended as additional wrapped statements.
     """
+    statements = list(statements)
+    for stmt in statements:
+        for clingo_stmt in stmt.rewritten:
+            context.predicates |= collect_predicates(clingo_stmt)
     new_statements: list[Statement] = []
     for stmt in statements:
         stmt.rewrite(partial(rewrite_some_assignments, context))
         stmt.rewrite(partial(rewrite_assignment_aggregates, context))
+        stmt.rewrite(partial(rewrite_negated_condition_literals, context))
         for clingo_stmt in stmt.rewritten:
             context.intensional_functions |= collect_intensional_function_signatures(
                 clingo_stmt
             )
         new_statements.append(stmt)
+    for auxiliary in context.auxiliary_statements:
+        new_statements.append(Statement(context.lib.library, auxiliary))
     for stmt in new_statements:
         stmt.rewrite(partial(rewrite_negated_head_literals, context))
         stmt.rewrite(partial(rewrite_negated_body_literals, context))

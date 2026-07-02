@@ -61,6 +61,40 @@ def collect_variables(node: AST) -> set[str]:
     return collector.collect(node)
 
 
+def collect_variables_ordered(node: AST) -> list[str]:
+    """Collect distinct variable names in order of first occurrence."""
+    collector = _OrderedVariableCollector()
+    return collector.collect(node)
+
+
+class _OrderedVariableCollector:
+    """
+    Class to collect distinct variables preserving first-occurrence order.
+
+    Usage:
+        collector = _OrderedVariableCollector()
+        used_vars = collector.collect(node)
+    """
+
+    def __init__(self) -> None:
+        """Initialize the collector state for a new variable traversal."""
+        self.used: dict[str, None] = {}
+
+    def collect(self, node: AST) -> list[str]:
+        """Collect ordered distinct variable names from the given AST node."""
+        self._collect_vars(node)
+        return list(self.used)
+
+    def _collect_vars(self, node: AST) -> None:
+        """Recursively collect variables from the given AST subtree."""
+        if isinstance(node, ast.TermVariable):
+            self.used[node.name] = None
+            return
+        if isinstance(node, ast.TermSymbolic):
+            return
+        node.visit(self._collect_vars)
+
+
 class _VariableCollector:
     """
     Class to collect variables from a list of AST statements.

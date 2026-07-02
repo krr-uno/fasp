@@ -4,17 +4,17 @@ the ``clingo_funasp`` parser, mirroring the old pipeline tests in
 ``tests/syntax_tree/rewriting/test_integration.py``.
 """
 
-from contextlib import redirect_stderr
 import io
 import sys
 import textwrap
 import unittest
+from contextlib import redirect_stderr
 
 from clingo_funasp import ast
 
 from funasp.ast import RewriteContext, parse_string, rewrite_statements
-from funasp.util.types import SymbolSignature
 from funasp.core import Library
+from funasp.util.types import SymbolSignature
 from tests.restore_anonymous_term_variables import restore_anonymous_term_variables
 
 
@@ -699,8 +699,8 @@ class TestRewriteStatements(unittest.TestCase):
             prefix="G",
         )
 
-    def test_intensional_in_negated_condition(self):
-        """Test that intensional functions in negated condition literals are rejected."""
+    def test_intensional_in_negated_aggregate_condition(self):
+        """Test that intensional functions in negated aggregate conditions are rejected."""
         with self.assertRaisesRegex(
             RuntimeError,
             r"Intensional functions are not allowed in negated literals",
@@ -708,10 +708,41 @@ class TestRewriteStatements(unittest.TestCase):
             self.assertTransformEqual(
                 """
                 f := 1.
-                :- q : not p(f).
+                :- 0 < #count{ X : p(X), not q(f) }.
                 """,
                 "",
             )
+
+    def test_intensional_in_negated_condition(self):
+        """Test that negated condition literals are lifted into auxiliary rules."""
+        self.assertTransformEqual(
+            """
+            f := 1.
+            :- q : not p(f).
+            """,
+            """
+            Ff(1).
+            :- q: not RD1.
+            RD1 :- p(FUN); Ff(FUN).
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            """,
+        )
+
+    def test_negated_condition_literals_with_variables(self):
+        """Test that lifted condition literals carry the literal's variables."""
+        self.assertTransformEqual(
+            """
+            a :- b(X); c(X,Y) : d(Y), not e(5,f(Y;Y+2)).
+            b(2) :- c(X) : d(X), e(Y), not p(g(X,Y)).
+            """,
+            """
+            a :- b(X); c(X,Y): d(Y), not RD1(Y).
+            b(2) :- c(X): d(X), e(Y), not RD2(X,Y).
+            RD1(Y) :- e(5,f(Y)).
+            RD1(Y) :- e(5,f(1*Y+2)).
+            RD2(X,Y) :- p(g(X,Y)).
+            """,
+        )
 
     def test_unsafe(self):
         """Test unsafe."""
