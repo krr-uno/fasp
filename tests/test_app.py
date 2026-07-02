@@ -139,7 +139,7 @@ class TestControl(unittest.TestCase):
         out, err, code = self.execute_app([example_file])
         self.assertIn(
             "error: intensional functions are not allowed in negated literals "
-            "in conditions of aggregates and conditional literals: 'q(f(X))'",
+            "in optimization statements and aggregate element literals: 'q(f(X))'",
             err,
         )
         self.assertIn("*** ERROR: (fasp): rewriting failed", err)

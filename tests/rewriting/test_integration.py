@@ -714,6 +714,34 @@ class TestRewriteStatements(unittest.TestCase):
                 "",
             )
 
+    def test_intensional_in_negated_set_aggregate_literal(self):
+        """Test that intensional functions in negated set-aggregate element literals are rejected."""
+        with self.assertRaisesRegex(
+            RewritingException,
+            r"error: intensional functions are not allowed in negated literals",
+        ):
+            self.assertTransformEqual(
+                """
+                f := 1.
+                :- { not p(f) : q }.
+                """,
+                "",
+            )
+
+    def test_intensional_in_negated_head_aggregate_literal(self):
+        """Test that intensional functions in negated head-aggregate element literals are rejected."""
+        with self.assertRaisesRegex(
+            RewritingException,
+            r"error: intensional functions are not allowed in negated literals",
+        ):
+            self.assertTransformEqual(
+                """
+                f := 1.
+                1 = #count{ X : not p(f) : q(X) } :- r.
+                """,
+                "",
+            )
+
     def test_intensional_in_negated_aggregate_condition(self):
         """Test that negated aggregate condition literals are lifted."""
         self.assertTransformEqual(

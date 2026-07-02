@@ -223,7 +223,7 @@ class UnnestFunctionsInLiteralsTransformer:
                             SemanticError(
                                 node.location,
                                 "intensional functions are not allowed in negated literals "
-                                f"in conditions of aggregates and conditional literals: '{node}'",
+                                f"in optimization statements and aggregate element literals: '{node}'",
                             )
                         ]
                     )
