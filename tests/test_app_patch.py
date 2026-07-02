@@ -39,7 +39,7 @@ def control_main_patch(self):
 
 class TestControl(unittest.TestCase):
 
-    def execute_app(self, files: PathLike) -> tuple[str, str]:
+    def execute_app(self, files: PathLike) -> tuple[str, str, int]:
         """Execute app."""
         args = [str(file) for file in files] + ["0"]
         args_main = args + ["--outf=3"]  # For testing rewrite mode
@@ -47,12 +47,12 @@ class TestControl(unittest.TestCase):
         err_io = io.StringIO()
         with contextlib.redirect_stdout(output_io):
             with contextlib.redirect_stderr(err_io):
-                main(args_main)
+                code = main(args_main)
         with patch("funasp.control.Control.main", new=control_main_patch):
             with contextlib.redirect_stdout(output_io):
                 with contextlib.redirect_stderr(err_io):
                     main(args_main)
-        return output_io.getvalue(), err_io.getvalue()
+        return output_io.getvalue(), err_io.getvalue(), code
 
     def assert_models(
         self, files: PathLike, expected_models, *, allow_errors: bool = False
@@ -60,7 +60,7 @@ class TestControl(unittest.TestCase):
         """Assert models."""
         models = []
         line_number = 0
-        output, error = self.execute_app(files)
+        output, error, _ = self.execute_app(files)
         if not allow_errors:
             self.assertEqual(error.strip(), "")
         result = None
@@ -170,23 +170,38 @@ class TestControl(unittest.TestCase):
         example_file = TEST_EXAMPLES_PATH / "syntax_error.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app([example_file])
+        out, err, code = self.execute_app([example_file])
         self.assertIn("syntax error", err)
+        self.assertEqual(code, 65)
 
     def test_app_unsafe(self):
         """Test app unsafe."""
         example_file = TEST_EXAMPLES_PATH / "unsafe.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app([example_file])
+        out, err, code = self.execute_app([example_file])
         self.assertIn("the following variables are unsafe", err)
+        self.assertEqual(code, 65)
+
+    def test_app_negated_weak_constraint(self):
+        """Test app intensional function in negated weak-constraint literal."""
+        example_file = TEST_EXAMPLES_PATH / "negated_weak_constraint.lp"
+
+        out, err, code = self.execute_app([example_file])
+        self.assertIn(
+            "error: intensional functions are not allowed in negated literals "
+            "in conditions of aggregates and conditional literals: 'q(f(X))'",
+            err,
+        )
+        self.assertIn("*** ERROR: (fasp): rewriting failed", err)
+        self.assertEqual(code, 65)
 
     def test_app_undefined_function(self):
         """Test app undefined function."""
         example_file = TEST_EXAMPLES_PATH / "undefined_function.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app([example_file])
+        out, err, _ = self.execute_app([example_file])
         self.assertIn("undefined intensional function a/1", err)
         self.assert_models(
             [example_file],

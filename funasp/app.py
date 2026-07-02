@@ -12,7 +12,7 @@ from colorama import init as colorama_init
 from funasp.__version__ import __version__
 from funasp.control import Control
 from funasp.core import Library
-from funasp.util.ast import ParsingException
+from funasp.util.ast import ParsingException, RewritingException
 
 
 class FaspApp(App):
@@ -71,12 +71,22 @@ class FaspApp(App):
                 sys.stderr.write(str(error) + "\n")
             self._errors.append(e)
             return
+        except RewritingException as e:
+            for error in e.errors:
+                sys.stderr.write(str(error) + "\n")
+            self._errors.append(e)
+            return
         except RuntimeError as e:
             if "rewriting failed" == e.args[0]:
                 self._errors.append(e)
                 return
             raise e  # pragma: no cover
         self._control.main()
+
+    @property
+    def has_errors(self) -> bool:
+        """Return whether parsing or rewriting recorded any errors."""
+        return bool(self._errors)
 
     def report_error_summary(self) -> None:
         """Print a short summary for parsing or rewriting failures."""
@@ -86,11 +96,12 @@ class FaspApp(App):
                 + Fore.RED
                 + "*** ERROR: (fasp):"
                 + Style.RESET_ALL
-                + " parsing failed\n",
+                + " parsing failed",
                 file=sys.stderr,
             )
         if any(
-            isinstance(error, RuntimeError) and error.args[0] == "rewriting failed"
+            isinstance(error, RewritingException)
+            or (isinstance(error, RuntimeError) and error.args[0] == "rewriting failed")
             for error in self._errors
         ):
             print(
@@ -98,7 +109,7 @@ class FaspApp(App):
                 + Fore.RED
                 + "*** ERROR: (fasp):"
                 + Style.RESET_ALL
-                + " rewriting failed\n",
+                + " rewriting failed",
                 file=sys.stderr,
             )
 
@@ -117,6 +128,11 @@ def fasp_main(
         Command line options to pass to the application.
     raise_errors
         If True, raise exceptions on errors instead of printing them.
+
+    Returns
+    -------
+    int
+        The clingo exit code, or 65 if parsing or rewriting failed.
     """
     colorama_init(autoreset=True)
     if options is None:  # pragma: no cover
@@ -126,8 +142,10 @@ def fasp_main(
     try:
         result = clingo_main(library.library, options, app)
         app.report_error_summary()
+        if app.has_errors:
+            return 65
         return result
-    except Exception:  # pragma: no cover
+    except BaseException:  # pragma: no cover
         if raise_errors:
             raise
         return 1

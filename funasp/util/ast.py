@@ -137,6 +137,23 @@ class SyntacticError(NamedTuple):
         return f"{self.location}: error: syntax error, {self.message}"
 
 
+class SemanticError(NamedTuple):
+    """
+    Represents a semantic error detected while rewriting the AST.
+
+    Attributes:
+        location: The location in the source code where the error occurred.
+        message (str): The error message.
+    """
+
+    location: Location
+    message: str
+
+    def __str__(self) -> str:
+        """Return the clingo-style string representation of this semantic error."""
+        return f"{self.location}: error: {self.message}"
+
+
 # class HeadBodyVisitor:
 
 #     def __init__(self, library: Library):
@@ -364,6 +381,18 @@ class ParsingException(Exception):
         self.errors = errors
         messages = "\n".join(str(error) for error in errors)
         super().__init__(f"Parsing failed with {len(errors)} error(s):\n{messages}")
+
+
+class RewritingException(Exception):
+    """
+    Exception raised when rewriting fails.
+    """
+
+    def __init__(self, errors: list[SemanticError]) -> None:
+        """Initialize the exception with the collected semantic errors."""
+        self.errors = errors
+        messages = "\n".join(str(error) for error in errors)
+        super().__init__(f"Rewriting failed with {len(errors)} error(s):\n{messages}")
 
 
 TERM_OR_ARGTUPLE_T = TypeVar(
