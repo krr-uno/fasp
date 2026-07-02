@@ -9,6 +9,8 @@ Negated head literals are moved to the body with their sign complemented, so
 ``a, not b, not not c :- d.`` becomes ``a :- d, not not b, not c.``.
 """
 
+from typing import TypeGuard
+
 from clingo_funasp import ast
 from clingo_funasp.core import Library
 
@@ -59,27 +61,40 @@ def rewrite_negated_body_literals(
     return statement.update(context.lib.library, body=new_body)
 
 
+def _is_negated_literal(node: object) -> TypeGuard[ast.LiteralSymbolic]:
+    """Whether ``node`` is a symbolic literal under single or double negation."""
+    return isinstance(node, ast.LiteralSymbolic) and node.sign in _COMPLEMENTED_SIGN
+
+
+def _complement_to_body(
+    library: Library, literal: ast.LiteralSymbolic
+) -> ast.BodySimpleLiteral:
+    """Turn a negated head literal into a body literal with complemented sign."""
+    complemented = literal.update(library, sign=_COMPLEMENTED_SIGN[literal.sign])
+    return ast.BodySimpleLiteral(library, complemented)
+
+
 def rewrite_negated_head_literals(
     context: RewriteContext, statement: ast.Statement
 ) -> ast.Statement:
-    """Move negated literals from a disjunctive head to the body."""
+    """Move negated literals from the head to the body with complemented sign."""
     if not isinstance(statement, ast.StatementRule):
         return statement
     head = statement.head
+    library = context.lib.library
+    if isinstance(head, ast.HeadSimpleLiteral):
+        if not _is_negated_literal(head.literal):
+            return statement
+        constraint_head = ast.HeadDisjunction(library, head.literal.location, [])
+        body = list(statement.body) + [_complement_to_body(library, head.literal)]
+        return statement.update(library, head=constraint_head, body=body)
     if not isinstance(head, ast.HeadDisjunction):
         return statement
-    library = context.lib.library
     kept: list[ast.DisjunctionElement] = []
-    moved: list[ast.BodyLiteral] = []
+    moved: list[ast.BodySimpleLiteral] = []
     for element in head.elements:
-        if (
-            isinstance(element, ast.LiteralSymbolic)
-            and element.sign in _COMPLEMENTED_SIGN
-        ):
-            complemented = element.update(
-                library, sign=_COMPLEMENTED_SIGN[element.sign]
-            )
-            moved.append(ast.BodySimpleLiteral(library, complemented))
+        if _is_negated_literal(element):
+            moved.append(_complement_to_body(library, element))
         else:
             kept.append(element)
     if not moved:
