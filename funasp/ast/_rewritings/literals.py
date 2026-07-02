@@ -16,6 +16,8 @@ from clingo_funasp.symbol import Symbol
 from funasp.ast._rewritings.types import SymbolSignature
 from funasp.util.ast import (
     FreshVariableGenerator,
+    RewritingException,
+    SemanticError,
     TermTransformer,
     make_equation,
     replace_term,
@@ -218,8 +220,14 @@ class UnnestFunctionsInLiteralsTransformer:
                 return False
             if self._is_intensional_term(term):
                 if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
-                    raise RuntimeError(
-                        f"Intensional functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found '{str(node)}' at {node.location}."
+                    raise RewritingException(
+                        [
+                            SemanticError(
+                                node.location,
+                                "intensional functions are not allowed in negated literals "
+                                f"in conditions of aggregates and conditional literals: '{node}'",
+                            )
+                        ]
                     )
                 return True
             return False

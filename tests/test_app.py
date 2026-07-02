@@ -19,7 +19,7 @@ class TestControl(unittest.TestCase):
 
     def execute_app(
         self, files: PathLike, extra_args: list[str] | None = None
-    ) -> tuple[str, str]:
+    ) -> tuple[str, str, int]:
         """Execute app."""
         args = [str(file) for file in files] + ["0"]
         if extra_args:
@@ -36,7 +36,7 @@ class TestControl(unittest.TestCase):
         else:
             command = [APP_NAME, *args]
         result = subprocess.run(command, capture_output=True, text=True)
-        return result.stdout, result.stderr
+        return result.stdout, result.stderr, result.returncode
 
     def assert_models(
         self, files: PathLike, expected_models, *, allow_errors: bool = False
@@ -44,7 +44,7 @@ class TestControl(unittest.TestCase):
         """Assert models."""
         models = []
         line_number = 0
-        output, error = self.execute_app(files)
+        output, error, _ = self.execute_app(files)
         if not allow_errors:
             self.assertEqual(error.strip(), "")
         result = None
@@ -117,25 +117,42 @@ class TestControl(unittest.TestCase):
         example_file = TEST_EXAMPLES_PATH / "syntax_error.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app([example_file])
+        out, err, code = self.execute_app([example_file])
         self.assertIn("syntax error", err)
         self.assertIn("*** ERROR: (fasp): parsing failed", err)
+        self.assertEqual(code, 65)
 
     def test_app_unsafe(self):
         """Test app unsafe."""
         example_file = TEST_EXAMPLES_PATH / "unsafe.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app([example_file])
+        out, err, code = self.execute_app([example_file])
         self.assertIn("UNKNOWN", out)
         self.assertIn("*** ERROR: (fasp): rewriting failed", err)
+        self.assertEqual(code, 65)
+
+    def test_app_negated_condition(self):
+        """Test app intensional function in negated condition literal."""
+        example_file = TEST_EXAMPLES_PATH / "negated_condition.lp"
+
+        out, err, code = self.execute_app([example_file])
+        self.assertIn(
+            "error: intensional functions are not allowed in negated literals "
+            "in conditions of aggregates and conditional literals: 'p(f)'",
+            err,
+        )
+        self.assertIn("*** ERROR: (fasp): rewriting failed", err)
+        self.assertNotIn("At:", err)
+        self.assertNotIn("RuntimeError", err)
+        self.assertEqual(code, 65)
 
     def test_app_undefined_function(self):
         """Test app undefined function."""
         example_file = TEST_EXAMPLES_PATH / "undefined_function.lp"
 
         # NOTE: No Error raised? app.py line:67-68
-        out, err = self.execute_app([example_file])
+        out, err, _ = self.execute_app([example_file])
         self.assertIn("undefined intensional function a/1", err)
         self.assert_models(
             [example_file],
@@ -148,10 +165,10 @@ class TestControl(unittest.TestCase):
         example_file = TEST_EXAMPLES_PATH / "ex02_fun_fact.lp"
 
         # Rewrite with default prefix (F)
-        rewrite_default, _ = self.execute_app([example_file], ["--mode=rewrite"])
+        rewrite_default, _, _ = self.execute_app([example_file], ["--mode=rewrite"])
 
         # Rewrite with custom prefix (G)
-        rewrite_custom, _ = self.execute_app(
+        rewrite_custom, _, _ = self.execute_app(
             [example_file], ["--mode=", "rewrite", "--prefix-fun=G"]
         )
 

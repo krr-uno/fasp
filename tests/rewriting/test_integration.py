@@ -15,6 +15,7 @@ from clingo_funasp import ast
 from funasp.ast import RewriteContext, parse_string, rewrite_statements
 from funasp.ast._rewritings.types import SymbolSignature
 from funasp.core import Library
+from funasp.util.ast import RewritingException
 from tests.restore_anonymous_term_variables import restore_anonymous_term_variables
 
 
@@ -702,8 +703,8 @@ class TestRewriteStatements(unittest.TestCase):
     def test_intensional_in_negated_condition(self):
         """Test that intensional functions in negated condition literals are rejected."""
         with self.assertRaisesRegex(
-            RuntimeError,
-            r"Intensional functions are not allowed in negated literals",
+            RewritingException,
+            r"error: intensional functions are not allowed in negated literals",
         ):
             self.assertTransformEqual(
                 """

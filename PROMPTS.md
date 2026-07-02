@@ -663,8 +663,50 @@ Remember this for future contributions.
 
 I refactor files `funasp/util/ast.py` and `funasp/ast/_rewritings/literals.py` and added test in files `tests/util/test_ast.py` and `tests/rewriting/test_unnesting.py`. Update your understanding of the project and look for possible bugs.
 
-
 ---
+
+Running ``funasp --mode=rewrite`` with program
+```
+f := 1.
+:- a : not p(f).
+```
+prints the following error message:
+```
+*** ERROR: (funasp): RuntimeError: Intensional functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found 'p(f)' at -:1:20-24.
+*** Info : (funasp):
+*** Info : (funasp): At:
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/literals.py(221): _replace_term_condition
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(570): replace_term
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(414): apply_to_symbol
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(475): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(490): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(484): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(500): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(625): replace_term
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/literals.py(227): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/literals.py(153): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/literals.py(81): unnest_functions
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/unnesting.py(120): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/unnesting.py(280): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/unnesting.py(59): transform_statement
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/unnesting.py(377): unnest_statement
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_core.py(66): rewrite
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/__init__.py(75): rewrite_statements
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/control.py(51): parse_files
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/app.py(78): main
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/app.py(127): fasp_main
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/app.py(146): main
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/__main__.py(42): main
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/__main__.py(46): <module>
+```
+and I was expecting only the first line. Can you explain why this happens?
 
 # Future work
 
