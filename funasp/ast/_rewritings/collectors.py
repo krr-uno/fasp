@@ -15,7 +15,7 @@ appear are:
 - ``HeadAggregate`` element literals (``#count{ ...: Ff(t,v): ... }.``).
 """
 
-from clingo_funasp import ast
+from clingo_funasp import ast, symbol
 
 from funasp.ast import PARSER_PREFIX
 from funasp.util.types import SymbolSignature
@@ -26,12 +26,20 @@ def _signatures_from_literal(prefix: str, literal: ast.Literal) -> set[SymbolSig
     if not isinstance(literal, ast.LiteralSymbolic):
         return set()
     atom = literal.atom
-    if not isinstance(atom, ast.TermFunction) or not atom.name.startswith(prefix):
-        return set()
-    name = atom.name[len(prefix) :]
-    return {
-        SymbolSignature(name, len(arguments.arguments) - 1) for arguments in atom.pool
-    }
+    if isinstance(atom, ast.TermFunction) and atom.name.startswith(prefix):
+        name = atom.name[len(prefix) :]
+        return {
+            SymbolSignature(name, len(arguments.arguments) - 1)
+            for arguments in atom.pool
+        }
+    if (
+        isinstance(atom, ast.TermSymbolic)
+        and atom.symbol.type == symbol.SymbolType.Function
+        and atom.symbol.name.startswith(prefix)
+    ):
+        name = atom.symbol.name[len(prefix) :]
+        return {SymbolSignature(name, len(atom.symbol.arguments) - 1)}
+    return set()
 
 
 def collect_intensional_function_signatures(

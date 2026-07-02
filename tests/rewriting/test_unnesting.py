@@ -213,9 +213,14 @@ class TestUnnestStatement(unittest.TestCase):
             "visited(next(start))",
             ["next/1", "start/0"],
             "visited(FUN2)",
-            expected_unnested_functions=["start=FUN", "next(FUN)=FUN2" ],
+            expected_unnested_functions=["start=FUN", "next(FUN)=FUN2"],
         )
 
     def test_comparison_with_pool(self):
         """Test symbolic literal1."""
-        self.assertEqualUnnestingLiteral("a(1;2,3) = a(4;5,6)", ["a/2"], "a(1;2,3) = FUN", expected_unnested_functions=["a(4;5,6)=FUN"])
+        self.assertEqualUnnestingLiteral(
+            "a(1;2,3) = a(4;5,6)",
+            ["a/2"],
+            "a(1;2,3) = FUN",
+            expected_unnested_functions=["a(4;5,6)=FUN"],
+        )

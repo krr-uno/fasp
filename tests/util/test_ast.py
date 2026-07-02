@@ -395,15 +395,13 @@ class TestTermTransformer(unittest.TestCase):
             [str(t) for t in traversed_terms], ["a(b(c,d),e)", "b(c,d)", "e"]
         )
 
-
         traversed_terms = []
         self.assertTransformed(
             parse_symbolic_term(self.lib, "a(b(c(d(b))))"), "a(x())", function
         )
         self.assertEqual(
-            [str(t) for t in traversed_terms], ['a(b(c(d(b))))', 'b(c(d(b)))']
+            [str(t) for t in traversed_terms], ["a(b(c(d(b))))", "b(c(d(b)))"]
         )
-
 
     def test_replacement_recursive(self):
 
@@ -415,10 +413,10 @@ class TestTermTransformer(unittest.TestCase):
                 fun(term, depth + 1)
                 return ast.TermFunction(self.lib, term.location, "x", term.pool)
             if isinstance(term, Symbol):
-                if (term.type == SymbolType.Function and term.name == "b"):
+                if term.type == SymbolType.Function and term.name == "b":
                     fun(ast.TermSymbolic(self.lib, LOC, term), depth + 1)
                     return ast.TermFunction(self.lib, LOC, "x", [])
-                if (term.type != SymbolType.Function):
+                if term.type != SymbolType.Function:
                     fun(ast.TermSymbolic(self.lib, LOC, term), depth + 1)
                     return ast.TermFunction(self.lib, LOC, "y", [])
             return None
@@ -427,17 +425,21 @@ class TestTermTransformer(unittest.TestCase):
             parse_symbolic_term(self.lib, "a(b(c(d(b))))"), "a(x())", function
         )
         self.assertEqual(
-            traversed_terms, [('a(b(c(d(b))))', 0), ('b(c(d(b)))', 1), ('c(d(b))', 2), ('d(b)', 3), ('b', 4)]
+            traversed_terms,
+            [
+                ("a(b(c(d(b))))", 0),
+                ("b(c(d(b)))", 1),
+                ("c(d(b))", 2),
+                ("d(b)", 3),
+                ("b", 4),
+            ],
         )
 
         traversed_terms = []
         self.assertTransformed(
             parse_symbolic_term(self.lib, "a(b(1))"), "a(x())", function
         )
-        self.assertEqual(
-            traversed_terms, [('a(b(1))', 0), ('b(1)', 1), ('1', 2)]
-        )
-
+        self.assertEqual(traversed_terms, [("a(b(1))", 0), ("b(1)", 1), ("1", 2)])
 
 
 class TestReplaceTerm(unittest.TestCase):
@@ -448,10 +450,14 @@ class TestReplaceTerm(unittest.TestCase):
         self.lib = Library()
         self.var_gen = util_ast.FreshVariableGenerator()
 
-    def assertTransformed(self, term, expected_str, function, expected_comparisons=None):
+    def assertTransformed(
+        self, term, expected_str, function, expected_comparisons=None
+    ):
         """Assert that the term is transformed correctly."""
         comparisons = []
-        transformed_term = util_ast.replace_term(self.lib, term, function, comparisons.append, self.var_gen, ast.Sign.NoSign)
+        transformed_term = util_ast.replace_term(
+            self.lib, term, function, comparisons.append, self.var_gen, ast.Sign.NoSign
+        )
         if expected_str is None:
             self.assertIsNone(transformed_term)
         else:
@@ -464,13 +470,22 @@ class TestReplaceTerm(unittest.TestCase):
         """Condition to check if the term is a function named 'b'."""
         return isinstance(term, ast.TermFunction) and term.name == "b"
 
-
     def test_replace_term(self):
         """Test that the transformation can replace terms."""
-        self.assertTransformed(ast.parse_term(self.lib, "a(b(X,d),e)"), "a(FUN,e)", self.condition1, ["b(X,d)=FUN"])
+        self.assertTransformed(
+            ast.parse_term(self.lib, "a(b(X,d),e)"),
+            "a(FUN,e)",
+            self.condition1,
+            ["b(X,d)=FUN"],
+        )
 
     def test_replace_term_recursive(self):
-        self.assertTransformed(ast.parse_term(self.lib, "a(b(d(b(X))),e)"), "a(FUN2,e)", self.condition1, ['b(X)=FUN', 'b(d(FUN))=FUN2'])
+        self.assertTransformed(
+            ast.parse_term(self.lib, "a(b(d(b(X))),e)"),
+            "a(FUN2,e)",
+            self.condition1,
+            ["b(X)=FUN", "b(d(FUN))=FUN2"],
+        )
 
     def condition2(self, term, depth):
         """Condition matching a function named 'b', whether AST or symbolic."""
@@ -490,5 +505,3 @@ class TestReplaceTerm(unittest.TestCase):
             self.condition2,
             ["b(c)=FUN", "b(d(FUN))=FUN2"],
         )
-
-
