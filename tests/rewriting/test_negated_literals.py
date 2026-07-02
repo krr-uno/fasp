@@ -177,6 +177,18 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             parse_string(self.lib, "a :- b(X) : c(X), not not d(X).")[1].original
         )
 
+    def test_double_negation_only_condition_unchanged(self):
+        """A condition consisting only of a doubly negated literal is untouched."""
+        self._assert_unchanged(
+            parse_string(self.lib, "a :- b : not not c.")[1].original
+        )
+
+    def test_double_negation_only_condition_with_variables_unchanged(self):
+        """A doubly negated condition literal with variables is untouched."""
+        self._assert_unchanged(
+            parse_string(self.lib, "a(X) :- b(X) : not not c(X,Y).")[1].original
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
