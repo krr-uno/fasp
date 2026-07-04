@@ -6,8 +6,9 @@ import io, contextlib
 from unittest.mock import patch, MagicMock
 
 
-from funasp.app import FaspApp, main
+from funasp.app import FaspApp, main, valid_function_prefix
 from funasp.control import Control
+from funasp.core import Library
 
 from tests.examples import EXAMPLES
 
@@ -164,6 +165,37 @@ class TestControl(unittest.TestCase):
 
         # Rewrites must differ
         self.assertNotEqual(rewrite_default, rewrite_custom)
+
+    def test_prefix_validation(self):
+        """Only single uppercase ASCII prefixes are accepted."""
+        app = FaspApp(Library(), [])
+
+        self.assertTrue(valid_function_prefix("G"))
+        self.assertIsNone(app._set_prefix("G"))
+        self.assertEqual(app._prefix, "G")
+
+        for prefix in ["", "go", "g", "Fun", "1"]:
+            with self.subTest(prefix=prefix):
+                self.assertFalse(valid_function_prefix(prefix))
+                self.assertIsNone(app._set_prefix(prefix))
+                self.assertEqual(app._prefix, "G")
+                self.assertIn("--prefix-fun must be", str(app._option_errors[-1]))
+
+    def test_invalid_prefix_option_reports_error(self):
+        """Invalid prefix options are reported before parsing or solving."""
+        app = FaspApp(Library(), [])
+        self.assertFalse(app._set_prefix("ffo"))
+
+        err_io = io.StringIO()
+        with contextlib.redirect_stderr(err_io):
+            app.main(object(), [])
+
+        self.assertIn(
+            "error: --prefix-fun must be a single uppercase letter (got 'ffo')",
+            err_io.getvalue(),
+        )
+        self.assertEqual(app._errors, app._option_errors)
+        self.assertTrue(app.has_errors)
 
     def test_app_syntax_error(self):
         """Test app syntax error."""

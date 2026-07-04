@@ -72,7 +72,7 @@ class Model:
     ) -> Sequence[FunctionSymbol]:
         """Return the shown function assignments extracted from the underlying model."""
         return [
-            FunctionSymbol.from_symbol(symbol)
+            FunctionSymbol.from_symbol(symbol, prefix_len=len(self.prefix))
             for symbol in self.clingo_model.symbols(shown, atoms, terms, theory)
             if symbol.type == SymbolType.Function
             and symbol.name.startswith(self.prefix)

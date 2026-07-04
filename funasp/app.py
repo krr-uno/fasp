@@ -14,6 +14,13 @@ from funasp.control import Control
 from funasp.core import Library
 from funasp.util.ast import ParsingException, RewritingException
 
+VALID_PREFIXES = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+
+def valid_function_prefix(prefix: str) -> bool:
+    """Return whether a function predicate prefix is safe for rewriting."""
+    return len(prefix) == 1 and prefix in VALID_PREFIXES
+
 
 class FaspApp(App):
     def __init__(self, library: Library, clingo_options: Sequence[str]) -> None:
@@ -26,6 +33,7 @@ class FaspApp(App):
         self._print_rewrite = False
         self._control: Optional[Control] = None
         self._errors: list[Exception] = []
+        self._option_errors: list[ValueError] = []
 
     def register_options(self, options: AppOptions) -> None:
         """Register the command-line options supported by this application."""
@@ -36,7 +44,8 @@ class FaspApp(App):
         options.add(
             "fasp",
             "prefix-fun",
-            "Set prefix for rewritten function predicates (default: F).",
+            "Set prefix for rewritten function predicates "
+            "(single uppercase letter, default: F).",
             self._set_prefix,
             argument="<prefix>",
         )
@@ -50,10 +59,24 @@ class FaspApp(App):
 
     def _set_prefix(self, prefix: str) -> None:
         """Store the prefix used for rewritten function predicates."""
+        if not valid_function_prefix(prefix):
+            self._option_errors.append(
+                ValueError(
+                    "--prefix-fun must be a single uppercase letter "
+                    f"(got {prefix!r})"
+                )
+            )
+            return
         self._prefix = prefix
 
     def main(self, clingo_control: ClingoControl, files: Sequence[str]) -> None:
         """Parse the input files and either print the rewrite or run solving."""
+        if self._option_errors:
+            for error in self._option_errors:
+                sys.stderr.write(f"error: {error}\n")
+            self._errors.extend(self._option_errors)
+            return
+
         prefix = self._prefix
         self._control = Control(
             self._library,

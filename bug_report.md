@@ -67,8 +67,9 @@ good(a,b).
 ```
 
 rewrites the fact `good(a,b).` into the comparison head `od(a)=b.` and reports **UNSATISFIABLE** for a trivially satisfiable program.
+Also, for `g := 1`, the answer set should have `g(1)` but it produces `og(1)` instead. This is likely due to how the added prefix is removed from the answer set in the final step to get back answer sets. It probably assumes a prefix of one character length and only removes the first character so `Gog(1)` becomes `og(1)`.
 
-**Fix direction:** validate the prefix (non-empty, starts with an uppercase letter) at option-parsing time.
+**Fix direction:** validate the prefix (non-empty, one uppercase letter) at option-parsing time. Or validate the prefix (non-empty, starts with an uppercase letter) at option-parsing time and when getting creating answer sets, prefix aware trimming. Forcing the acceptance of a single letter uppercase is an easier fix.
 
 ## B. Crashes on accepted input
 
