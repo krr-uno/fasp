@@ -571,7 +571,11 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
     def test_conditional_literal_main(self):
-        """Test an intensional function in the main literal of a conditional literal."""
+        """Test an intensional function in the main literal of a conditional literal.
+
+        The generated equality must stay inside the condition: its variables
+        may be local to the conditional literal.
+        """
         self.assertTransformEqual(
             """
             a := 1.
@@ -579,7 +583,7 @@ class TestRewriteStatements(unittest.TestCase):
             """,
             """
             Fa(1).
-            :- p(X); Fa(FUN); q(FUN): r(X).
+            :- p(X); q(FUN): r(X), Fa(FUN).
             :- Fa(_); 1 < #count { V: Fa(V) }.
             """,
         )

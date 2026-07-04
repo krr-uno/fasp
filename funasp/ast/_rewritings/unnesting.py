@@ -110,9 +110,15 @@ class StatementUnnestTransformer:
     ) -> ast.BodyConditionalLiteral | None:
         """Rewrite a conditional literal and append any generated comparisons to its condition."""
         update = {}
-        literal = self.body_literal_transformer.unnest(node.literal)
+        # The comparisons generated for the main literal must stay inside the
+        # condition: its variables may be local to the conditional literal.
+        literal_transformer = UnnestFunctionsInLiteralsTransformer(
+            self.lib, self.intensional_functions, var_gen
+        )
+        literal = literal_transformer.unnest(node.literal)
         if literal is not None:
             update["literal"] = literal
+        literal_comps = literal_transformer.pop_all_unnested_functions()
         condition = []
         local_comps: List[ast.LiteralComparison] = []
         is_new_condition = False
@@ -130,8 +136,9 @@ class StatementUnnestTransformer:
                 local_comps.extend(comps)
             else:
                 condition.append(cond)
-        if is_new_condition or local_comps:
+        if is_new_condition or local_comps or literal_comps:
             condition.extend(local_comps)
+            condition.extend(literal_comps)
             update["condition"] = condition
         return node.update(self.lib, **update) if update else None
 

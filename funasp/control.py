@@ -32,7 +32,7 @@ class Control:
             library.library, options
         )
         self.prefix = prefix
-        self._rewritten_program: Optional[str]
+        self._rewritten_program: Optional[str] = None
         self._result: Optional[clingo_funasp.solve.SolveResult] = None
 
     def parse_files(self, files: Sequence[str]) -> None:
@@ -147,8 +147,12 @@ class Control:
         -------
         str
             The rewritten ASP program.
+
+        Raises
+        ------
+        ValueError
+            If no program has been parsed yet.
         """
         if self._rewritten_program is None:
-            return "No program has been parsed yet."  # pragma: no cover
             raise ValueError("No program has been parsed yet.")
         return self._rewritten_program

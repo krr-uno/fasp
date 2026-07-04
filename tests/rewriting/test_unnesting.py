@@ -50,6 +50,24 @@ class TestUnnestStatement(unittest.TestCase):
             ["p(X) :- q(X); not r(X)."],
         )
 
+    def test_conditional_literal_main_literal(self):
+        """The comparison for a conditional literal's main literal stays local.
+
+        Regression test: the equality generated for ``p(f(X))`` must be added
+        to the condition (where ``X`` is local), not to the rule body.
+        """
+        self.assertEqual(
+            self.unnest("r :- p(f(X)): q(X).", {"f/1"}),
+            ["r :- p(FUN): q(X), f(X)=FUN."],
+        )
+
+    def test_conditional_literal_main_literal_and_condition(self):
+        """Main-literal and condition comparisons both stay in the condition."""
+        self.assertEqual(
+            self.unnest("r :- p(f(X)): q(X,f(X)).", {"f/1"}),
+            ["r :- p(FUN): q(X,FUN2), f(X)=FUN2, f(X)=FUN."],
+        )
+
     def test_symbolic_function(self):
         """An intensional function nested in a symbolic term is unnested.
 

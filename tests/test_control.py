@@ -43,6 +43,12 @@ class TestControl(unittest.TestCase):
             with self.subTest(f"{i}: {file_names}"):
                 self.assert_models(example.files, example.models)
 
+    def test_get_rewritten_program_before_parse(self):
+        """Requesting the rewritten program before parsing raises a ValueError."""
+        control = Control(self.library, ["0"])
+        with self.assertRaises(ValueError):
+            control.get_rewritten_program()
+
     def test_undefined_operation_fun(self):
         """Test unsafe.
 
