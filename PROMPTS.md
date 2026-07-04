@@ -820,6 +820,13 @@ prints the following error message:
 ```
 and I was expecting only the first line. Can you explain why this happens?
 
+---
+
+Review the code. Look for potential refactors that
+- simplify the code, and
+- improve readablity
+Write a report with your suggestions.
+
 # Future work
 
 - Good error messages during grounding.
