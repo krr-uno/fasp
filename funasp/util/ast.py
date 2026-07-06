@@ -552,7 +552,7 @@ def make_equation(
     return ast.LiteralComparison(
         library,
         loc,
-        ast.Sign.Double if sign == ast.Sign.Double else ast.Sign.NoSign,
+        ast.Sign.NoSign,
         left,
         [ast.RightGuard(library, ast.Relation.Equal, right)],
     )

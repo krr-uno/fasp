@@ -93,10 +93,34 @@ Changes made:
 
 ### D1. Double-negated literals over intensional functions report unsafe `FUN`
 
-Status: TBD.
+Status: fixed.
 
-Need to either support this construct with a positive definedness atom or reject
-it with a clear semantic error that does not expose internal variables.
+Double-negated literals over intensional functions are supported by keeping the
+generated function lookup positive.
+
+Decision for review:
+
+- The bug report identified two possible directions: either support this
+  construct with a positive definedness atom, or reject it with a clear semantic
+  error that does not expose internal variables.
+- Current decision: support the construct. The generated function equation is
+  treated as a positive binding/definedness atom, while the user-written literal
+  keeps its double negation.
+
+Reasoning:
+
+- The user literal keeps its double negation, for example `not not p(FUN)`.
+- The generated function equation is an internal binding/definedness literal,
+  so it must stay positive, for example `Ff(a,FUN)`.
+- If the generated equation is also double-negated, `FUN` has no positive
+  occurrence and clingo reports the internal variable as unsafe.
+
+Tests:
+
+- `tests/rewriting/test_end_to_end.py`
+  `TestEndToEnd.test_double_negated_intensional_function_literal_can_bind`
+- `tests/rewriting/test_end_to_end.py`
+  `TestEndToEnd.test_double_negated_intensional_function_literal_can_fail`
 
 ### D2. Log normalization hardcodes the default prefix
 
