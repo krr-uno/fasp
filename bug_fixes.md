@@ -100,7 +100,17 @@ it with a clear semantic error that does not expose internal variables.
 
 ### D2. Log normalization hardcodes the default prefix
 
-Status: TBD.
+Status: fixed.
 
-Need to make undefined-intensional-function log normalization use the configured
-function prefix rather than hardcoding `F`.
+Undefined-intensional-function log normalization now uses the configured
+function prefix instead of hardcoding `F`.
+
+Changes made:
+
+- Store the active function prefix on `Library`.
+- Set `Library.prefix_function` from `Control` and `RewriteContext`.
+- Normalize `undefined predicate <prefix>...` messages into
+  `undefined intensional function ...`.
+- Suppress `<functional>` undefined-predicate messages for the configured
+  prefix.
+- Add unit coverage for custom prefix `G`.

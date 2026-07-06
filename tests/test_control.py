@@ -7,6 +7,8 @@ import textwrap
 from typing import Iterable
 import unittest
 
+from clingo_funasp.core import MessageType
+
 from funasp.control import Control
 from funasp.core import Library
 from funasp.solve import Model
@@ -48,6 +50,31 @@ class TestControl(unittest.TestCase):
         control = Control(self.library, ["0"])
         with self.assertRaises(ValueError):
             control.get_rewritten_program()
+
+    def test_undefined_function_log_uses_configured_prefix(self):
+        """Undefined prefixed predicates are reported as intensional functions."""
+        self.library.prefix_function = "G"
+
+        message = self.library.normalize_log_message(
+            MessageType.OperationUndefined,
+            "<string>:1:1-1: info: undefined predicate Ga/1",
+        )
+
+        self.assertEqual(
+            message,
+            "<string>:1:1-1: info: undefined intensional function a/1",
+        )
+
+    def test_functional_undefined_log_uses_configured_prefix(self):
+        """Functional undefined-predicate messages honor custom prefixes."""
+        self.library.prefix_function = "G"
+
+        message = self.library.normalize_log_message(
+            MessageType.OperationUndefined,
+            "<functional>:0:0-0: info: undefined predicate Ga/1",
+        )
+
+        self.assertIsNone(message)
 
     def test_undefined_operation_fun(self):
         """Test unsafe.
