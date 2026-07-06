@@ -32,6 +32,7 @@ class Control:
             library.library, options
         )
         self.prefix = prefix
+        self.library.prefix_function = prefix
         self._rewritten_program: Optional[str] = None
         self._result: Optional[clingo_funasp.solve.SolveResult] = None
 

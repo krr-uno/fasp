@@ -26,6 +26,7 @@ class RewriteContext:
         """Initialize the RewriteContext instance."""
         self.lib = lib
         self.prefix_function = prefix_function
+        self.lib.prefix_function = prefix_function
         self.ctx = ClingoRewriteContext(self.lib.library)
         self.ctx.project_anonymous = True
         self.intensional_functions: set[SymbolSignature] = (

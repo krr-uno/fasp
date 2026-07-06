@@ -42,6 +42,7 @@ class Library:
         )
         self.original_statements: dict[str, list[ast.Statement]] = {}
         self.ignore_info = False
+        self.prefix_function = "F"
         self._processing_statement: str | None = None
 
     def processing_statement(self, statement: str) -> None:
@@ -74,6 +75,7 @@ class Library:
 
     def normalize_log_message(self, msg_type: MessageType, message: str) -> str | None:
         """Normalize selected clingo messages for FASP-specific reporting."""
+        undefined_predicate = f"undefined predicate {self.prefix_function}"
         if "unsafe variable" in message:
             lines = message.split("\n")
             if self._processing_statement is None:  # pragma: no cover
@@ -90,11 +92,11 @@ class Library:
             lines.insert(1, f"  {self._processing_statement}")
             lines.insert(2, "note: the following operations are undefined:")
             message = "\n".join(lines)
-        elif "undefined predicate F" in message:
+        elif undefined_predicate in message:
             if message.startswith("<functional>:0:0-0:"):
                 return None
             message = message.replace(
-                "undefined predicate F", "undefined intensional function "
+                undefined_predicate, "undefined intensional function "
             )
         return message
 
