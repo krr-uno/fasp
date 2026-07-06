@@ -3,6 +3,7 @@ import unittest
 from clingo_funasp.core import Library
 from clingo_funasp.symbol import Function, Number
 
+from funasp.solve import _is_hidden_auxiliary_symbol
 from funasp.symbol import FunctionSymbol
 
 
@@ -25,3 +26,15 @@ class TestFunctionSymbol(unittest.TestCase):
         self.assertEqual(list(function.arguments), [Number(self.lib, 1)])
         self.assertEqual(function.value, Number(self.lib, 2))
         self.assertEqual(str(function), "f(1)=2")
+
+    def test_hidden_auxiliary_symbols_require_uppercase_prefix(self):
+        """Only uppercase auxiliary predicates are hidden from model output."""
+        self.assertTrue(
+            _is_hidden_auxiliary_symbol(Function(self.lib, "RD1", []))
+        )
+        self.assertTrue(
+            _is_hidden_auxiliary_symbol(Function(self.lib, "AD1", []))
+        )
+        self.assertFalse(
+            _is_hidden_auxiliary_symbol(Function(self.lib, "pD1", []))
+        )

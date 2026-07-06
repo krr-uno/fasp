@@ -309,6 +309,22 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             parse_string(self.lib, "a(X) :- b(X) : not not c(X,Y).")[1].original
         )
 
+    def test_auxiliary_prefix_avoids_function_prefix(self):
+        """Auxiliary predicates do not start with the configured function prefix."""
+        self.context = RewriteContext(self.lib, prefix_function="R")
+        self.assertEqual(
+            self._rewrite("a :- b(X) : c(X), not d(X)."),
+            ["a :- b(X): c(X), not AD1(X).", "AD1(X) :- d(X)."],
+        )
+
+    def test_auxiliary_prefix_raises_without_safe_prefix(self):
+        """A missing safe auxiliary prefix is reported explicitly."""
+        self.context = RewriteContext(self.lib, prefix_function="")
+
+        with self.assertRaisesRegex(
+            ValueError, "could not find an auxiliary predicate prefix"
+        ):
+            self.context.fresh_predicate_name()
 
 if __name__ == "__main__":
     unittest.main()

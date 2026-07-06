@@ -5,6 +5,14 @@ from clingo_funasp.symbol import Symbol, SymbolType
 
 from funasp.symbol import FunctionSymbol
 
+_HIDDEN_AUXILIARY_PREFIXES = ("RD", "AD")
+
+
+def _is_hidden_auxiliary_symbol(symbol: Symbol) -> bool:
+    return symbol.type == SymbolType.Function and symbol.name.startswith(
+        _HIDDEN_AUXILIARY_PREFIXES
+    )
+
 
 class Model:
     """
@@ -60,7 +68,10 @@ class Model:
             symbol
             for symbol in self.clingo_model.symbols(shown, atoms, terms, theory)
             if symbol.type != SymbolType.Function
-            or not symbol.name.startswith(self.prefix)
+            or (
+                not symbol.name.startswith(self.prefix)
+                and not _is_hidden_auxiliary_symbol(symbol)
+            )
         ]
 
     def function_symbols(
@@ -76,6 +87,7 @@ class Model:
             for symbol in self.clingo_model.symbols(shown, atoms, terms, theory)
             if symbol.type == SymbolType.Function
             and symbol.name.startswith(self.prefix)
+            and not _is_hidden_auxiliary_symbol(symbol)
         ]
 
     def to_str(self, *, ordered: bool = False) -> str:

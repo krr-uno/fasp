@@ -54,3 +54,25 @@ class TestEndToEnd(unittest.TestCase):
         program = coloring.files[0].read_text()
         models = self.get_models(program, prefix="G")
         self.assertCountEqual(models, coloring.models)
+
+    def test_negated_condition_auxiliary_predicates_are_hidden(self):
+        """Internal RD predicates from negated condition lifting are not printed."""
+        program = """
+        p(1). q(1). q(2).
+        r :- q(X) : not p(X), q(X).
+        """
+
+        models = self.get_models(program)
+
+        self.assertEqual(models, ["p(1) q(1) q(2) r"])
+
+    def test_negated_condition_auxiliaries_are_hidden_with_r_prefix(self):
+        """RD auxiliaries are not mistaken for function assignments with prefix R."""
+        program = """
+        p(1). q(1). q(2).
+        r :- q(X) : not p(X), q(X).
+        """
+
+        models = self.get_models(program, prefix="R")
+
+        self.assertEqual(models, ["p(1) q(1) q(2) r"])

@@ -1,0 +1,106 @@
+# FUNASP Bug Fix Notes
+
+This file tracks fixes and decisions while working through `bug_report.md`.
+
+## A. Wrong answer sets
+
+### A1. Intensional functions in disjunctive heads
+
+Status: known unsupported case.
+
+`funasp` does not currently support `HeadDisjunction` rewriting for intensional
+functions. Treat this as a known limitation until support or a clear diagnostic
+is added.
+
+### A2. Conditional body literal equation leak
+
+Status: already fixed.
+
+No new changes were needed. The bug report already marks this as fixed.
+
+### A3. Body set aggregate guards are not unnested
+
+Status: TBD.
+
+Need to decide whether to support unnesting `BodySetAggregate` guards or reject
+them with a clear rewriting error.
+
+### A4. Invalid `--prefix-fun` corrupts user predicates
+
+Status: fixed.
+
+Changes made:
+
+- Validate `--prefix-fun` as exactly one uppercase ASCII letter, `A` through
+  `Z`.
+- Record invalid prefix options and stop before executing.
+- Add coverage for valid/invalid prefix validation and the option-error path.
+
+This prevents lowercase, empty, and multi-character prefixes from colliding with
+user predicates during restore.
+
+## B. Crashes on accepted input
+
+### B1. Pooled aggregate assignments crash
+
+Status: TBD.
+
+Need to decide whether pooled aggregate assignments should be expanded like
+`#some` assignments or rejected with a proper `RewritingException`.
+
+### B2. `Control.get_rewritten_program` before parsing
+
+Status: already fixed.
+
+No new changes were needed. The bug report already marks this as fixed.
+
+## C. Wrong or leaking output
+
+### C1. Multi-character prefixes garble model output
+
+Status: fixed.
+
+Changed function-symbol rendering to trim by the configured prefix length:
+
+```python
+FunctionSymbol.from_symbol(symbol, prefix_len=len(self.prefix))
+```
+
+This keeps `FunctionSymbol.from_symbol` prefix-aware and fixes the old
+single-character assumption.
+
+Note: A4 now rejects multi-character CLI prefixes, but the display code remains
+correct for any internal or future caller that provides a longer prefix.
+
+### C2. Auxiliary `RD*` predicates leak into answer sets
+
+Status: fixed.
+
+Auxiliary predicates introduced while lifting negated condition literals are
+hidden from model output.
+
+Changes made:
+
+- Add display-layer filtering for internal auxiliary predicates with the `RD`
+  prefix family.
+- Generate alternate auxiliary prefixes when `RD` would collide with the
+  configured function prefix, for example with `--prefix-fun=R`.
+- Keep the filter in `funasp.solve`, where predicate and function symbols are
+  converted into user-facing model output.
+- Add an end-to-end regression test for the C2 repro.
+
+## D. Error-reporting quality
+
+### D1. Double-negated literals over intensional functions report unsafe `FUN`
+
+Status: TBD.
+
+Need to either support this construct with a positive definedness atom or reject
+it with a clear semantic error that does not expose internal variables.
+
+### D2. Log normalization hardcodes the default prefix
+
+Status: TBD.
+
+Need to make undefined-intensional-function log normalization use the configured
+function prefix rather than hardcoding `F`.
