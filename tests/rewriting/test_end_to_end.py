@@ -76,3 +76,27 @@ class TestEndToEnd(unittest.TestCase):
         models = self.get_models(program, prefix="R")
 
         self.assertEqual(models, ["p(1) q(1) q(2) r"])
+
+    def test_double_negated_intensional_function_literal_can_bind(self):
+        """Double-negated literals use positive function lookups to bind variables."""
+        program = """
+        f(a) := 1.
+        p(1).
+        b :- not not p(f(a)).
+        """
+
+        models = self.get_models(program)
+
+        self.assertEqual(models, ["b p(1)\nf(a)=1"])
+
+    def test_double_negated_intensional_function_literal_can_fail(self):
+        """Double-negated literals stay false when the function value does not match."""
+        program = """
+        f(a) := 2.
+        p(1).
+        b :- not not p(f(a)).
+        """
+
+        models = self.get_models(program)
+
+        self.assertEqual(models, ["p(1)\nf(a)=2"])
