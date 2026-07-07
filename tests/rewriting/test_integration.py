@@ -32,6 +32,7 @@ class TestRewriteStatements(unittest.TestCase):
         *,
         intensional_functions: set[str] | None = None,
         prefix: str = "F",
+        ignore_prefix_collisions: bool = False,
     ):
         """Assert transform equal."""
         if intensional_functions is None:
@@ -43,7 +44,10 @@ class TestRewriteStatements(unittest.TestCase):
         }
 
         context = RewriteContext(
-            self.elib, prefix, intensional_functions=intensional_functions
+            self.elib,
+            prefix,
+            intensional_functions=intensional_functions,
+            ignore_prefix_collisions=ignore_prefix_collisions,
         )
 
         program = textwrap.dedent(program).strip()
@@ -544,6 +548,66 @@ class TestRewriteStatements(unittest.TestCase):
             :- Gking(X0,_); 1 < #count { V: Gking(X0,V) }.
             """,
             prefix="G",
+        )
+
+    def test_multi_character_prefix(self):
+        """A non-colliding multi-character function prefix is accepted."""
+        self.assertTransformEqual(
+            """
+            g := 1.
+            good(a,b).
+            """,
+            """
+            Fung(1).
+            good(a,b).
+            :- Fung(_); 1 < #count { V: Fung(V) }.
+            """,
+            prefix="Fun",
+        )
+
+    def test_prefix_collision_rejected(self):
+        """A function prefix that collides with a user predicate is rejected."""
+        with self.assertRaisesRegex(
+            RewritingException,
+            r"function prefix 'go' collides with predicate\(s\): good/2",
+        ):
+            self.assertTransformEqual(
+                """
+                g := 1.
+                good(a,b).
+                """,
+                "",
+                prefix="go",
+            )
+
+    def test_prefix_collision_can_be_ignored(self):
+        """The collision check can be bypassed explicitly."""
+        self.assertTransformEqual(
+            """
+            g := 1.
+            good(a,b).
+            """,
+            """
+            gog(1).
+            od(a)=b.
+            :- gog(_); 1 < #count { V: gog(V) }.
+            """,
+            prefix="go",
+            ignore_prefix_collisions=True,
+        )
+
+    def test_empty_prefix_rejected(self):
+        """An empty function prefix is rejected unless collision checks are ignored."""
+        with self.assertRaisesRegex(
+            RewritingException,
+            "function prefix must not be empty",
+        ):
+            self.assertTransformEqual(
+                """
+                g := 1.
+                """,
+                "",
+                prefix="",
         )
 
     def test_disjunction(self):

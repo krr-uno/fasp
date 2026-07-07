@@ -20,6 +20,7 @@ class FaspApp(App):
         """Initialize the FaspApp instance."""
         super().__init__("funasp", __version__)
         self._order = Flag()
+        self._ignore_prefix_collisions = Flag()
         self._library = library
         self._clingo_options = clingo_options
         self._prefix = "F"
@@ -39,6 +40,12 @@ class FaspApp(App):
             "Set prefix for rewritten function predicates (default: F).",
             self._set_prefix,
             argument="<prefix>",
+        )
+        options.add_flag(
+            "fasp",
+            "ignore-prefix-collisions",
+            "Allow --prefix-fun values that collide with program predicates.",
+            self._ignore_prefix_collisions,
         )
 
     def print_model(
@@ -60,6 +67,7 @@ class FaspApp(App):
             self._clingo_options,
             prefix,
             clingo_control,
+            self._ignore_prefix_collisions.value,
         )
         try:
             self._control.parse_files(files)
