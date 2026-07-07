@@ -22,11 +22,13 @@ class RewriteContext:
         *,
         intensional_functions: set[SymbolSignature] | None = None,
         predicates: set[SymbolSignature] | None = None,
+        ignore_prefix_collisions: bool = False,
     ):
         """Initialize the RewriteContext instance."""
         self.lib = lib
         self.prefix_function = prefix_function
         self.lib.prefix_function = prefix_function
+        self.ignore_prefix_collisions = ignore_prefix_collisions
         self.ctx = ClingoRewriteContext(self.lib.library)
         self.ctx.project_anonymous = True
         self.intensional_functions: set[SymbolSignature] = (

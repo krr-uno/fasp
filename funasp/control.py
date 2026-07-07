@@ -25,6 +25,7 @@ class Control:
         options: Sequence[str] = (),
         prefix: str = "F",
         clingo_control: Optional[clingo_funasp.control.Control] = None,
+        ignore_prefix_collisions: bool = False,
     ):
         """Initialize the Control instance."""
         self.library = library
@@ -33,6 +34,7 @@ class Control:
         )
         self.prefix = prefix
         self.library.prefix_function = prefix
+        self.ignore_prefix_collisions = ignore_prefix_collisions
         self._rewritten_program: Optional[str] = None
         self._result: Optional[clingo_funasp.solve.SolveResult] = None
 
@@ -47,7 +49,11 @@ class Control:
         files
             The paths of the files to parse and load.
         """
-        rewrite_ctx = RewriteContext(self.library, self.prefix)
+        rewrite_ctx = RewriteContext(
+            self.library,
+            self.prefix,
+            ignore_prefix_collisions=self.ignore_prefix_collisions,
+        )
         statements = parse_files(self.library, files)
         rewritten = rewrite_statements(rewrite_ctx, statements)
         program = ast.Program(self.library.library)
@@ -70,7 +76,11 @@ class Control:
         code
             The FASP program text to parse and load.
         """
-        rewrite_ctx = RewriteContext(self.library, self.prefix)
+        rewrite_ctx = RewriteContext(
+            self.library,
+            self.prefix,
+            ignore_prefix_collisions=self.ignore_prefix_collisions,
+        )
         statements = parse_string(self.library, code)
         rewritten = rewrite_statements(rewrite_ctx, statements)
         program = ast.Program(self.library.library)

@@ -8,16 +8,18 @@ ASP program, mirroring the old FASP-node pipeline:
 
 0. Collect all predicates occurring in the program (used to pick fresh
    auxiliary predicate names).
-1. Per statement: rewrite ``#some`` assignments, normalize aggregate
+1. Validate that the configured function prefix does not collide with used
+   predicate names, unless collision checks are explicitly ignored.
+2. Per statement: rewrite ``#some`` assignments, normalize aggregate
    assignments, collect intensional function signatures, and lift negated
    condition literals into auxiliary rules (kept alongside the statement
    they originate from).
-2. Per statement: move negated head literals to the body, rewrite negated
+3. Per statement: move negated head literals to the body, rewrite negated
    body literals, unnest intensional functions, rename parser prefixes to the
    configured prefix, rewrite functional equalities into prefixed literals,
    run clingo's statement rewriting, and restore the prefixed literals whose
    unpooled arity is not intensional.
-3. Append the uniqueness constraints.
+4. Append the uniqueness constraints.
 """
 
 from functools import partial
@@ -26,7 +28,9 @@ from typing import Iterable
 from clingo_funasp import ast
 
 from funasp.ast import Statement
+from funasp.util.ast import RewritingException, SemanticError
 from funasp.util.collectors import collect_predicates
+from funasp.util.types import SymbolSignature
 
 from .aggregates import rewrite_assignment_aggregates
 from .collectors import collect_intensional_function_signatures
@@ -42,6 +46,42 @@ from .prefixes import rename_prefixes
 from .restore import restore_non_intensional_functions
 from .some_assignments import rewrite_some_assignments
 from .unnesting import unnest_statement
+
+
+def _prefix_collisions(context: RewriteContext) -> list[SymbolSignature]:
+    """Return predicate signatures whose names collide with the function prefix."""
+    prefix = context.prefix_function
+    return sorted(
+        signature
+        for signature in context.predicates
+        if signature.name.startswith(prefix) and not signature.name[:1].isupper()
+    )
+
+
+def _validate_prefix_collisions(
+    context: RewriteContext, statements: list[Statement]
+) -> None:
+    """Reject function prefixes that collide with predicates in the program."""
+    if context.ignore_prefix_collisions:
+        return
+    location = statements[0].original.location
+    if not context.prefix_function:
+        raise RewritingException(
+            [SemanticError(location, "function prefix must not be empty")]
+        )
+    collisions = _prefix_collisions(context)
+    if not collisions:
+        return
+    collision_list = ", ".join(str(signature) for signature in collisions)
+    raise RewritingException(
+        [
+            SemanticError(
+                location,
+                f"function prefix {context.prefix_function!r} collides with "
+                f"predicate(s): {collision_list}",
+            )
+        ]
+    )
 
 
 def clingo_rewrite_wrapper(
@@ -74,6 +114,7 @@ def rewrite_statements(
     for stmt in statements:
         for clingo_stmt in stmt.rewritten:
             context.predicates |= collect_predicates(clingo_stmt)
+    _validate_prefix_collisions(context, statements)
     new_statements: list[Statement] = []
     for stmt in statements:
         stmt.rewrite(partial(rewrite_some_assignments, context))
