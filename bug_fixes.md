@@ -27,17 +27,20 @@ them with a clear rewriting error.
 
 ### A4. Invalid `--prefix-fun` corrupts user predicates
 
-Status: fixed.
+Status: being reworked.
 
-Changes made:
+Previous approach removed:
 
-- Validate `--prefix-fun` as exactly one uppercase ASCII letter, `A` through
-  `Z`.
-- Record invalid prefix options and stop before executing.
-- Add coverage for valid/invalid prefix validation and the option-error path.
+- The initial fix restricted `--prefix-fun` to one uppercase ASCII letter.
+- That restriction was removed because multi-character prefixes such as
+  `__csp_` must be allowed.
 
-This prevents lowercase, empty, and multi-character prefixes from colliding with
-user predicates during restore.
+Planned replacement:
+
+- Allow non-empty multi-character prefixes.
+- After used predicates are collected by the rewriting pipeline, reject prefixes
+  that collide with predicate names in the program.
+- Add `--ignore-prefix-collisions` to bypass the collision check when requested.
 
 ## B. Crashes on accepted input
 
