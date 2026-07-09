@@ -4,13 +4,12 @@ from clingo_funasp import solve
 from clingo_funasp.symbol import Symbol, SymbolType
 
 from funasp.symbol import FunctionSymbol
-
-_HIDDEN_AUXILIARY_PREFIXES = ("RD", "AD")
+from funasp.util.types import AUXILIARY_PREDICATE_PREFIXES
 
 
 def _is_hidden_auxiliary_symbol(symbol: Symbol) -> bool:
     return symbol.type == SymbolType.Function and symbol.name.startswith(
-        _HIDDEN_AUXILIARY_PREFIXES
+        AUXILIARY_PREDICATE_PREFIXES
     )
 
 

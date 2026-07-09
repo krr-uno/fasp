@@ -1,5 +1,12 @@
 # from dataclasses import dataclass
-from typing import NamedTuple
+from typing import Final, NamedTuple
+
+#: Predicate-name prefixes reserved for pipeline-generated auxiliary
+#: predicates. ``RewriteContext.fresh_predicate_name`` names auxiliaries with
+#: the first entry that cannot be mistaken for the function prefix, and model
+#: output (``funasp.solve``) hides atoms starting with any of them — the two
+#: uses must agree, so both read this constant.
+AUXILIARY_PREDICATE_PREFIXES: Final = ("RD", "AD")
 
 
 class SymbolSignature(NamedTuple):

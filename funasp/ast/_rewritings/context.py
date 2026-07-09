@@ -1,9 +1,7 @@
 from clingo_funasp.ast import RewriteContext as ClingoRewriteContext
 
 from funasp.core import Library
-from funasp.util.types import SymbolSignature
-
-_AUXILIARY_PREDICATE_PREFIXES = ("RD", "AD")
+from funasp.util.types import AUXILIARY_PREDICATE_PREFIXES, SymbolSignature
 
 
 class RewriteContext:
@@ -50,7 +48,7 @@ class RewriteContext:
         """Return an auxiliary prefix that cannot be mistaken for a function prefix."""
         if not self._collides_with_function_prefix(prefix):
             return prefix
-        for candidate in _AUXILIARY_PREDICATE_PREFIXES:
+        for candidate in AUXILIARY_PREDICATE_PREFIXES:
             if not self._collides_with_function_prefix(candidate):
                 return candidate
         raise ValueError("could not find an auxiliary predicate prefix")
