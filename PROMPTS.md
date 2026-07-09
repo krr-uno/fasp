@@ -834,6 +834,10 @@ Check the differences between the current commit and the branch `jorge/agg-not` 
 - any possible bugs, and
 - any possible improvements ragarding code quality, readablity or simplicity.
 
+---
+
+I added a failing test to `tests/rewriting/test_integration.py`. Make a plan to fix it.
+
 # Future work
 
 - Good error messages during grounding.

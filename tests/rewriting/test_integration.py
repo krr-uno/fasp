@@ -322,7 +322,7 @@ class TestRewriteStatements(unittest.TestCase):
             q(1).
             """,
             """
-            Ff(X,1) :- p(X); Ff(X,FUN); not RD1(X).
+            Ff(X,1) :- p(X); not RD1(X).
             RD1(X) :- p(X), #false: q(FUN), f(X) = FUN.
             q(1).
             :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
