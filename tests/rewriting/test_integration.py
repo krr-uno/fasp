@@ -314,6 +314,20 @@ class TestRewriteStatements(unittest.TestCase):
             intensional_functions={"controlsStk/3"},
         )
 
+    def test_not_not(self):
+        """Test double negation."""
+        self.assertTransformEqual(
+            """
+            f(X) := 1 :- p(X), not not q(f(X)).
+            q(1).
+            """,
+            """
+            Ff(X,1) :- p(X); Ff(X,FUN); not not q(FUN).
+            q(1).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
     def test_show(self):
         """Test show statements with functional conditions."""
         self.assertTransformEqual(
