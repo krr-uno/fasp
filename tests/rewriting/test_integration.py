@@ -597,7 +597,7 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
     def test_empty_prefix_rejected(self):
-        """An empty function prefix is rejected unless collision checks are ignored."""
+        """An empty function prefix is rejected."""
         with self.assertRaisesRegex(
             RewritingException,
             "function prefix must not be empty",
@@ -608,7 +608,22 @@ class TestRewriteStatements(unittest.TestCase):
                 """,
                 "",
                 prefix="",
-        )
+            )
+
+    def test_empty_prefix_rejected_even_when_collisions_ignored(self):
+        """An empty function prefix cannot be allowed by ignoring collisions."""
+        with self.assertRaisesRegex(
+            RewritingException,
+            "function prefix must not be empty",
+        ):
+            self.assertTransformEqual(
+                """
+                g := 1.
+                """,
+                "",
+                prefix="",
+                ignore_prefix_collisions=True,
+            )
 
     def test_empty_program(self):
         """An empty program is rewritten to an empty program without raising."""

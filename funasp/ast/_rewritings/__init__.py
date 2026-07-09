@@ -8,8 +8,9 @@ ASP program, mirroring the old FASP-node pipeline:
 
 0. Collect all predicates occurring in the program (used to pick fresh
    auxiliary predicate names).
-1. Validate that the configured function prefix does not collide with used
-   predicate names, unless collision checks are explicitly ignored.
+1. Validate the configured function prefix: an empty prefix is always
+   rejected; prefixes colliding with used predicate names are rejected
+   unless collision checks are explicitly ignored.
 2. Per statement: rewrite ``#some`` assignments, normalize aggregate
    assignments, collect intensional function signatures, and lift negated
    condition literals into auxiliary rules (kept alongside the statement
@@ -62,13 +63,15 @@ def _validate_prefix_collisions(
     context: RewriteContext, statements: list[Statement]
 ) -> None:
     """Reject function prefixes that collide with predicates in the program."""
-    if context.ignore_prefix_collisions or not statements:
+    if not statements:
         return
     location = statements[0].original.location
     if not context.prefix_function:
         raise RewritingException(
             [SemanticError(location, "function prefix must not be empty")]
         )
+    if context.ignore_prefix_collisions:
+        return
     collisions = _prefix_collisions(context)
     if not collisions:
         return
