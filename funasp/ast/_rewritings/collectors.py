@@ -42,6 +42,24 @@ def _signatures_from_literal(prefix: str, literal: ast.Literal) -> set[SymbolSig
     return set()
 
 
+def collect_shown_function_signatures(
+    statement: ast.Statement,
+) -> set[SymbolSignature]:
+    """
+    Collect the intensional function signatures declared by ``#showf``.
+
+    The parser rewrites ``#showf f/n.`` into ``#show Ff/n+1.``; a prefixed
+    show-signature name unambiguously marks an intensional function even
+    when the function is never assigned.
+    """
+    if isinstance(statement, ast.StatementShowSignature) and statement.name.startswith(
+        PARSER_PREFIX
+    ):
+        name = statement.name[len(PARSER_PREFIX) :]
+        return {SymbolSignature(name, statement.arity - 1)}
+    return set()
+
+
 def collect_intensional_function_signatures(
     statement: ast.Statement,
 ) -> set[SymbolSignature]:

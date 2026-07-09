@@ -37,6 +37,9 @@ class _PredicateCollector:
         if isinstance(node, ast.LiteralSymbolic):
             self.predicates |= _atom_signatures(node.atom)
             return
+        if isinstance(node, ast.StatementShowSignature):
+            self.predicates.add(SymbolSignature(node.name, node.arity))
+            return
         node.visit(self._collect_predicates)
 
 

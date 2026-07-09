@@ -580,6 +580,21 @@ class TestRewriteStatements(unittest.TestCase):
                 prefix="go",
             )
 
+    def test_prefix_collision_with_shown_predicate_rejected(self):
+        """Predicates occurring only in ``#show`` statements are checked too."""
+        with self.assertRaisesRegex(
+            RewritingException,
+            r"function prefix 'go' collides with predicate\(s\): good/1",
+        ):
+            self.assertTransformEqual(
+                """
+                g := 1.
+                #show good/1.
+                """,
+                "",
+                prefix="go",
+            )
+
     def test_prefix_collision_can_be_ignored(self):
         """The collision check can be bypassed explicitly."""
         self.assertTransformEqual(

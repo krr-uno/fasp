@@ -6,8 +6,9 @@ plain clingo AST with prefixed atoms (``a := 1`` becomes ``Fa(1)``). This
 pipeline turns that purely syntactic encoding into a semantically correct
 ASP program, mirroring the old FASP-node pipeline:
 
-0. Collect all predicates occurring in the program (used to pick fresh
-   auxiliary predicate names).
+0. Collect all predicates occurring in the program, including ``#show``
+   signatures (used for prefix validation and to pick fresh auxiliary
+   predicate names).
 1. Validate the configured function prefix: an empty prefix is always
    rejected; prefixes colliding with used predicate names are rejected
    unless collision checks are explicitly ignored.
@@ -21,6 +22,10 @@ ASP program, mirroring the old FASP-node pipeline:
    run clingo's statement rewriting, and restore the prefixed literals whose
    unpooled arity is not intensional.
 4. Append the uniqueness constraints.
+
+Finally, the library is told which predicate signatures encode intensional
+functions (assigned or ``#showf``-declared), so that log messages are
+normalized only for those predicates.
 """
 
 from functools import partial
@@ -34,7 +39,10 @@ from funasp.util.collectors import collect_predicates
 from funasp.util.types import SymbolSignature
 
 from .aggregates import rewrite_assignment_aggregates
-from .collectors import collect_intensional_function_signatures
+from .collectors import (
+    collect_intensional_function_signatures,
+    collect_shown_function_signatures,
+)
 from .comparisons import prefix_comparisons
 from .constraints import functional_constraints
 from .context import RewriteContext
@@ -114,9 +122,11 @@ def rewrite_statements(
     uniqueness constraints are appended as additional wrapped statements.
     """
     statements = list(statements)
+    shown_functions: set[SymbolSignature] = set()
     for stmt in statements:
         for clingo_stmt in stmt.rewritten:
             context.predicates |= collect_predicates(clingo_stmt)
+            shown_functions |= collect_shown_function_signatures(clingo_stmt)
     _validate_prefix_collisions(context, statements)
     new_statements: list[Statement] = []
     for stmt in statements:
@@ -139,4 +149,8 @@ def rewrite_statements(
 
     for constraint in functional_constraints(context):
         new_statements.append(Statement(context.lib.library, constraint))
+    context.lib.function_predicates |= {
+        SymbolSignature(f"{context.prefix_function}{name}", arity + 1)
+        for name, arity in context.intensional_functions | shown_functions
+    }
     return new_statements

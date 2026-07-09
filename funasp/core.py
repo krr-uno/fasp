@@ -7,11 +7,16 @@ Currently this hosts :class:`Library`, a wrapper around the clingo
 carries the ``processing_statement`` text used in error reports.
 """
 
+import re
 import typing
 
 from clingo_funasp import ast
 from clingo_funasp.core import Library as ClingoLibrary
 from clingo_funasp.core import LogLevel, MessageType
+
+from funasp.util.types import SymbolSignature
+
+_UNDEFINED_PREDICATE_REGEX = re.compile(r"undefined predicate (\S+)/(\d+)")
 
 
 class Library:
@@ -43,6 +48,7 @@ class Library:
         self.original_statements: dict[str, list[ast.Statement]] = {}
         self.ignore_info = False
         self.prefix_function = "F"
+        self.function_predicates: set[SymbolSignature] = set()
         self._processing_statement: str | None = None
 
     def processing_statement(self, statement: str) -> None:
@@ -75,7 +81,6 @@ class Library:
 
     def normalize_log_message(self, msg_type: MessageType, message: str) -> str | None:
         """Normalize selected clingo messages for FASP-specific reporting."""
-        undefined_predicate = f"undefined predicate {self.prefix_function}"
         if "unsafe variable" in message:
             lines = message.split("\n")
             if self._processing_statement is None:  # pragma: no cover
@@ -92,13 +97,29 @@ class Library:
             lines.insert(1, f"  {self._processing_statement}")
             lines.insert(2, "note: the following operations are undefined:")
             message = "\n".join(lines)
-        elif undefined_predicate in message:
-            if message.startswith("<functional>:0:0-0:"):
-                return None
-            message = message.replace(
-                undefined_predicate, "undefined intensional function "
-            )
+        elif (match := _UNDEFINED_PREDICATE_REGEX.search(message)) is not None:
+            return self._normalize_undefined_predicate(message, match)
         return message
+
+    def _normalize_undefined_predicate(
+        self, message: str, match: re.Match[str]
+    ) -> str | None:
+        """Rewrite undefined-predicate messages about function encodings.
+
+        Only predicates registered in ``function_predicates`` are rewritten;
+        a user predicate whose name merely starts with the function prefix
+        (reachable with ``--ignore-prefix-collisions``) is reported verbatim.
+        """
+        signature = SymbolSignature(match.group(1), int(match.group(2)))
+        if signature not in self.function_predicates:
+            return message
+        if message.startswith("<functional>:0:0-0:"):
+            return None
+        name = signature.name[len(self.prefix_function) :]
+        return message.replace(
+            f"undefined predicate {signature}",
+            f"undefined intensional function {name}/{signature.arity}",
+        )
 
     def __enter__(self) -> typing.Self:
         """Enter the managed context and return this library wrapper."""
