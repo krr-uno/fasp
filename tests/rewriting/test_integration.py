@@ -610,6 +610,10 @@ class TestRewriteStatements(unittest.TestCase):
                 prefix="",
         )
 
+    def test_empty_program(self):
+        """An empty program is rewritten to an empty program without raising."""
+        self.assertTransformEqual("", "")
+
     def test_disjunction(self):
         """Test disjunctive heads pass through unchanged."""
         self.assertTransformEqual(

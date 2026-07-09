@@ -820,6 +820,20 @@ prints the following error message:
 ```
 and I was expecting only the first line. Can you explain why this happens?
 
+---
+
+Review the code. Look for potential refactors that
+- simplify the code, and
+- improve readablity
+Write a report with your suggestions.
+
+---
+
+Check the differences between the current commit and the branch `jorge/agg-not` and write a report that includes:
+- the changes made,
+- any possible bugs, and
+- any possible improvements ragarding code quality, readablity or simplicity.
+
 # Future work
 
 - Good error messages during grounding.
