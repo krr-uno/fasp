@@ -39,12 +39,19 @@ class RewriteContext:
         )
         self._aux_counter = 0
 
+    def _collides_with_function_prefix(self, prefix: str) -> bool:
+        """Return whether auxiliary names with this prefix could be mistaken
+        for function atoms (or vice versa)."""
+        return prefix.startswith(
+            self.prefix_function
+        ) or self.prefix_function.startswith(prefix)
+
     def _auxiliary_prefix(self, prefix: str) -> str:
         """Return an auxiliary prefix that cannot be mistaken for a function prefix."""
-        if not prefix.startswith(self.prefix_function):
+        if not self._collides_with_function_prefix(prefix):
             return prefix
         for candidate in _AUXILIARY_PREDICATE_PREFIXES:
-            if not candidate.startswith(self.prefix_function):
+            if not self._collides_with_function_prefix(candidate):
                 return candidate
         raise ValueError("could not find an auxiliary predicate prefix")
 

@@ -317,6 +317,16 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             ["a :- b(X): c(X), not AD1(X).", "AD1(X) :- d(X)."],
         )
 
+    def test_auxiliary_prefix_avoids_extending_function_prefix(self):
+        """Auxiliary prefixes that the function prefix extends are avoided.
+
+        With function prefix ``RD1``, auxiliary names ``RD1``, ``RD2``, ...
+        would collide with function atoms, so ``AD`` must be used instead.
+        """
+        self.context = RewriteContext(self.lib, prefix_function="RD1")
+
+        self.assertEqual(self.context.fresh_predicate_name(), "AD1")
+
     def test_auxiliary_prefix_raises_without_safe_prefix(self):
         """A missing safe auxiliary prefix is reported explicitly."""
         self.context = RewriteContext(self.lib, prefix_function="")
@@ -325,6 +335,7 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             ValueError, "could not find an auxiliary predicate prefix"
         ):
             self.context.fresh_predicate_name()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -82,12 +82,15 @@ class Model:
         theory: bool = False,
     ) -> Sequence[FunctionSymbol]:
         """Return the shown function assignments extracted from the underlying model."""
+        # Auxiliary predicate names never start with the function prefix (see
+        # RewriteContext._auxiliary_prefix), so every atom starting with the
+        # prefix is a function assignment — even when the prefix itself starts
+        # with an auxiliary prefix such as "RD".
         return [
             FunctionSymbol.from_symbol(symbol, prefix_len=len(self.prefix))
             for symbol in self.clingo_model.symbols(shown, atoms, terms, theory)
             if symbol.type == SymbolType.Function
             and symbol.name.startswith(self.prefix)
-            and not _is_hidden_auxiliary_symbol(symbol)
         ]
 
     def to_str(self, *, ordered: bool = False) -> str:

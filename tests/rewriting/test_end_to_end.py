@@ -77,6 +77,25 @@ class TestEndToEnd(unittest.TestCase):
 
         self.assertEqual(models, ["p(1) q(1) q(2) r"])
 
+    def test_functions_are_shown_with_auxiliary_like_prefixes(self):
+        """Prefixes overlapping the auxiliary prefixes still show function values.
+
+        Regression test: with ``--prefix-fun RD`` (or ``AD``) function atoms
+        used to be mistaken for hidden auxiliary predicates and silently
+        dropped from the model output.
+        """
+        program = """
+        p(1). q(1). q(2).
+        r :- q(X) : not p(X), q(X).
+        f(a) := 1.
+        """
+
+        for prefix in ("RD", "AD", "RD1"):
+            with self.subTest(prefix=prefix):
+                models = self.get_models(program, prefix=prefix)
+
+                self.assertEqual(models, ["p(1) q(1) q(2) r\nf(a)=1"])
+
     def test_double_negated_intensional_function_literal_can_bind(self):
         """Double-negated literals use positive function lookups to bind variables."""
         program = """
