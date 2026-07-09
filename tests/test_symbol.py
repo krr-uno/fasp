@@ -29,12 +29,6 @@ class TestFunctionSymbol(unittest.TestCase):
 
     def test_hidden_auxiliary_symbols_require_uppercase_prefix(self):
         """Only uppercase auxiliary predicates are hidden from model output."""
-        self.assertTrue(
-            _is_hidden_auxiliary_symbol(Function(self.lib, "RD1", []))
-        )
-        self.assertTrue(
-            _is_hidden_auxiliary_symbol(Function(self.lib, "AD1", []))
-        )
-        self.assertFalse(
-            _is_hidden_auxiliary_symbol(Function(self.lib, "pD1", []))
-        )
+        self.assertTrue(_is_hidden_auxiliary_symbol(Function(self.lib, "RD1", [])))
+        self.assertTrue(_is_hidden_auxiliary_symbol(Function(self.lib, "AD1", [])))
+        self.assertFalse(_is_hidden_auxiliary_symbol(Function(self.lib, "pD1", [])))
