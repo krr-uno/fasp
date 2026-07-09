@@ -60,6 +60,9 @@ from .unnesting import unnest_statement
 def _prefix_collisions(context: RewriteContext) -> list[SymbolSignature]:
     """Return predicate signatures whose names collide with the function prefix."""
     prefix = context.prefix_function
+    # Uppercase-initial names cannot be user-written predicates (the parser
+    # reads them as variables); at this point they can only be the parser's
+    # own F-prefixed function encodings, which are never collisions.
     return sorted(
         signature
         for signature in context.predicates
