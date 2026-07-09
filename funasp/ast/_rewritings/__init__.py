@@ -62,7 +62,7 @@ def _validate_prefix_collisions(
     context: RewriteContext, statements: list[Statement]
 ) -> None:
     """Reject function prefixes that collide with predicates in the program."""
-    if context.ignore_prefix_collisions:
+    if context.ignore_prefix_collisions or not statements:
         return
     location = statements[0].original.location
     if not context.prefix_function:
