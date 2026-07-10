@@ -848,6 +848,13 @@ RD1(X) :- p(X), #false: q(FUN), f(X) = FUN.
 ```
 Thus, ```not r(X)``` is not added to the auxiliary rule.
 
+---
+
+Review the code. Look for potential bugs and refactoring oportunites that
+- simplify the code, and
+- improve readablity
+Write a report with your suggestions.
+
 # Future work
 
 - Good error messages during grounding.

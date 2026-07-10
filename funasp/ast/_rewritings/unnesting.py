@@ -20,7 +20,7 @@ from funasp.ast._rewritings.literals import (
     UnnestFunctionsInLiteralsTransformer,
     unnest_functions,
 )
-from funasp.util.ast import FreshVariableGenerator
+from funasp.util.ast import FreshVariableGenerator, RewritingException, SemanticError
 from funasp.util.collectors import collect_variables
 from funasp.util.iterables import map_none
 from funasp.util.types import SymbolSignature
@@ -258,6 +258,49 @@ class StatementUnnestTransformer:
             condition.extend(extra)
             update["condition"] = condition
         return node.update(self.lib, **update)
+
+    @_rewrite_literal.register
+    def _(self, node: ast.HeadDisjunction, var_gen: FreshVariableGenerator) -> None:
+        """Reject intensional function terms in disjunctive rule heads.
+
+        Unnesting a term in a disjunct would require adding its lookup to the
+        rule body, which changes the support conditions of every disjunct. The
+        translation does not currently define that transformation, so reject
+        it instead of letting clingo interpret the function as a Herbrand term.
+        """
+        del var_gen
+        offending: ast.TermFunction | None = None
+        offending_location = node.location
+
+        def find_intensional_function(child: Any) -> None:
+            nonlocal offending, offending_location
+            if offending is not None:
+                return
+            if not isinstance(child, ast.TermFunction):
+                child.visit(find_intensional_function)
+                return
+            if any(
+                SymbolSignature(child.name, len(entry.arguments))
+                in self.intensional_functions
+                for entry in child.pool
+            ):
+                offending = child
+                offending_location = child.location
+                return
+            child.visit(find_intensional_function)
+
+        node.visit(find_intensional_function)
+        if offending is not None:
+            raise RewritingException(
+                [
+                    SemanticError(
+                        offending_location,
+                        "intensional functions are not allowed in disjunctive heads: "
+                        f"'{offending}'",
+                    )
+                ]
+            )
+        return None
 
     @_rewrite_literal.register
     def _(

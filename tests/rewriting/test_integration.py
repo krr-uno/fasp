@@ -693,11 +693,25 @@ class TestRewriteStatements(unittest.TestCase):
         self.assertTransformEqual("", "")
 
     def test_disjunction(self):
-        """Test disjunctive heads pass through unchanged."""
+        """Function-free disjunctive heads pass through unchanged."""
         self.assertTransformEqual(
             "a | b :- c.",
             "a; b :- c.",
         )
+
+    def test_intensional_function_in_disjunctive_head_rejected(self):
+        """Intensional terms in disjunctive heads produce a semantic error."""
+        with self.assertRaisesRegex(
+            RewritingException,
+            r"error: intensional functions are not allowed in disjunctive heads: 'f\(a\)'",
+        ):
+            self.assertTransformEqual(
+                """
+                f(a) := 1.
+                p(f(a)) | q.
+                """,
+                None,
+            )
 
     def test_non_intensional_equality(self):
         """Test equalities over non-intensional functions are left untouched.
