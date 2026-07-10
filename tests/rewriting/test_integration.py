@@ -323,10 +323,43 @@ class TestRewriteStatements(unittest.TestCase):
             """,
             """
             Ff(X,1) :- p(X); not RD1(X).
-            RD1(X) :- p(X), #false: q(FUN), f(X) = FUN.
+            RD1(X) :- p(X); #false: q(FUN), Ff(X,FUN).
             q(1).
             :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
             """,
+        )
+
+    def test_not_not_with_negated_literal(self):
+        """Negated body literals are not copied into the auxiliary rule."""
+        self.assertTransformEqual(
+            "f(X) := 1 :- p(X), not not q(f(X)), not r(X).",
+            """
+            Ff(X,1) :- p(X); not RD1(X); #false: r(X).
+            RD1(X) :- p(X); #false: q(FUN), Ff(X,FUN).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
+    def test_not_not_without_global_variables(self):
+        """A ground doubly negated literal is lifted to a 0-ary auxiliary."""
+        self.assertTransformEqual(
+            """
+            f(a) := 1.
+            b :- not not p(f(a)).
+            """,
+            """
+            Ff(a,1).
+            b :- not RD1.
+            RD1 :- #false: p(FUN), Ff(a,FUN).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
+    def test_not_not_without_intensional_functions(self):
+        """Function-free doubly negated body literals are left untouched."""
+        self.assertTransformEqual(
+            "a :- p(X), not not q(X).",
+            "a :- p(X); not not q(X).",
         )
 
     def test_show(self):

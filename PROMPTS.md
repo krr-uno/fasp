@@ -838,6 +838,16 @@ Check the differences between the current commit and the branch `jorge/agg-not` 
 
 I added a failing test to `tests/rewriting/test_integration.py`. Make a plan to fix it.
 
+---
+
+Pass to the body of the auxiliary rule only the non negated literas.
+For example ```f(X) := 1 :- p(X), not not q(f(X)), not r(X).``` becomes
+```
+Ff(X,1) :- p(X); not RD1(X), not r(X).
+RD1(X) :- p(X), #false: q(FUN), f(X) = FUN.
+```
+Thus, ```not r(X)``` is not added to the auxiliary rule.
+
 # Future work
 
 - Good error messages during grounding.

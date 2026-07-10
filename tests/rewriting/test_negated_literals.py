@@ -7,6 +7,7 @@ import unittest
 
 from funasp.ast import RewriteContext, parse_string
 from funasp.ast._rewritings.negated_literals import (
+    rewrite_double_negated_body_literals,
     rewrite_negated_condition_literals,
     rewrite_negated_head_literals,
 )
@@ -335,6 +336,120 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             ValueError, "could not find an auxiliary predicate prefix"
         ):
             self.context.fresh_predicate_name()
+
+
+class TestRewriteDoubleNegatedBodyLiterals(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures for each test."""
+        self.lib = Library()
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+
+    def _rewrite(self, program: str, index: int = 1) -> list[str]:
+        """Rewrite a single rule and return the resulting statement strings."""
+        statement = parse_string(self.lib, program)[index].original
+        return [
+            str(result)
+            for result in rewrite_double_negated_body_literals(self.context, statement)
+        ]
+
+    def _assert_unchanged(self, program: str, index: int = 1):
+        """Assert the parsed statement is returned unchanged as a singleton."""
+        statement = parse_string(self.lib, program)[index].original
+        result = rewrite_double_negated_body_literals(self.context, statement)
+        self.assertEqual(len(result), 1)
+        self.assertIs(result[0], statement)
+
+    def test_lifts_double_negated_intensional_literal(self):
+        """A doubly negated literal over an intensional function is lifted."""
+        self.assertEqual(
+            self._rewrite("a :- p(X), not not q(f(X))."),
+            ["a :- p(X); not RD1(X).", "RD1(X) :- p(X); not q(f(X))."],
+        )
+
+    def test_negated_literals_are_not_copied(self):
+        """Negated body literals are excluded from the auxiliary rule."""
+        self.assertEqual(
+            self._rewrite("a :- p(X), not not q(f(X)), not r(X)."),
+            [
+                "a :- p(X); not RD1(X); not r(X).",
+                "RD1(X) :- p(X); not q(f(X)).",
+            ],
+        )
+
+    def test_ground_literal_yields_constant_auxiliary(self):
+        """A doubly negated literal without variables yields a 0-ary auxiliary."""
+        self.assertEqual(
+            self._rewrite("b :- not not q(f(a))."),
+            ["b :- not RD1.", "RD1 :- not q(f(a))."],
+        )
+
+    def test_aggregates_guard_the_auxiliary(self):
+        """Positive aggregates are copied into the auxiliary rule."""
+        self.assertEqual(
+            self._rewrite("a :- Y = #count { Z: p(Z) }, not not q(f(Y))."),
+            [
+                "a :- Y = #count { Z: p(Z) }; not RD1(Y).",
+                "RD1(Y) :- Y = #count { Z: p(Z) }; not q(f(Y)).",
+            ],
+        )
+
+    def test_conditional_literals_guard_the_auxiliary(self):
+        """Positive conditional literals are copied into the auxiliary rule."""
+        self.assertEqual(
+            self._rewrite("a :- b(Y) : c(Y); not not q(f(a))."),
+            ["a :- b(Y): c(Y); not RD1.", "RD1 :- b(Y): c(Y); not q(f(a))."],
+        )
+
+    def test_negated_conditional_literals_are_not_copied(self):
+        """Conditional literals with a negated head are excluded."""
+        self.assertEqual(
+            self._rewrite("a :- p(X); not b(Y) : c(Y); not not q(f(X))."),
+            [
+                "a :- p(X); not b(Y): c(Y); not RD1(X).",
+                "RD1(X) :- p(X); not q(f(X)).",
+            ],
+        )
+
+    def test_false_conditional_literals_are_not_copied(self):
+        """``#false : l`` conditional literals count as negations."""
+        self.assertEqual(
+            self._rewrite("a :- p(X); #false : r(X); not not q(f(X))."),
+            [
+                "a :- p(X); #false: r(X); not RD1(X).",
+                "RD1(X) :- p(X); not q(f(X)).",
+            ],
+        )
+
+    def test_theory_atoms_are_not_copied(self):
+        """Theory atoms are not usable as auxiliary-rule guards."""
+        program = """
+        #theory diff {
+          term { - : 1, binary, left };
+          &diff/0 : term, {<=}, term, body
+        }.
+        b :- p(X), &diff { x - y } <= 3, not not q(f(X)).
+        """
+        self.assertEqual(
+            self._rewrite(program, index=2),
+            [
+                "b :- p(X); &diff { (x - y) } <= 3; not RD1(X).",
+                "RD1(X) :- p(X); not q(f(X)).",
+            ],
+        )
+
+    def test_function_free_literal_unchanged(self):
+        """A doubly negated literal without intensional functions is untouched."""
+        self._assert_unchanged("a :- p(X), not not q(X).")
+
+    def test_double_negated_comparison_unchanged(self):
+        """Doubly negated comparisons are not lifted."""
+        self._assert_unchanged("a :- p(X), not not f(X) = 1.")
+
+    def test_non_rule_statement_unchanged(self):
+        """A non-rule statement is returned unchanged."""
+        self._assert_unchanged("#show a/0.", index=0)
 
 
 if __name__ == "__main__":

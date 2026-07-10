@@ -17,10 +17,11 @@ ASP program, mirroring the old FASP-node pipeline:
    condition literals into auxiliary rules (kept alongside the statement
    they originate from).
 3. Per statement: move negated head literals to the body, rewrite negated
-   body literals, unnest intensional functions, rename parser prefixes to the
-   configured prefix, rewrite functional equalities into prefixed literals,
-   run clingo's statement rewriting, and restore the prefixed literals whose
-   unpooled arity is not intensional.
+   body literals, lift doubly negated body literals over intensional
+   functions into auxiliary rules, unnest intensional functions, rename
+   parser prefixes to the configured prefix, rewrite functional equalities
+   into prefixed literals, run clingo's statement rewriting, and restore the
+   prefixed literals whose unpooled arity is not intensional.
 4. Append the uniqueness constraints.
 
 Finally, the library is told which predicate signatures encode intensional
@@ -47,6 +48,7 @@ from .comparisons import prefix_comparisons
 from .constraints import functional_constraints
 from .context import RewriteContext
 from .negated_literals import (
+    rewrite_double_negated_body_literals,
     rewrite_negated_body_literals,
     rewrite_negated_condition_literals,
     rewrite_negated_head_literals,
@@ -144,6 +146,7 @@ def rewrite_statements(
         stmt.rewrite(partial(rewrite_negated_condition_literals, context))
         stmt.rewrite(partial(rewrite_negated_head_literals, context))
         stmt.rewrite(partial(rewrite_negated_body_literals, context))
+        stmt.rewrite(partial(rewrite_double_negated_body_literals, context))
         stmt.rewrite(partial(unnest_statement, context))
         stmt.rewrite(partial(rename_prefixes, context))
         stmt.rewrite(partial(prefix_comparisons, context))

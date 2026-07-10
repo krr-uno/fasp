@@ -96,6 +96,32 @@ class TestEndToEnd(unittest.TestCase):
 
                 self.assertEqual(models, ["p(1) q(1) q(2) r\nf(a)=1"])
 
+    def test_double_negation_allows_self_supported_values(self):
+        """A doubly negated function literal can self-support the assignment.
+
+        As with plain ``a :- not not a.``, both the model without the
+        assignment and the self-supported one are stable.
+        """
+        program = """
+        p(1). q(1).
+        f(X) := 1 :- p(X), not not q(f(X)).
+        """
+
+        models = self.get_models(program)
+
+        self.assertCountEqual(models, ["p(1) q(1)", "p(1) q(1)\nf(1)=1"])
+
+    def test_double_negation_with_negated_literal(self):
+        """A negated literal alongside a lifted double negation still blocks."""
+        program = """
+        p(1). q(1). r(1).
+        f(X) := 1 :- p(X), not not q(f(X)), not r(X).
+        """
+
+        models = self.get_models(program)
+
+        self.assertEqual(models, ["p(1) q(1) r(1)"])
+
     def test_double_negated_intensional_function_literal_can_bind(self):
         """Double-negated literals use positive function lookups to bind variables."""
         program = """
