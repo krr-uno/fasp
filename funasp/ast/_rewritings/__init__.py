@@ -57,6 +57,7 @@ from .prefixes import rename_prefixes
 from .restore import restore_non_intensional_functions
 from .some_assignments import rewrite_some_assignments
 from .unnesting import unnest_statement
+from .validation import validate_intensional_function_positions
 
 
 def _prefix_collisions(context: RewriteContext) -> list[SymbolSignature]:
@@ -143,6 +144,7 @@ def rewrite_statements(
             )
         new_statements.append(stmt)
     for stmt in new_statements:
+        stmt.rewrite(partial(validate_intensional_function_positions, context))
         stmt.rewrite(partial(rewrite_negated_condition_literals, context))
         stmt.rewrite(partial(rewrite_negated_head_literals, context))
         stmt.rewrite(partial(rewrite_negated_body_literals, context))

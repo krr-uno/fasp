@@ -112,3 +112,7 @@ instead of the internal predicate representation:
 
 More examples covering each of these constructs can be found in the `examples`
 folder.
+
+The [intensional-function AST support matrix](docs/support-matrix.md) documents
+which clingo statement, head, and body positions are translated, rejected, or
+not applicable.
