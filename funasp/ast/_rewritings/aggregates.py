@@ -15,6 +15,8 @@ This step runs before the prefix renaming pass and after the ``#some``
 rewriting, so the left-guard prefix is the parser's literal ``F``.
 """
 
+from typing import Sequence
+
 from clingo_funasp import ast
 
 from funasp.ast import PARSER_PREFIX
@@ -25,27 +27,44 @@ from funasp.util.collectors import collect_variables
 
 def rewrite_assignment_aggregates(
     context: RewriteContext, statement: ast.Statement
-) -> ast.Statement:
-    """Rewrite an aggregate assignment head into a simple head plus body aggregate."""
-    library = context.lib.library
+) -> list[ast.Statement]:
+    """Rewrite an aggregate assignment, expanding each target pool entry.
+
+    This follows the same list-producing convention as ``#some`` assignments:
+    an unpooled target yields one statement and ``f(a;b) := #sum{...}`` yields
+    one statement for ``f(a)`` and one for ``f(b)``.
+    """
     prefix = PARSER_PREFIX
     if not isinstance(statement, ast.StatementRule) or not isinstance(
         head := statement.head, ast.HeadAggregate
     ):
-        return statement
+        return [statement]
     left = head.left
     if (
         left is None
         or not isinstance(left.term, ast.TermFunction)
         or not left.term.name.startswith(prefix)
     ):
-        return statement
+        return [statement]
     assert left.relation == ast.Relation.Equal
     assert head.right is None
 
     name = left.term.name
-    assert len(left.term.pool) == 1, f"Terms must be unpooled {left.term}"
-    arguments = left.term.pool[0].arguments
+    return [
+        _rewrite_aggregate_pool_entry(context, statement, head, name, entry.arguments)
+        for entry in left.term.pool
+    ]
+
+
+def _rewrite_aggregate_pool_entry(
+    context: RewriteContext,
+    statement: ast.StatementRule,
+    head: ast.HeadAggregate,
+    name: str,
+    arguments: Sequence[ast.Term | ast.Projection],
+) -> ast.Statement:
+    """Build the normalized assignment for one target pool entry."""
+    library = context.lib.library
 
     used_variables = collect_variables(statement)
     fresh_variable_generator = FreshVariableGenerator(used_variables)

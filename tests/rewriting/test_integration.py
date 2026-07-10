@@ -219,6 +219,37 @@ class TestRewriteStatements(unittest.TestCase):
             """,
         )
 
+    def test_aggregate_assignment_with_pool(self):
+        """A pooled aggregate target expands to one assignment per entry."""
+        self.assertTransformEqual(
+            """
+            c.
+            f(a;b) := #sum{1 : c}.
+            """,
+            """
+            c.
+            Ff(a,W) :- W = #sum { 1: c }.
+            Ff(b,W) :- W = #sum { 1: c }.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
+    def test_aggregate_assignment_with_pool(self):
+        """A pooled aggregate target expands to one assignment per entry."""
+        self.assertTransformEqual(
+            """
+            c.
+            f(a;b,d) := #sum{1 : c}.
+            """,
+            """
+            c.
+            Ff(a,W) :- W = #sum { 1: c }.
+            Ff(b,d,W) :- W = #sum { 1: c }.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            :- Ff(X0,X1,_); 1 < #count { V: Ff(X0,X1,V) }.
+            """,
+        )
+
     def test_choice_count(self):
         """Test choice count."""
         self.assertTransformEqual(
