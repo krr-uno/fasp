@@ -68,7 +68,9 @@ class StatementUnnestTransformer:
         self, node: T, var_gen: FreshVariableGenerator
     ) -> T | None:
         """Default: recurse into the node's children."""
-        return node.transform(self.lib, self._rewrite_literal, var_gen)
+        return node.transform(  # pragma: no cover - fallback for future AST nodes
+            self.lib, self._rewrite_literal, var_gen
+        )
 
     @_rewrite_literal.register
     def _(
@@ -146,9 +148,19 @@ class StatementUnnestTransformer:
     @_rewrite_literal.register
     def _(
         self,
-        node: ast.BodyAggregate | ast.HeadAggregate | ast.HeadSetAggregate,
+        node: (
+            ast.BodyAggregate
+            | ast.BodySetAggregate
+            | ast.HeadAggregate
+            | ast.HeadSetAggregate
+        ),
         var_gen: FreshVariableGenerator,
-    ) -> ast.BodyAggregate | ast.HeadAggregate | ast.HeadSetAggregate:
+    ) -> (
+        ast.BodyAggregate
+        | ast.BodySetAggregate
+        | ast.HeadAggregate
+        | ast.HeadSetAggregate
+    ):
         """Rewrite aggregate nodes by unnesting their elements and guards."""
         new_elements = []
         for elem in node.elements:

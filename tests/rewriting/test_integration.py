@@ -487,6 +487,22 @@ class TestRewriteStatements(unittest.TestCase):
             intensional_functions={"f/0"},
         )
 
+    def test_body_set_aggregate_guard_unnesting(self):
+        """Intensional functions in body set-aggregate guards are unnested."""
+        self.assertTransformEqual(
+            """
+            f(a) := 1.
+            p(1).
+            r :- f(a) { p(X) }.
+            """,
+            """
+            Ff(a,1).
+            p(1).
+            r :- Ff(a,FUN); FUN <= #count { 0,p(X): p(X) }.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
     def test_optimize(self):
         """Test optimize statements and weak constraints."""
         self.assertTransformEqual(
