@@ -68,7 +68,7 @@ class Statement:
                 new_rewritten.append(result)
             else:
                 new_rewritten.extend(result)
-            self.rewritten = new_rewritten
+        self.rewritten = new_rewritten
 
 
 _RELATION_STR = {
