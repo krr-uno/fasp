@@ -57,7 +57,9 @@ class Statement:
         """
         Apply a rewriting function to the statement, updating the rewritten list.
 
-        The rewriting function can return either a single statement or a list of statements. In the first case, the rewritten list is updated to contain only the returned statement; in the second case, it is updated to contain all returned statements.
+        The rewriting function can return either one statement or a list of
+        statements. Every result replaces its corresponding input in the
+        current rewritten expansion.
         """
         new_rewritten: list[ast.Statement] = []
         for stmt in self.rewritten:

@@ -24,7 +24,6 @@ class FaspApp(App):
         self._library = library
         self._clingo_options = clingo_options
         self._prefix = "F"
-        self._print_rewrite = False
         self._control: Optional[Control] = None
         self._errors: list[Exception] = []
 
@@ -122,9 +121,7 @@ class FaspApp(App):
             )
 
 
-def fasp_main(
-    library: Library, options: list[str] | None = None, raise_errors: bool = False
-) -> int:
+def fasp_main(library: Library, options: list[str] | None = None) -> int:
     """
     Main function for the fasp application.
 
@@ -134,9 +131,6 @@ def fasp_main(
         The Clingo library to use.
     options
         Command line options to pass to the application.
-    raise_errors
-        If True, raise exceptions on errors instead of printing them.
-
     Returns
     -------
     int
@@ -152,10 +146,6 @@ def fasp_main(
         if app.has_errors:
             return 65
         return result
-    except BaseException:  # pragma: no cover
-        if raise_errors:
-            raise
-        return 1
     finally:
         colorama_deinit()
 
@@ -165,6 +155,7 @@ def main(options: Sequence[str] = ()) -> int:
 
     def logger(ty: core.MessageType, message: str) -> None:
         """Forward clingo log messages to standard error."""
+        del ty
         sys.stderr.write(message + "\n")
 
     with Library(logger=logger) as library:

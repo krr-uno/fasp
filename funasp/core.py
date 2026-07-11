@@ -60,6 +60,7 @@ class Library:
 
     def normalize_log_message(self, msg_type: MessageType, message: str) -> str | None:
         """Normalize selected clingo messages for FASP-specific reporting."""
+        del msg_type
         if "unsafe variable" in message:
             lines = message.split("\n")
             if self._processing_statement is None:  # pragma: no cover

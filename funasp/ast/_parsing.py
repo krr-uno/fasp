@@ -11,7 +11,10 @@ from ._core import Statement
 
 # Errors for strings use an angle-bracketed name (`<string>:1:2-3: error: ...`)
 # while errors for files use the plain file name (`file.lp:1:2-3: error: ...`).
-_PARSING_ERROR_RE = r"(?:<(?P<bracketed>.*?)>|(?P<file>.*?)):(?P<line>\d+):(?P<col_start>\d+)-(?P<col_end>\d+): error: (?P<msg>.*)"
+_PARSING_ERROR_RE = (
+    r"(?:<(?P<bracketed>.*?)>|(?P<file>.*?)):"
+    r"(?P<line>\d+):(?P<col_start>\d+)-(?P<col_end>\d+): error: (?P<msg>.*)"
+)
 _PARSING_ERROR_PATTERN = re.compile(_PARSING_ERROR_RE)
 
 

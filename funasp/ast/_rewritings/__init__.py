@@ -110,8 +110,8 @@ def clingo_rewrite_wrapper(
     try:
         context.lib.processing_statement(str(original))
         return list(ast.rewrite_statement(context.ctx, statement))
-    except RuntimeError as e:
-        raise RuntimeError("rewriting failed", [(statement, e)])
+    except RuntimeError as error:
+        raise RuntimeError("rewriting failed", [(statement, error)]) from error
     finally:
         context.lib.clear_processing_statement()
 

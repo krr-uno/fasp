@@ -40,6 +40,8 @@ class StatementUnnestTransformer:
         """Initialize the statement-level unnesting transformer."""
         self.lib = lib
         self.intensional_functions = intensional_functions
+        self.head_literal_transformer: UnnestFunctionsInLiteralsTransformer
+        self.body_literal_transformer: UnnestFunctionsInLiteralsTransformer
 
     def transform_statement(self, node: ast.Statement) -> ast.Statement:
         """
@@ -119,25 +121,24 @@ class StatementUnnestTransformer:
             if literal is None:
                 return None
             return node.update(self.lib, literal=literal)
-        else:
-            literal, comparisons = unnest_functions(
-                self.lib, node.literal, self.intensional_functions, var_gen
-            )
-            if not comparisons:
-                return None
+        literal, comparisons = unnest_functions(
+            self.lib, node.literal, self.intensional_functions, var_gen
+        )
+        if not comparisons:
+            return None
 
-            assert isinstance(
-                literal,
-                ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic,
-            )
-            false_lit = ast.LiteralBoolean(
-                self.lib, literal.location, ast.Sign.NoSign, False
-            )
-            literal = literal.update(self.lib, sign=ast.Sign.NoSign)
-            condition = [literal, *comparisons]
-            return ast.BodyConditionalLiteral(
-                self.lib, literal.location, false_lit, condition
-            )
+        assert isinstance(
+            literal,
+            ast.LiteralBoolean | ast.LiteralComparison | ast.LiteralSymbolic,
+        )
+        false_lit = ast.LiteralBoolean(
+            self.lib, literal.location, ast.Sign.NoSign, False
+        )
+        literal = literal.update(self.lib, sign=ast.Sign.NoSign)
+        condition = [literal, *comparisons]
+        return ast.BodyConditionalLiteral(
+            self.lib, literal.location, false_lit, condition
+        )
 
     @_rewrite_literal.register
     def _(
@@ -321,13 +322,13 @@ class StatementUnnestTransformer:
                     )
                 ]
             )
-        return None
 
     @_rewrite_literal.register
     def _(
         self, node: ast.HeadSimpleLiteral, var_gen: FreshVariableGenerator
     ) -> ast.HeadSimpleLiteral | None:
         """Rewrite a simple head literal by unnesting intensional functions within it."""
+        del var_gen
         return self.head_literal_transformer.unnest(node)
 
     @singledispatchmethod

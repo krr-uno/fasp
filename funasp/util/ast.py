@@ -95,14 +95,14 @@ class SyntacticCheckVisitor:
     traverse the AST and check for specific syntactic conditions.
     """
 
-    def __init__(self, invalid_ASTTypes: AbstractSet[type[AST]]) -> None:
+    def __init__(self, invalid_ast_types: AbstractSet[type[AST]]) -> None:
         """
         Initializes the SyntacticCheckVisitor.
 
         Args:
-            invalid_ASTTypes (set[ASTType]): A set of AST types that are considered invalid.
+            invalid_ast_types: AST types that are considered invalid.
         """
-        self.invalid_ASTTypes = invalid_ASTTypes
+        self.invalid_ast_types = invalid_ast_types
         self.errors: list[SyntacticError] = []
 
     def visit(self, node: AST, *args: Any, **kwargs: Any) -> None:
@@ -114,7 +114,7 @@ class SyntacticCheckVisitor:
         node : AST
             The AST node to visit.
         """
-        if type(node) in self.invalid_ASTTypes:
+        if type(node) in self.invalid_ast_types:
             assert hasattr(node, "location"), f"Node {node} has no location"
             self.errors.append(
                 SyntacticError(node.location, f"unexpected {node}", type(node))
@@ -269,8 +269,8 @@ class RewritingException(Exception):
         super().__init__(f"Rewriting failed with {len(errors)} error(s):\n{messages}")
 
 
-TERM_OR_ARGTUPLE_T = TypeVar(
-    "TERM_OR_ARGTUPLE_T",
+TermOrArgumentTupleT = TypeVar(
+    "TermOrArgumentTupleT",
     ast.TermOrProjection,
     ast.ArgumentTuple,
 )
@@ -296,14 +296,15 @@ class TermTransformer[T2: ast.TermOrProjection, **P]:
         ],
     ):
         """
-        Transform a term AST node using the provided transformation function. If a Symbol is replaced by a Term, it will be wrapped in a TermSymbolic node and the tree will be accordingly transformed.
+        Transform a term AST node using the provided transformation function.
+        Replaced symbols are wrapped in ``TermSymbolic`` nodes.
 
         Args:
             library (Library): The library to use for creating new AST nodes.
-            term (ast.Term): The term AST node to transform.
-            transform_func (callable): A function that takes a term, integer representing the depth of recursion and a recursive function, and returns a transformed term. The function may have additional parameters, which will be passed through to the recursive function. The transform_func should return None if no transformation is needed, or a new term if a transformation is applied. If a transformation happens, the transformer will not recurse into the children of the term, as it is assumed that the transform_func has already handled them. The recursive function passed to transform_func can be used to apply the transformation to child nodes.
+            transform_func: Receives a term, recursion depth, location, and
+                recursive callback. It returns a replacement or ``None``.
 
-        The resulting object is callable and can be used to transform a term AST node by calling it with the term and any additional parameters required by the transform_func.
+        Extra call arguments are forwarded to the transformation callback.
         """
         self.library = library
         self.transform_func = transform_func
@@ -360,14 +361,15 @@ class TermTransformer[T2: ast.TermOrProjection, **P]:
     @singledispatchmethod
     def _apply(
         self,
-        term: TERM_OR_ARGTUPLE_T,
+        term: TermOrArgumentTupleT,
         depth: int,
         *args: Any,
         **kwargs: Any,
-    ) -> TERM_OR_ARGTUPLE_T | None:
+    ) -> TermOrArgumentTupleT | None:
         """
         Apply the transformation to a term or argument tuple node.
         """
+        del depth, args, kwargs  # pragma: no cover - unreachable dispatch fallback
         assert False, f"Unhandled term type {type(term)}"  # pragma: no cover
 
     @_apply.register(ast.TermOrProjection)
@@ -395,8 +397,8 @@ class TermTransformer[T2: ast.TermOrProjection, **P]:
     def __call__(
         self,
         term: ast.TermOrProjection | ast.ArgumentTuple,
-        depth: int = 0,
         *args: Any,
+        depth: int = 0,
         **kwargs: Any,
     ) -> T2 | None:
         """Transform the given term AST node using the provided transformation function."""
@@ -447,9 +449,9 @@ class TermReplacer[**P]:
 
         Args:
             library (Library): The library to use for creating new AST nodes.
-            condition (callable): A function that takes a term and the recursion depth and returns True if it should be replaced.
-            callback (callable): A function that takes a LiteralComparison and is called when a replacement occurs.
-            variable_generator (FreshVariableGenerator): A generator for creating fresh variable names.
+            condition: Decides whether a term at a recursion depth is replaced.
+            callback: Receives the comparison generated for each replacement.
+            variable_generator: Generates fresh replacement variables.
         """
         self.library = library
         self.condition = condition
@@ -497,14 +499,14 @@ def replace_term[**P](
     **kwargs: P.kwargs,
 ) -> ast.TermOrProjection | None:
     """
-    Replace a term in the AST with a fresh variable if it satisfies the given condition.
+    Replace a term with a fresh variable if it satisfies the condition.
 
     Args:
         library (Library): The library to use for creating new AST nodes.
         node (ast.TermOrProjection): The term AST node to transform.
-        condition (callable): A function that takes a term and the recursion depth and returns True if it should be replaced.
-        callback (callable): A function that takes a LiteralComparison and is called when a replacement occurs.
-        variable_generator (FreshVariableGenerator): A generator for creating fresh variable names.
+        condition: Decides whether a term at a recursion depth is replaced.
+        callback: Receives the comparison generated for each replacement.
+        variable_generator: Generates fresh replacement variables.
     Returns:
         ast.TermOrProjection | None: The transformed term AST node, or None if no transformation occurred.
     """
@@ -520,4 +522,4 @@ def replace_term[**P](
         library,
         term_replacer.replace_term,
     )
-    return transformer(node, 0)
+    return transformer(node)

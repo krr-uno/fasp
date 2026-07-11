@@ -22,8 +22,8 @@ from funasp.util.ast import (
 from funasp.util.iterables import map_none
 from funasp.util.types import SymbolSignature
 
-AST_T = TypeVar(
-    "AST_T",
+AstT = TypeVar(
+    "AstT",
     ast.ArgumentTuple,
     ast.BodyAggregate,
     ast.BodyAggregateElement,
@@ -132,10 +132,10 @@ class UnnestFunctionsInLiteralsTransformer:
     @singledispatchmethod
     def unnest(
         self,
-        node: AST_T,
+        node: AstT,
         outer: bool = True,
         sign: ast.Sign | None = None,
-    ) -> AST_T | None:
+    ) -> AstT | None:
         """
         Unnest intensional functions in the given AST node.
         It returns a new node if changes were made, or None otherwise.
@@ -150,6 +150,7 @@ class UnnestFunctionsInLiteralsTransformer:
         sign: ast.Sign | None = None,
     ) -> ast.LiteralSymbolic | None:
         """Unnest intensional functions inside a symbolic literal."""
+        del outer, sign
         return node.transform(self.lib, self.unnest, outer=True, sign=node.sign)
 
     def _flip_equality(
@@ -173,6 +174,7 @@ class UnnestFunctionsInLiteralsTransformer:
         """
         Normalize comparisons to have intensional functions on the left side of equality only
         """
+        del outer
         outer_left = False
         is_new_node = False
         # Special case: equality with a single right guard
@@ -240,7 +242,11 @@ class UnnestFunctionsInLiteralsTransformer:
 
     @unnest.register
     def _(
-        self, node: ast.OptimizeTuple, outer: bool = True, sign: ast.Sign | None = None
+        self,
+        node: ast.OptimizeTuple,
+        outer: bool = True,
+        sign: ast.Sign | None = None,
     ) -> ast.OptimizeTuple | None:
         """Unnest intensional functions that occur inside optimize tuples."""
+        del outer
         return node.transform(self.lib, self.unnest, outer=False, sign=sign)
