@@ -15,7 +15,7 @@ class RewriteContext:
 
     def __init__(
         self,
-        lib: Library = Library(),
+        lib: Library,
         prefix_function: str = "F",
         *,
         intensional_functions: set[SymbolSignature] | None = None,
