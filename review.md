@@ -1,5 +1,7 @@
 Report: HEAD (fasp/jorge/agg-not) vs branch jorge/agg-not
 
+> Historical snapshot of a branch review; the bugs listed have since been fixed.
+
 jorge/agg-not is a direct ancestor of HEAD, so the diff is exactly the six bug-fix commits on top of it (one of which, A4, was reverted and redone). Net: 14 files, +435/−12. Verification status: nox -s test passes (188 tests, 100% coverage), mypy --strict clean, but black --check fails on three new test files, so CI's format session will fail.
 
 1. Changes made

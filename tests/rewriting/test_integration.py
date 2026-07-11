@@ -739,6 +739,14 @@ class TestRewriteStatements(unittest.TestCase):
         """An empty program is rewritten to an empty program without raising."""
         self.assertTransformEqual("", "")
 
+    def test_empty_prefix_rejected_for_empty_program(self):
+        """An empty function prefix is rejected even for an empty program."""
+        with self.assertRaisesRegex(
+            RewritingException,
+            "function prefix must not be empty",
+        ):
+            self.assertTransformEqual("", "", prefix="")
+
     def test_disjunction(self):
         """Function-free disjunctive heads pass through unchanged."""
         self.assertTransformEqual(

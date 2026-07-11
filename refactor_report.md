@@ -1,5 +1,8 @@
 # funasp refactor report
 
+> Historical snapshot — most suggestions below have since been applied; see
+> git history for what landed.
+
 **Date:** 2026-07-03
 **Branch:** `jorge/agg-not`
 **Scope:** readability and simplification review of `funasp/` (no behavior changes proposed unless noted). Suggestions are grouped by kind and roughly ordered by value; within each group the mechanical ones come first. Rough total: 150–200 lines can be deleted outright.

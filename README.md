@@ -17,6 +17,13 @@ pip install funasp
 funasp examples/family.lp
 ```
 
+Alternatively, install from source (this is the setup used for development):
+```bash
+pip install -r envs/requirements.txt
+pip install -e .
+funasp examples/family.lp
+```
+
 ## Language
 
 `funasp` is a strict superset of the clingo language: every clingo program is a
@@ -36,24 +43,27 @@ x := 2 :- a.
 fibo(X) := fibo(X-1) + fibo(X-2) :- number(X), X>1.
 ```
 
-The function value is uniques: for each tuple of arguments it takes at most one
+The function value is unique: for each tuple of arguments it takes at most one
 value. Defining two different values for the same arguments is unsatisfiable.
-
-### Choice assignments
 
 ### `#some` assignments
 
-Nondeterminitic assignments can be specified by
+Nondeterministic assignments can be specified by
 `#some{ ... }` choice rules.
 ```prolog
 color(X) := #some{r;g;b} :- country(X).        % each country gets one color
 cell(X,Y) := #some{1..9} :- X=0..8, Y=0..8.    % each cell gets one digit
 next(X) := #some{ Y : edge(X,Y) } :- vertex(X).
 ```
-A `#some{ ... }` choice rule state that **exactly one** value from its set is nondeterministically assigned to the function, if its set is non-empty.
+A `#some{ ... }` choice rule states that **exactly one** value from its set is
+nondeterministically assigned to the function if the set is non-empty;
+otherwise the function is left undefined.
 
-Alternatviely, we can use the usual syntax clingo choice rules by wrapping the head in braces turns the assignment into a *choice*: the function
-may take the value or be left undefined.
+### Choice assignments
+
+Alternatively, the usual syntax of clingo choice rules is available: wrapping
+an assignment head in braces turns it into a *choice* — the function may take
+the value or be left undefined.
 
 ```prolog
 { usedcoins(V) := 1..N } :- coins(V)=N.        % optionally assign a value in 1..N
@@ -100,6 +110,12 @@ block(B) :- on(B,0)=_.                                  % on(B,0) is defined
 orphan(X) :- person(X), not father(X)=_, not mother(X)=_.
 ```
 
+Note that a function symbol is treated as intensional only if it appears on the
+left-hand side of at least one assignment in the program (or in a `#showf`
+directive). Equations over other symbols are ordinary term comparisons: in the
+example above, if `mother` had no assignment anywhere, `mother(X)=_` would be a
+plain Herbrand comparison (always true) rather than a definedness test.
+
 ### Showing functions
 
 The `#showf` directive prints function atoms back in function syntax (`f(t)=v`)
@@ -116,3 +132,13 @@ folder.
 The [intensional-function AST support matrix](docs/support-matrix.md) documents
 which clingo statement, head, and body positions are translated, rejected, or
 not applicable.
+
+## Command-line options
+
+In addition to the clingo options, `funasp` accepts:
+
+| Option | Effect |
+|---|---|
+| `--prefix-fun=<prefix>` | Set the prefix for rewritten function predicates (default: `F`). Prefixes that collide with predicate names in the program are rejected. |
+| `--ignore-prefix-collisions` | Allow `--prefix-fun` values that collide with program predicates. |
+| `--order` | Print the atoms of each model in sorted order. |

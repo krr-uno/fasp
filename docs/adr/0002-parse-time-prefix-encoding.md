@@ -6,7 +6,7 @@ funasp desugars its function syntax (assignments, choice and aggregate
 assignments, `#some`) into ordinary clingo AST *at parse time* inside the
 `clingo_funasp` parser fork, encoding function names with an uppercase prefix
 (`F`, and `FS` for `#some`); all semantics is then handled separately in
-`funasp/rewriting/`. The encoding is unambiguous because user function names
+`funasp/ast/_rewritings/`. The encoding is unambiguous because user function names
 cannot start with an uppercase letter, and it lets the pipeline reuse clingo's
 AST wholesale instead of defining custom node types.
 
@@ -14,7 +14,7 @@ AST wholesale instead of defining custom node types.
 
 - **Custom AST node types**: most explicit, but requires extending every visitor
   and printer and diverging further from clingo's AST.
-- **Theory atoms**: avoid a parser fork, but the syntax is restricted and unatural
+- **Theory atoms**: avoid a parser fork, but the syntax is restricted and unnatural
   for assignments.
 - **Textual preprocessing**: brittle and loses source locations needed for error
   messages.

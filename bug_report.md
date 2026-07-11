@@ -1,5 +1,8 @@
 # funasp bug report
 
+> Historical snapshot — findings reflect the code at the date below; the
+> tracked resolution status of each item lives in `bug_fixes.md`.
+
 **Date:** 2026-07-03
 **Branch:** `jorge/agg-not` (HEAD `c15e30b`)
 **Scope:** full read of `funasp/` (rewrite pipeline, control/app, utils), with each suspected bug verified by running the rewrite pipeline or the CLI in the `funasp` conda env. Findings are ordered by severity.

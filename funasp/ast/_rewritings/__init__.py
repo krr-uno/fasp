@@ -33,6 +33,7 @@ from functools import partial
 from typing import Iterable
 
 from clingo_funasp import ast
+from clingo_funasp.core import Location, Position
 
 from funasp.ast import Statement
 from funasp.util.ast import RewritingException, SemanticError
@@ -73,19 +74,32 @@ def _prefix_collisions(context: RewriteContext) -> list[SymbolSignature]:
     )
 
 
+def _statements_location(
+    context: RewriteContext, statements: list[Statement]
+) -> Location:
+    """Return the first statement's location, or a synthetic one if empty."""
+    if statements:
+        return statements[0].original.location
+    position = Position(context.lib.library, "<funasp>", 0, 0)
+    return Location(position, position)
+
+
 def _validate_prefix_collisions(
     context: RewriteContext, statements: list[Statement]
 ) -> None:
     """Reject function prefixes that collide with predicates in the program."""
-    if not statements:
-        return
-    location = statements[0].original.location
     if not context.prefix_function:
         raise RewritingException(
-            [SemanticError(location, "function prefix must not be empty")]
+            [
+                SemanticError(
+                    _statements_location(context, statements),
+                    "function prefix must not be empty",
+                )
+            ]
         )
-    if context.ignore_prefix_collisions:
+    if context.ignore_prefix_collisions or not statements:
         return
+    location = statements[0].original.location
     collisions = _prefix_collisions(context)
     if not collisions:
         return

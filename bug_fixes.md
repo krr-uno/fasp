@@ -6,11 +6,12 @@ This file tracks fixes and decisions while working through `bug_report.md`.
 
 ### A1. Intensional functions in disjunctive heads
 
-Status: known unsupported case.
+Status: fixed (rejected with a diagnostic).
 
-`funasp` does not currently support `HeadDisjunction` rewriting for intensional
-functions. Treat this as a known limitation until support or a clear diagnostic
-is added.
+`funasp` does not translate `HeadDisjunction`/`HeadConditionalLiteral` for
+intensional functions; instead of silently passing the term through, the
+pipeline now raises a source-located semantic error ("intensional functions
+are not allowed in disjunctive heads"). See `docs/support-matrix.md`.
 
 ### A2. Conditional body literal equation leak
 
@@ -20,10 +21,11 @@ No new changes were needed. The bug report already marks this as fixed.
 
 ### A3. Body set aggregate guards are not unnested
 
-Status: TBD.
+Status: fixed.
 
-Need to decide whether to support unnesting `BodySetAggregate` guards or reject
-them with a clear rewriting error.
+`BodySetAggregate` guards are now unnested like `BodyAggregate` guards, so
+intensional function terms in set-aggregate guards are translated into
+prefixed lookups.
 
 ### A4. Invalid `--prefix-fun` corrupts user predicates
 
@@ -43,10 +45,11 @@ Changes made:
 
 ### B1. Pooled aggregate assignments crash
 
-Status: TBD.
+Status: fixed.
 
-Need to decide whether pooled aggregate assignments should be expanded like
-`#some` assignments or rejected with a proper `RewritingException`.
+Pooled aggregate assignment targets are expanded into one assignment per pool
+entry, matching the `#some` assignment expansion (e.g. `f(a;b) := #sum{...}`
+yields one rule for `f(a)` and one for `f(b)`).
 
 ### B2. `Control.get_rewritten_program` before parsing
 

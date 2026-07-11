@@ -81,7 +81,7 @@ funasp/
       __init__.py        # rewrite_statements() pipeline orchestrator
       context.py         # RewriteContext and fresh auxiliary predicates
       validation.py      # reject rough functions in unsupported AST positions
-      collectors.py      # intensional signatures from parser-prefixed heads
+      collectors.py      # intensional signatures from prefixed heads and #showf
       some_assignments.py  # FS aggregate → choice =1 + #count>=1 body
       aggregates.py      # aggregate assignments → simple head + body aggregate
       negated_literals.py  # head/body/condition negation rewrites

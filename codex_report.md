@@ -1,5 +1,9 @@
 # funasp code review report
 
+> Historical snapshot — this review predates the fixes it recommended (most
+> have since landed) and refers to `CLAUDE.md`, which was consolidated into
+> `AGENTS.md`. It is kept for engineering history, not as a status document.
+
 ## Executive summary
 
 The current tree is a compact translation layer that turns FASP syntax into
