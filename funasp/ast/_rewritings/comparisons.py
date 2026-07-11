@@ -64,6 +64,11 @@ class ComparisonTransformer:
                     + [value],
                 )
             ]
+        else:
+            raise TypeError(
+                "assigned function must be a function-valued TermFunction "
+                "or TermSymbolic"
+            )
 
         return ast.TermFunction(
             self.library,
