@@ -50,6 +50,25 @@ class TestUnnestStatement(unittest.TestCase):
             ["p(X) :- q(X); not r(X)."],
         )
 
+    def test_unchanged_rule_preserves_identity(self):
+        """A rule with no intensional occurrence is not rebuilt."""
+        context = RewriteContext(
+            self.lib, "F", intensional_functions={SymbolSignature("f", 1)}
+        )
+        statement = parse_string(self.lib, "p(X) :- q(X).")[1].original
+        self.assertIs(unnest_statement(context, statement), statement)
+
+    def test_unchanged_optimize_and_weak_constraint_preserve_identity(self):
+        """Unchanged optimization statements are not rebuilt."""
+        context = RewriteContext(
+            self.lib, "F", intensional_functions={SymbolSignature("f", 1)}
+        )
+        statements = parse_string(self.lib, "#minimize { X : q(X) }. :~ q(X). [X]")
+        for statement in statements[1:]:
+            self.assertIs(
+                unnest_statement(context, statement.original), statement.original
+            )
+
     def test_conditional_literal_main_literal(self):
         """The comparison for a conditional literal's main literal stays local.
 
