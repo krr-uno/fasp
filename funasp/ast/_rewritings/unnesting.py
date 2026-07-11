@@ -10,7 +10,7 @@ already prefixed atoms).
 """
 
 from functools import singledispatchmethod
-from typing import Any, List, Set
+from typing import Any, List, Sequence, Set
 
 from clingo_funasp import ast
 from clingo_funasp.core import Library
@@ -57,6 +57,41 @@ class StatementUnnestTransformer:
             self.lib, self.intensional_functions, var_gen
         )
         return self._rewrite(node, var_gen)
+
+    def _element_transformer(
+        self, var_gen: FreshVariableGenerator
+    ) -> UnnestFunctionsInLiteralsTransformer:
+        """Create the local transformer used for conditioned elements."""
+        return UnnestFunctionsInLiteralsTransformer(
+            self.lib,
+            self.intensional_functions,
+            var_gen,
+            allowed_in_negated_literals=False,
+        )
+
+    @staticmethod
+    def _rewrite_element_condition(
+        transformer: UnnestFunctionsInLiteralsTransformer,
+        condition: Sequence[ast.Literal],
+    ) -> list[ast.Literal] | None:
+        """Rewrite the literals in an element condition."""
+        return map_none(
+            lambda literal: transformer.unnest(literal, outer=False), condition
+        )
+
+    @staticmethod
+    def _append_element_comparisons(
+        transformer: UnnestFunctionsInLiteralsTransformer,
+        original: Sequence[ast.Literal],
+        rewritten: list[ast.Literal] | None,
+    ) -> list[ast.Literal] | None:
+        """Append generated lookups to a rewritten element condition."""
+        comparisons = transformer.pop_all_unnested_functions()
+        if not comparisons:
+            return rewritten
+        result = rewritten or list(original)
+        result.extend(comparisons)
+        return result
 
     @singledispatchmethod
     def _rewrite_literal[
@@ -187,28 +222,21 @@ class StatementUnnestTransformer:
         var_gen: FreshVariableGenerator,
     ) -> ast.BodyAggregateElement | ast.HeadAggregateElement | None:
         """Rewrite aggregate elements by unnesting tuples, conditions, and literals."""
-        transformer = UnnestFunctionsInLiteralsTransformer(
-            self.lib,
-            self.intensional_functions,
-            var_gen,
-            allowed_in_negated_literals=False,
-        )
+        transformer = self._element_transformer(var_gen)
         update: dict[str, Any] = {}
         if tuple_ := map_none(lambda t: transformer.unnest(t, outer=False), node.tuple):
             update["tuple"] = tuple_
-        if condition := map_none(
-            lambda c: transformer.unnest(c, outer=False), node.condition
-        ):
-            update["condition"] = condition
+        condition = self._rewrite_element_condition(transformer, node.condition)
 
         if isinstance(node, ast.HeadAggregateElement):
             literal = transformer.unnest(node.literal)
             if literal is not None:
                 update["literal"] = literal
 
-        if extra := transformer.pop_all_unnested_functions():
-            condition = condition or list(node.condition)
-            condition.extend(extra)
+        condition = self._append_element_comparisons(
+            transformer, node.condition, condition
+        )
+        if condition is not None:
             update["condition"] = condition
         return node.update(self.lib, **update) if update else None
 
@@ -219,23 +247,16 @@ class StatementUnnestTransformer:
         var_gen: FreshVariableGenerator,
     ) -> ast.SetAggregateElement | None:
         """Rewrite a set aggregate element by unnesting its literal and condition."""
-        transformer = UnnestFunctionsInLiteralsTransformer(
-            self.lib,
-            self.intensional_functions,
-            var_gen,
-            allowed_in_negated_literals=False,
-        )
+        transformer = self._element_transformer(var_gen)
         update: dict[str, Any] = {}
         literal = transformer.unnest(node.literal)
         if literal is not None:
             update["literal"] = literal
-        if condition := map_none(
-            lambda c: transformer.unnest(c, outer=False), node.condition
-        ):
-            update["condition"] = condition
-        if extra := transformer.pop_all_unnested_functions():
-            condition = condition or list(node.condition)
-            condition.extend(extra)
+        condition = self._rewrite_element_condition(transformer, node.condition)
+        condition = self._append_element_comparisons(
+            transformer, node.condition, condition
+        )
+        if condition is not None:
             update["condition"] = condition
         return node.update(self.lib, **update) if update else None
 
@@ -246,23 +267,16 @@ class StatementUnnestTransformer:
         var_gen: FreshVariableGenerator,
     ) -> ast.OptimizeElement | None:
         """Rewrite an optimize element and append any generated comparisons to its condition."""
-        transformer = UnnestFunctionsInLiteralsTransformer(
-            self.lib,
-            self.intensional_functions,
-            var_gen,
-            allowed_in_negated_literals=False,
-        )
+        transformer = self._element_transformer(var_gen)
         update: dict[str, Any] = {}
-        tuple = transformer.unnest(node.tuple)
-        if tuple is not None:
-            update["tuple"] = tuple
-        if condition := map_none(
-            lambda c: transformer.unnest(c, outer=False), node.condition
-        ):
-            update["condition"] = condition
-        if extra := transformer.pop_all_unnested_functions():
-            condition = condition or list(node.condition)
-            condition.extend(extra)
+        tuple_ = transformer.unnest(node.tuple)
+        if tuple_ is not None:
+            update["tuple"] = tuple_
+        condition = self._rewrite_element_condition(transformer, node.condition)
+        condition = self._append_element_comparisons(
+            transformer, node.condition, condition
+        )
+        if condition is not None:
             update["condition"] = condition
         return node.update(self.lib, **update) if update else None
 
