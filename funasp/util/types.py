@@ -1,4 +1,3 @@
-# from dataclasses import dataclass
 from typing import Final, NamedTuple
 
 #: Predicate-name prefixes reserved for pipeline-generated auxiliary

@@ -32,20 +32,10 @@ def _is_internal_symbol(symbol: Symbol, prefix: str) -> bool:
 
 
 class Model:
-    """
-    Provides access to a model during a solve call and provides a
-    `SolveContext` object to influence the running search.
+    """FASP-aware view of a clingo model.
 
-    Notes
-    -----
-    The string representation of a model object is similar to the output of
-    models by clingo using the default output.
-
-    `Model` objects cannot be constructed from Python. Instead they are obained
-    during solving (see `Control.solve`). Furthermore, the lifetime of a model
-    object is limited to the scope of the callback it was passed to or until
-    the search for the next model is started. They must not be stored for later
-    use.
+    Encoded function predicates are exposed as :class:`FunctionSymbol` values,
+    and pipeline-generated auxiliary predicates are hidden from user output.
     """
 
     def __init__(self, model: solve.Model, prefix: str = "F"):
@@ -73,10 +63,6 @@ class Model:
             Select all atoms and terms as outputted by clingo.
         theory
             Select atoms added with `Model.extend`.
-        complement
-            Return the complement of the answer set w.r.t. to the atoms known
-            to the grounder.
-
         Returns
         -------
         The selected symbols.

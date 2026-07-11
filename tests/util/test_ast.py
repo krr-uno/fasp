@@ -456,7 +456,7 @@ class TestReplaceTerm(unittest.TestCase):
         """Assert that the term is transformed correctly."""
         comparisons = []
         transformed_term = util_ast.replace_term(
-            self.lib, term, function, comparisons.append, self.var_gen, ast.Sign.NoSign
+            self.lib, term, function, comparisons.append, self.var_gen
         )
         if expected_str is None:
             self.assertIsNone(transformed_term)

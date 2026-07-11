@@ -23,20 +23,13 @@ def check_versions() -> int:  # pragma: no cover
             f"*** ERROR: funasp requires clingo library version 6.0.0 or higher, found version {clingo_version_str}.\n"
         )
         return 1
-    # sys.stdout.write(f"clingo version {clingo_version_str}\n")
     return 0
 
 
 def main() -> int:
     """Run the package entry point after validating the runtime environment."""
-    args = frozenset(sys.argv[1:])
-    "-v" in args or "--version" in args
-    # if not version_mode:
-    #     sys.stdout.write(f"fasp version {__version__}\n")
-    if error_code := check_versions() != 0:  # pragma: no cover
+    if (error_code := check_versions()) != 0:  # pragma: no cover
         return error_code
-    # if not version_mode:
-    #     sys.stdout.write("\n")
     from funasp.app import main as app_main  # pylint: disable=import-outside-toplevel
 
     return app_main(sys.argv[1:])

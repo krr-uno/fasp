@@ -236,7 +236,6 @@ class UnnestFunctionsInLiteralsTransformer:
             _replace_term_condition,
             self.unnested_functions.append,
             self.var_gen,
-            sign or ast.Sign.NoSign,
         )
 
     @unnest.register

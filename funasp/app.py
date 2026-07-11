@@ -146,7 +146,6 @@ def fasp_main(
     if options is None:  # pragma: no cover
         options = []
     app = FaspApp(library, options)
-    # options.append("--outf=3")
     try:
         result = clingo_main(library.library, options, app)
         app.report_error_summary()

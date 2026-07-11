@@ -48,73 +48,6 @@ AST = (
 )
 
 
-# AST_T = TypeVar(
-#     "AST_T",
-#     ast.ArgumentTuple,
-#     ast.BodyAggregate,
-#     ast.BodyAggregateElement,
-#     ast.BodyConditionalLiteral,
-#     ast.BodySetAggregate,
-#     ast.BodySimpleLiteral,
-#     ast.BodyTheoryAtom,
-#     ast.Edge,
-#     ast.HeadAggregate,
-#     ast.HeadAggregateElement,
-#     ast.HeadConditionalLiteral,
-#     ast.HeadDisjunction,
-#     ast.HeadSetAggregate,
-#     ast.HeadSimpleLiteral,
-#     ast.HeadTheoryAtom,
-#     ast.LeftGuard,
-#     ast.LiteralBoolean,
-#     ast.LiteralComparison,
-#     ast.LiteralSymbolic,
-#     ast.OptimizeElement,
-#     ast.OptimizeTuple,
-#     ast.ProgramPart,
-#     ast.Projection,
-#     ast.RightGuard,
-#     ast.SetAggregateElement,
-#     ast.StatementComment,
-#     ast.StatementConst,
-#     ast.StatementDefined,
-#     ast.StatementEdge,
-#     ast.StatementExternal,
-#     ast.StatementHeuristic,
-#     ast.StatementInclude,
-#     ast.StatementOptimize,
-#     ast.StatementParts,
-#     ast.StatementProgram,
-#     ast.StatementProject,
-#     ast.StatementProjectSignature,
-#     ast.StatementRule,
-#     ast.StatementScript,
-#     ast.StatementShow,
-#     ast.StatementShowNothing,
-#     ast.StatementShowSignature,
-#     ast.StatementTheory,
-#     ast.StatementWeakConstraint,
-#     ast.TermAbsolute,
-#     ast.TermBinaryOperation,
-#     ast.TermFunction,
-#     ast.TermSymbolic,
-#     ast.TermTuple,
-#     ast.TermUnaryOperation,
-#     ast.TermVariable,
-#     ast.TheoryAtomDefinition,
-#     ast.TheoryAtomElement,
-#     ast.TheoryGuardDefinition,
-#     ast.TheoryOperatorDefinition,
-#     ast.TheoryRightGuard,
-#     ast.TheoryTermDefinition,
-#     ast.TheoryTermFunction,
-#     ast.TheoryTermSymbolic,
-#     ast.TheoryTermTuple,
-#     ast.TheoryTermUnparsed,
-#     ast.TheoryTermVariable,
-#     ast.UnparsedElement,
-# )
-
 FunctionLikeAST = ast.TermFunction | ast.TermSymbolic | ast.TermTuple | Symbol
 
 
@@ -152,40 +85,6 @@ class SemanticError(NamedTuple):
     def __str__(self) -> str:
         """Return the clingo-style string representation of this semantic error."""
         return f"{self.location}: error: {self.message}"
-
-
-# class HeadBodyVisitor:
-
-#     def __init__(self, library: Library):
-#         self.lib = library
-
-#     @singledispatchmethod
-#     def _dispatch(self, expr: AST) -> None:
-#         """
-#         Order bodies of statements.
-#         """
-#         expr.visit(self.lib, self._dispatch)
-
-#     @_dispatch.register
-#     def _(self, node: ast.StatementRule, *args: Any, **kwargs: Any) -> None:
-#         """
-#         Visit the Rule node, setting the 'head' flag accordingly for children.
-
-#         Parameters
-#         ----------
-#         node : AST
-#             The Rule node.
-
-#         Returns
-#         -------
-#         AST
-#             The (potentially transformed) Rule node.
-#         """
-#         kwargs["head"] = True
-#         node.head.visit(self._lib, self._dispatch)
-#         kwargs["head"] = False
-#         for element in node.body:
-#             element.visit(self._lib, self._dispatch)
 
 
 class SyntacticCheckVisitor:
@@ -240,25 +139,6 @@ def create_literal(
         position = Position(library, "<aux>", 0, 0)
         location = Location(position, position)
     return ast.LiteralSymbolic(library, location, sign, atom)
-
-
-# def create_head_literal(
-#     library: Library,
-#     atom: ast.Term,
-#     sign: ast.Sign = ast.Sign.NoSign,
-# ) -> HeadSimpleLiteral:
-#     """
-#     Create a head literal from a term AST.
-
-#     Args:
-#         library (Library): The library to use for creating the literal.
-#         atom (ast.Term): The term AST to create the literal from.
-#         sign (ast.Sign): The sign of the literal.
-
-#     Returns:
-#         HeadSimpleLiteral: The created head literal.
-#     """
-#     return ast.HeadSimpleLiteral(library, create_literal(library, atom, sign))
 
 
 def create_body_literal(
@@ -333,12 +213,6 @@ def function_arguments_ast(
             new_arguments.append(a)
 
     return name, new_arguments
-
-    # if arguments and isinstance(arguments[0], ast.Term):
-    #     return name, cast(Sequence[ast.Term], arguments)
-    # return name, [
-    #     ast.TermSymbolic(library, node.location, cast(Symbol, a)) for a in arguments
-    # ]
 
 
 class FreshVariableGenerator:
@@ -546,7 +420,6 @@ def make_equation(
     loc: Location,
     left: ast.Term,
     right: ast.Term,
-    sign: ast.Sign | None = None,
 ) -> ast.LiteralComparison:
     """Build an equality comparison linking an unnested function to a fresh variable."""
     return ast.LiteralComparison(
@@ -566,7 +439,6 @@ class TermReplacer[**P]:
         condition: Callable[Concatenate[ast.Term | Symbol, int, P], bool],
         callback: Callable[[ast.LiteralComparison], None],
         variable_generator: FreshVariableGenerator,
-        sign: ast.Sign = ast.Sign.NoSign,
         *args: P.args,
         **kwargs: P.kwargs,
     ):
@@ -583,7 +455,6 @@ class TermReplacer[**P]:
         self.condition = condition
         self.callback = callback
         self.variable_generator = variable_generator
-        self.sign = sign
         self.args = args
         self.kwargs = kwargs
 
@@ -611,7 +482,7 @@ class TermReplacer[**P]:
         fresh: ast.TermVariable = self.variable_generator.fresh_variable(
             self.library, location, "FUN"
         )
-        comp = make_equation(self.library, location, node, fresh, self.sign)
+        comp = make_equation(self.library, location, node, fresh)
         self.callback(comp)
         return fresh
 
@@ -622,7 +493,6 @@ def replace_term[**P](
     condition: Callable[Concatenate[ast.Term | Symbol, int, P], bool],
     callback: Callable[[ast.LiteralComparison], None],
     variable_generator: FreshVariableGenerator,
-    sign: ast.Sign,
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> ast.TermOrProjection | None:
@@ -643,7 +513,6 @@ def replace_term[**P](
         condition,
         callback,
         variable_generator,
-        sign,
         *args,
         **kwargs,
     )

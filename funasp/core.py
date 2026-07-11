@@ -10,7 +10,6 @@ carries the ``processing_statement`` text used in error reports.
 import re
 import typing
 
-from clingo_funasp import ast
 from clingo_funasp.core import Library as ClingoLibrary
 from clingo_funasp.core import LogLevel, MessageType
 
@@ -32,12 +31,7 @@ class Library:
     ) -> None:
         """Initialize the clingo library wrapper and its message handling state."""
         self.error_messages: list[tuple[MessageType, str]] = []
-        self.last_error_reported = 0
-        self.shared = shared
-        self.slotted = slotted
-        self.log_level = log_level
         self.logger = logger
-        self.message_limit = message_limit
         self.library = ClingoLibrary(
             shared,
             slotted,
@@ -45,8 +39,6 @@ class Library:
             self.handle_log_message,
             message_limit,
         )
-        self.original_statements: dict[str, list[ast.Statement]] = {}
-        self.ignore_info = False
         self.prefix_function = "F"
         self.function_predicates: set[SymbolSignature] = set()
         self._processing_statement: str | None = None
@@ -59,24 +51,11 @@ class Library:
         """Clear the currently processing statement."""
         self._processing_statement = None
 
-    # def add_original_statement(self, statement: ast.Statement) -> None:
-    #     file = statement.location.begin.file
-    #     if file not in self.original_statements:
-    #         self.original_statements[file] = []
-    #     self.original_statements[file].append(statement)
-
     def handle_log_message(self, msg_type: MessageType, message: str) -> None:
         """Capture, normalize, and optionally forward messages emitted by clingo."""
         self.error_messages.append((msg_type, message))
         new_message = self.normalize_log_message(msg_type, message)
-        if (
-            new_message
-            and self.logger is not None
-            and (
-                not self.ignore_info
-                or msg_type not in {MessageType.Info, MessageType.OperationUndefined}
-            )
-        ):  # pragma: no cover
+        if new_message and self.logger is not None:  # pragma: no cover
             self.logger(msg_type, new_message)
 
     def normalize_log_message(self, msg_type: MessageType, message: str) -> str | None:
