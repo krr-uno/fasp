@@ -30,11 +30,11 @@ from typing import TypeGuard
 from clingo_funasp import ast
 from clingo_funasp.core import Library
 
-from funasp.ast import transform_iterable
 from funasp.ast._rewritings.context import RewriteContext
 from funasp.ast._rewritings.literals import unnest_functions
 from funasp.util.ast import FreshVariableGenerator, create_literal
 from funasp.util.collectors import collect_variables
+from funasp.util.iterables import map_none
 
 # A head literal is moved to the body with its negation complemented:
 # ``not l`` (single) becomes ``not not l`` (double) and vice versa.
@@ -72,8 +72,8 @@ def rewrite_negated_body_literals(
     """Rewrite eligible negated body literals inside a single statement."""
     if not isinstance(statement, ast.StatementRule):
         return statement
-    new_body = transform_iterable(
-        context.lib.library, statement.body, _rewrite_body_literal
+    new_body = map_none(
+        partial(_rewrite_body_literal, context.lib.library), statement.body
     )
     if new_body is None:
         return statement
@@ -150,10 +150,9 @@ def _rewrite_element_condition[
     element: ElementT,
 ) -> ElementT | None:
     """Lift the negated literals inside an element's condition."""
-    new_condition = transform_iterable(
-        library,
+    new_condition = map_none(
+        partial(_lift_condition_literal, context, auxiliary, library),
         element.condition,
-        partial(_lift_condition_literal, context, auxiliary),
     )
     if new_condition is None:
         return None
@@ -170,10 +169,9 @@ def _rewrite_body_element(
     if isinstance(body_literal, ast.BodyConditionalLiteral):
         return _rewrite_element_condition(context, auxiliary, library, body_literal)
     if isinstance(body_literal, ast.BodyAggregate | ast.BodySetAggregate):
-        new_elements = transform_iterable(
-            library,
+        new_elements = map_none(
+            partial(_rewrite_element_condition, context, auxiliary, library),
             body_literal.elements,
-            partial(_rewrite_element_condition, context, auxiliary),
         )
         if new_elements is None:
             return None
@@ -201,16 +199,14 @@ def _rewrite_head(
 ) -> ast.HeadLiteral | None:
     """Lift the negated condition literals inside a rule head."""
     if isinstance(head, ast.HeadDisjunction):
-        new_elements = transform_iterable(
-            library,
+        new_elements = map_none(
+            partial(_rewrite_disjunction_element, context, auxiliary, library),
             head.elements,
-            partial(_rewrite_disjunction_element, context, auxiliary),
         )
     elif isinstance(head, ast.HeadSetAggregate | ast.HeadAggregate):
-        new_elements = transform_iterable(
-            library,
+        new_elements = map_none(
+            partial(_rewrite_element_condition, context, auxiliary, library),
             head.elements,
-            partial(_rewrite_element_condition, context, auxiliary),
         )
     else:
         return None
@@ -236,10 +232,9 @@ def rewrite_negated_condition_literals(
     new_head = _rewrite_head(context, auxiliary, library, statement.head)
     if new_head is not None:
         update["head"] = new_head
-    new_body = transform_iterable(
-        library,
+    new_body = map_none(
+        partial(_rewrite_body_element, context, auxiliary, library),
         statement.body,
-        partial(_rewrite_body_element, context, auxiliary),
     )
     if new_body is not None:
         update["body"] = new_body

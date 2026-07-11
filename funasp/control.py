@@ -9,6 +9,7 @@ from clingo_funasp import symbol
 
 from funasp.ast import (
     RewriteContext,
+    Statement,
     parse_files,
     parse_string,
     rewrite_statements,
@@ -49,21 +50,7 @@ class Control:
         files
             The paths of the files to parse and load.
         """
-        rewrite_ctx = RewriteContext(
-            self.library,
-            self.prefix,
-            ignore_prefix_collisions=self.ignore_prefix_collisions,
-        )
-        statements = parse_files(self.library, files)
-        rewritten = rewrite_statements(rewrite_ctx, statements)
-        program = ast.Program(self.library.library)
-        for wrapper in rewritten:
-            for statement in wrapper.rewritten:
-                program.add(statement)
-        self.clingo_control.join(program)
-        self._rewritten_program = "\n".join(
-            str(s) for wrapper in rewritten for s in wrapper.rewritten
-        )
+        self._load(parse_files(self.library, files))
 
     def parse_string(self, code: str) -> None:
         """
@@ -76,20 +63,23 @@ class Control:
         code
             The FASP program text to parse and load.
         """
-        rewrite_ctx = RewriteContext(
+        self._load(parse_string(self.library, code))
+
+    def _load(self, statements: list[Statement]) -> None:
+        """Rewrite parsed statements and load them into the clingo control."""
+        rewrite_context = RewriteContext(
             self.library,
             self.prefix,
             ignore_prefix_collisions=self.ignore_prefix_collisions,
         )
-        statements = parse_string(self.library, code)
-        rewritten = rewrite_statements(rewrite_ctx, statements)
+        rewritten = rewrite_statements(rewrite_context, statements)
         program = ast.Program(self.library.library)
         for wrapper in rewritten:
             for statement in wrapper.rewritten:
                 program.add(statement)
         self.clingo_control.join(program)
         self._rewritten_program = "\n".join(
-            str(s) for wrapper in rewritten for s in wrapper.rewritten
+            str(statement) for wrapper in rewritten for statement in wrapper.rewritten
         )
 
     def ground(
