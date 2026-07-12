@@ -68,7 +68,6 @@ class StatementUnnestTransformer:
             self.lib,
             self.intensional_functions,
             var_gen,
-            allowed_in_negated_literals=False,
         )
 
     @staticmethod
@@ -166,7 +165,6 @@ class StatementUnnestTransformer:
                 cond,
                 self.intensional_functions,
                 var_gen,
-                allowed_in_negated_literals=False,
             )
             if new_cond is not None:
                 is_new_condition = True
@@ -384,7 +382,6 @@ class StatementUnnestTransformer:
             self.lib,
             self.intensional_functions,
             var_gen,
-            allowed_in_negated_literals=False,
         )
         update: dict[str, Any] = {}
         new_tuple = transformer.unnest(node.tuple)

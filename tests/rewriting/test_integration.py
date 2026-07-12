@@ -965,18 +965,49 @@ class TestRewriteStatements(unittest.TestCase):
         )
 
     def test_intensional_in_negated_weak_constraint_literal(self):
-        """Test that intensional functions in negated weak-constraint literals are rejected."""
-        with self.assertRaisesRegex(
-            RewritingException,
-            r"error: intensional functions are not allowed in negated literals",
-        ):
-            self.assertTransformEqual(
-                """
-                f(1) := 2.
-                :~ p(X), not q(f(X)). [1@0,X]
-                """,
-                "",
-            )
+        """Test that negated weak-constraint body literals are lifted."""
+        self.assertTransformEqual(
+            """
+            f(1) := 2.
+            :~ p(X), not q(f(X)). [1@0,X]
+            """,
+            """
+            Ff(1,2).
+            :~ p(X); not RD1(X). [1@0,X]
+            RD1(X) :- q(FUN); Ff(X,FUN).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
+    def test_intensional_in_double_negated_weak_constraint_literal(self):
+        """Test that doubly negated weak-constraint body literals keep their sign."""
+        self.assertTransformEqual(
+            """
+            f(1) := 2.
+            :~ p(X), not not q(f(X)). [1@0,X]
+            """,
+            """
+            Ff(1,2).
+            :~ p(X); not not RD1(X). [1@0,X]
+            RD1(X) :- q(FUN); Ff(X,FUN).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
+    def test_intensional_in_negated_optimize_condition(self):
+        """Test that negated optimize element condition literals are lifted."""
+        self.assertTransformEqual(
+            """
+            f(1) := 2.
+            #minimize { 1,X : p(X), not q(f(X)) }.
+            """,
+            """
+            Ff(1,2).
+            :~ p(X); not RD1(X). [1,X]
+            RD1(X) :- q(FUN); Ff(X,FUN).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
 
     def test_intensional_in_negated_set_aggregate_literal(self):
         """Test that negated set-aggregate element literals are lifted."""

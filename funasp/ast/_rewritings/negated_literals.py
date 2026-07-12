@@ -29,6 +29,8 @@ Negated aggregate *element* literals (left of the ``:`` in set-aggregate and
 head-aggregate elements) over intensional functions are lifted with the same
 sign-preserving encoding, for both single and double negation; function-free
 negated element literals are handled natively by clingo and left untouched.
+The same treatment applies to negated intensional literals in optimize
+element conditions and weak-constraint bodies.
 """
 
 from functools import partial
@@ -119,6 +121,7 @@ def _lift_literal(
     library: Library,
     literal: ast.LiteralSymbolic,
     aux_body: list[ast.BodyLiteral],
+    *,
     replacement_sign: ast.Sign = ast.Sign.Single,
 ) -> ast.LiteralSymbolic:
     """Append the rule ``RDi(vars) :- aux_body.`` and return the replacement.
@@ -209,6 +212,26 @@ def _rewrite_element_condition[
     return element.update(library, condition=new_condition)
 
 
+def _lift_negated_intensional_literal(
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    literal: ast.Literal,
+) -> ast.LiteralSymbolic | None:
+    """Lift a negated symbolic literal when it contains intensional functions.
+
+    Function-free negated literals are handled natively by clingo and left
+    untouched.
+    """
+    if (
+        not isinstance(literal, ast.LiteralSymbolic)
+        or literal.sign == ast.Sign.NoSign
+        or not _contains_intensional_functions(context, literal)
+    ):
+        return None
+    return _lift_negated_literal(context, auxiliary, library, literal)
+
+
 def _rewrite_aggregate_element[
     ElementT: (ast.SetAggregateElement, ast.HeadAggregateElement)
 ](
@@ -217,20 +240,13 @@ def _rewrite_aggregate_element[
     library: Library,
     element: ElementT,
 ) -> ElementT | None:
-    """Lift an element's negated intensional literal and condition literals.
-
-    The element literal (left of the ``:``) is lifted only when it is negated
-    and contains intensional functions; function-free negated element literals
-    are handled natively by clingo.
-    """
+    """Lift an element's negated intensional literal and condition literals."""
     update: dict[str, object] = {}
-    literal = element.literal
-    if (
-        isinstance(literal, ast.LiteralSymbolic)
-        and literal.sign != ast.Sign.NoSign
-        and _contains_intensional_functions(context, literal)
-    ):
-        update["literal"] = _lift_negated_literal(context, auxiliary, library, literal)
+    replacement = _lift_negated_intensional_literal(
+        context, auxiliary, library, element.literal
+    )
+    if replacement is not None:
+        update["literal"] = replacement
     new_condition = map_none(
         partial(_lift_condition_literal, context, auxiliary, library),
         element.condition,
@@ -240,6 +256,39 @@ def _rewrite_aggregate_element[
     if not update:
         return None
     return element.update(library, **update)
+
+
+def _rewrite_optimize_element(
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    element: ast.OptimizeElement,
+) -> ast.OptimizeElement | None:
+    """Lift the negated intensional literals of an optimize element condition."""
+    new_condition = map_none(
+        partial(_lift_negated_intensional_literal, context, auxiliary, library),
+        element.condition,
+    )
+    if new_condition is None:
+        return None
+    return element.update(library, condition=new_condition)
+
+
+def _rewrite_weak_body_literal(
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    body_literal: ast.BodyLiteral,
+) -> ast.BodyLiteral | None:
+    """Lift the negated intensional literals of a weak-constraint body."""
+    if isinstance(body_literal, ast.BodySimpleLiteral):
+        replacement = _lift_negated_intensional_literal(
+            context, auxiliary, library, body_literal.literal
+        )
+        if replacement is None:
+            return None
+        return ast.BodySimpleLiteral(library, replacement)
+    return _rewrite_body_element(context, auxiliary, library, body_literal)
 
 
 def _rewrite_body_element(
@@ -312,12 +361,32 @@ def rewrite_negated_condition_literals(
     """
     Lift negated condition literals of a statement into auxiliary rules.
 
-    Returns the rewritten statement followed by the auxiliary rules defining
-    the fresh predicates that replace the lifted literals.
+    Covers rules, optimize statements (element conditions), and weak
+    constraints (body literals). Returns the rewritten statement followed by
+    the auxiliary rules defining the fresh predicates that replace the lifted
+    literals.
     """
+    library = context.lib.library
+    if isinstance(statement, ast.StatementOptimize):
+        optimize_auxiliary: list[ast.Statement] = []
+        new_elements = map_none(
+            partial(_rewrite_optimize_element, context, optimize_auxiliary, library),
+            statement.elements,
+        )
+        if new_elements is None:
+            return [statement]
+        return [statement.update(library, elements=new_elements), *optimize_auxiliary]
+    if isinstance(statement, ast.StatementWeakConstraint):
+        weak_auxiliary: list[ast.Statement] = []
+        new_weak_body = map_none(
+            partial(_rewrite_weak_body_literal, context, weak_auxiliary, library),
+            statement.body,
+        )
+        if new_weak_body is None:
+            return [statement]
+        return [statement.update(library, body=new_weak_body), *weak_auxiliary]
     if not isinstance(statement, ast.StatementRule):
         return [statement]
-    library = context.lib.library
     auxiliary: list[ast.Statement] = []
     update: dict[str, object] = {}
     new_head = _rewrite_head(context, auxiliary, library, statement.head)

@@ -137,9 +137,20 @@ class TestControl(unittest.TestCase):
         example_file = TEST_EXAMPLES_PATH / "negated_weak_constraint.lp"
 
         out, err, code = self.execute_app([example_file])
+        self.assertIn("f(1)=2", out)
+        self.assertIn("Optimization: 1", out)
+        self.assertIn("OPTIMUM FOUND", out)
+        self.assertNotIn("RuntimeError", err)
+        self.assertEqual(code, 30)
+
+    def test_app_disjunctive_head(self):
+        """Test app intensional function in a disjunctive head."""
+        example_file = TEST_EXAMPLES_PATH / "disjunctive_head.lp"
+
+        out, err, code = self.execute_app([example_file])
         self.assertIn(
-            "error: intensional functions are not allowed in negated literals "
-            "in optimization statements and aggregate element literals: 'q(f(X))'",
+            "error: intensional functions are not allowed in disjunctive heads: "
+            "'f(a)'",
             err,
         )
         self.assertIn("*** ERROR: (fasp): rewriting failed", err)

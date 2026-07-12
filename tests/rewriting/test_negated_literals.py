@@ -369,6 +369,55 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             [" :- 1 <= { not RD1: q }.", "RD1 :- p(f)."],
         )
 
+    def test_lifts_negated_intensional_weak_constraint_literal(self):
+        """A negated intensional weak-constraint body literal is lifted."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite(":~ p(X), not q(f(X)). [1@0,X]"),
+            [" :~ p(X); not RD1(X). [1@0,X]", "RD1(X) :- q(f(X))."],
+        )
+
+    def test_lifts_double_negated_intensional_weak_constraint_literal(self):
+        """A doubly negated intensional weak-constraint literal keeps its sign."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite(":~ p(X), not not q(f(X)). [1@0,X]"),
+            [" :~ p(X); not not RD1(X). [1@0,X]", "RD1(X) :- q(f(X))."],
+        )
+
+    def test_lifts_condition_in_weak_constraint_body(self):
+        """Condition literals of weak-constraint body elements are lifted."""
+        self.assertEqual(
+            self._rewrite(":~ p(X); r(X) : s(X), not q(X). [1@0,X]"),
+            [" :~ p(X); r(X): s(X), not RD1(X). [1@0,X]", "RD1(X) :- q(X)."],
+        )
+
+    def test_function_free_weak_constraint_body_unchanged(self):
+        """A function-free negated weak-constraint body literal is untouched."""
+        self._assert_unchanged(
+            parse_string(self.lib, ":~ p(X), not q(X). [1@0,X]")[1].original
+        )
+
+    def test_lifts_negated_intensional_optimize_condition(self):
+        """A negated intensional optimize condition literal is lifted."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("#minimize { 1,X : p(X), not q(f(X)) }."),
+            ["#minimize { 1,X: p(X), not RD1(X) }.", "RD1(X) :- q(f(X))."],
+        )
+
+    def test_function_free_optimize_condition_unchanged(self):
+        """A function-free negated optimize condition literal is untouched."""
+        self._assert_unchanged(
+            parse_string(self.lib, "#minimize { 1,X : p(X), not q(X) }.")[1].original
+        )
+
     def test_auxiliary_prefix_avoids_function_prefix(self):
         """Auxiliary predicates do not start with the configured function prefix."""
         self.context = RewriteContext(self.lib, prefix_function="R")

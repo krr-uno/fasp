@@ -13,12 +13,7 @@ from clingo_funasp import ast, symbol
 from clingo_funasp.core import Library
 from clingo_funasp.symbol import Symbol
 
-from funasp.util.ast import (
-    FreshVariableGenerator,
-    RewritingException,
-    SemanticError,
-    replace_term,
-)
+from funasp.util.ast import FreshVariableGenerator, replace_term
 from funasp.util.iterables import map_none
 from funasp.util.types import SymbolSignature
 
@@ -65,7 +60,6 @@ def unnest_functions[
     outer: bool = True,
     sign: ast.Sign | None = None,
     unnest_left_guard_equality: bool = False,
-    allowed_in_negated_literals: bool = True,
 ) -> tuple[T | None, List[ast.LiteralComparison]]:
     """
     Unnest intensional functions in a given rule and return the list of generated comparisons.
@@ -75,7 +69,6 @@ def unnest_functions[
         intensional_functions,
         variable_generator,
         unnest_left_guard_equality,
-        allowed_in_negated_literals,
     )
 
     new_node = transformer.unnest(
@@ -97,7 +90,6 @@ class UnnestFunctionsInLiteralsTransformer:
         intensional_functions: Set[SymbolSignature],
         variable_generator: FreshVariableGenerator,
         unnest_left_guard_equality: bool = False,
-        allowed_in_negated_literals: bool = True,
     ):
         """Initialize the literal unnesting transformer and its state."""
         self.lib = lib
@@ -105,7 +97,6 @@ class UnnestFunctionsInLiteralsTransformer:
         self.var_gen = variable_generator
         self.unnested_functions: List[ast.LiteralComparison] = []
         self.unnest_left_guard_equality = unnest_left_guard_equality
-        self.allowed_in_negated_literals = allowed_in_negated_literals
 
     def pop_all_unnested_functions(self) -> List[ast.LiteralComparison]:
         """Return and clear the comparisons generated during unnesting."""
@@ -208,7 +199,7 @@ class UnnestFunctionsInLiteralsTransformer:
         self,
         node: ast.TermOrProjection,
         outer: bool = True,
-        sign: ast.Sign | None = None,
+        sign: ast.Sign | None = None,  # pylint: disable=unused-argument
     ) -> ast.TermOrProjection | None:
         """Unnest intensional function terms and replace inner calls with fresh variables."""
 
@@ -218,19 +209,7 @@ class UnnestFunctionsInLiteralsTransformer:
             """Return whether the term should be replaced."""
             if outer and depth <= 0:
                 return False
-            if self._is_intensional_term(term):
-                if not self.allowed_in_negated_literals and sign == ast.Sign.Single:
-                    raise RewritingException(
-                        [
-                            SemanticError(
-                                node.location,
-                                "intensional functions are not allowed in negated literals "
-                                f"in optimization statements and aggregate element literals: '{node}'",
-                            )
-                        ]
-                    )
-                return True
-            return False
+            return self._is_intensional_term(term)
 
         return replace_term(
             self.lib,
