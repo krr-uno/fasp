@@ -855,6 +855,10 @@ Review the code. Look for potential bugs and refactoring oportunites that
 - improve readablity
 Write a report with your suggestions.
 
+---
+
+Let's refactor `test_integration.py.` Create a new test module `tests/integration/` and inside it create a test file for each type of construct: `test_negated_literals.py`, `test_coditional_literal.py`, `test_aggregates.py`, etc. Move the tests from `test_integration.py` in the corresponding file inside `tests/integration/`. Do not forget any test.
+
 # Future work
 
 - Good error messages during grounding.

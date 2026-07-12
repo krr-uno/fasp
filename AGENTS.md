@@ -35,7 +35,7 @@ All dev tasks run via **nox** (uses the current env, no new venv):
 
 Run a single test file directly:
 ```bash
-python -m unittest tests.rewriting.test_integration -v
+python -m unittest tests.integration.test_assignments -v
 ```
 
 **100% coverage is enforced** on `funasp/` (tests excluded). Every new code path needs a test.
@@ -122,7 +122,7 @@ funasp/
 - **Parsing** goes through `funasp.ast.parse_string`/`parse_files` (list-returning wrappers over `clingo_funasp.ast.parse_*` that raise `ParsingException`).
 - Transformers use `singledispatchmethod` + `node.transform(lib, fn, …)`; return `None` for "unchanged", a new node otherwise; rebuild with `node.update(lib, **changes)`.
 - Do not silently pass rough intensional terms through unsupported AST positions. Implement the translation or raise a source-located `SemanticError`; update `docs/support-matrix.md` and its executable inventory test.
-- **Integration tests** (`test_app.py`, `test_app_patch.py`, `test_control.py`) are separated; pipeline tests live under `tests/rewriting/` and parser tests in `tests/test_parser.py`.
+- **App-level tests** (`test_app.py`, `test_app_patch.py`, `test_control.py`) are separated; pipeline unit tests live under `tests/rewriting/`, exact-string integration tests under `tests/integration/` (one module per construct), and parser tests in `tests/test_parser.py`.
 - Code style: **black + isort + autoflake** (run `nox -s format`).
 
 ## Design and Domain Documentation
@@ -161,7 +161,7 @@ must be updated alongside semantic behavior.
 - [funasp/ast/_rewritings/comparisons.py](funasp/ast/_rewritings/comparisons.py) — the F-prefix encoding of functional equalities
 - [docs/support-matrix.md](docs/support-matrix.md) — supported, rejected, and inapplicable AST positions
 - [funasp/control.py](funasp/control.py) — how parse + rewrite + solve fit together
-- [tests/rewriting/test_integration.py](tests/rewriting/test_integration.py) — example rewriting tests (exact-string expectations)
+- [tests/integration/](tests/integration/) — rewriting tests with exact-string expectations, one module per construct (shared base in `tests/integration/base.py`)
 - [tests/rewriting/test_support_matrix.py](tests/rewriting/test_support_matrix.py) — executable AST inventory and leakage checks
 - [tests/test_parser.py](tests/test_parser.py) — documents the parser's FASP encoding
 - [examples/family.lp](examples/family.lp) — simple FASP example
