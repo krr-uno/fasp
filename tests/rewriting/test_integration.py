@@ -979,32 +979,64 @@ class TestRewriteStatements(unittest.TestCase):
             )
 
     def test_intensional_in_negated_set_aggregate_literal(self):
-        """Test that intensional functions in negated set-aggregate element literals are rejected."""
-        with self.assertRaisesRegex(
-            RewritingException,
-            r"error: intensional functions are not allowed in negated literals",
-        ):
-            self.assertTransformEqual(
-                """
-                f := 1.
-                :- { not p(f) : q }.
-                """,
-                "",
-            )
+        """Test that negated set-aggregate element literals are lifted."""
+        self.assertTransformEqual(
+            """
+            f := 1.
+            :- 1 { not p(f) : q }.
+            """,
+            """
+            Ff(1).
+            :- 1 <= #count { 1,RD1: q, not RD1 }.
+            RD1 :- p(FUN); Ff(FUN).
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            """,
+        )
 
     def test_intensional_in_negated_head_aggregate_literal(self):
-        """Test that intensional functions in negated head-aggregate element literals are rejected."""
-        with self.assertRaisesRegex(
-            RewritingException,
-            r"error: intensional functions are not allowed in negated literals",
-        ):
-            self.assertTransformEqual(
-                """
-                f := 1.
-                1 = #count{ X : not p(f) : q(X) } :- r.
-                """,
-                "",
-            )
+        """Test that negated head-aggregate element literals are lifted."""
+        self.assertTransformEqual(
+            """
+            f := 1.
+            1 = #count{ X : not p(f) : q(X) } :- r.
+            """,
+            """
+            Ff(1).
+            1 = #count { X: #true: q(X), not RD1 } :- r.
+            RD1 :- p(FUN); Ff(FUN).
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            """,
+        )
+
+    def test_intensional_in_double_negated_head_aggregate_literal(self):
+        """Test that doubly negated element literals keep their sign when lifted."""
+        self.assertTransformEqual(
+            """
+            f := 1.
+            1 = #count{ X : not not p(f) : q(X) } :- r.
+            """,
+            """
+            Ff(1).
+            1 = #count { X: #true: q(X), not not RD1 } :- r.
+            RD1 :- p(FUN); Ff(FUN).
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            """,
+        )
+
+    def test_intensional_in_negated_element_literal_with_variables(self):
+        """Test that lifted element literals carry the literal's variables."""
+        self.assertTransformEqual(
+            """
+            f(a) := 1.
+            1 = #count{ X : not p(f(X)) : q(X) } :- r.
+            """,
+            """
+            Ff(a,1).
+            1 = #count { X: #true: q(X), not RD1(X) } :- r.
+            RD1(X) :- p(FUN); Ff(X,FUN).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
 
     def test_intensional_in_negated_aggregate_condition(self):
         """Test that negated aggregate condition literals are lifted."""

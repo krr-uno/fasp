@@ -153,6 +153,35 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(holding, ["c(a) q(1)\nf(a)=1"])
         self.assertEqual(vacuous, ["a c(a) q(1)\nf(a)=2"])
 
+    def test_negated_element_literal(self):
+        """Negated intensional element literals count exactly the failing values."""
+        program = """
+        f := 1. q(1). r.
+        1 = #count{ X : not p(f) : q(X) } :- r.
+        """
+
+        self.assertEqual(self.get_models(program), ["q(1) r\nf=1"])
+        self.assertEqual(self.get_models("p(1). " + program), [])
+
+    def test_double_negated_element_literal(self):
+        """Doubly negated intensional element literals count the holding values."""
+        program = """
+        f := 1. q(1). r.
+        1 = #count{ X : not not p(f) : q(X) } :- r.
+        """
+
+        self.assertEqual(self.get_models("p(1). " + program), ["p(1) q(1) r\nf=1"])
+        self.assertEqual(self.get_models(program), [])
+
+    def test_negated_element_literal_with_undefined_function(self):
+        """An undefined function value satisfies a negated element literal."""
+        program = """
+        f := 1 :- c. q(1). r.
+        1 = #count{ X : not p(f) : q(X) } :- r.
+        """
+
+        self.assertEqual(self.get_models(program), ["q(1) r"])
+
     def test_double_negated_intensional_function_literal_can_bind(self):
         """Double-negated literals use positive function lookups to bind variables."""
         program = """

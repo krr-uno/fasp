@@ -24,6 +24,11 @@ positively (binding its own variables) and is unnested by the ordinary
 positive-body encoding. The rule head's dependency on the function stays
 non-positive because it passes through the double negation. Doubly negated
 literals without intensional functions are left untouched.
+
+Negated aggregate *element* literals (left of the ``:`` in set-aggregate and
+head-aggregate elements) over intensional functions are lifted with the same
+sign-preserving encoding, for both single and double negation; function-free
+negated element literals are handled natively by clingo and left untouched.
 """
 
 from functools import partial
@@ -204,6 +209,39 @@ def _rewrite_element_condition[
     return element.update(library, condition=new_condition)
 
 
+def _rewrite_aggregate_element[
+    ElementT: (ast.SetAggregateElement, ast.HeadAggregateElement)
+](
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    element: ElementT,
+) -> ElementT | None:
+    """Lift an element's negated intensional literal and condition literals.
+
+    The element literal (left of the ``:``) is lifted only when it is negated
+    and contains intensional functions; function-free negated element literals
+    are handled natively by clingo.
+    """
+    update: dict[str, object] = {}
+    literal = element.literal
+    if (
+        isinstance(literal, ast.LiteralSymbolic)
+        and literal.sign != ast.Sign.NoSign
+        and _contains_intensional_functions(context, literal)
+    ):
+        update["literal"] = _lift_negated_literal(context, auxiliary, library, literal)
+    new_condition = map_none(
+        partial(_lift_condition_literal, context, auxiliary, library),
+        element.condition,
+    )
+    if new_condition is not None:
+        update["condition"] = new_condition
+    if not update:
+        return None
+    return element.update(library, **update)
+
+
 def _rewrite_body_element(
     context: RewriteContext,
     auxiliary: list[ast.Statement],
@@ -213,9 +251,17 @@ def _rewrite_body_element(
     """Lift the negated condition literals inside a single body literal."""
     if isinstance(body_literal, ast.BodyConditionalLiteral):
         return _rewrite_element_condition(context, auxiliary, library, body_literal)
-    if isinstance(body_literal, ast.BodyAggregate | ast.BodySetAggregate):
+    if isinstance(body_literal, ast.BodyAggregate):
         new_elements = map_none(
             partial(_rewrite_element_condition, context, auxiliary, library),
+            body_literal.elements,
+        )
+        if new_elements is None:
+            return None
+        return body_literal.update(library, elements=new_elements)
+    if isinstance(body_literal, ast.BodySetAggregate):
+        new_elements = map_none(
+            partial(_rewrite_aggregate_element, context, auxiliary, library),
             body_literal.elements,
         )
         if new_elements is None:
@@ -250,7 +296,7 @@ def _rewrite_head(
         )
     elif isinstance(head, ast.HeadSetAggregate | ast.HeadAggregate):
         new_elements = map_none(
-            partial(_rewrite_element_condition, context, auxiliary, library),
+            partial(_rewrite_aggregate_element, context, auxiliary, library),
             head.elements,
         )
     else:

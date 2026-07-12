@@ -279,7 +279,7 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
         self._assert_unchanged(parse_string(self.lib, "a; not b :- d.")[1].original)
 
     def test_negated_aggregate_element_literal_unchanged(self):
-        """The main literal of an aggregate element is never lifted."""
+        """A function-free negated aggregate element literal is not lifted."""
         self._assert_unchanged(
             parse_string(self.lib, "{ not p(X) : q(X) } :- s(X).")[1].original
         )
@@ -331,6 +331,42 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
                 "a :- #count { X: p(X), not not RD1(X) } > 0.",
                 "RD1(X) :- q(f(X)).",
             ],
+        )
+
+    def test_lifts_negated_intensional_element_literal(self):
+        """A negated intensional aggregate element literal is lifted."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("1 = #count{ X : not p(f(X)) : q(X) } :- r."),
+            [
+                "1 = #count { X: not RD1(X): q(X) } :- r.",
+                "RD1(X) :- p(f(X)).",
+            ],
+        )
+
+    def test_lifts_double_negated_intensional_element_literal(self):
+        """A doubly negated intensional element literal keeps its sign."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("1 = #count{ X : not not p(f(X)) : q(X) } :- r."),
+            [
+                "1 = #count { X: not not RD1(X): q(X) } :- r.",
+                "RD1(X) :- p(f(X)).",
+            ],
+        )
+
+    def test_lifts_negated_intensional_set_aggregate_element_literal(self):
+        """A negated intensional set-aggregate element literal is lifted."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 0)}
+        )
+        self.assertEqual(
+            self._rewrite(":- 1 { not p(f) : q }."),
+            [" :- 1 <= { not RD1: q }.", "RD1 :- p(f)."],
         )
 
     def test_auxiliary_prefix_avoids_function_prefix(self):
