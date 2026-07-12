@@ -122,6 +122,37 @@ class TestEndToEnd(unittest.TestCase):
 
         self.assertEqual(models, ["p(1) q(1) r(1)"])
 
+    def test_double_negation_in_aggregate_condition(self):
+        """Doubly negated function literals in aggregate conditions test values."""
+        program = """
+        f := {value}. p(1). q(1).
+        b :- 0 < #count{{ X : p(X), not not q(f) }}.
+        """
+
+        matching = self.get_models(program.format(value=1))
+        mismatching = self.get_models(program.format(value=2))
+
+        self.assertEqual(matching, ["b p(1) q(1)\nf=1"])
+        self.assertEqual(mismatching, ["p(1) q(1)\nf=2"])
+
+    def test_double_negation_in_condition(self):
+        """Doubly negated function literals in conditions test values.
+
+        With ``f(a)=1`` the condition holds and demands ``b(a)`` (absent, so
+        ``a`` is not derived); with ``f(a)=2`` the condition fails and the
+        conditional literal is vacuously true.
+        """
+        program = """
+        f(a) := {value}. c(a). q(1).
+        a :- b(X) : c(X), not not q(f(X)).
+        """
+
+        holding = self.get_models(program.format(value=1))
+        vacuous = self.get_models(program.format(value=2))
+
+        self.assertEqual(holding, ["c(a) q(1)\nf(a)=1"])
+        self.assertEqual(vacuous, ["a c(a) q(1)\nf(a)=2"])
+
     def test_double_negated_intensional_function_literal_can_bind(self):
         """Double-negated literals use positive function lookups to bind variables."""
         program = """

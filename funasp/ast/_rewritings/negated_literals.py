@@ -16,11 +16,13 @@ appears positively. This applies to the conditions of conditional literals
 (body and head disjunction elements) and of aggregate and set-aggregate
 elements (head and body).
 
-Doubly negated body literals over intensional functions are lifted the same
-way: ``not not l`` becomes ``not RDi(v1,...,vm)`` defined by the auxiliary
-rule ``RDi(v1,...,vm) :- G, not l.`` where ``G`` are the non-negated body
-literals of the rule (they bind the variables of ``l``). The inner ``not l``
-is then unnested with the usual single-negation encoding. Doubly negated
+Doubly negated literals over intensional functions — top-level body literals
+as well as condition literals — are lifted the same way, keeping the double
+negation on the auxiliary call: ``not not l`` becomes ``not not RDi(v1,...,vm)``
+defined by the auxiliary rule ``RDi(v1,...,vm) :- l.`` where ``l`` appears
+positively (binding its own variables) and is unnested by the ordinary
+positive-body encoding. The rule head's dependency on the function stays
+non-positive because it passes through the double negation. Doubly negated
 literals without intensional functions are left untouched.
 """
 
@@ -93,14 +95,31 @@ def _complement_to_body(
     return ast.BodySimpleLiteral(library, complemented)
 
 
+def _contains_intensional_functions(
+    context: RewriteContext, literal: ast.LiteralSymbolic
+) -> bool:
+    """Whether the literal contains intensional function terms."""
+    _, comparisons = unnest_functions(
+        context.lib.library,
+        literal,
+        context.intensional_functions,
+        FreshVariableGenerator(),
+    )
+    return bool(comparisons)
+
+
 def _lift_literal(
     context: RewriteContext,
     auxiliary: list[ast.Statement],
     library: Library,
     literal: ast.LiteralSymbolic,
     aux_body: list[ast.BodyLiteral],
+    replacement_sign: ast.Sign = ast.Sign.Single,
 ) -> ast.LiteralSymbolic:
-    """Append the rule ``RDi(vars) :- aux_body.`` and return ``not RDi(vars)``."""
+    """Append the rule ``RDi(vars) :- aux_body.`` and return the replacement.
+
+    The replacement is the ``RDi(vars)`` call under ``replacement_sign``.
+    """
     location = literal.location
     variables = [
         ast.TermVariable(library, location, name)
@@ -115,9 +134,29 @@ def _lift_literal(
     )
     head = ast.HeadSimpleLiteral(library, create_literal(library, atom))
     auxiliary.append(ast.StatementRule(library, location, head, aux_body))
-    replacement = create_literal(library, atom, ast.Sign.Single)
+    replacement = create_literal(library, atom, replacement_sign)
     assert isinstance(replacement, ast.LiteralSymbolic)
     return replacement
+
+
+def _lift_negated_literal(
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    literal: ast.LiteralSymbolic,
+) -> ast.LiteralSymbolic:
+    """Lift a negated literal, keeping its sign on the auxiliary call.
+
+    The auxiliary rule holds the literal positively, so it binds its own
+    variables and its intensional functions are unnested by the ordinary
+    positive-body encoding.
+    """
+    positive = ast.BodySimpleLiteral(
+        library, literal.update(library, sign=ast.Sign.NoSign)
+    )
+    return _lift_literal(
+        context, auxiliary, library, literal, [positive], replacement_sign=literal.sign
+    )
 
 
 def _lift_condition_literal(
@@ -126,13 +165,19 @@ def _lift_condition_literal(
     library: Library,
     literal: ast.Literal,
 ) -> ast.LiteralSymbolic | None:
-    """Replace a negated symbolic condition literal by a fresh auxiliary call."""
-    if not isinstance(literal, ast.LiteralSymbolic) or literal.sign != ast.Sign.Single:
+    """Replace a negated symbolic condition literal by a fresh auxiliary call.
+
+    Single negations are always lifted; double negations only when they
+    contain intensional functions.
+    """
+    if not isinstance(literal, ast.LiteralSymbolic):
         return None
-    positive = ast.BodySimpleLiteral(
-        library, literal.update(library, sign=ast.Sign.NoSign)
-    )
-    return _lift_literal(context, auxiliary, library, literal, [positive])
+    if literal.sign == ast.Sign.Double:
+        if not _contains_intensional_functions(context, literal):
+            return None
+    elif literal.sign != ast.Sign.Single:
+        return None
+    return _lift_negated_literal(context, auxiliary, library, literal)
 
 
 def _rewrite_element_condition[
@@ -243,39 +288,24 @@ def rewrite_negated_condition_literals(
     return [statement.update(library, **update), *auxiliary]
 
 
-def _is_positive_body_literal(body_literal: ast.BodyLiteral) -> bool:
-    """Whether a body literal is non-negated and can guard an auxiliary rule."""
-    if isinstance(body_literal, ast.BodySimpleLiteral):
-        return body_literal.literal.sign == ast.Sign.NoSign
-    if isinstance(body_literal, ast.BodyConditionalLiteral):
-        literal = body_literal.literal
-        if isinstance(literal, ast.LiteralBoolean):
-            return literal.value
-        return literal.sign == ast.Sign.NoSign
-    if isinstance(body_literal, ast.BodyAggregate | ast.BodySetAggregate):
-        return body_literal.sign == ast.Sign.NoSign
-    return False
-
-
-def _double_negated_intensional_literal(
-    context: RewriteContext, body_literal: ast.BodyLiteral
-) -> ast.LiteralSymbolic | None:
-    """Return the literal of a doubly negated intensional body literal, if any."""
+def _lift_double_negated_body_literal(
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    body_literal: ast.BodyLiteral,
+) -> ast.BodySimpleLiteral | None:
+    """Lift a doubly negated intensional body literal, if it is one."""
     if (
         not isinstance(body_literal, ast.BodySimpleLiteral)
         or not isinstance(body_literal.literal, ast.LiteralSymbolic)
         or body_literal.literal.sign != ast.Sign.Double
+        or not _contains_intensional_functions(context, body_literal.literal)
     ):
         return None
-    _, comparisons = unnest_functions(
-        context.lib.library,
-        body_literal.literal,
-        context.intensional_functions,
-        FreshVariableGenerator(),
+    replacement = _lift_negated_literal(
+        context, auxiliary, library, body_literal.literal
     )
-    if not comparisons:
-        return None
-    return body_literal.literal
+    return ast.BodySimpleLiteral(library, replacement)
 
 
 def rewrite_double_negated_body_literals(
@@ -284,31 +314,21 @@ def rewrite_double_negated_body_literals(
     """
     Lift doubly negated body literals over intensional functions.
 
-    Each such ``not not l`` is replaced by ``not RDi(vars)`` and defined by an
-    auxiliary rule whose body holds the rule's non-negated literals followed
-    by ``not l``, so the intensional functions of ``l`` are unnested with the
-    single-negation encoding. Returns the rewritten statement followed by the
-    auxiliary rules; statements without such literals pass through unchanged.
+    Each such ``not not l`` is replaced by ``not not RDi(vars)``, keeping the
+    double negation, and defined by the auxiliary rule ``RDi(vars) :- l.``
+    with ``l`` positive — the same encoding as the condition-literal lifting.
+    Returns the rewritten statement followed by the auxiliary rules;
+    statements without such literals pass through unchanged.
     """
     if not isinstance(statement, ast.StatementRule):
         return [statement]
     library = context.lib.library
-    guards = [
-        body_literal
-        for body_literal in statement.body
-        if _is_positive_body_literal(body_literal)
-    ]
     auxiliary: list[ast.Statement] = []
-    new_body: list[ast.BodyLiteral] = []
-    for body_literal in statement.body:
-        literal = _double_negated_intensional_literal(context, body_literal)
-        if literal is None:
-            new_body.append(body_literal)
-            continue
-        aux_body = [*guards, _complement_to_body(library, literal)]
-        replacement = _lift_literal(context, auxiliary, library, literal, aux_body)
-        new_body.append(ast.BodySimpleLiteral(library, replacement))
-    if not auxiliary:
+    new_body = map_none(
+        partial(_lift_double_negated_body_literal, context, auxiliary, library),
+        statement.body,
+    )
+    if new_body is None:
         return [statement]
     return [statement.update(library, body=new_body), *auxiliary]
 
