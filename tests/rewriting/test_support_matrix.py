@@ -126,6 +126,25 @@ class TestSupportedPositionsDoNotLeak(unittest.TestCase):
             with self.subTest(program=program):
                 self.assert_no_rough_function_terms(program)
 
+    def test_supported_negated_position_matrix(self):
+        """Negated occurrences are lifted into auxiliary rules, never leaked."""
+        cases = (
+            "p :- q(X), not not r(f(X)).",
+            "p :- q : not r(f(a)).",
+            "p :- q(X) : r(X), not not s(f(X)).",
+            "p :- 0 < #count { X : q(X), not r(f(X)) }.",
+            "p :- 0 < #count { X : q(X), not f(X)+1 = 3 }.",
+            "p :- 1 { not q(f(a)) : r }.",
+            "1 = #count { X : not q(f(X)) : r(X) } :- s.",
+            "1 = #count { X : not not q(f(X)) : r(X) } :- s.",
+            "#minimize { 1,X : q(X), not r(f(X)) }.",
+            ":~ q(X), not r(f(X)). [1,X]",
+            ":~ q(X), not f(X)+1 = 3. [1,X]",
+        )
+        for program in cases:
+            with self.subTest(program=program):
+                self.assert_no_rough_function_terms(program)
+
 
 if __name__ == "__main__":
     unittest.main()

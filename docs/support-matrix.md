@@ -6,13 +6,19 @@ translated into a prefixed predicate lookup. “Rejected” means funasp emits a
 source-located semantic error instead of allowing clingo to treat the function
 as a Herbrand term.
 
+“Supported” covers negated and doubly negated occurrences: negated intensional
+literals and comparisons in conditions, aggregate element literals, optimize
+elements, and weak-constraint bodies are lifted into auxiliary rules with a
+sign-preserving replacement (see the module docstring of
+`funasp/ast/_rewritings/negated_literals.py` for the encodings).
+
 ## Statements
 
 | AST type | Classification | Intensional-function handling |
 |---|---|---|
 | `StatementRule` | Supported | Heads and bodies use the position-specific rules below. |
-| `StatementOptimize` | Supported | Element tuples and conditions are unnested. |
-| `StatementWeakConstraint` | Supported | Tuple and body occurrences are unnested. |
+| `StatementOptimize` | Supported | Element tuples and conditions are unnested; negated intensional condition literals and comparisons are lifted. |
+| `StatementWeakConstraint` | Supported | Tuple and body occurrences are unnested; negated intensional body literals and comparisons are lifted. |
 | `StatementShow` | Partially supported | Functional equations in the condition are supported; rough terms are rejected. |
 | `StatementExternal` | Partially supported | Functional equations in the condition are supported; rough terms are rejected. |
 | `StatementHeuristic` | Partially supported | Functional equations in the condition are supported; rough terms are rejected. |
@@ -28,8 +34,8 @@ as a Herbrand term.
 | AST type | Classification | Handling |
 |---|---|---|
 | `HeadSimpleLiteral` | Supported | Rough terms are unnested; assignment encodings are preserved. |
-| `HeadAggregate` | Supported | Guards, tuples, element literals, and conditions are handled. |
-| `HeadSetAggregate` | Supported | Guards, element literals, and conditions are handled. |
+| `HeadAggregate` | Supported | Guards, tuples, element literals, and conditions are handled; negated intensional element literals (single and double negation) are lifted. |
+| `HeadSetAggregate` | Supported | Guards, element literals, and conditions are handled; negated intensional element literals (single and double negation) are lifted. |
 | `HeadDisjunction`, `HeadConditionalLiteral` | Rejected for rough terms | Intensional terms in a disjunctive head raise a semantic error. |
 | `HeadTheoryAtom` | Theory-owned | No FASP rewriting is defined inside theory atoms. |
 
@@ -38,9 +44,9 @@ as a Herbrand term.
 | AST type | Classification | Handling |
 |---|---|---|
 | `BodySimpleLiteral` | Supported | Positive, negative, and double-negative cases are rewritten by their dedicated passes. |
-| `BodyConditionalLiteral` | Supported | Generated lookups remain within the condition's local scope. |
-| `BodyAggregate` | Supported | Guards, tuples, and conditions are unnested. |
-| `BodySetAggregate` | Supported | Guards, element literals, and conditions are unnested. |
+| `BodyConditionalLiteral` | Supported | Generated lookups remain within the condition's local scope; negated intensional condition literals and comparisons are lifted. |
+| `BodyAggregate` | Supported | Guards, tuples, and conditions are unnested; negated intensional condition literals and comparisons are lifted. |
+| `BodySetAggregate` | Supported | Guards, element literals, and conditions are unnested; negated intensional element literals (single and double negation) are lifted. |
 | `BodyTheoryAtom` | Theory-owned | No FASP rewriting is defined inside theory atoms. |
 
 ## Maintenance rule
