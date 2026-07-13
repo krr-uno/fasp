@@ -23,7 +23,7 @@ class TransformTestCase(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures for each test."""
-        self.elib = Library(logger=lambda t, m: print(m, file=sys.stderr))
+        self.library = Library(logger=lambda t, m: print(m, file=sys.stderr))
         self.maxDiff = None  # Show full diff on assertion failure
 
     def assertTransformEqual(
@@ -35,7 +35,12 @@ class TransformTestCase(unittest.TestCase):
         prefix: str = "F",
         ignore_prefix_collisions: bool = False,
     ):
-        """Assert transform equal."""
+        """Assert that ``program`` rewrites exactly to ``expected_program``.
+
+        Both texts are dedented and stripped; ``#program`` and comment
+        statements are dropped from the comparison. ``intensional_functions``
+        seeds extra signatures (as ``name/arity`` strings) into the context.
+        """
         if intensional_functions is None:
             intensional_functions = set()
 
@@ -45,7 +50,7 @@ class TransformTestCase(unittest.TestCase):
         }
 
         context = RewriteContext(
-            self.elib,
+            self.library,
             prefix,
             intensional_functions=intensional_functions,
             ignore_prefix_collisions=ignore_prefix_collisions,
@@ -58,7 +63,7 @@ class TransformTestCase(unittest.TestCase):
             else None
         )
 
-        statement_asts = parse_string(self.elib, program)
+        statement_asts = parse_string(self.library, program)
         transformed = [
             restore_anonymous_term_variables(context, statement)
             for wrapper in rewrite_statements(context, statement_asts)

@@ -43,6 +43,10 @@ would make it depend on its own lifted condition). Plain functional
 equalities need no unnesting and are translated in place by
 ``prefix_comparisons``; top-level rule-body comparisons are already handled
 by the ``#false : l`` encoding.
+
+The lifting steps are driven by :class:`_NegationLifter`, which holds the
+rewrite context, the clingo library, and the auxiliary rules collected for
+one statement.
 """
 
 from functools import partial
@@ -114,109 +118,6 @@ def _complement_to_body(
     return ast.BodySimpleLiteral(library, complemented)
 
 
-def _contains_intensional_functions(
-    context: RewriteContext, literal: ast.LiteralComparison | ast.LiteralSymbolic
-) -> bool:
-    """Whether the literal contains intensional function terms to unnest."""
-    _, comparisons = unnest_functions(
-        context.lib.library,
-        literal,
-        context.intensional_functions,
-        FreshVariableGenerator(),
-    )
-    return bool(comparisons)
-
-
-def _lift_literal(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    literal: ast.LiteralComparison | ast.LiteralSymbolic,
-    aux_body: list[ast.BodyLiteral],
-    *,
-    replacement_sign: ast.Sign = ast.Sign.Single,
-) -> ast.LiteralSymbolic:
-    """Append the rule ``RDi(vars) :- aux_body.`` and return the replacement.
-
-    The replacement is the ``RDi(vars)`` call under ``replacement_sign``.
-    """
-    location = literal.location
-    variables = [
-        ast.TermVariable(library, location, name)
-        for name in sorted(collect_variables(literal))
-        if name != "_"
-    ]
-    atom = ast.TermFunction(
-        library,
-        location,
-        context.fresh_predicate_name(),
-        [ast.ArgumentTuple(library, variables)],
-    )
-    head = ast.HeadSimpleLiteral(library, create_literal(library, atom))
-    auxiliary.append(ast.StatementRule(library, location, head, aux_body))
-    replacement = create_literal(library, atom, replacement_sign)
-    assert isinstance(replacement, ast.LiteralSymbolic)
-    return replacement
-
-
-def _lift_negated_literal(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    literal: ast.LiteralSymbolic,
-) -> ast.LiteralSymbolic:
-    """Lift a negated literal, keeping its sign on the auxiliary call.
-
-    The auxiliary rule holds the literal positively, so it binds its own
-    variables and its intensional functions are unnested by the ordinary
-    positive-body encoding.
-    """
-    positive = ast.BodySimpleLiteral(
-        library, literal.update(library, sign=ast.Sign.NoSign)
-    )
-    return _lift_literal(
-        context, auxiliary, library, literal, [positive], replacement_sign=literal.sign
-    )
-
-
-def _lift_negated_intensional_comparison(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    guards: list[ast.BodyLiteral],
-    literal: ast.Literal,
-) -> ast.LiteralSymbolic | None:
-    """Lift a singly negated comparison over intensional functions.
-
-    A comparison binds no variables, so the auxiliary rule copies the sibling
-    non-negated literals as guards before the positive comparison, whose
-    intensional functions are then unnested by the ordinary positive-body
-    encoding. Plain functional equalities need no unnesting and are left to
-    ``prefix_comparisons``, as are function-free comparisons.
-    """
-    if (
-        not isinstance(literal, ast.LiteralComparison)
-        or literal.sign != ast.Sign.Single
-        or not _contains_intensional_functions(context, literal)
-    ):
-        return None
-    positive = ast.BodySimpleLiteral(
-        library, literal.update(library, sign=ast.Sign.NoSign)
-    )
-    return _lift_literal(context, auxiliary, library, literal, [*guards, positive])
-
-
-def _condition_guards(
-    library: Library, condition: Sequence[ast.Literal]
-) -> list[ast.BodyLiteral]:
-    """Wrap the non-negated literals of a condition as auxiliary-rule guards."""
-    return [
-        ast.BodySimpleLiteral(library, literal)
-        for literal in condition
-        if literal.sign == ast.Sign.NoSign
-    ]
-
-
 def _positive_simple_body_literals(
     body: Sequence[ast.BodyLiteral],
 ) -> list[ast.BodyLiteral]:
@@ -232,144 +133,6 @@ def _positive_simple_body_literals(
         if isinstance(body_literal, ast.BodySimpleLiteral)
         and body_literal.literal.sign == ast.Sign.NoSign
     ]
-
-
-def _lift_condition_literal(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    guards: list[ast.BodyLiteral],
-    literal: ast.Literal,
-) -> ast.LiteralSymbolic | None:
-    """Replace a negated condition literal by a fresh auxiliary call.
-
-    Symbolic single negations are always lifted; symbolic double negations
-    and negated comparisons only when they contain intensional functions.
-    """
-    replacement = _lift_negated_intensional_comparison(
-        context, auxiliary, library, guards, literal
-    )
-    if replacement is not None:
-        return replacement
-    if not isinstance(literal, ast.LiteralSymbolic):
-        return None
-    if literal.sign == ast.Sign.Double:
-        if not _contains_intensional_functions(context, literal):
-            return None
-    elif literal.sign != ast.Sign.Single:
-        return None
-    return _lift_negated_literal(context, auxiliary, library, literal)
-
-
-def _rewrite_element_condition[
-    ElementT: (
-        ast.BodyConditionalLiteral,
-        ast.HeadConditionalLiteral,
-        ast.SetAggregateElement,
-        ast.HeadAggregateElement,
-        ast.BodyAggregateElement,
-    )
-](
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    outer_guards: list[ast.BodyLiteral],
-    element: ElementT,
-) -> ElementT | None:
-    """Lift the negated literals inside an element's condition."""
-    guards = [*outer_guards, *_condition_guards(library, element.condition)]
-    new_condition = map_none(
-        partial(_lift_condition_literal, context, auxiliary, library, guards),
-        element.condition,
-    )
-    if new_condition is None:
-        return None
-    return element.update(library, condition=new_condition)
-
-
-def _lift_negated_intensional_literal(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    literal: ast.Literal,
-) -> ast.LiteralSymbolic | None:
-    """Lift a negated symbolic literal when it contains intensional functions.
-
-    Function-free negated literals are handled natively by clingo and left
-    untouched.
-    """
-    if (
-        not isinstance(literal, ast.LiteralSymbolic)
-        or literal.sign == ast.Sign.NoSign
-        or not _contains_intensional_functions(context, literal)
-    ):
-        return None
-    return _lift_negated_literal(context, auxiliary, library, literal)
-
-
-def _rewrite_aggregate_element[
-    ElementT: (ast.SetAggregateElement, ast.HeadAggregateElement)
-](
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    outer_guards: list[ast.BodyLiteral],
-    element: ElementT,
-) -> ElementT | None:
-    """Lift an element's negated intensional literal and condition literals."""
-    update: dict[str, object] = {}
-    guards = [*outer_guards, *_condition_guards(library, element.condition)]
-    replacement = _lift_negated_intensional_comparison(
-        context, auxiliary, library, guards, element.literal
-    )
-    if replacement is None:
-        replacement = _lift_negated_intensional_literal(
-            context, auxiliary, library, element.literal
-        )
-    if replacement is not None:
-        update["literal"] = replacement
-    new_condition = map_none(
-        partial(_lift_condition_literal, context, auxiliary, library, guards),
-        element.condition,
-    )
-    if new_condition is not None:
-        update["condition"] = new_condition
-    if not update:
-        return None
-    return element.update(library, **update)
-
-
-def _lift_optimize_condition_literal(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    guards: list[ast.BodyLiteral],
-    literal: ast.Literal,
-) -> ast.LiteralSymbolic | None:
-    """Lift a negated intensional literal or comparison in an optimize condition."""
-    replacement = _lift_negated_intensional_comparison(
-        context, auxiliary, library, guards, literal
-    )
-    if replacement is not None:
-        return replacement
-    return _lift_negated_intensional_literal(context, auxiliary, library, literal)
-
-
-def _rewrite_optimize_element(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    element: ast.OptimizeElement,
-) -> ast.OptimizeElement | None:
-    """Lift the negated intensional literals of an optimize element condition."""
-    guards = _condition_guards(library, element.condition)
-    new_condition = map_none(
-        partial(_lift_optimize_condition_literal, context, auxiliary, library, guards),
-        element.condition,
-    )
-    if new_condition is None:
-        return None
-    return element.update(library, condition=new_condition)
 
 
 def _weak_body_guards(body: Sequence[ast.BodyLiteral]) -> list[ast.BodyLiteral]:
@@ -388,120 +151,346 @@ def _weak_body_guards(body: Sequence[ast.BodyLiteral]) -> list[ast.BodyLiteral]:
     ]
 
 
-def _rewrite_weak_body_literal(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    guards: list[ast.BodyLiteral],
-    body_literal: ast.BodyLiteral,
-) -> ast.BodyLiteral | None:
-    """Lift the negated intensional literals of a weak-constraint body."""
-    if isinstance(body_literal, ast.BodySimpleLiteral):
-        replacement = _lift_negated_intensional_comparison(
-            context, auxiliary, library, guards, body_literal.literal
+class _NegationLifter:
+    """Lifts the negated literals of one statement into auxiliary rules.
+
+    Holds the rewrite context, the clingo library, and the auxiliary rules
+    collected while lifting, which every step would otherwise thread by hand.
+    """
+
+    def __init__(self, context: RewriteContext):
+        """Initialize the lifter for a single statement."""
+        self.context = context
+        self.library = context.lib.library
+        self.auxiliary: list[ast.Statement] = []
+
+    def _contains_intensional_functions(
+        self, literal: ast.LiteralComparison | ast.LiteralSymbolic
+    ) -> bool:
+        """Whether the literal contains intensional function terms to unnest."""
+        _, comparisons = unnest_functions(
+            self.library,
+            literal,
+            self.context.intensional_functions,
+            FreshVariableGenerator(),
         )
-        if replacement is None:
-            replacement = _lift_negated_intensional_literal(
-                context, auxiliary, library, body_literal.literal
-            )
-        if replacement is None:
+        return bool(comparisons)
+
+    def _lift_literal(
+        self,
+        literal: ast.LiteralComparison | ast.LiteralSymbolic,
+        aux_body: list[ast.BodyLiteral],
+        *,
+        replacement_sign: ast.Sign = ast.Sign.Single,
+    ) -> ast.LiteralSymbolic:
+        """Append the rule ``RDi(vars) :- aux_body.`` and return the replacement.
+
+        The replacement is the ``RDi(vars)`` call under ``replacement_sign``.
+        """
+        location = literal.location
+        variables = [
+            ast.TermVariable(self.library, location, name)
+            for name in sorted(collect_variables(literal))
+            if name != "_"
+        ]
+        atom = ast.TermFunction(
+            self.library,
+            location,
+            self.context.fresh_predicate_name(),
+            [ast.ArgumentTuple(self.library, variables)],
+        )
+        head = ast.HeadSimpleLiteral(self.library, create_literal(self.library, atom))
+        self.auxiliary.append(ast.StatementRule(self.library, location, head, aux_body))
+        replacement = create_literal(self.library, atom, replacement_sign)
+        assert isinstance(replacement, ast.LiteralSymbolic)
+        return replacement
+
+    def _lift_negated_literal(
+        self, literal: ast.LiteralSymbolic
+    ) -> ast.LiteralSymbolic:
+        """Lift a negated literal, keeping its sign on the auxiliary call.
+
+        The auxiliary rule holds the literal positively, so it binds its own
+        variables and its intensional functions are unnested by the ordinary
+        positive-body encoding.
+        """
+        positive = ast.BodySimpleLiteral(
+            self.library, literal.update(self.library, sign=ast.Sign.NoSign)
+        )
+        return self._lift_literal(literal, [positive], replacement_sign=literal.sign)
+
+    def _lift_negated_intensional_comparison(
+        self, guards: list[ast.BodyLiteral], literal: ast.Literal
+    ) -> ast.LiteralSymbolic | None:
+        """Lift a singly negated comparison over intensional functions.
+
+        A comparison binds no variables, so the auxiliary rule copies the
+        sibling non-negated literals as guards before the positive
+        comparison, whose intensional functions are then unnested by the
+        ordinary positive-body encoding. Plain functional equalities need no
+        unnesting and are left to ``prefix_comparisons``, as are
+        function-free comparisons.
+        """
+        if (
+            not isinstance(literal, ast.LiteralComparison)
+            or literal.sign != ast.Sign.Single
+            or not self._contains_intensional_functions(literal)
+        ):
             return None
-        return ast.BodySimpleLiteral(library, replacement)
-    # Nested conditions must not receive sibling aggregates as guards: the
-    # enclosing aggregate would end up guarding its own lifted condition.
-    simple_guards: list[ast.BodyLiteral] = [
-        guard for guard in guards if isinstance(guard, ast.BodySimpleLiteral)
-    ]
-    return _rewrite_body_element(
-        context, auxiliary, library, simple_guards, body_literal
-    )
-
-
-def _rewrite_body_element(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    outer_guards: list[ast.BodyLiteral],
-    body_literal: ast.BodyLiteral,
-) -> ast.BodyLiteral | None:
-    """Lift the negated condition literals inside a single body literal."""
-    if isinstance(body_literal, ast.BodyConditionalLiteral):
-        return _rewrite_element_condition(
-            context, auxiliary, library, outer_guards, body_literal
+        positive = ast.BodySimpleLiteral(
+            self.library, literal.update(self.library, sign=ast.Sign.NoSign)
         )
-    if isinstance(body_literal, ast.BodyAggregate | ast.BodySetAggregate):
-        # The two aggregate forms differ only in their element rewriter:
-        # body-aggregate elements have no element literal to lift.
-        if isinstance(body_literal, ast.BodyAggregate):
+        return self._lift_literal(literal, [*guards, positive])
+
+    def _condition_guards(
+        self, condition: Sequence[ast.Literal]
+    ) -> list[ast.BodyLiteral]:
+        """Wrap the non-negated literals of a condition as auxiliary-rule guards."""
+        return [
+            ast.BodySimpleLiteral(self.library, literal)
+            for literal in condition
+            if literal.sign == ast.Sign.NoSign
+        ]
+
+    def _lift_condition_literal(
+        self, guards: list[ast.BodyLiteral], literal: ast.Literal
+    ) -> ast.LiteralSymbolic | None:
+        """Replace a negated condition literal by a fresh auxiliary call.
+
+        Symbolic single negations are always lifted; symbolic double
+        negations and negated comparisons only when they contain intensional
+        functions.
+        """
+        replacement = self._lift_negated_intensional_comparison(guards, literal)
+        if replacement is not None:
+            return replacement
+        if not isinstance(literal, ast.LiteralSymbolic):
+            return None
+        if literal.sign == ast.Sign.Double:
+            if not self._contains_intensional_functions(literal):
+                return None
+        elif literal.sign != ast.Sign.Single:
+            return None
+        return self._lift_negated_literal(literal)
+
+    def _rewrite_element_condition[
+        ElementT: (
+            ast.BodyConditionalLiteral,
+            ast.HeadConditionalLiteral,
+            ast.SetAggregateElement,
+            ast.HeadAggregateElement,
+            ast.BodyAggregateElement,
+        )
+    ](
+        self, outer_guards: list[ast.BodyLiteral], element: ElementT
+    ) -> ElementT | None:
+        """Lift the negated literals inside an element's condition."""
+        guards = [*outer_guards, *self._condition_guards(element.condition)]
+        new_condition = map_none(
+            partial(self._lift_condition_literal, guards), element.condition
+        )
+        if new_condition is None:
+            return None
+        return element.update(self.library, condition=new_condition)
+
+    def _lift_negated_intensional_literal(
+        self, literal: ast.Literal
+    ) -> ast.LiteralSymbolic | None:
+        """Lift a negated symbolic literal when it contains intensional functions.
+
+        Function-free negated literals are handled natively by clingo and
+        left untouched.
+        """
+        if (
+            not isinstance(literal, ast.LiteralSymbolic)
+            or literal.sign == ast.Sign.NoSign
+            or not self._contains_intensional_functions(literal)
+        ):
+            return None
+        return self._lift_negated_literal(literal)
+
+    def _rewrite_aggregate_element[
+        ElementT: (ast.SetAggregateElement, ast.HeadAggregateElement)
+    ](
+        self, outer_guards: list[ast.BodyLiteral], element: ElementT
+    ) -> ElementT | None:
+        """Lift an element's negated intensional literal and condition literals."""
+        update: dict[str, object] = {}
+        guards = [*outer_guards, *self._condition_guards(element.condition)]
+        replacement = self._lift_negated_intensional_comparison(guards, element.literal)
+        if replacement is None:
+            replacement = self._lift_negated_intensional_literal(element.literal)
+        if replacement is not None:
+            update["literal"] = replacement
+        new_condition = map_none(
+            partial(self._lift_condition_literal, guards), element.condition
+        )
+        if new_condition is not None:
+            update["condition"] = new_condition
+        if not update:
+            return None
+        return element.update(self.library, **update)
+
+    def _lift_optimize_condition_literal(
+        self, guards: list[ast.BodyLiteral], literal: ast.Literal
+    ) -> ast.LiteralSymbolic | None:
+        """Lift a negated intensional literal or comparison in an optimize condition."""
+        replacement = self._lift_negated_intensional_comparison(guards, literal)
+        if replacement is not None:
+            return replacement
+        return self._lift_negated_intensional_literal(literal)
+
+    def _rewrite_optimize_element(
+        self, element: ast.OptimizeElement
+    ) -> ast.OptimizeElement | None:
+        """Lift the negated intensional literals of an optimize element condition."""
+        guards = self._condition_guards(element.condition)
+        new_condition = map_none(
+            partial(self._lift_optimize_condition_literal, guards), element.condition
+        )
+        if new_condition is None:
+            return None
+        return element.update(self.library, condition=new_condition)
+
+    def _rewrite_weak_body_literal(
+        self, guards: list[ast.BodyLiteral], body_literal: ast.BodyLiteral
+    ) -> ast.BodyLiteral | None:
+        """Lift the negated intensional literals of a weak-constraint body."""
+        if isinstance(body_literal, ast.BodySimpleLiteral):
+            replacement = self._lift_negated_intensional_comparison(
+                guards, body_literal.literal
+            )
+            if replacement is None:
+                replacement = self._lift_negated_intensional_literal(
+                    body_literal.literal
+                )
+            if replacement is None:
+                return None
+            return ast.BodySimpleLiteral(self.library, replacement)
+        # Nested conditions must not receive sibling aggregates as guards: the
+        # enclosing aggregate would end up guarding its own lifted condition.
+        simple_guards: list[ast.BodyLiteral] = [
+            guard for guard in guards if isinstance(guard, ast.BodySimpleLiteral)
+        ]
+        return self._rewrite_body_element(simple_guards, body_literal)
+
+    def _rewrite_body_element(
+        self, outer_guards: list[ast.BodyLiteral], body_literal: ast.BodyLiteral
+    ) -> ast.BodyLiteral | None:
+        """Lift the negated condition literals inside a single body literal."""
+        if isinstance(body_literal, ast.BodyConditionalLiteral):
+            return self._rewrite_element_condition(outer_guards, body_literal)
+        if isinstance(body_literal, ast.BodyAggregate | ast.BodySetAggregate):
+            # The two aggregate forms differ only in their element rewriter:
+            # body-aggregate elements have no element literal to lift.
+            if isinstance(body_literal, ast.BodyAggregate):
+                new_elements = map_none(
+                    partial(self._rewrite_element_condition, outer_guards),
+                    body_literal.elements,
+                )
+            else:
+                new_elements = map_none(
+                    partial(self._rewrite_aggregate_element, outer_guards),
+                    body_literal.elements,
+                )
+            if new_elements is None:
+                return None
+            return body_literal.update(self.library, elements=new_elements)
+        return None
+
+    def _rewrite_disjunction_element(
+        self, outer_guards: list[ast.BodyLiteral], element: ast.DisjunctionElement
+    ) -> ast.HeadConditionalLiteral | None:
+        """Lift the negated condition literals of a conditional disjunct."""
+        if not isinstance(element, ast.HeadConditionalLiteral):
+            return None
+        return self._rewrite_element_condition(outer_guards, element)
+
+    def _rewrite_head(
+        self, outer_guards: list[ast.BodyLiteral], head: ast.HeadLiteral
+    ) -> ast.HeadLiteral | None:
+        """Lift the negated condition literals inside a rule head."""
+        if isinstance(head, ast.HeadDisjunction):
             new_elements = map_none(
-                partial(
-                    _rewrite_element_condition,
-                    context,
-                    auxiliary,
-                    library,
-                    outer_guards,
-                ),
-                body_literal.elements,
+                partial(self._rewrite_disjunction_element, outer_guards),
+                head.elements,
+            )
+        elif isinstance(head, ast.HeadSetAggregate | ast.HeadAggregate):
+            new_elements = map_none(
+                partial(self._rewrite_aggregate_element, outer_guards),
+                head.elements,
             )
         else:
-            new_elements = map_none(
-                partial(
-                    _rewrite_aggregate_element,
-                    context,
-                    auxiliary,
-                    library,
-                    outer_guards,
-                ),
-                body_literal.elements,
-            )
+            return None
         if new_elements is None:
             return None
-        return body_literal.update(library, elements=new_elements)
-    return None
+        return head.update(self.library, elements=new_elements)
 
+    def rewrite_statement(self, statement: ast.Statement) -> list[ast.Statement]:
+        """Lift the negated condition literals of one statement.
 
-def _rewrite_disjunction_element(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    outer_guards: list[ast.BodyLiteral],
-    element: ast.DisjunctionElement,
-) -> ast.HeadConditionalLiteral | None:
-    """Lift the negated condition literals of a conditional disjunct."""
-    if not isinstance(element, ast.HeadConditionalLiteral):
-        return None
-    return _rewrite_element_condition(
-        context, auxiliary, library, outer_guards, element
-    )
-
-
-def _rewrite_head(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    outer_guards: list[ast.BodyLiteral],
-    head: ast.HeadLiteral,
-) -> ast.HeadLiteral | None:
-    """Lift the negated condition literals inside a rule head."""
-    if isinstance(head, ast.HeadDisjunction):
-        new_elements = map_none(
-            partial(
-                _rewrite_disjunction_element, context, auxiliary, library, outer_guards
-            ),
-            head.elements,
+        Returns the rewritten statement followed by the collected auxiliary
+        rules; statements without lifted literals pass through unchanged.
+        """
+        if isinstance(statement, ast.StatementOptimize):
+            new_elements = map_none(self._rewrite_optimize_element, statement.elements)
+            if new_elements is None:
+                return [statement]
+            return [
+                statement.update(self.library, elements=new_elements),
+                *self.auxiliary,
+            ]
+        if isinstance(statement, ast.StatementWeakConstraint):
+            weak_guards = _weak_body_guards(statement.body)
+            new_weak_body = map_none(
+                partial(self._rewrite_weak_body_literal, weak_guards), statement.body
+            )
+            if new_weak_body is None:
+                return [statement]
+            return [
+                statement.update(self.library, body=new_weak_body),
+                *self.auxiliary,
+            ]
+        if not isinstance(statement, ast.StatementRule):
+            return [statement]
+        update: dict[str, object] = {}
+        rule_guards = _positive_simple_body_literals(statement.body)
+        new_head = self._rewrite_head(rule_guards, statement.head)
+        if new_head is not None:
+            update["head"] = new_head
+        new_body = map_none(
+            partial(self._rewrite_body_element, rule_guards), statement.body
         )
-    elif isinstance(head, ast.HeadSetAggregate | ast.HeadAggregate):
-        new_elements = map_none(
-            partial(
-                _rewrite_aggregate_element, context, auxiliary, library, outer_guards
-            ),
-            head.elements,
-        )
-    else:
-        return None
-    if new_elements is None:
-        return None
-    return head.update(library, elements=new_elements)
+        if new_body is not None:
+            update["body"] = new_body
+        if not update:
+            return [statement]
+        return [statement.update(self.library, **update), *self.auxiliary]
+
+    def _lift_double_negated_body_literal(
+        self, body_literal: ast.BodyLiteral
+    ) -> ast.BodySimpleLiteral | None:
+        """Lift a doubly negated intensional body literal, if it is one."""
+        if (
+            not isinstance(body_literal, ast.BodySimpleLiteral)
+            or not isinstance(body_literal.literal, ast.LiteralSymbolic)
+            or body_literal.literal.sign != ast.Sign.Double
+            or not self._contains_intensional_functions(body_literal.literal)
+        ):
+            return None
+        replacement = self._lift_negated_literal(body_literal.literal)
+        return ast.BodySimpleLiteral(self.library, replacement)
+
+    def rewrite_double_negated_body(
+        self, statement: ast.Statement
+    ) -> list[ast.Statement]:
+        """Lift the doubly negated intensional body literals of a rule."""
+        if not isinstance(statement, ast.StatementRule):
+            return [statement]
+        new_body = map_none(self._lift_double_negated_body_literal, statement.body)
+        if new_body is None:
+            return [statement]
+        return [statement.update(self.library, body=new_body), *self.auxiliary]
 
 
 def rewrite_negated_condition_literals(
@@ -515,69 +504,7 @@ def rewrite_negated_condition_literals(
     the auxiliary rules defining the fresh predicates that replace the lifted
     literals.
     """
-    library = context.lib.library
-    if isinstance(statement, ast.StatementOptimize):
-        optimize_auxiliary: list[ast.Statement] = []
-        new_elements = map_none(
-            partial(_rewrite_optimize_element, context, optimize_auxiliary, library),
-            statement.elements,
-        )
-        if new_elements is None:
-            return [statement]
-        return [statement.update(library, elements=new_elements), *optimize_auxiliary]
-    if isinstance(statement, ast.StatementWeakConstraint):
-        weak_auxiliary: list[ast.Statement] = []
-        weak_guards = _weak_body_guards(statement.body)
-        new_weak_body = map_none(
-            partial(
-                _rewrite_weak_body_literal,
-                context,
-                weak_auxiliary,
-                library,
-                weak_guards,
-            ),
-            statement.body,
-        )
-        if new_weak_body is None:
-            return [statement]
-        return [statement.update(library, body=new_weak_body), *weak_auxiliary]
-    if not isinstance(statement, ast.StatementRule):
-        return [statement]
-    auxiliary: list[ast.Statement] = []
-    update: dict[str, object] = {}
-    rule_guards = _positive_simple_body_literals(statement.body)
-    new_head = _rewrite_head(context, auxiliary, library, rule_guards, statement.head)
-    if new_head is not None:
-        update["head"] = new_head
-    new_body = map_none(
-        partial(_rewrite_body_element, context, auxiliary, library, rule_guards),
-        statement.body,
-    )
-    if new_body is not None:
-        update["body"] = new_body
-    if not update:
-        return [statement]
-    return [statement.update(library, **update), *auxiliary]
-
-
-def _lift_double_negated_body_literal(
-    context: RewriteContext,
-    auxiliary: list[ast.Statement],
-    library: Library,
-    body_literal: ast.BodyLiteral,
-) -> ast.BodySimpleLiteral | None:
-    """Lift a doubly negated intensional body literal, if it is one."""
-    if (
-        not isinstance(body_literal, ast.BodySimpleLiteral)
-        or not isinstance(body_literal.literal, ast.LiteralSymbolic)
-        or body_literal.literal.sign != ast.Sign.Double
-        or not _contains_intensional_functions(context, body_literal.literal)
-    ):
-        return None
-    replacement = _lift_negated_literal(
-        context, auxiliary, library, body_literal.literal
-    )
-    return ast.BodySimpleLiteral(library, replacement)
+    return _NegationLifter(context).rewrite_statement(statement)
 
 
 def rewrite_double_negated_body_literals(
@@ -592,17 +519,7 @@ def rewrite_double_negated_body_literals(
     Returns the rewritten statement followed by the auxiliary rules;
     statements without such literals pass through unchanged.
     """
-    if not isinstance(statement, ast.StatementRule):
-        return [statement]
-    library = context.lib.library
-    auxiliary: list[ast.Statement] = []
-    new_body = map_none(
-        partial(_lift_double_negated_body_literal, context, auxiliary, library),
-        statement.body,
-    )
-    if new_body is None:
-        return [statement]
-    return [statement.update(library, body=new_body), *auxiliary]
+    return _NegationLifter(context).rewrite_double_negated_body(statement)
 
 
 def rewrite_negated_head_literals(
