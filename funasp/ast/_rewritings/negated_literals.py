@@ -429,23 +429,31 @@ def _rewrite_body_element(
         return _rewrite_element_condition(
             context, auxiliary, library, outer_guards, body_literal
         )
-    if isinstance(body_literal, ast.BodyAggregate):
-        new_elements = map_none(
-            partial(
-                _rewrite_element_condition, context, auxiliary, library, outer_guards
-            ),
-            body_literal.elements,
-        )
-        if new_elements is None:
-            return None
-        return body_literal.update(library, elements=new_elements)
-    if isinstance(body_literal, ast.BodySetAggregate):
-        new_elements = map_none(
-            partial(
-                _rewrite_aggregate_element, context, auxiliary, library, outer_guards
-            ),
-            body_literal.elements,
-        )
+    if isinstance(body_literal, ast.BodyAggregate | ast.BodySetAggregate):
+        # The two aggregate forms differ only in their element rewriter:
+        # body-aggregate elements have no element literal to lift.
+        if isinstance(body_literal, ast.BodyAggregate):
+            new_elements = map_none(
+                partial(
+                    _rewrite_element_condition,
+                    context,
+                    auxiliary,
+                    library,
+                    outer_guards,
+                ),
+                body_literal.elements,
+            )
+        else:
+            new_elements = map_none(
+                partial(
+                    _rewrite_aggregate_element,
+                    context,
+                    auxiliary,
+                    library,
+                    outer_guards,
+                ),
+                body_literal.elements,
+            )
         if new_elements is None:
             return None
         return body_literal.update(library, elements=new_elements)
