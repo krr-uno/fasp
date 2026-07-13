@@ -163,6 +163,36 @@ class TestNegatedLiterals(TransformTestCase):
             """,
         )
 
+    def test_intensional_in_negated_comparison_in_aggregate_condition(self):
+        """Negated comparisons needing unnesting are lifted with guards."""
+        self.assertTransformEqual(
+            """
+            f(1) := 2.
+            :- 0 < #count{ X : p(X), not f(X)+1 = 3 }.
+            """,
+            """
+            Ff(1,2).
+            :- 0 < #count { X: p(X), not RD1(X) }.
+            RD1(X) :- p(X); 1*FUN+1=3; Ff(X,FUN); FUN=2.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
+    def test_intensional_in_negated_comparison_in_aggregate_condition2(self):
+        """Negated comparisons needing unnesting are lifted with guards."""
+        self.assertTransformEqual(
+            """
+            f(1) := 2.
+            :- q(Y), 0 < #count{ X : p(X), not f(X)+Y = 3 }.
+            """,
+            """
+            Ff(1,2).
+            :- q(Y), 0 < #count { X: p(X), not RD1(X,Y) }.
+            RD1(X,Y) :- q(Y); p(X); 1*FUN+Y=3; Ff(X,FUN); FUN=2.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
     def test_intensional_in_negated_aggregate_condition(self):
         """Test that negated aggregate condition literals are lifted."""
         self.assertTransformEqual(

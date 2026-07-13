@@ -31,10 +31,19 @@ sign-preserving encoding, for both single and double negation; function-free
 negated element literals are handled natively by clingo and left untouched.
 The same treatment applies to negated intensional literals in optimize
 element conditions and weak-constraint bodies.
+
+Singly negated *comparisons* whose intensional functions require unnesting
+(nested calls, arithmetic, or non-equality relations) are lifted the same way
+in conditions, aggregate element literals, optimize elements, and
+weak-constraint bodies. A comparison binds no variables, so the auxiliary
+rule additionally copies the sibling non-negated literals as safety guards.
+Plain functional equalities need no unnesting and are translated in place by
+``prefix_comparisons``; top-level rule-body comparisons are already handled
+by the ``#false : l`` encoding.
 """
 
 from functools import partial
-from typing import TypeGuard
+from typing import Sequence, TypeGuard
 
 from clingo_funasp import ast
 from clingo_funasp.core import Library
@@ -103,9 +112,9 @@ def _complement_to_body(
 
 
 def _contains_intensional_functions(
-    context: RewriteContext, literal: ast.LiteralSymbolic
+    context: RewriteContext, literal: ast.LiteralComparison | ast.LiteralSymbolic
 ) -> bool:
-    """Whether the literal contains intensional function terms."""
+    """Whether the literal contains intensional function terms to unnest."""
     _, comparisons = unnest_functions(
         context.lib.library,
         literal,
@@ -119,7 +128,7 @@ def _lift_literal(
     context: RewriteContext,
     auxiliary: list[ast.Statement],
     library: Library,
-    literal: ast.LiteralSymbolic,
+    literal: ast.LiteralComparison | ast.LiteralSymbolic,
     aux_body: list[ast.BodyLiteral],
     *,
     replacement_sign: ast.Sign = ast.Sign.Single,
@@ -167,17 +176,61 @@ def _lift_negated_literal(
     )
 
 
+def _lift_negated_intensional_comparison(
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    guards: list[ast.BodyLiteral],
+    literal: ast.Literal,
+) -> ast.LiteralSymbolic | None:
+    """Lift a singly negated comparison over intensional functions.
+
+    A comparison binds no variables, so the auxiliary rule copies the sibling
+    non-negated literals as guards before the positive comparison, whose
+    intensional functions are then unnested by the ordinary positive-body
+    encoding. Plain functional equalities need no unnesting and are left to
+    ``prefix_comparisons``, as are function-free comparisons.
+    """
+    if (
+        not isinstance(literal, ast.LiteralComparison)
+        or literal.sign != ast.Sign.Single
+        or not _contains_intensional_functions(context, literal)
+    ):
+        return None
+    positive = ast.BodySimpleLiteral(
+        library, literal.update(library, sign=ast.Sign.NoSign)
+    )
+    return _lift_literal(context, auxiliary, library, literal, [*guards, positive])
+
+
+def _condition_guards(
+    library: Library, condition: Sequence[ast.Literal]
+) -> list[ast.BodyLiteral]:
+    """Wrap the non-negated literals of a condition as auxiliary-rule guards."""
+    return [
+        ast.BodySimpleLiteral(library, literal)
+        for literal in condition
+        if literal.sign == ast.Sign.NoSign
+    ]
+
+
 def _lift_condition_literal(
     context: RewriteContext,
     auxiliary: list[ast.Statement],
     library: Library,
+    guards: list[ast.BodyLiteral],
     literal: ast.Literal,
 ) -> ast.LiteralSymbolic | None:
-    """Replace a negated symbolic condition literal by a fresh auxiliary call.
+    """Replace a negated condition literal by a fresh auxiliary call.
 
-    Single negations are always lifted; double negations only when they
-    contain intensional functions.
+    Symbolic single negations are always lifted; symbolic double negations
+    and negated comparisons only when they contain intensional functions.
     """
+    replacement = _lift_negated_intensional_comparison(
+        context, auxiliary, library, guards, literal
+    )
+    if replacement is not None:
+        return replacement
     if not isinstance(literal, ast.LiteralSymbolic):
         return None
     if literal.sign == ast.Sign.Double:
@@ -203,8 +256,9 @@ def _rewrite_element_condition[
     element: ElementT,
 ) -> ElementT | None:
     """Lift the negated literals inside an element's condition."""
+    guards = _condition_guards(library, element.condition)
     new_condition = map_none(
-        partial(_lift_condition_literal, context, auxiliary, library),
+        partial(_lift_condition_literal, context, auxiliary, library, guards),
         element.condition,
     )
     if new_condition is None:
@@ -242,13 +296,18 @@ def _rewrite_aggregate_element[
 ) -> ElementT | None:
     """Lift an element's negated intensional literal and condition literals."""
     update: dict[str, object] = {}
-    replacement = _lift_negated_intensional_literal(
-        context, auxiliary, library, element.literal
+    guards = _condition_guards(library, element.condition)
+    replacement = _lift_negated_intensional_comparison(
+        context, auxiliary, library, guards, element.literal
     )
+    if replacement is None:
+        replacement = _lift_negated_intensional_literal(
+            context, auxiliary, library, element.literal
+        )
     if replacement is not None:
         update["literal"] = replacement
     new_condition = map_none(
-        partial(_lift_condition_literal, context, auxiliary, library),
+        partial(_lift_condition_literal, context, auxiliary, library, guards),
         element.condition,
     )
     if new_condition is not None:
@@ -258,6 +317,22 @@ def _rewrite_aggregate_element[
     return element.update(library, **update)
 
 
+def _lift_optimize_condition_literal(
+    context: RewriteContext,
+    auxiliary: list[ast.Statement],
+    library: Library,
+    guards: list[ast.BodyLiteral],
+    literal: ast.Literal,
+) -> ast.LiteralSymbolic | None:
+    """Lift a negated intensional literal or comparison in an optimize condition."""
+    replacement = _lift_negated_intensional_comparison(
+        context, auxiliary, library, guards, literal
+    )
+    if replacement is not None:
+        return replacement
+    return _lift_negated_intensional_literal(context, auxiliary, library, literal)
+
+
 def _rewrite_optimize_element(
     context: RewriteContext,
     auxiliary: list[ast.Statement],
@@ -265,8 +340,9 @@ def _rewrite_optimize_element(
     element: ast.OptimizeElement,
 ) -> ast.OptimizeElement | None:
     """Lift the negated intensional literals of an optimize element condition."""
+    guards = _condition_guards(library, element.condition)
     new_condition = map_none(
-        partial(_lift_negated_intensional_literal, context, auxiliary, library),
+        partial(_lift_optimize_condition_literal, context, auxiliary, library, guards),
         element.condition,
     )
     if new_condition is None:
@@ -274,17 +350,38 @@ def _rewrite_optimize_element(
     return element.update(library, condition=new_condition)
 
 
+def _weak_body_guards(body: Sequence[ast.BodyLiteral]) -> list[ast.BodyLiteral]:
+    """Return the non-negated weak-constraint body literals usable as guards."""
+    return [
+        body_literal
+        for body_literal in body
+        if (
+            isinstance(body_literal, ast.BodySimpleLiteral)
+            and body_literal.literal.sign == ast.Sign.NoSign
+        )
+        or (
+            isinstance(body_literal, ast.BodyAggregate | ast.BodySetAggregate)
+            and body_literal.sign == ast.Sign.NoSign
+        )
+    ]
+
+
 def _rewrite_weak_body_literal(
     context: RewriteContext,
     auxiliary: list[ast.Statement],
     library: Library,
+    guards: list[ast.BodyLiteral],
     body_literal: ast.BodyLiteral,
 ) -> ast.BodyLiteral | None:
     """Lift the negated intensional literals of a weak-constraint body."""
     if isinstance(body_literal, ast.BodySimpleLiteral):
-        replacement = _lift_negated_intensional_literal(
-            context, auxiliary, library, body_literal.literal
+        replacement = _lift_negated_intensional_comparison(
+            context, auxiliary, library, guards, body_literal.literal
         )
+        if replacement is None:
+            replacement = _lift_negated_intensional_literal(
+                context, auxiliary, library, body_literal.literal
+            )
         if replacement is None:
             return None
         return ast.BodySimpleLiteral(library, replacement)
@@ -378,8 +475,15 @@ def rewrite_negated_condition_literals(
         return [statement.update(library, elements=new_elements), *optimize_auxiliary]
     if isinstance(statement, ast.StatementWeakConstraint):
         weak_auxiliary: list[ast.Statement] = []
+        weak_guards = _weak_body_guards(statement.body)
         new_weak_body = map_none(
-            partial(_rewrite_weak_body_literal, context, weak_auxiliary, library),
+            partial(
+                _rewrite_weak_body_literal,
+                context,
+                weak_auxiliary,
+                library,
+                weak_guards,
+            ),
             statement.body,
         )
         if new_weak_body is None:

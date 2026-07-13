@@ -418,6 +418,86 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             parse_string(self.lib, "#minimize { 1,X : p(X), not q(X) }.")[1].original
         )
 
+    def test_lifts_negated_intensional_comparison_in_weak_body(self):
+        """A negated intensional comparison in a weak body is lifted with guards."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite(":~ p(X), not f(X)+1 = 3. [1@0,X]"),
+            [" :~ p(X); not RD1(X). [1@0,X]", "RD1(X) :- p(X); f(X)+1=3."],
+        )
+
+    def test_aggregate_guards_negated_comparison_in_weak_body(self):
+        """Positive aggregates guard a lifted weak-body comparison."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite(":~ X = #count{ Y : p(Y) }, not f(X)+1 = 3. [1@0,X]"),
+            [
+                " :~ X = #count { Y: p(Y) }; not RD1(X). [1@0,X]",
+                "RD1(X) :- X = #count { Y: p(Y) }; f(X)+1=3.",
+            ],
+        )
+
+    def test_lifts_negated_intensional_comparison_in_optimize_condition(self):
+        """A negated intensional comparison in an optimize condition is lifted."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("#minimize { 1,X : p(X), not f(X)+1 = 3 }."),
+            ["#minimize { 1,X: p(X), not RD1(X) }.", "RD1(X) :- p(X); f(X)+1=3."],
+        )
+
+    def test_lifts_negated_intensional_comparison_in_aggregate_condition(self):
+        """A negated intensional comparison in an aggregate condition is lifted."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite(":- 0 < #count{ X : p(X), not f(X)+1 = 3 }."),
+            [
+                " :- 0 < #count { X: p(X), not RD1(X) }.",
+                "RD1(X) :- p(X); f(X)+1=3.",
+            ],
+        )
+
+    def test_lifts_negated_intensional_comparison_in_condition(self):
+        """A negated intensional comparison in a conditional literal is lifted."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("a :- q(X) : p(X), not f(X)+1 = 3."),
+            ["a :- q(X): p(X), not RD1(X).", "RD1(X) :- p(X); f(X)+1=3."],
+        )
+
+    def test_lifts_negated_intensional_comparison_element_literal(self):
+        """A negated intensional comparison as an element literal is lifted."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("1 = #count{ X : not f(X)+1 = 3 : q(X) } :- r."),
+            [
+                "1 = #count { X: not RD1(X): q(X) } :- r.",
+                "RD1(X) :- q(X); f(X)+1=3.",
+            ],
+        )
+
+    def test_plain_negated_equality_in_condition_unchanged(self):
+        """A negated equality needing no unnesting is left to prefixing."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self._assert_unchanged(
+            parse_string(self.lib, ":- 0 < #count{ X : p(X,Y), not f(X) = Y }.")[
+                1
+            ].original
+        )
+
     def test_auxiliary_prefix_avoids_function_prefix(self):
         """Auxiliary predicates do not start with the configured function prefix."""
         self.context = RewriteContext(self.lib, prefix_function="R")

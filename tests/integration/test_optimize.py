@@ -83,6 +83,21 @@ class TestOptimize(TransformTestCase):
             """,
         )
 
+    def test_intensional_in_negated_weak_constraint_comparison(self):
+        """Negated comparisons needing unnesting are lifted with guards."""
+        self.assertTransformEqual(
+            """
+            f(1) := 2.
+            :~ p(X), not f(X)+1 = 3. [1@0,X]
+            """,
+            """
+            Ff(1,2).
+            :~ p(X); not RD1(X). [1@0,X]
+            RD1(X) :- p(X); 1*FUN+1=3; Ff(X,FUN); FUN=2.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
     def test_intensional_in_negated_optimize_condition(self):
         """Test that negated optimize element condition literals are lifted."""
         self.assertTransformEqual(

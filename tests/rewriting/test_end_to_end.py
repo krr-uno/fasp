@@ -153,6 +153,24 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(holding, ["c(a) q(1)\nf(a)=1"])
         self.assertEqual(vacuous, ["a c(a) q(1)\nf(a)=2"])
 
+    def test_negated_comparison_in_aggregate_condition(self):
+        """Negated comparisons over functions hold when the value fails or is undefined.
+
+        Regression test: the lookup used to be emitted positively, so an
+        undefined function silently falsified the negated comparison.
+        """
+        program = """
+        {assignment} p(1). b :- 0 < #count{{ X : p(X), not f+1 = 3 }}.
+        """
+
+        undefined = self.get_models(program.format(assignment="f := 1 :- c."))
+        mismatching = self.get_models(program.format(assignment="f := 1."))
+        matching = self.get_models(program.format(assignment="f := 2."))
+
+        self.assertEqual(undefined, ["b p(1)"])
+        self.assertEqual(mismatching, ["b p(1)\nf=1"])
+        self.assertEqual(matching, ["p(1)\nf=2"])
+
     def test_negated_element_literal(self):
         """Negated intensional element literals count exactly the failing values."""
         program = """
