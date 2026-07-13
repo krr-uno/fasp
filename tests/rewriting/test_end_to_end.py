@@ -171,6 +171,21 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(mismatching, ["b p(1)\nf=1"])
         self.assertEqual(matching, ["p(1)\nf=2"])
 
+    def test_negated_comparison_with_global_variable(self):
+        """A lifted comparison with an outer-bound variable stays safe and correct."""
+        program = """
+        {assignment} q(1). p(1).
+        :- q(Y), 0 < #count{{ X : p(X), not f(X)+Y = 3 }}.
+        """
+
+        matching = self.get_models(program.format(assignment="f(1) := 2."))
+        mismatching = self.get_models(program.format(assignment="f(1) := 1."))
+        undefined = self.get_models(program.format(assignment="f(1) := 2 :- c."))
+
+        self.assertEqual(matching, ["p(1) q(1)\nf(1)=2"])
+        self.assertEqual(mismatching, [])
+        self.assertEqual(undefined, [])
+
     def test_negated_element_literal(self):
         """Negated intensional element literals count exactly the failing values."""
         program = """

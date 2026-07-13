@@ -36,8 +36,11 @@ Singly negated *comparisons* whose intensional functions require unnesting
 (nested calls, arithmetic, or non-equality relations) are lifted the same way
 in conditions, aggregate element literals, optimize elements, and
 weak-constraint bodies. A comparison binds no variables, so the auxiliary
-rule additionally copies the sibling non-negated literals as safety guards.
-Plain functional equalities need no unnesting and are translated in place by
+rule additionally copies the non-negated sibling condition literals and the
+enclosing rule's non-negated simple body literals as safety guards (sibling
+aggregates are excluded: copying the enclosing aggregate into the auxiliary
+would make it depend on its own lifted condition). Plain functional
+equalities need no unnesting and are translated in place by
 ``prefix_comparisons``; top-level rule-body comparisons are already handled
 by the ``#false : l`` encoding.
 """
@@ -214,6 +217,23 @@ def _condition_guards(
     ]
 
 
+def _positive_simple_body_literals(
+    body: Sequence[ast.BodyLiteral],
+) -> list[ast.BodyLiteral]:
+    """Return the non-negated simple body literals usable as outer guards.
+
+    Sibling aggregates and conditional literals are excluded: copying the
+    enclosing aggregate into an auxiliary rule would make it depend on its
+    own lifted condition.
+    """
+    return [
+        body_literal
+        for body_literal in body
+        if isinstance(body_literal, ast.BodySimpleLiteral)
+        and body_literal.literal.sign == ast.Sign.NoSign
+    ]
+
+
 def _lift_condition_literal(
     context: RewriteContext,
     auxiliary: list[ast.Statement],
@@ -253,10 +273,11 @@ def _rewrite_element_condition[
     context: RewriteContext,
     auxiliary: list[ast.Statement],
     library: Library,
+    outer_guards: list[ast.BodyLiteral],
     element: ElementT,
 ) -> ElementT | None:
     """Lift the negated literals inside an element's condition."""
-    guards = _condition_guards(library, element.condition)
+    guards = [*outer_guards, *_condition_guards(library, element.condition)]
     new_condition = map_none(
         partial(_lift_condition_literal, context, auxiliary, library, guards),
         element.condition,
@@ -292,11 +313,12 @@ def _rewrite_aggregate_element[
     context: RewriteContext,
     auxiliary: list[ast.Statement],
     library: Library,
+    outer_guards: list[ast.BodyLiteral],
     element: ElementT,
 ) -> ElementT | None:
     """Lift an element's negated intensional literal and condition literals."""
     update: dict[str, object] = {}
-    guards = _condition_guards(library, element.condition)
+    guards = [*outer_guards, *_condition_guards(library, element.condition)]
     replacement = _lift_negated_intensional_comparison(
         context, auxiliary, library, guards, element.literal
     )
@@ -385,21 +407,26 @@ def _rewrite_weak_body_literal(
         if replacement is None:
             return None
         return ast.BodySimpleLiteral(library, replacement)
-    return _rewrite_body_element(context, auxiliary, library, body_literal)
+    return _rewrite_body_element(context, auxiliary, library, guards, body_literal)
 
 
 def _rewrite_body_element(
     context: RewriteContext,
     auxiliary: list[ast.Statement],
     library: Library,
+    outer_guards: list[ast.BodyLiteral],
     body_literal: ast.BodyLiteral,
 ) -> ast.BodyLiteral | None:
     """Lift the negated condition literals inside a single body literal."""
     if isinstance(body_literal, ast.BodyConditionalLiteral):
-        return _rewrite_element_condition(context, auxiliary, library, body_literal)
+        return _rewrite_element_condition(
+            context, auxiliary, library, outer_guards, body_literal
+        )
     if isinstance(body_literal, ast.BodyAggregate):
         new_elements = map_none(
-            partial(_rewrite_element_condition, context, auxiliary, library),
+            partial(
+                _rewrite_element_condition, context, auxiliary, library, outer_guards
+            ),
             body_literal.elements,
         )
         if new_elements is None:
@@ -407,7 +434,9 @@ def _rewrite_body_element(
         return body_literal.update(library, elements=new_elements)
     if isinstance(body_literal, ast.BodySetAggregate):
         new_elements = map_none(
-            partial(_rewrite_aggregate_element, context, auxiliary, library),
+            partial(
+                _rewrite_aggregate_element, context, auxiliary, library, outer_guards
+            ),
             body_literal.elements,
         )
         if new_elements is None:
@@ -420,29 +449,37 @@ def _rewrite_disjunction_element(
     context: RewriteContext,
     auxiliary: list[ast.Statement],
     library: Library,
+    outer_guards: list[ast.BodyLiteral],
     element: ast.DisjunctionElement,
 ) -> ast.HeadConditionalLiteral | None:
     """Lift the negated condition literals of a conditional disjunct."""
     if not isinstance(element, ast.HeadConditionalLiteral):
         return None
-    return _rewrite_element_condition(context, auxiliary, library, element)
+    return _rewrite_element_condition(
+        context, auxiliary, library, outer_guards, element
+    )
 
 
 def _rewrite_head(
     context: RewriteContext,
     auxiliary: list[ast.Statement],
     library: Library,
+    outer_guards: list[ast.BodyLiteral],
     head: ast.HeadLiteral,
 ) -> ast.HeadLiteral | None:
     """Lift the negated condition literals inside a rule head."""
     if isinstance(head, ast.HeadDisjunction):
         new_elements = map_none(
-            partial(_rewrite_disjunction_element, context, auxiliary, library),
+            partial(
+                _rewrite_disjunction_element, context, auxiliary, library, outer_guards
+            ),
             head.elements,
         )
     elif isinstance(head, ast.HeadSetAggregate | ast.HeadAggregate):
         new_elements = map_none(
-            partial(_rewrite_aggregate_element, context, auxiliary, library),
+            partial(
+                _rewrite_aggregate_element, context, auxiliary, library, outer_guards
+            ),
             head.elements,
         )
     else:
@@ -493,11 +530,12 @@ def rewrite_negated_condition_literals(
         return [statement]
     auxiliary: list[ast.Statement] = []
     update: dict[str, object] = {}
-    new_head = _rewrite_head(context, auxiliary, library, statement.head)
+    rule_guards = _positive_simple_body_literals(statement.body)
+    new_head = _rewrite_head(context, auxiliary, library, rule_guards, statement.head)
     if new_head is not None:
         update["head"] = new_head
     new_body = map_none(
-        partial(_rewrite_body_element, context, auxiliary, library),
+        partial(_rewrite_body_element, context, auxiliary, library, rule_guards),
         statement.body,
     )
     if new_body is not None:

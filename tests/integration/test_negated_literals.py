@@ -179,7 +179,11 @@ class TestNegatedLiterals(TransformTestCase):
         )
 
     def test_intensional_in_negated_comparison_in_aggregate_condition2(self):
-        """Negated comparisons needing unnesting are lifted with guards."""
+        """Rule-body literals guard globals of a lifted comparison.
+
+        ``Y`` is bound by ``q(Y)`` outside the aggregate, so the auxiliary
+        rule copies it as a guard to stay safe.
+        """
         self.assertTransformEqual(
             """
             f(1) := 2.
@@ -187,8 +191,8 @@ class TestNegatedLiterals(TransformTestCase):
             """,
             """
             Ff(1,2).
-            :- q(Y), 0 < #count { X: p(X), not RD1(X,Y) }.
-            RD1(X,Y) :- q(Y); p(X); 1*FUN+Y=3; Ff(X,FUN); FUN=2.
+            :- q(Y); 0 < #count { X: p(X), not RD1(X,Y) }.
+            RD1(X,Y) :- q(Y); p(X); Ff(X,FUN); FUN+Y=3.
             :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
             """,
         )

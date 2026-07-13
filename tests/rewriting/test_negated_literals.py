@@ -483,7 +483,20 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             self._rewrite("1 = #count{ X : not f(X)+1 = 3 : q(X) } :- r."),
             [
                 "1 = #count { X: not RD1(X): q(X) } :- r.",
-                "RD1(X) :- q(X); f(X)+1=3.",
+                "RD1(X) :- r; q(X); f(X)+1=3.",
+            ],
+        )
+
+    def test_rule_body_literals_guard_lifted_comparison(self):
+        """Globals of a lifted comparison are guarded by rule-body literals."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite(":- q(Y), 0 < #count{ X : p(X), not f(X)+Y = 3 }."),
+            [
+                " :- q(Y); 0 < #count { X: p(X), not RD1(X,Y) }.",
+                "RD1(X,Y) :- q(Y); p(X); f(X)+Y=3.",
             ],
         )
 
