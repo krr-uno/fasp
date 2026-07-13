@@ -11,7 +11,7 @@
 
 Baseline smells (all judgement calls):
 
-- **Speculative Generality** — `literals.py`: the `sign` parameter of the term-unnesting register is now dead, kept via `# pylint: disable=unused-argument`, and `unnest_functions` still threads it through. Delete the parameter chain rather than suppress the lint.
+- **Speculative Generality** — `literals.py`: the `sign` parameter of the term-unnesting register is now dead, kept via `# pylint: disable=unused-argument`, and `unnest_functions` still threads it through. Delete the parameter chain rather than suppress the lint. *Resolved (2026-07-13): the parameter was removed from `unnest_functions`, all five dispatch registers, and every internal `transform` call.*
 - **Duplicated Code** — `negated_literals.py`: the `StatementOptimize`/`StatementWeakConstraint` branches of `rewrite_negated_condition_literals` share the exact shape, as do the `BodyAggregate`/`BodySetAggregate` branches of `_rewrite_body_element`. Extractable.
 - **Data Clumps** — the `(context, auxiliary, library)` triple travels through ~9 functions; `library` is always `context.lib.library`. A small "lifter" object would absorb it (pre-existing pattern the diff extends).
 - **Mysterious Name** — `tests/integration/base.py` carried over `self.elib` and the placeholder docstring `"""Assert transform equal."""` verbatim; the refactor was the moment to name them honestly.

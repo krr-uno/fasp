@@ -58,7 +58,6 @@ def unnest_functions[
     variable_generator: FreshVariableGenerator,
     *,
     outer: bool = True,
-    sign: ast.Sign | None = None,
     unnest_left_guard_equality: bool = False,
 ) -> tuple[T | None, List[ast.LiteralComparison]]:
     """
@@ -71,11 +70,7 @@ def unnest_functions[
         unnest_left_guard_equality,
     )
 
-    new_node = transformer.unnest(
-        node,
-        outer,
-        sign,
-    )
+    new_node = transformer.unnest(node, outer)
     return new_node, transformer.unnested_functions
 
 
@@ -125,24 +120,22 @@ class UnnestFunctionsInLiteralsTransformer:
         self,
         node: AstT,
         outer: bool = True,
-        sign: ast.Sign | None = None,
     ) -> AstT | None:
         """
         Unnest intensional functions in the given AST node.
         It returns a new node if changes were made, or None otherwise.
         """
-        return node.transform(self.lib, self.unnest, outer, sign)
+        return node.transform(self.lib, self.unnest, outer)
 
     @unnest.register
     def _(
         self,
         node: ast.LiteralSymbolic,
         outer: bool = True,
-        sign: ast.Sign | None = None,
     ) -> ast.LiteralSymbolic | None:
         """Unnest intensional functions inside a symbolic literal."""
-        del outer, sign
-        return node.transform(self.lib, self.unnest, outer=True, sign=node.sign)
+        del outer
+        return node.transform(self.lib, self.unnest, outer=True)
 
     def _flip_equality(
         self,
@@ -160,7 +153,6 @@ class UnnestFunctionsInLiteralsTransformer:
         self,
         node: ast.LiteralComparison,
         outer: bool = True,
-        sign: ast.Sign | None = None,
     ) -> ast.LiteralComparison | None:
         """
         Normalize comparisons to have intensional functions on the left side of equality only
@@ -180,9 +172,9 @@ class UnnestFunctionsInLiteralsTransformer:
             if not self.unnest_left_guard_equality:
                 outer_left = True
 
-        left = self.unnest(node.left, outer_left, sign=sign)
+        left = self.unnest(node.left, outer_left)
         right = map_none(
-            lambda rg: rg.transform(self.lib, self.unnest, outer=False, sign=sign),
+            lambda rg: rg.transform(self.lib, self.unnest, outer=False),
             node.right,
         )
         update = {}
@@ -199,7 +191,6 @@ class UnnestFunctionsInLiteralsTransformer:
         self,
         node: ast.TermOrProjection,
         outer: bool = True,
-        sign: ast.Sign | None = None,  # pylint: disable=unused-argument
     ) -> ast.TermOrProjection | None:
         """Unnest intensional function terms and replace inner calls with fresh variables."""
 
@@ -224,8 +215,7 @@ class UnnestFunctionsInLiteralsTransformer:
         self,
         node: ast.OptimizeTuple,
         outer: bool = True,
-        sign: ast.Sign | None = None,
     ) -> ast.OptimizeTuple | None:
         """Unnest intensional functions that occur inside optimize tuples."""
         del outer
-        return node.transform(self.lib, self.unnest, outer=False, sign=sign)
+        return node.transform(self.lib, self.unnest, outer=False)
