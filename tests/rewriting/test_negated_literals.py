@@ -500,6 +500,49 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             ],
         )
 
+    def test_rule_body_literals_guard_conditional_literal_comparison(self):
+        """Rule-body literals also guard comparisons in conditional literals."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("a :- q(Y); b(X) : c(X), not f(X)+Y = 3."),
+            [
+                "a :- q(Y); b(X): c(X), not RD1(X,Y).",
+                "RD1(X,Y) :- q(Y); c(X); f(X)+Y=3.",
+            ],
+        )
+
+    def test_rule_body_literals_guard_head_condition_comparison(self):
+        """Rule-body literals also guard comparisons in head conditions."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("a(X) : b(X), not f(X)+Y = 3 :- d(X), q(Y)."),
+            [
+                "a(X): b(X), not RD1(X,Y) :- d(X); q(Y).",
+                "RD1(X,Y) :- d(X); q(Y); b(X); f(X)+Y=3.",
+            ],
+        )
+
+    def test_weak_aggregate_is_not_copied_as_guard(self):
+        """A weak-body aggregate never guards its own lifted condition.
+
+        Regression test: the enclosing aggregate used to be copied into the
+        auxiliary rule, guarding the very condition being lifted.
+        """
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite(":~ 0 < #count{ X : p(X), not f(X)+1 = 3 }. [1@0]"),
+            [
+                " :~ 0 < #count { X: p(X), not RD1(X) }. [1@0]",
+                "RD1(X) :- p(X); f(X)+1=3.",
+            ],
+        )
+
     def test_plain_negated_equality_in_condition_unchanged(self):
         """A negated equality needing no unnesting is left to prefixing."""
         self.context = RewriteContext(

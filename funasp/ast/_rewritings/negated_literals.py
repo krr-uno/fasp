@@ -407,7 +407,14 @@ def _rewrite_weak_body_literal(
         if replacement is None:
             return None
         return ast.BodySimpleLiteral(library, replacement)
-    return _rewrite_body_element(context, auxiliary, library, guards, body_literal)
+    # Nested conditions must not receive sibling aggregates as guards: the
+    # enclosing aggregate would end up guarding its own lifted condition.
+    simple_guards: list[ast.BodyLiteral] = [
+        guard for guard in guards if isinstance(guard, ast.BodySimpleLiteral)
+    ]
+    return _rewrite_body_element(
+        context, auxiliary, library, simple_guards, body_literal
+    )
 
 
 def _rewrite_body_element(
