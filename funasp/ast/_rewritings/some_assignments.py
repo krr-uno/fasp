@@ -20,7 +20,8 @@ from typing import Sequence
 
 from clingo_funasp import ast, symbol
 
-from funasp.ast import PARSER_PREFIX, SOME_MARKER
+from funasp.ast._core import PARSER_PREFIX, SOME_MARKER
+from funasp.ast._rewritings.assignment_heads import prefixed_assignment_head
 from funasp.ast._rewritings.context import RewriteContext
 
 #: The prefix the parser generates for ``#some`` assignments.
@@ -38,24 +39,15 @@ def rewrite_some_assignments(
     through unchanged as a one-element list.
     """
 
-    if not isinstance(statement, ast.StatementRule) or not isinstance(
-        head := statement.head, ast.HeadAggregate
-    ):
+    match = prefixed_assignment_head(statement, SOME_PREFIX)
+    if match is None:
         return [statement]
-    left = head.left
-    if (
-        left is None
-        or not isinstance(left.term, ast.TermFunction)
-        or not left.term.name.startswith(SOME_PREFIX)
-    ):
-        return [statement]
-    assert left.relation == ast.Relation.Equal
-    assert head.right is None
+    rule, head, term = match
 
-    name = PARSER_PREFIX + left.term.name[len(SOME_PREFIX) :]
+    name = PARSER_PREFIX + term.name[len(SOME_PREFIX) :]
     return [
-        _rewrite_some_pool_entry(context, statement, head, name, entry.arguments)
-        for entry in left.term.pool
+        _rewrite_some_pool_entry(context, rule, head, name, entry.arguments)
+        for entry in term.pool
     ]
 
 

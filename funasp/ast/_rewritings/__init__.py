@@ -35,7 +35,7 @@ from typing import Iterable
 from clingo_funasp import ast
 from clingo_funasp.core import Location, Position
 
-from funasp.ast import Statement
+from funasp.ast._core import Statement
 from funasp.util.ast import RewritingException, SemanticError
 from funasp.util.collectors import collect_predicates
 from funasp.util.types import SymbolSignature

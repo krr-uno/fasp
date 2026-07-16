@@ -30,8 +30,7 @@ def _restore_literal(
     elif isinstance(atom, ast.TermSymbolic) and atom.symbol.type == SymbolType.Function:
         prefixed_name = atom.symbol.name
     else:
-        # TODO: Need to add test for this
-        return None  # pragma: no cover
+        return None
 
     prefix = context.prefix_function
     if not prefixed_name.startswith(prefix):

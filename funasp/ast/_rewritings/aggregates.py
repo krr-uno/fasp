@@ -19,7 +19,8 @@ from typing import Sequence
 
 from clingo_funasp import ast
 
-from funasp.ast import PARSER_PREFIX
+from funasp.ast._core import PARSER_PREFIX
+from funasp.ast._rewritings.assignment_heads import prefixed_assignment_head
 from funasp.ast._rewritings.context import RewriteContext
 from funasp.util.ast import FreshVariableGenerator
 from funasp.util.collectors import collect_variables
@@ -34,25 +35,15 @@ def rewrite_assignment_aggregates(
     an unpooled target yields one statement and ``f(a;b) := #sum{...}`` yields
     one statement for ``f(a)`` and one for ``f(b)``.
     """
-    prefix = PARSER_PREFIX
-    if not isinstance(statement, ast.StatementRule) or not isinstance(
-        head := statement.head, ast.HeadAggregate
-    ):
+    match = prefixed_assignment_head(statement, PARSER_PREFIX)
+    if match is None:
         return [statement]
-    left = head.left
-    if (
-        left is None
-        or not isinstance(left.term, ast.TermFunction)
-        or not left.term.name.startswith(prefix)
-    ):
-        return [statement]
-    assert left.relation == ast.Relation.Equal
-    assert head.right is None
+    rule, head, term = match
 
-    name = left.term.name
+    name = term.name
     return [
-        _rewrite_aggregate_pool_entry(context, statement, head, name, entry.arguments)
-        for entry in left.term.pool
+        _rewrite_aggregate_pool_entry(context, rule, head, name, entry.arguments)
+        for entry in term.pool
     ]
 
 

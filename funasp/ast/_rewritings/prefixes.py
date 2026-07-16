@@ -24,7 +24,7 @@ function names cannot start with an uppercase letter (those are variables).
 
 from clingo_funasp import ast
 
-from funasp.ast import PARSER_PREFIX
+from funasp.ast._core import PARSER_PREFIX
 from funasp.ast._rewritings.context import RewriteContext
 
 

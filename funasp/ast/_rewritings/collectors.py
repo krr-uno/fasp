@@ -17,7 +17,7 @@ appear are:
 
 from clingo_funasp import ast, symbol
 
-from funasp.ast import PARSER_PREFIX
+from funasp.ast._core import PARSER_PREFIX
 from funasp.util.types import SymbolSignature
 
 
