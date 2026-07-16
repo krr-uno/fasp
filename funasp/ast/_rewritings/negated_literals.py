@@ -32,17 +32,20 @@ negated element literals are handled natively by clingo and left untouched.
 The same treatment applies to negated intensional literals in optimize
 element conditions and weak-constraint bodies.
 
-Singly negated *comparisons* whose intensional functions require unnesting
-(nested calls, arithmetic, or non-equality relations) are lifted the same way
-in conditions, aggregate element literals, optimize elements, and
+Negated *comparisons* whose intensional functions require unnesting (nested
+calls, arithmetic, or non-equality relations) are lifted the same way — with
+the replacement keeping the comparison's sign, single or double — in
+conditions, aggregate element literals, optimize elements, and
 weak-constraint bodies. A comparison binds no variables, so the auxiliary
 rule additionally copies the non-negated sibling condition literals and the
 enclosing rule's non-negated simple body literals as safety guards (sibling
 aggregates are excluded: copying the enclosing aggregate into the auxiliary
 would make it depend on its own lifted condition). Plain functional
 equalities need no unnesting and are translated in place by
-``prefix_comparisons``; top-level rule-body comparisons are already handled
-by the ``#false : l`` encoding.
+``prefix_comparisons``. Top-level rule-body comparisons are handled by the
+``#false : l`` encoding when singly negated and by the doubly-negated body
+lifting — with the rule's non-negated simple body literals as guards — when
+doubly negated.
 
 The lifting steps are driven by :class:`_NegationLifter`, which holds the
 rewrite context, the clingo library, and the auxiliary rules collected for
@@ -222,25 +225,28 @@ class _NegationLifter:
     def _lift_negated_intensional_comparison(
         self, guards: list[ast.BodyLiteral], literal: ast.Literal
     ) -> ast.LiteralSymbolic | None:
-        """Lift a singly negated comparison over intensional functions.
+        """Lift a negated comparison over intensional functions, keeping its sign.
 
-        A comparison binds no variables, so the auxiliary rule copies the
-        sibling non-negated literals as guards before the positive
-        comparison, whose intensional functions are then unnested by the
-        ordinary positive-body encoding. Plain functional equalities need no
-        unnesting and are left to ``prefix_comparisons``, as are
+        Covers single and double negation; the replacement carries the
+        comparison's sign. A comparison binds no variables, so the auxiliary
+        rule copies the sibling non-negated literals as guards before the
+        positive comparison, whose intensional functions are then unnested by
+        the ordinary positive-body encoding. Plain functional equalities need
+        no unnesting and are left to ``prefix_comparisons``, as are
         function-free comparisons.
         """
         if (
             not isinstance(literal, ast.LiteralComparison)
-            or literal.sign != ast.Sign.Single
+            or literal.sign == ast.Sign.NoSign
             or not self._contains_intensional_functions(literal)
         ):
             return None
         positive = ast.BodySimpleLiteral(
             self.library, literal.update(self.library, sign=ast.Sign.NoSign)
         )
-        return self._lift_literal(literal, [*guards, positive])
+        return self._lift_literal(
+            literal, [*guards, positive], replacement_sign=literal.sign
+        )
 
     def _condition_guards(
         self, condition: Sequence[ast.Literal]
@@ -468,17 +474,28 @@ class _NegationLifter:
         return [statement.update(self.library, **update), *self.auxiliary]
 
     def _lift_double_negated_body_literal(
-        self, body_literal: ast.BodyLiteral
+        self, guards: list[ast.BodyLiteral], body_literal: ast.BodyLiteral
     ) -> ast.BodySimpleLiteral | None:
-        """Lift a doubly negated intensional body literal, if it is one."""
+        """Lift a doubly negated intensional body literal, if it is one.
+
+        Doubly negated comparisons are lifted with the sibling guards, like
+        their condition counterparts; symbolic literals bind their own
+        variables and need none.
+        """
         if (
             not isinstance(body_literal, ast.BodySimpleLiteral)
-            or not isinstance(body_literal.literal, ast.LiteralSymbolic)
             or body_literal.literal.sign != ast.Sign.Double
-            or not self._contains_intensional_functions(body_literal.literal)
         ):
             return None
-        replacement = self._lift_negated_literal(body_literal.literal)
+        replacement = self._lift_negated_intensional_comparison(
+            guards, body_literal.literal
+        )
+        if replacement is None:
+            if not isinstance(
+                body_literal.literal, ast.LiteralSymbolic
+            ) or not self._contains_intensional_functions(body_literal.literal):
+                return None
+            replacement = self._lift_negated_literal(body_literal.literal)
         return ast.BodySimpleLiteral(self.library, replacement)
 
     def rewrite_double_negated_body(
@@ -487,7 +504,10 @@ class _NegationLifter:
         """Lift the doubly negated intensional body literals of a rule."""
         if not isinstance(statement, ast.StatementRule):
             return [statement]
-        new_body = map_none(self._lift_double_negated_body_literal, statement.body)
+        guards = _positive_simple_body_literals(statement.body)
+        new_body = map_none(
+            partial(self._lift_double_negated_body_literal, guards), statement.body
+        )
         if new_body is None:
             return [statement]
         return [statement.update(self.library, body=new_body), *self.auxiliary]
@@ -516,8 +536,11 @@ def rewrite_double_negated_body_literals(
     Each such ``not not l`` is replaced by ``not not RDi(vars)``, keeping the
     double negation, and defined by the auxiliary rule ``RDi(vars) :- l.``
     with ``l`` positive — the same encoding as the condition-literal lifting.
-    Returns the rewritten statement followed by the auxiliary rules;
-    statements without such literals pass through unchanged.
+    Doubly negated comparisons requiring unnesting are lifted too; as they
+    bind no variables, the auxiliary rule copies the rule's non-negated
+    simple body literals as safety guards. Returns the rewritten statement
+    followed by the auxiliary rules; statements without such literals pass
+    through unchanged.
     """
     return _NegationLifter(context).rewrite_double_negated_body(statement)
 

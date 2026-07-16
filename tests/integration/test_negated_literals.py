@@ -178,6 +178,32 @@ class TestNegatedLiterals(TransformTestCase):
             """,
         )
 
+    def test_intensional_in_double_negated_comparison_in_body(self):
+        """A doubly negated body comparison needing unnesting keeps its sign."""
+        self.assertTransformEqual(
+            "f := 1 :- not not f+0 = 1.",
+            """
+            Ff(1) :- not not RD1.
+            RD1 :- 1*FUN+0=1; Ff(FUN); FUN=1.
+            :- Ff(_); 1 < #count { V: Ff(V) }.
+            """,
+        )
+
+    def test_intensional_in_double_negated_comparison_in_aggregate_condition(self):
+        """Doubly negated comparisons needing unnesting keep their sign when lifted."""
+        self.assertTransformEqual(
+            """
+            f(1) := 2.
+            :- 0 < #count{ X : p(X), not not f(X)+1 = 3 }.
+            """,
+            """
+            Ff(1,2).
+            :- 0 < #count { X: p(X), not not RD1(X) }.
+            RD1(X) :- p(X); 1*FUN+1=3; Ff(X,FUN); FUN=2.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
     def test_intensional_in_negated_comparison_in_aggregate_condition2(self):
         """Rule-body literals guard globals of a lifted comparison.
 

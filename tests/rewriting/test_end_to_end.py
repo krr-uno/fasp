@@ -111,6 +111,32 @@ class TestEndToEnd(unittest.TestCase):
 
         self.assertCountEqual(models, ["p(1) q(1)", "p(1) q(1)\nf(1)=1"])
 
+    def test_double_negated_comparison_allows_self_supported_values(self):
+        """A doubly negated body comparison needing unnesting keeps its sign.
+
+        ``f+0 = 1`` behaves like the plain equality ``f = 1``: both the model
+        without the assignment and the self-supported one are stable.
+        """
+        program = """
+        p(1).
+        f := 1 :- p(1), not not f+0 = 1.
+        """
+
+        models = self.get_models(program)
+
+        self.assertCountEqual(models, ["p(1)", "p(1)\nf=1"])
+
+    def test_double_negated_comparison_in_aggregate_condition(self):
+        """Doubly negated comparisons in aggregate conditions keep their sign."""
+        program = """
+        p(1).
+        f := 1 :- 1 <= #count{ X : p(X), not not f+0 = 1 }.
+        """
+
+        models = self.get_models(program)
+
+        self.assertCountEqual(models, ["p(1)", "p(1)\nf=1"])
+
     def test_double_negation_with_negated_literal(self):
         """A negated literal alongside a lifted double negation still blocks."""
         program = """

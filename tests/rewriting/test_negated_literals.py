@@ -526,6 +526,65 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             ],
         )
 
+    def test_lifts_double_negated_intensional_comparison_in_aggregate_condition(self):
+        """A doubly negated comparison in an aggregate condition keeps its sign."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite(":- 0 < #count{ X : p(X), not not f(X)+1 = 3 }."),
+            [
+                " :- 0 < #count { X: p(X), not not RD1(X) }.",
+                "RD1(X) :- p(X); f(X)+1=3.",
+            ],
+        )
+
+    def test_lifts_double_negated_intensional_comparison_in_condition(self):
+        """A doubly negated comparison in a conditional literal keeps its sign."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("a :- q(X) : p(X), not not f(X)+1 = 3."),
+            ["a :- q(X): p(X), not not RD1(X).", "RD1(X) :- p(X); f(X)+1=3."],
+        )
+
+    def test_lifts_double_negated_intensional_comparison_element_literal(self):
+        """A doubly negated comparison as an element literal keeps its sign."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("1 = #count{ X : not not f(X)+1 = 3 : q(X) } :- r."),
+            [
+                "1 = #count { X: not not RD1(X): q(X) } :- r.",
+                "RD1(X) :- r; q(X); f(X)+1=3.",
+            ],
+        )
+
+    def test_lifts_double_negated_intensional_comparison_in_optimize_condition(self):
+        """A doubly negated comparison in an optimize condition keeps its sign."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite("#minimize { 1,X : p(X), not not f(X)+1 = 3 }."),
+            [
+                "#minimize { 1,X: p(X), not not RD1(X) }.",
+                "RD1(X) :- p(X); f(X)+1=3.",
+            ],
+        )
+
+    def test_lifts_double_negated_intensional_comparison_in_weak_body(self):
+        """A doubly negated comparison in a weak body keeps its sign."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite(":~ p(X), not not f(X)+1 = 3. [1@0,X]"),
+            [" :~ p(X); not not RD1(X). [1@0,X]", "RD1(X) :- p(X); f(X)+1=3."],
+        )
+
     def test_weak_aggregate_is_not_copied_as_guard(self):
         """A weak-body aggregate never guards its own lifted condition.
 
@@ -633,9 +692,27 @@ class TestRewriteDoubleNegatedBodyLiterals(unittest.TestCase):
         """A doubly negated literal without intensional functions is untouched."""
         self._assert_unchanged("a :- p(X), not not q(X).")
 
-    def test_double_negated_comparison_unchanged(self):
-        """Doubly negated comparisons are not lifted."""
+    def test_double_negated_plain_equality_unchanged(self):
+        """A doubly negated plain equality needs no unnesting and is untouched."""
         self._assert_unchanged("a :- p(X), not not f(X) = 1.")
+
+    def test_function_free_double_negated_comparison_unchanged(self):
+        """A doubly negated comparison without intensional functions is untouched."""
+        self._assert_unchanged("a :- p(X), not not X = 1.")
+
+    def test_lifts_double_negated_intensional_comparison(self):
+        """A doubly negated comparison needing unnesting is lifted with guards."""
+        self.assertEqual(
+            self._rewrite("a :- p(X), not not f(X)+1 = 3."),
+            ["a :- p(X); not not RD1(X).", "RD1(X) :- p(X); f(X)+1=3."],
+        )
+
+    def test_negated_siblings_do_not_guard_lifted_comparison(self):
+        """Only non-negated simple body literals guard a lifted comparison."""
+        self.assertEqual(
+            self._rewrite("a :- q, not r, not not f(a)+1 = 3."),
+            ["a :- q; not r; not not RD1.", "RD1 :- q; f(a)+1=3."],
+        )
 
     def test_non_rule_statement_unchanged(self):
         """A non-rule statement is returned unchanged."""
