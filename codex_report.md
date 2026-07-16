@@ -27,3 +27,21 @@ Reviewed the clean main...HEAD branch diff. Three findings, ranked by severity:
   Validation: nox -s test passes all 264 tests with 100% coverage. No additional baseline code smells were validated.
 
   Summary: 3 findings; the worst is double-negated comparisons becoming positive recursion and changing stable models.
+
+  ------
+
+  High — multiple aggregate siblings cannot safely bind globals for lifted conditions.
+
+    In funasp/ast/_rewritings/negated_literals.py:391, nested aggregate conditions receive only positive simple-body guards. Another positive aggregate that binds a global variable is
+    excluded:
+
+    f(1) := 2.
+    p(1).
+    :~ X = #count{Z:p(Z)},
+       0 < #count{Y:p(Y), not f(Y)+X > 3}. [1@0,X]
+
+    The generated auxiliary omits the first aggregate:
+
+    RD1(X,Y) :- p(Y); f(Y)+X>3.
+
+    Consequently, X is unsafe and rewriting fails. This behavior already existed in 7d681da, so it is not a regression introduced by the new patch.

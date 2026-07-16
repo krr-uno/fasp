@@ -137,6 +137,35 @@ class TestEndToEnd(unittest.TestCase):
 
         self.assertCountEqual(models, ["p(1)", "p(1)\nf=1"])
 
+    def test_weak_body_aggregate_guard_keeps_lifted_condition(self):
+        """A weak body's aggregate guard carries its lifted condition.
+
+        ``f(2)`` is undefined, so a stale copy of the original aggregate —
+        whose condition demands ``Ff`` positively after unnesting — would
+        suppress the weak constraint; the rewritten guard yields cost 1.
+        """
+        program = """
+        f(1) := 2.
+        p(2).
+        :~ X = #count{ Y : p(Y), not q(f(Y)) }, not not f(X)+1 = 3. [1@0,X]
+        """
+        context = RewriteContext(self.library, "F")
+        statements = parse_string(self.library, program)
+        rewritten = rewrite_statements(context, statements)
+        control = ClingoControl(self.library.library, ["0"])
+        prog = ast.Program(self.library.library)
+        for wrapper in rewritten:
+            for statement in wrapper.rewritten:
+                prog.add(statement)
+        control.join(prog)
+        control.ground([("base", ())])
+        costs = []
+        with control.start_solve(yield_=True) as handle:
+            for model in handle:
+                costs.append(list(model.cost))
+
+        self.assertEqual(costs, [[1]])
+
     def test_double_negation_with_negated_literal(self):
         """A negated literal alongside a lifted double negation still blocks."""
         program = """

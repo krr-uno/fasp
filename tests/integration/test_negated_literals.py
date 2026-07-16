@@ -204,6 +204,29 @@ class TestNegatedLiterals(TransformTestCase):
             """,
         )
 
+    def test_rewritten_aggregate_guards_weak_body_comparison(self):
+        """A weak body's aggregate guard carries its lifted condition.
+
+        The auxiliary rule for the doubly negated comparison copies the
+        aggregate with ``not RD1(Y)`` instead of the original intensional
+        condition, whose unnesting would demand ``Ff`` positively.
+        """
+        self.assertTransformEqual(
+            """
+            f(1) := 2.
+            p(2).
+            :~ X = #count{ Y : p(Y), not q(f(Y)) }, not not f(X)+1 = 3. [1@0,X]
+            """,
+            """
+            Ff(1,2).
+            p(2).
+            :~ X = #count { Y: p(Y), not RD1(Y) }; not not RD2(X). [1@0,X]
+            RD1(Y) :- q(FUN); Ff(Y,FUN).
+            RD2(X) :- X = #count { Y: p(Y), not RD1(Y) }; 1*FUN+1=3; Ff(X,FUN); FUN=2.
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+        )
+
     def test_intensional_in_negated_comparison_in_aggregate_condition2(self):
         """Rule-body literals guard globals of a lifted comparison.
 

@@ -585,6 +585,23 @@ class TestRewriteNegatedConditionLiterals(unittest.TestCase):
             [" :~ p(X); not not RD1(X). [1@0,X]", "RD1(X) :- p(X); f(X)+1=3."],
         )
 
+    def test_aggregate_guard_carries_lifted_condition_in_weak_body(self):
+        """Aggregate guards are copied with their rewritten conditions."""
+        self.context = RewriteContext(
+            self.lib, intensional_functions={SymbolSignature("f", 1)}
+        )
+        self.assertEqual(
+            self._rewrite(
+                ":~ X = #count{ Y : p(Y), not q(f(Y)) },"
+                " not not f(X)+1 = 3. [1@0,X]"
+            ),
+            [
+                " :~ X = #count { Y: p(Y), not RD1(Y) }; not not RD2(X). [1@0,X]",
+                "RD1(Y) :- q(f(Y)).",
+                "RD2(X) :- X = #count { Y: p(Y), not RD1(Y) }; f(X)+1=3.",
+            ],
+        )
+
     def test_weak_aggregate_is_not_copied_as_guard(self):
         """A weak-body aggregate never guards its own lifted condition.
 

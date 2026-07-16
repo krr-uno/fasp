@@ -40,7 +40,10 @@ weak-constraint bodies. A comparison binds no variables, so the auxiliary
 rule additionally copies the non-negated sibling condition literals and the
 enclosing rule's non-negated simple body literals as safety guards (sibling
 aggregates are excluded: copying the enclosing aggregate into the auxiliary
-would make it depend on its own lifted condition). Plain functional
+would make it depend on its own lifted condition). Weak-constraint bodies
+also copy non-negated sibling aggregates, which bind the tuple's globals;
+their conditions are lifted first so the copies carry the rewritten,
+sign-preserving conditions. Plain functional
 equalities need no unnesting and are translated in place by
 ``prefix_comparisons``. Top-level rule-body comparisons are handled by the
 ``#false : l`` encoding when singly negated and by the doubly-negated body
@@ -358,27 +361,48 @@ class _NegationLifter:
             return None
         return element.update(self.library, condition=new_condition)
 
-    def _rewrite_weak_body_literal(
+    def _lift_weak_simple_body_literal(
         self, guards: list[ast.BodyLiteral], body_literal: ast.BodyLiteral
-    ) -> ast.BodyLiteral | None:
-        """Lift the negated intensional literals of a weak-constraint body."""
-        if isinstance(body_literal, ast.BodySimpleLiteral):
-            replacement = self._lift_negated_intensional_comparison(
-                guards, body_literal.literal
-            )
-            if replacement is None:
-                replacement = self._lift_negated_intensional_literal(
-                    body_literal.literal
-                )
-            if replacement is None:
-                return None
-            return ast.BodySimpleLiteral(self.library, replacement)
-        # Nested conditions must not receive sibling aggregates as guards: the
-        # enclosing aggregate would end up guarding its own lifted condition.
-        simple_guards: list[ast.BodyLiteral] = [
-            guard for guard in guards if isinstance(guard, ast.BodySimpleLiteral)
-        ]
-        return self._rewrite_body_element(simple_guards, body_literal)
+    ) -> ast.BodySimpleLiteral | None:
+        """Lift a negated intensional simple literal of a weak-constraint body."""
+        if not isinstance(body_literal, ast.BodySimpleLiteral):
+            return None
+        replacement = self._lift_negated_intensional_comparison(
+            guards, body_literal.literal
+        )
+        if replacement is None:
+            replacement = self._lift_negated_intensional_literal(body_literal.literal)
+        if replacement is None:
+            return None
+        return ast.BodySimpleLiteral(self.library, replacement)
+
+    def _rewrite_weak_body(
+        self, statement: ast.StatementWeakConstraint
+    ) -> list[ast.Statement]:
+        """Lift the negated intensional literals of a weak-constraint body.
+
+        Nested conditions are lifted first — with only the simple positive
+        siblings as guards: the enclosing aggregate must not guard its own
+        lifted condition — so that the aggregates copied as guards for the
+        simple-literal lifting below carry their rewritten conditions rather
+        than the original negated intensional literals.
+        """
+        body: Sequence[ast.BodyLiteral] = statement.body
+        new_elements = map_none(
+            partial(self._rewrite_body_element, _positive_simple_body_literals(body)),
+            body,
+        )
+        if new_elements is not None:
+            body = new_elements
+        new_simple = map_none(
+            partial(self._lift_weak_simple_body_literal, _weak_body_guards(body)),
+            body,
+        )
+        if new_simple is not None:
+            body = new_simple
+        if new_elements is None and new_simple is None:
+            return [statement]
+        return [statement.update(self.library, body=body), *self.auxiliary]
 
     def _rewrite_body_element(
         self, outer_guards: list[ast.BodyLiteral], body_literal: ast.BodyLiteral
@@ -447,16 +471,7 @@ class _NegationLifter:
                 *self.auxiliary,
             ]
         if isinstance(statement, ast.StatementWeakConstraint):
-            weak_guards = _weak_body_guards(statement.body)
-            new_weak_body = map_none(
-                partial(self._rewrite_weak_body_literal, weak_guards), statement.body
-            )
-            if new_weak_body is None:
-                return [statement]
-            return [
-                statement.update(self.library, body=new_weak_body),
-                *self.auxiliary,
-            ]
+            return self._rewrite_weak_body(statement)
         if not isinstance(statement, ast.StatementRule):
             return [statement]
         update: dict[str, object] = {}
