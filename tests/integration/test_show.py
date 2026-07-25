@@ -40,6 +40,21 @@ class TestShow(TransformTestCase):
             intensional_functions={"f/0", "g/1"},
         )
 
+    def test_show_symbolic_condition(self):
+        """Test show statements with plain symbolic terms in the condition."""
+        self.assertTransformEqual(
+            """
+            #show p(X) : q(1), f(a) = X.
+            #show r : s("a"), t((1,2)).
+            """,
+            """
+            #show p(X): q(1); Ff(a,X).
+            #show r: s("a"); t((1,2)).
+            :- Ff(X0,_); 1 < #count { V: Ff(X0,V) }.
+            """,
+            intensional_functions={"f/1"},
+        )
+
     def test_showf_directive(self):
         """Test #showf directive."""
         self.assertTransformEqual(

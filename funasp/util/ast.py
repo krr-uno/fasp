@@ -8,6 +8,7 @@ from typing import (
     NamedTuple,
     Optional,
     Sequence,
+    TypeGuard,
     TypeIs,
     TypeVar,
 )
@@ -15,6 +16,8 @@ from typing import (
 from clingo_funasp import ast
 from clingo_funasp.core import Library, Location, Position
 from clingo_funasp.symbol import Symbol, SymbolType
+
+from funasp.util.types import SymbolSignature
 
 AST = (
     ast.Statement
@@ -213,6 +216,31 @@ def function_arguments_ast(
             new_arguments.append(a)
 
     return name, new_arguments
+
+
+def is_intensional_function(
+    node: AST,
+    library: Library,
+    intensional_functions: AbstractSet[SymbolSignature],
+) -> TypeGuard[ast.TermFunction | ast.TermSymbolic]:
+    """
+    Return whether the node is an occurrence of an intensional function.
+
+    Nodes that are not function terms at all — variables, numbers, strings —
+    answer ``False`` rather than reaching the function-shape invariants of
+    ``function_arguments``. A pooled term is intensional when any of its
+    alternatives has an intensional signature.
+    """
+    if not is_function(node):
+        return False
+    name, arguments = function_arguments_ast(library, node)
+    if isinstance(node, ast.TermFunction):
+        arities = {len(entry.arguments) for entry in node.pool}
+    else:
+        arities = {len(arguments)}
+    return any(
+        SymbolSignature(name, arity) in intensional_functions for arity in arities
+    )
 
 
 class FreshVariableGenerator:

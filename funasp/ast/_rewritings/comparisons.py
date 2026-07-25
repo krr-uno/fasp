@@ -17,7 +17,7 @@ from clingo_funasp.core import Library, Location
 from clingo_funasp.symbol import SymbolType
 
 from funasp.ast._rewritings.context import RewriteContext
-from funasp.util.ast import AST, function_arguments_ast, is_function
+from funasp.util.ast import AST, is_intensional_function
 from funasp.util.types import SymbolSignature
 
 
@@ -89,19 +89,11 @@ class ComparisonTransformer:
         """Rewrite functional equalities in literals into prefixed predicate literals."""
         assert len(node.right) >= 1, "Comparison must have at least one guard."
         if (
-            not is_function(node.left)
-            or len(node.right) != 1
+            len(node.right) != 1
             or node.right[0].relation != ast.Relation.Equal
-        ):
-            return None
-        name, arguments = function_arguments_ast(self.library, node.left)
-        if isinstance(node.left, ast.TermFunction):
-            candidate_arities = {len(p.arguments) for p in node.left.pool}
-        else:
-            candidate_arities = {len(arguments)}
-        if not any(
-            SymbolSignature(name, arity) in self.intensional_functions
-            for arity in candidate_arities
+            or not is_intensional_function(
+                node.left, self.library, self.intensional_functions
+            )
         ):
             return None
         return ast.LiteralSymbolic(

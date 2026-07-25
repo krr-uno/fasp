@@ -8,10 +8,8 @@ from funasp.ast._rewritings.context import RewriteContext
 from funasp.util.ast import (
     RewritingException,
     SemanticError,
-    function_arguments_ast,
-    is_function,
+    is_intensional_function,
 )
-from funasp.util.types import SymbolSignature
 
 _UNSUPPORTED_TERM_STATEMENTS = (
     ast.StatementEdge,
@@ -22,25 +20,14 @@ _UNSUPPORTED_TERM_STATEMENTS = (
 )
 
 
-def _is_intensional_function(
-    context: RewriteContext, term: ast.TermFunction | ast.TermSymbolic
-) -> bool:
-    name, arguments = function_arguments_ast(context.lib.library, term)
-    if isinstance(term, ast.TermFunction):
-        arities = {len(entry.arguments) for entry in term.pool}
-    else:
-        arities = {len(arguments)}
-    return any(
-        SymbolSignature(name, arity) in context.intensional_functions
-        for arity in arities
-    )
-
-
 def _find_rough_intensional_function(
     context: RewriteContext, node: Any
 ) -> ast.TermFunction | ast.TermSymbolic | None:
     """Find an intensional term that is not an equality's assigned function."""
     found: ast.TermFunction | ast.TermSymbolic | None = None
+
+    library = context.lib.library
+    signatures = context.intensional_functions
 
     def visit(child: Any) -> None:
         nonlocal found
@@ -48,8 +35,7 @@ def _find_rough_intensional_function(
             return
         if isinstance(child, ast.LiteralComparison):
             if (
-                is_function(child.left)
-                and _is_intensional_function(context, child.left)
+                is_intensional_function(child.left, library, signatures)
                 and len(child.right) == 1
                 and child.right[0].relation == ast.Relation.Equal
             ):
@@ -58,9 +44,7 @@ def _find_rough_intensional_function(
                 child.left.visit(visit)
                 child.right[0].visit(visit)
                 return
-        if isinstance(child, ast.TermFunction | ast.TermSymbolic) and (
-            _is_intensional_function(context, child)
-        ):
+        if is_intensional_function(child, library, signatures):
             found = child
             return
         child.visit(visit)

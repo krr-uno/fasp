@@ -82,6 +82,27 @@ class TestUnsupportedDirectiveTerms(unittest.TestCase):
             with self.subTest(construct=construct):
                 self.assert_rejected(directive, construct)
 
+    def assert_accepted(self, directive: str) -> str:
+        program = f"f(a) := 1. {directive}"
+        statements = parse_string(self.library, program)
+        context = RewriteContext(self.library)
+        rewritten = rewrite_statements(context, statements)
+        return "\n".join(
+            str(item) for wrapper in rewritten for item in wrapper.rewritten
+        )
+
+    def test_plain_symbolic_terms_in_directives_are_accepted(self):
+        """Symbolic terms that are not functions carry no intensional occurrence."""
+        cases = (
+            ('#show p(1) : q("a").', '#show p(1): q("a").'),
+            ("#external p(1) : q(2).", "#external p(1): q(2)."),
+            ("#heuristic p(1) : q(2). [1,true]", "#heuristic p(1): q(2). [1,true]"),
+            ("#edge (1,2) : q(3).", "#edge (1,2): q(3)."),
+        )
+        for directive, expected in cases:
+            with self.subTest(directive=directive):
+                self.assertIn(expected, self.assert_accepted(directive))
+
     def test_functional_equation_in_show_condition_remains_supported(self):
         statements = parse_string(self.library, "f(a) := 1. #show p(X) : f(a) = X.")
         context = RewriteContext(self.library)
