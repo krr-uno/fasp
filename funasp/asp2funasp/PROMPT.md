@@ -239,6 +239,7 @@ p(1) = (Y, Z)
 ## File Reference
 
 ### Entry Points
+- **conversion.py** — Stateless ASP-to-FUNASP orchestration; call `convert_statements()`
 - **functional_predicate_finder.py** — Main orchestrator; call `FunctionalPredicateFinder.find()`
 - **rewrite_into_funasp.py** — Rewriting transformer; instantiate `FunctionalBodyRewriteTransformer`
 
