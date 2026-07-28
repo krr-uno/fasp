@@ -7,9 +7,10 @@ from clingo_funasp import ast
 from clingo_funasp.core import Library
 
 from funasp.asp2funasp.rewriting import FunctionalPredicateFinder
-from funasp.asp2funasp.util.types import FPredicate, CPredicate, FRelation
+from funasp.asp2funasp.util.types import FPredicate, FRelation
 
 from tests.asp2funasp.util import collect_statements, diff_namedtuples
+
 
 class FunctionalPredicateFinderTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -19,17 +20,24 @@ class FunctionalPredicateFinderTest(unittest.TestCase):
     def _apply(self, program: str) -> Tuple[List[FPredicate], List[FRelation]]:
         """Parse `program`, pass asts to pattern finder and return identifed FPredicates."""
         program = textwrap.dedent(program).strip()
-        nodes: list[ast.StatementRule] = collect_statements(self.lib, program)
+        nodes: List[ast.StatementRule] = collect_statements(self.lib, program)
 
-        self.finder.processProgram(nodes)
-        return self.finder.getFunctionalPredicates(), self.finder.getFunctionalRelations()
+        return self.finder.find(nodes)
 
-    def assertFPredicateEqual(self, program:str, expected: Tuple[List[FPredicate], List[FRelation]]) -> None:
+    def assertFPredicateEqual(
+        self,
+        program: str,
+        expected: Tuple[List[FPredicate], List[FRelation]],
+    ) -> None:
         foundFPredicates, foundFRelations = self._apply(program)
         expectedFPredicates, expectedFRelations = expected
 
-        missing_fp, unexpected_fp = diff_namedtuples(expectedFPredicates, foundFPredicates)
-        missing_fr, unexpected_fr = diff_namedtuples(expectedFRelations, foundFRelations)
+        missing_fp, unexpected_fp = diff_namedtuples(
+            expectedFPredicates, foundFPredicates
+        )
+        missing_fr, unexpected_fr = diff_namedtuples(
+            expectedFRelations, foundFRelations
+        )
 
         assert not missing_fp and not unexpected_fp, (
             f"\nFPredicate mismatch:\n"
@@ -51,12 +59,24 @@ class FunctionalPredicateFinderTest(unittest.TestCase):
     def test_no_constraint(self) -> None:
         program = "a."
 
-        self.assertFPredicateEqual(program, ([],[]))
+        self.assertFPredicateEqual(program, ([], []))
 
     def test_no_inequality(self) -> None:
         program = ":- pos(I,X,Y); pos(I,X1,Y1); Y > Y1."
 
-        self.assertFPredicateEqual(program, ([],[]))
+        self.assertFPredicateEqual(program, ([], []))
+
+    def test_reusing_finder_does_not_retain_previous_program_results(self) -> None:
+        first_program = "1 { assign(N,C) : color(C) } 1 :- node(N)."
+        second_program = "a."
+
+        first_predicates, first_relations = self._apply(first_program)
+        second_predicates, second_relations = self._apply(second_program)
+
+        self.assertTrue(first_predicates)
+        self.assertTrue(first_relations)
+        self.assertEqual(second_predicates, [])
+        self.assertEqual(second_relations, [])
 
     def test_inequality(self) -> None:
         program = ":- pos(I,X,Y); pos(I,X1,Y1); Y != Y1."

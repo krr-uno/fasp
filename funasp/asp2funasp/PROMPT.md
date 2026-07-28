@@ -239,7 +239,7 @@ p(1) = (Y, Z)
 ## File Reference
 
 ### Entry Points
-- **functional_predicate_finder.py** — Main orchestrator; call `FunctionalPredicateFinder.processProgram()`
+- **functional_predicate_finder.py** — Main orchestrator; call `FunctionalPredicateFinder.find()`
 - **rewrite_into_funasp.py** — Rewriting transformer; instantiate `FunctionalBodyRewriteTransformer`
 
 ### Must-Know Files
