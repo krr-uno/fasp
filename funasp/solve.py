@@ -4,23 +4,38 @@ from clingo_funasp import solve
 from clingo_funasp.symbol import Symbol, SymbolType
 
 from funasp.symbol import FunctionSymbol
+from funasp.util.types import AUXILIARY_PREDICATE_PREFIXES
+
+
+def _is_hidden_auxiliary_symbol(symbol: Symbol) -> bool:
+    return symbol.type == SymbolType.Function and symbol.name.startswith(
+        AUXILIARY_PREDICATE_PREFIXES
+    )
+
+
+def _is_function_assignment_symbol(symbol: Symbol, prefix: str) -> bool:
+    """Return whether the symbol encodes an intensional function assignment.
+
+    Auxiliary predicate names never start with the function prefix (see
+    ``RewriteContext._auxiliary_prefix``), so every atom starting with the
+    prefix is a function assignment — even when the prefix itself starts
+    with an auxiliary prefix such as ``RD``.
+    """
+    return symbol.type == SymbolType.Function and symbol.name.startswith(prefix)
+
+
+def _is_internal_symbol(symbol: Symbol, prefix: str) -> bool:
+    """Return whether the symbol is internal to the FASP encoding."""
+    return _is_function_assignment_symbol(
+        symbol, prefix
+    ) or _is_hidden_auxiliary_symbol(symbol)
 
 
 class Model:
-    """
-    Provides access to a model during a solve call and provides a
-    `SolveContext` object to influence the running search.
+    """FASP-aware view of a clingo model.
 
-    Notes
-    -----
-    The string representation of a model object is similar to the output of
-    models by clingo using the default output.
-
-    `Model` objects cannot be constructed from Python. Instead they are obained
-    during solving (see `Control.solve`). Furthermore, the lifetime of a model
-    object is limited to the scope of the callback it was passed to or until
-    the search for the next model is started. They must not be stored for later
-    use.
+    Encoded function predicates are exposed as :class:`FunctionSymbol` values,
+    and pipeline-generated auxiliary predicates are hidden from user output.
     """
 
     def __init__(self, model: solve.Model, prefix: str = "F"):
@@ -48,10 +63,6 @@ class Model:
             Select all atoms and terms as outputted by clingo.
         theory
             Select atoms added with `Model.extend`.
-        complement
-            Return the complement of the answer set w.r.t. to the atoms known
-            to the grounder.
-
         Returns
         -------
         The selected symbols.
@@ -59,8 +70,7 @@ class Model:
         return [
             symbol
             for symbol in self.clingo_model.symbols(shown, atoms, terms, theory)
-            if symbol.type != SymbolType.Function
-            or not symbol.name.startswith(self.prefix)
+            if not _is_internal_symbol(symbol, self.prefix)
         ]
 
     def function_symbols(
@@ -72,10 +82,9 @@ class Model:
     ) -> Sequence[FunctionSymbol]:
         """Return the shown function assignments extracted from the underlying model."""
         return [
-            FunctionSymbol.from_symbol(symbol)
+            FunctionSymbol.from_symbol(symbol, prefix_len=len(self.prefix))
             for symbol in self.clingo_model.symbols(shown, atoms, terms, theory)
-            if symbol.type == SymbolType.Function
-            and symbol.name.startswith(self.prefix)
+            if _is_function_assignment_symbol(symbol, self.prefix)
         ]
 
     def to_str(self, *, ordered: bool = False) -> str:

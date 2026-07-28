@@ -15,37 +15,47 @@ This step runs before the prefix renaming pass and after the ``#some``
 rewriting, so the left-guard prefix is the parser's literal ``F``.
 """
 
+from typing import Sequence
+
 from clingo_funasp import ast
 
-from funasp.ast import PARSER_PREFIX
-from funasp.ast._rewritings.collectors import collect_variables
+from funasp.ast._core import PARSER_PREFIX
+from funasp.ast._rewritings.assignment_heads import prefixed_assignment_head
 from funasp.ast._rewritings.context import RewriteContext
 from funasp.util.ast import FreshVariableGenerator
+from funasp.util.collectors import collect_variables
 
 
 def rewrite_assignment_aggregates(
     context: RewriteContext, statement: ast.Statement
-) -> ast.Statement:
-    """Rewrite an aggregate assignment head into a simple head plus body aggregate."""
-    library = context.lib.library
-    prefix = PARSER_PREFIX
-    if not isinstance(statement, ast.StatementRule) or not isinstance(
-        head := statement.head, ast.HeadAggregate
-    ):
-        return statement
-    left = head.left
-    if (
-        left is None
-        or not isinstance(left.term, ast.TermFunction)
-        or not left.term.name.startswith(prefix)
-    ):
-        return statement
-    assert left.relation == ast.Relation.Equal
-    assert head.right is None
+) -> list[ast.Statement]:
+    """Rewrite an aggregate assignment, expanding each target pool entry.
 
-    name = left.term.name
-    assert len(left.term.pool) == 1, f"Terms must be unpooled {left.term}"
-    arguments = left.term.pool[0].arguments
+    This follows the same list-producing convention as ``#some`` assignments:
+    an unpooled target yields one statement and ``f(a;b) := #sum{...}`` yields
+    one statement for ``f(a)`` and one for ``f(b)``.
+    """
+    match = prefixed_assignment_head(statement, PARSER_PREFIX)
+    if match is None:
+        return [statement]
+    rule, head, term = match
+
+    name = term.name
+    return [
+        _rewrite_aggregate_pool_entry(context, rule, head, name, entry.arguments)
+        for entry in term.pool
+    ]
+
+
+def _rewrite_aggregate_pool_entry(
+    context: RewriteContext,
+    statement: ast.StatementRule,
+    head: ast.HeadAggregate,
+    name: str,
+    arguments: Sequence[ast.Term | ast.Projection],
+) -> ast.Statement:
+    """Build the normalized assignment for one target pool entry."""
+    library = context.lib.library
 
     used_variables = collect_variables(statement)
     fresh_variable_generator = FreshVariableGenerator(used_variables)

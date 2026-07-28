@@ -15,8 +15,8 @@ from clingo_funasp.core import Library, Location, Position
 from clingo_funasp.symbol import Number
 
 from funasp.ast._rewritings.context import RewriteContext
-from funasp.ast._rewritings.types import SymbolSignature
 from funasp.util.ast import create_body_literal, create_literal
+from funasp.util.types import SymbolSignature
 
 
 def _functional_constraint(

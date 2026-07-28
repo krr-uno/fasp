@@ -3,6 +3,7 @@ import unittest
 
 from clingo_funasp import ast
 from clingo_funasp.core import Location, Position, Library
+from clingo_funasp.symbol import Symbol, SymbolType, parse_term, parse_term
 
 from funasp import core
 from funasp.ast import parse_string
@@ -11,7 +12,7 @@ from funasp.util.ast import (
     SyntacticCheckVisitor,
     SyntacticError,
 )
-from funasp.ast._rewritings.collectors import collect_variables
+from funasp.util.collectors import collect_variables
 from funasp.util import ast as util_ast
 
 INVALID_ASTTYPES = {
@@ -19,6 +20,14 @@ INVALID_ASTTYPES = {
     ast.BodyConditionalLiteral,
     ast.HeadDisjunction,
 }
+
+LOC = Location(Position(Library(), "<test>", 1, 1), Position(Library(), "<test>", 1, 1))
+
+
+def parse_symbolic_term(lib, term_str):
+    """Parse a symbolic term from a string."""
+    term = parse_term(lib, term_str)
+    return ast.TermSymbolic(lib, LOC, term)
 
 
 class TestSyntacticChecker(unittest.TestCase):
@@ -310,6 +319,189 @@ class TestSymbolSignature(unittest.TestCase):
 
     def test_str(self):
         """The string form is name/arity."""
-        from funasp.ast._rewritings.types import SymbolSignature
+        from funasp.util.types import SymbolSignature
 
         self.assertEqual(str(SymbolSignature("f", 2)), "f/2")
+
+
+class TestTermTransformer(unittest.TestCase):
+    """Tests for the TermTransformer class."""
+
+    def setUp(self):
+        """Set up test fixtures for each test."""
+        self.lib = Library()
+
+    def assertTransformed(self, term, expected_str, function):
+        """Assert that the term is transformed correctly."""
+        transformer = util_ast.TermTransformer(self.lib, function)
+        transformed_term = transformer(term)
+        if expected_str is None:
+            self.assertIsNone(transformed_term)
+        else:
+            self.assertEqual(str(transformed_term), expected_str)
+
+    def test_transform_order(self):
+        """Test that the transformation is applied in the correct order."""
+        names = []
+
+        def function(term, depth, loc, fun):
+            # print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'}")
+            if isinstance(term, ast.TermFunction):
+                names.append(("F" + term.name, depth))
+            elif isinstance(term, Symbol) and term.type == SymbolType.Function:
+                names.append(("S" + term.name, depth))
+            return None
+
+        self.assertTransformed(
+            ast.parse_term(self.lib, "a(b(c(X),d(Y)),e(Z))"), None, function
+        )
+        self.assertEqual(names, [("Fa", 0), ("Fb", 1), ("Fc", 2), ("Fd", 2), ("Fe", 1)])
+
+        names = []
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(c,d),e)"), None, function
+        )
+        self.assertEqual(names, [("Sa", 0), ("Sb", 1), ("Sc", 2), ("Sd", 2), ("Se", 1)])
+
+    def test_replacement(self):
+        """Test that the transformation can replace terms."""
+        traversed_terms = []
+
+        def function(term, depth, loc, fun):
+            # print(f"Visiting term: {term} --- {type(term)} --- {term.type if isinstance(term, Symbol) else 'N/A'}")
+            traversed_terms.append(term)
+            if isinstance(term, ast.TermFunction) and term.name == "b":
+                return ast.TermFunction(self.lib, term.location, "x", term.pool)
+            if (
+                isinstance(term, Symbol)
+                and term.type == SymbolType.Function
+                and term.name == "b"
+            ):
+                return ast.TermFunction(self.lib, LOC, "x", [])
+            return None
+
+        self.assertTransformed(
+            ast.parse_term(self.lib, "a(b(c,d),e)"), "a(x(c,d),e)", function
+        )
+        self.assertEqual(
+            [str(t) for t in traversed_terms], ["a(b(c,d),e)", "b(c,d)", "e"]
+        )
+
+        traversed_terms = []
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(c,d),e)"), "a(x(),e)", function
+        )
+        self.assertEqual(
+            [str(t) for t in traversed_terms], ["a(b(c,d),e)", "b(c,d)", "e"]
+        )
+
+        traversed_terms = []
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(c(d(b))))"), "a(x())", function
+        )
+        self.assertEqual(
+            [str(t) for t in traversed_terms], ["a(b(c(d(b))))", "b(c(d(b)))"]
+        )
+
+    def test_replacement_recursive(self):
+
+        traversed_terms = []
+
+        def function(term, depth, loc, fun):
+            traversed_terms.append((str(term), depth))
+            if isinstance(term, ast.TermFunction) and term.name == "b":
+                fun(term, depth + 1)
+                return ast.TermFunction(self.lib, term.location, "x", term.pool)
+            if isinstance(term, Symbol):
+                if term.type == SymbolType.Function and term.name == "b":
+                    fun(ast.TermSymbolic(self.lib, LOC, term), depth + 1)
+                    return ast.TermFunction(self.lib, LOC, "x", [])
+                if term.type != SymbolType.Function:
+                    fun(ast.TermSymbolic(self.lib, LOC, term), depth + 1)
+                    return ast.TermFunction(self.lib, LOC, "y", [])
+            return None
+
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(c(d(b))))"), "a(x())", function
+        )
+        self.assertEqual(
+            traversed_terms,
+            [
+                ("a(b(c(d(b))))", 0),
+                ("b(c(d(b)))", 1),
+                ("c(d(b))", 2),
+                ("d(b)", 3),
+                ("b", 4),
+            ],
+        )
+
+        traversed_terms = []
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(1))"), "a(x())", function
+        )
+        self.assertEqual(traversed_terms, [("a(b(1))", 0), ("b(1)", 1), ("1", 2)])
+
+
+class TestReplaceTerm(unittest.TestCase):
+    """Tests for the TermTransformer class."""
+
+    def setUp(self):
+        """Set up test fixtures for each test."""
+        self.lib = Library()
+        self.var_gen = util_ast.FreshVariableGenerator()
+
+    def assertTransformed(
+        self, term, expected_str, function, expected_comparisons=None
+    ):
+        """Assert that the term is transformed correctly."""
+        comparisons = []
+        transformed_term = util_ast.replace_term(
+            self.lib, term, function, comparisons.append, self.var_gen
+        )
+        if expected_str is None:
+            self.assertIsNone(transformed_term)
+        else:
+            self.assertEqual(str(transformed_term), expected_str)
+
+        if expected_comparisons is not None:
+            self.assertEqual(list(map(str, comparisons)), expected_comparisons)
+
+    def condition1(self, term, depth):
+        """Condition to check if the term is a function named 'b'."""
+        return isinstance(term, ast.TermFunction) and term.name == "b"
+
+    def test_replace_term(self):
+        """Test that the transformation can replace terms."""
+        self.assertTransformed(
+            ast.parse_term(self.lib, "a(b(X,d),e)"),
+            "a(FUN,e)",
+            self.condition1,
+            ["b(X,d)=FUN"],
+        )
+
+    def test_replace_term_recursive(self):
+        self.assertTransformed(
+            ast.parse_term(self.lib, "a(b(d(b(X))),e)"),
+            "a(FUN2,e)",
+            self.condition1,
+            ["b(X)=FUN", "b(d(FUN))=FUN2"],
+        )
+
+    def condition2(self, term, depth):
+        """Condition matching a function named 'b', whether AST or symbolic."""
+        if isinstance(term, ast.TermFunction):
+            return term.name == "b"
+        return (
+            isinstance(term, Symbol)
+            and term.type == SymbolType.Function
+            and term.name == "b"
+        )
+
+    def test_replace_term_symbolic_recursive(self):
+        """Nested matches inside a symbolic term must be substituted, not dropped."""
+        self.assertTransformed(
+            parse_symbolic_term(self.lib, "a(b(d(b(c))),e)"),
+            "a(FUN2,e)",
+            self.condition2,
+            ["b(c)=FUN", "b(d(FUN))=FUN2"],
+        )

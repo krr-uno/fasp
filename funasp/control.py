@@ -9,6 +9,7 @@ from clingo_funasp import symbol
 
 from funasp.ast import (
     RewriteContext,
+    Statement,
     parse_files,
     parse_string,
     rewrite_statements,
@@ -25,6 +26,7 @@ class Control:
         options: Sequence[str] = (),
         prefix: str = "F",
         clingo_control: Optional[clingo_funasp.control.Control] = None,
+        ignore_prefix_collisions: bool = False,
     ):
         """Initialize the Control instance."""
         self.library = library
@@ -32,7 +34,9 @@ class Control:
             library.library, options
         )
         self.prefix = prefix
-        self._rewritten_program: Optional[str]
+        self.library.prefix_function = prefix
+        self.ignore_prefix_collisions = ignore_prefix_collisions
+        self._rewritten_program: Optional[str] = None
         self._result: Optional[clingo_funasp.solve.SolveResult] = None
 
     def parse_files(self, files: Sequence[str]) -> None:
@@ -46,17 +50,7 @@ class Control:
         files
             The paths of the files to parse and load.
         """
-        rewrite_ctx = RewriteContext(self.library, self.prefix)
-        statements = parse_files(self.library, files)
-        rewritten = rewrite_statements(rewrite_ctx, statements)
-        program = ast.Program(self.library.library)
-        for wrapper in rewritten:
-            for statement in wrapper.rewritten:
-                program.add(statement)
-        self.clingo_control.join(program)
-        self._rewritten_program = "\n".join(
-            str(s) for wrapper in rewritten for s in wrapper.rewritten
-        )
+        self._load(parse_files(self.library, files))
 
     def parse_string(self, code: str) -> None:
         """
@@ -69,16 +63,23 @@ class Control:
         code
             The FASP program text to parse and load.
         """
-        rewrite_ctx = RewriteContext(self.library, self.prefix)
-        statements = parse_string(self.library, code)
-        rewritten = rewrite_statements(rewrite_ctx, statements)
+        self._load(parse_string(self.library, code))
+
+    def _load(self, statements: list[Statement]) -> None:
+        """Rewrite parsed statements and load them into the clingo control."""
+        rewrite_context = RewriteContext(
+            self.library,
+            self.prefix,
+            ignore_prefix_collisions=self.ignore_prefix_collisions,
+        )
+        rewritten = rewrite_statements(rewrite_context, statements)
         program = ast.Program(self.library.library)
         for wrapper in rewritten:
             for statement in wrapper.rewritten:
                 program.add(statement)
         self.clingo_control.join(program)
         self._rewritten_program = "\n".join(
-            str(s) for wrapper in rewritten for s in wrapper.rewritten
+            str(statement) for wrapper in rewritten for statement in wrapper.rewritten
         )
 
     def ground(
@@ -147,8 +148,12 @@ class Control:
         -------
         str
             The rewritten ASP program.
+
+        Raises
+        ------
+        ValueError
+            If no program has been parsed yet.
         """
         if self._rewritten_program is None:
-            return "No program has been parsed yet."  # pragma: no cover
             raise ValueError("No program has been parsed yet.")
         return self._rewritten_program

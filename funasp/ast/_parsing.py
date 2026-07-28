@@ -1,5 +1,5 @@
 import re
-from typing import Sequence
+from typing import Callable, Sequence
 
 from clingo_funasp import ast
 from clingo_funasp.core import Library, Location, MessageType, Position
@@ -11,7 +11,10 @@ from ._core import Statement
 
 # Errors for strings use an angle-bracketed name (`<string>:1:2-3: error: ...`)
 # while errors for files use the plain file name (`file.lp:1:2-3: error: ...`).
-_PARSING_ERROR_RE = r"(?:<(?P<bracketed>.*?)>|(?P<file>.*?)):(?P<line>\d+):(?P<col_start>\d+)-(?P<col_end>\d+): error: (?P<msg>.*)"
+_PARSING_ERROR_RE = (
+    r"(?:<(?P<bracketed>.*?)>|(?P<file>.*?)):"
+    r"(?P<line>\d+):(?P<col_start>\d+)-(?P<col_end>\d+): error: (?P<msg>.*)"
+)
 _PARSING_ERROR_PATTERN = re.compile(_PARSING_ERROR_RE)
 
 
@@ -36,6 +39,27 @@ def _process_error(
     )
 
 
+def _parse(
+    library: core.Library,
+    parse: Callable[[Callable[[ast.Statement], None]], None],
+) -> list[Statement]:
+    """Run a callback-based parser while isolating its captured errors."""
+    parsed: list[Statement] = []
+    saved_errors = library.error_messages
+    library.error_messages = []
+    try:
+        parse(lambda statement: parsed.append(Statement(library.library, statement)))
+    except RuntimeError as error:
+        if str(error) != "parsing failed":  # pragma: no cover
+            raise
+        raise ParsingException(
+            [_process_error(library.library, item) for item in library.error_messages]
+        ) from error
+    finally:
+        library.error_messages = saved_errors
+    return parsed
+
+
 def parse_string(library: core.Library, code: str) -> list[Statement]:
     """
     Parse a string into a list of AST statements.
@@ -50,28 +74,9 @@ def parse_string(library: core.Library, code: str) -> list[Statement]:
     Raises:
         Raises ParsingError if parsing fails.
     """
-    parsed: list[Statement] = []
-    # The error messages are stored to restore them after parsing
-    # The library is set to have no error messages during parsing
-    # This avoids mixing errors from previous operations with parsing errors
-    # This errors will be returned in the ParsingError if parsing fails
-    saved_errors = library.error_messages
-    library.error_messages = []
-    try:
-        ast.parse_string(
-            library.library,
-            code,
-            lambda stmt: parsed.append(Statement(library.library, stmt)),
-        )
-    except RuntimeError as e:
-        if str(e) != "parsing failed":  # pragma: no cover
-            raise e
-        raise ParsingException(
-            [_process_error(library.library, error) for error in library.error_messages]
-        )
-    finally:
-        library.error_messages = saved_errors
-    return parsed
+    return _parse(
+        library, lambda callback: ast.parse_string(library.library, code, callback)
+    )
 
 
 def parse_files(library: core.Library, files: Sequence[str]) -> list[Statement]:
@@ -88,25 +93,6 @@ def parse_files(library: core.Library, files: Sequence[str]) -> list[Statement]:
     Raises:
         Raises ParsingError if parsing fails.
     """
-    parsed: list[Statement] = []
-    # The error messages are stored to restore them after parsing
-    # The library is set to have no error messages during parsing
-    # This avoids mixing errors from previous operations with parsing errors
-    # This errors will be returned in the ParsingError if parsing fails
-    saved_errors = library.error_messages
-    library.error_messages = []
-    try:
-        ast.parse_files(
-            library.library,
-            files,
-            lambda stmt: parsed.append(Statement(library.library, stmt)),
-        )
-    except RuntimeError as e:
-        if str(e) != "parsing failed":  # pragma: no cover
-            raise e
-        raise ParsingException(
-            [_process_error(library.library, error) for error in library.error_messages]
-        )
-    finally:
-        library.error_messages = saved_errors
-    return parsed
+    return _parse(
+        library, lambda callback: ast.parse_files(library.library, files, callback)
+    )

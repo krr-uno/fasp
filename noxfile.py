@@ -146,12 +146,15 @@ def format(session):
     session.run("black", *black_args)
 
 
-@nox.session
+@nox.session(python=False)
 def lint(session):
     """Run pylint on the project package."""
-    if session.python:
-        session.install("pylint")
-    session.run("pylint", PROJECT_NAME)
+    session.run(
+        "pylint",
+        PROJECT_NAME,
+        env={"PYLINTHOME": "/tmp/funasp-pylint"},
+        external=True,
+    )
 
 
 @nox.session(python=PYTHON_VERSIONS)

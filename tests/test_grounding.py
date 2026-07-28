@@ -10,6 +10,7 @@ import unittest
 from funasp.control import Control
 from funasp.core import Library
 
+
 class TestGrounding(unittest.TestCase):
 
     def setUp(self):
@@ -18,11 +19,7 @@ class TestGrounding(unittest.TestCase):
         self.control = Control(self.lib)
         self.maxDiff = None  # Show full diff on assertion failure
 
-    def assertGroundingEqual(
-        self,
-        program: str,
-        message: str
-    ):
+    def assertGroundingEqual(self, program: str, message: str):
         program = textwrap.dedent(program).strip()
         message = textwrap.dedent(message).strip()
         self.control.parse_string(program)
@@ -39,7 +36,7 @@ class TestGrounding(unittest.TestCase):
             """,
             """
             <string>:1:3-4: info: number expected (got a)
-            """
+            """,
         )
 
     def test_assignment_rule(self):
@@ -50,5 +47,5 @@ class TestGrounding(unittest.TestCase):
             """,
             """
             <string>:1:6-7: info: number expected (got a)
-            """
+            """,
         )

@@ -15,8 +15,8 @@ from clingo_funasp import ast
 from clingo_funasp.symbol import SymbolType
 
 from funasp.ast._rewritings.context import RewriteContext
-from funasp.ast._rewritings.types import SymbolSignature
 from funasp.util.ast import function_arguments_ast
+from funasp.util.types import SymbolSignature
 
 
 def _restore_literal(
@@ -30,8 +30,7 @@ def _restore_literal(
     elif isinstance(atom, ast.TermSymbolic) and atom.symbol.type == SymbolType.Function:
         prefixed_name = atom.symbol.name
     else:
-        # TODO: Need to add test for this
-        return None  # pragma: no cover
+        return None
 
     prefix = context.prefix_function
     if not prefixed_name.startswith(prefix):

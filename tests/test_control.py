@@ -7,9 +7,12 @@ import textwrap
 from typing import Iterable
 import unittest
 
+from clingo_funasp.core import MessageType
+
 from funasp.control import Control
 from funasp.core import Library
 from funasp.solve import Model
+from funasp.util.types import SymbolSignature
 
 from tests.examples import EXAMPLES
 
@@ -42,6 +45,89 @@ class TestControl(unittest.TestCase):
             file_names = [f.name for f in example.files]
             with self.subTest(f"{i}: {file_names}"):
                 self.assert_models(example.files, example.models)
+
+    def test_get_rewritten_program_before_parse(self):
+        """Requesting the rewritten program before parsing raises a ValueError."""
+        control = Control(self.library, ["0"])
+        with self.assertRaises(ValueError):
+            control.get_rewritten_program()
+
+    def test_undefined_function_log_uses_configured_prefix(self):
+        """Undefined function predicates are reported as intensional functions."""
+        self.library.prefix_function = "G"
+        self.library.function_predicates = {SymbolSignature("Ga", 1)}
+
+        message = self.library.normalize_log_message(
+            MessageType.OperationUndefined,
+            "<string>:1:1-1: info: undefined predicate Ga/1",
+        )
+
+        self.assertEqual(
+            message,
+            "<string>:1:1-1: info: undefined intensional function a/1",
+        )
+
+    def test_functional_undefined_log_uses_configured_prefix(self):
+        """Functional undefined-predicate messages honor custom prefixes."""
+        self.library.prefix_function = "G"
+        self.library.function_predicates = {SymbolSignature("Ga", 1)}
+
+        message = self.library.normalize_log_message(
+            MessageType.OperationUndefined,
+            "<functional>:0:0-0: info: undefined predicate Ga/1",
+        )
+
+        self.assertIsNone(message)
+
+    def test_undefined_user_predicate_log_is_not_mangled(self):
+        """Messages about non-function predicates are reported verbatim.
+
+        Regression test: a user predicate whose name starts with the function
+        prefix (here ``good`` with prefix ``go``) used to be reported as an
+        undefined intensional function ``od/1``.
+        """
+        self.library.prefix_function = "go"
+        self.library.function_predicates = {SymbolSignature("gog", 1)}
+
+        message = self.library.normalize_log_message(
+            MessageType.OperationUndefined,
+            "<string>:1:1-1: info: undefined predicate good/1",
+        )
+
+        self.assertEqual(message, "<string>:1:1-1: info: undefined predicate good/1")
+
+    def _logged_messages(
+        self, program: str, prefix: str = "F", ignore_prefix_collisions: bool = False
+    ) -> list[str]:
+        """Parse, ground, and solve a program; return the logged messages."""
+        logged: list[str] = []
+        library = Library(logger=lambda _, message: logged.append(message))
+        control = Control(
+            library,
+            ["0"],
+            prefix=prefix,
+            ignore_prefix_collisions=ignore_prefix_collisions,
+        )
+        control.parse_string(program)
+        control.ground()
+        list(control.solve())
+        return logged
+
+    def test_shown_undefined_function_message(self):
+        """A ``#showf`` of an unassigned function reports an intensional function."""
+        logged = self._logged_messages("#showf a/0.")
+
+        self.assertEqual(
+            logged, ["<string>:1:1-12: info: undefined intensional function a/1"]
+        )
+
+    def test_shown_undefined_user_predicate_message(self):
+        """A shown user predicate starting with the prefix is reported verbatim."""
+        logged = self._logged_messages(
+            "g := 1. #show good/1.", prefix="go", ignore_prefix_collisions=True
+        )
+
+        self.assertEqual(logged, ["<string>:1:9-22: info: undefined predicate good/1"])
 
     def test_undefined_operation_fun(self):
         """Test unsafe.

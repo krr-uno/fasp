@@ -12,7 +12,7 @@ from colorama import init as colorama_init
 from funasp.__version__ import __version__
 from funasp.control import Control
 from funasp.core import Library
-from funasp.util.ast import ParsingException
+from funasp.util.ast import ParsingException, RewritingException
 
 
 class FaspApp(App):
@@ -20,10 +20,10 @@ class FaspApp(App):
         """Initialize the FaspApp instance."""
         super().__init__("funasp", __version__)
         self._order = Flag()
+        self._ignore_prefix_collisions = Flag()
         self._library = library
         self._clingo_options = clingo_options
         self._prefix = "F"
-        self._print_rewrite = False
         self._control: Optional[Control] = None
         self._errors: list[Exception] = []
 
@@ -39,6 +39,12 @@ class FaspApp(App):
             "Set prefix for rewritten function predicates (default: F).",
             self._set_prefix,
             argument="<prefix>",
+        )
+        options.add_flag(
+            "fasp",
+            "ignore-prefix-collisions",
+            "Allow --prefix-fun values that collide with program predicates.",
+            self._ignore_prefix_collisions,
         )
 
     def print_model(
@@ -60,6 +66,7 @@ class FaspApp(App):
             self._clingo_options,
             prefix,
             clingo_control,
+            self._ignore_prefix_collisions.value,
         )
         try:
             self._control.parse_files(files)
@@ -71,12 +78,22 @@ class FaspApp(App):
                 sys.stderr.write(str(error) + "\n")
             self._errors.append(e)
             return
+        except RewritingException as e:
+            for error in e.errors:
+                sys.stderr.write(str(error) + "\n")
+            self._errors.append(e)
+            return
         except RuntimeError as e:
             if "rewriting failed" == e.args[0]:
                 self._errors.append(e)
                 return
             raise e  # pragma: no cover
         self._control.main()
+
+    @property
+    def has_errors(self) -> bool:
+        """Return whether parsing or rewriting recorded any errors."""
+        return bool(self._errors)
 
     def report_error_summary(self) -> None:
         """Print a short summary for parsing or rewriting failures."""
@@ -86,11 +103,12 @@ class FaspApp(App):
                 + Fore.RED
                 + "*** ERROR: (fasp):"
                 + Style.RESET_ALL
-                + " parsing failed\n",
+                + " parsing failed",
                 file=sys.stderr,
             )
         if any(
-            isinstance(error, RuntimeError) and error.args[0] == "rewriting failed"
+            isinstance(error, RewritingException)
+            or (isinstance(error, RuntimeError) and error.args[0] == "rewriting failed")
             for error in self._errors
         ):
             print(
@@ -98,14 +116,12 @@ class FaspApp(App):
                 + Fore.RED
                 + "*** ERROR: (fasp):"
                 + Style.RESET_ALL
-                + " rewriting failed\n",
+                + " rewriting failed",
                 file=sys.stderr,
             )
 
 
-def fasp_main(
-    library: Library, options: list[str] | None = None, raise_errors: bool = False
-) -> int:
+def fasp_main(library: Library, options: list[str] | None = None) -> int:
     """
     Main function for the fasp application.
 
@@ -115,22 +131,21 @@ def fasp_main(
         The Clingo library to use.
     options
         Command line options to pass to the application.
-    raise_errors
-        If True, raise exceptions on errors instead of printing them.
+    Returns
+    -------
+    int
+        The clingo exit code, or 65 if parsing or rewriting failed.
     """
     colorama_init(autoreset=True)
     if options is None:  # pragma: no cover
         options = []
     app = FaspApp(library, options)
-    # options.append("--outf=3")
     try:
         result = clingo_main(library.library, options, app)
         app.report_error_summary()
+        if app.has_errors:
+            return 65
         return result
-    except Exception:  # pragma: no cover
-        if raise_errors:
-            raise
-        return 1
     finally:
         colorama_deinit()
 
@@ -140,6 +155,7 @@ def main(options: Sequence[str] = ()) -> int:
 
     def logger(ty: core.MessageType, message: str) -> None:
         """Forward clingo log messages to standard error."""
+        del ty
         sys.stderr.write(message + "\n")
 
     with Library(logger=logger) as library:

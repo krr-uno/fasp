@@ -2,11 +2,9 @@
 Core AST types, prefix constants, and AST iteration/printing helpers.
 
 This module holds the building blocks shared across parsing and rewriting:
-the :class:`Statement` wrapper, the parser-prefix constants
-(``PARSER_PREFIX``, ``SOME_MARKER``, ``PARSER_SOME_PREFIX``), and
-``transform_iterable``, which applies a transformer across an iterable while
-preserving unchanged elements. (The ``parse_string``/``parse_files`` wrappers
-live in :mod:`funasp.ast._parsing`.)
+the :class:`Statement` wrapper and the parser-prefix constants
+(``PARSER_PREFIX``, ``SOME_MARKER``, ``PARSER_SOME_PREFIX``). The
+``parse_string``/``parse_files`` wrappers live in :mod:`funasp.ast._parsing`.
 
 ``_ast_to_str`` re-prints an as-parsed (F-encoded) statement in FASP syntax:
 the parser desugars assignments into prefixed atoms before the pipeline sees
@@ -16,7 +14,7 @@ the hardcoded ``F``/``FS`` markers, which user-written function names cannot
 produce); anything else falls back to ``str()``.
 """
 
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Sequence
 
 from clingo_funasp import ast
 from clingo_funasp.core import Library
@@ -59,7 +57,9 @@ class Statement:
         """
         Apply a rewriting function to the statement, updating the rewritten list.
 
-        The rewriting function can return either a single statement or a list of statements. In the first case, the rewritten list is updated to contain only the returned statement; in the second case, it is updated to contain all returned statements.
+        The rewriting function can return either one statement or a list of
+        statements. Every result replaces its corresponding input in the
+        current rewritten expansion.
         """
         new_rewritten: list[ast.Statement] = []
         for stmt in self.rewritten:
@@ -68,35 +68,7 @@ class Statement:
                 new_rewritten.append(result)
             else:
                 new_rewritten.extend(result)
-            self.rewritten = new_rewritten
-
-
-def transform_iterable[T, R](
-    library: Library, iterable: Iterable[T], fun: Callable[[Library, T], R | None]
-) -> list[T | R] | None:
-    """
-    Apply a function to each element of an iterable.
-    If all elements are transformed to None, return None. Otherwise, return an iterable of the transformed elements, where elements that were transformed to None are replaced by the original element.
-
-    Args:
-        iterable (Iterable[T]): The input iterable of elements of type T.
-        fun (Callable[[Library, T], R | None]): A function that takes a Library and an element of type T and returns a transformed element of type R or None.
-
-    Returns:
-        list[T | R] | None: A list of transformed elements, or None if all elements were transformed to None.
-    """
-    result: list[T | R] = []
-    all_none = True
-    for element in iterable:
-        new_element = fun(library, element)
-        if new_element is not None:
-            all_none = False
-            result.append(new_element)
-        else:
-            result.append(element)
-    if all_none:
-        return None
-    return result
+        self.rewritten = new_rewritten
 
 
 _RELATION_STR = {

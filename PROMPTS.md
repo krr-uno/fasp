@@ -661,6 +661,204 @@ Remember this for future contributions.
 
 ---
 
+I refactor files `funasp/util/ast.py` and `funasp/ast/_rewritings/literals.py` and added test in files `tests/util/test_ast.py` and `tests/rewriting/test_unnesting.py`. Update your understanding of the project and look for possible bugs.
+
+---
+
+In `funasp/util/collectors.py` create a function with signature `def collect_predicates(node: AST) -> set[SymbolSignature]:` that returs the set of all predicate symbols in `node`. Examples:
+- For rule `a, b(X) :- c(d,X), not e, not f(7).` we get the set `{a/0, b/1, c/2, e/0, f/1}`.
+- For the rule `a : b(X) :- c(d,X), e(Y) : f(Y).` we get the set `{a/0, b/1, c/2, e/1, f/1}`.
+- For the rule `:- a(X), #count{ Y : b(X,Y)} > 5.` we get the set `{a/1, b/2}`.
+
+---
+
+Create a function with signagure
+```python
+def rewrite_negated_head_literals(
+    context: RewriteContext, statement: ast.Statement
+) -> ast.Statement:
+```
+in `funasp/ast/_rewritings/negated_literals.py` that moves negated literals from the head to the body. Examples:
+- `a, not b, not not c :- d.` becomes `a :- d, not not b, not c.`
+- `a(X), not b(X), not not c(X) :- d(X,Y).` becomes `a(X) :- d(X,Y), not not b(X), not c(X).`
+
+---
+
+Function ``rewrite_negated_body_literals`` in ``funasp/ast/_rewritings/negated_literals.py`` rewrites body literal ``not l``  into the conditional literal ``#false : l``. We are going to expand this rewriting to negative literals inside conditional literals. Nested conditional literals are not allowed, so we are going to replace every negated literal of the form ``not p(a,X)`` inside a conditional literals with a new literals ``not RD1(X)` and add the rule `RD1(X) :- p(a,C).`
+Examples:
+- `a :- b(X); c(X,Y) : d(Y), not e(5,f(Y;Y+2)).` becomes `a :- b(X); c(X,Y) : d(Y); not RD1(Y). RD1(Y) :- e(5,f(Y;Y+2)).`
+- Example with two rules:
+```
+a :- b(X); c(X,Y) : d(Y), not e(5,f(Y;Y+2)).
+b(2) :- c(X) : d(X), not f(X).
+```
+becomes
+```
+a :- b(X); c(X,Y) : d(Y); not RD1(Y).
+b(2) :- c(X) : d(X), not p(g(X,Y)).
+RD1(Y) :- e(5,f(Y;Y+2)).
+RD2(X,Y) :- p(g(X,Y)).
+```
+The auxiliary predicates `RD1`, `RD2` are created by incrementing a counter and add it to a prefix. Ensure that auxiliary predicate has not been used anywhere else in the program. To do this:
+- collect all predicates in the program at the begining of the pipeline in `funasp.ast._rewritings.rewrite_statements`. Store this in a new argument in the `context`.
+- Before using a predicate name, ensure that it is not used before by checking the set crated in the previous step.
+
+Create a plan to do this.
+
+---
+
+funasp/util/collectors.py — added collect_variables_ordered(node) -> list[str]: distinct variable names in order of first occurrence.
+
+funasp/ast/_rewritings/context.py — RewriteContext gained:
+- predicates init kwarg (set[SymbolSignature]) holding all program predicates,
+- auxiliary_statements: list[ast.StatementRule] accumulating the generated rules,
+- fresh_predicate_name(prefix="RD"): increments a counter and skips names colliding with predicates.
+
+funasp/ast/_rewritings/negated_literals.py — new rewrite_negated_condition_literals(context, statement): for each BodyConditionalLiteral, every symbolic single-negation condition literal not p(t…) is replaced by not RDi(v…) (the literal's variables, _ excluded) and an aux rule RDi(v…) :- p(t…). is stashed in the context.
+
+funasp/ast/_rewritings/__init__.py — pipeline: pass 0 collects all predicates via collect_predicates; the lifting runs in pass 1; aux rules are appended (wrapped as Statements) after all originals so pass 2 unnests intensional functions inside them.
+
+Key outcome — the previously rejected case now works end-to-end:
+f := 1.  :- q : not p(f).   →   :- q: not RD1.   RD1 :- p(FUN); Ff(FUN).
+(the rejection error is still raised for negated aggregate-element conditions, which remain out of scope, and stays test-covered).
+
+Both spec examples verified via the real Control API; note clingo's own rewrite step later splits the pool: RD1(Y) :- e(5,f(Y)). / RD1(Y) :- e(5,f(1*Y+2)). Also note your example-2 rule was unsafe as written (Y only in the negated literal), so the integration test binds it with e(Y) in the condition.
+
+Verification: nox -s test → 153 tests, 100% coverage; nox -s slow_test (full suite incl. test_app.py) passes; mypy --strict clean; formatting clean.
+
+---
+
+Instead of appending the auxiliary statements to `context.auxiliary_statements`, make that `rewrite_negated_head_literals` returns a list of statments. That is, the signature becomes
+```python
+def rewrite_negated_head_literals(
+    context: RewriteContext, statement: ast.Statement
+) -> list[ast.Statement]:
+```
+
+---
+
+Note: your message named rewrite_negated_head_literals, but the function that produces auxiliary statements is rewrite_negated_condition_literals — I applied the change there (the head-literals function creates no aux statements and kept its single-statement signature).
+
+Changes:
+
+- rewrite_negated_condition_literals now returns list[ast.Statement] — the rewritten rule followed by its auxiliary rules. Unchanged inputs return [statement] (identity element). The auxiliary list is threaded through _rewrite_conditional_literal / _lift_condition_literal via partial instead of the context.
+- RewriteContext.auxiliary_statements removed (along with the now-unused ast import); predicates and fresh_predicate_name remain.
+- rewrite_statements no longer has the append loop — Statement.rewrite handles the list return natively, so aux rules live in the originating statement's rewritten list and flow through pass 2 automatically. (I kept your relocation of the step to after signature collection.)
+
+Behavioral consequence: aux rules now appear right after their originating rule instead of at the end of the program:
+
+a :- b(X); c(X,Y): d(Y), not RD1(Y).
+RD1(Y) :- e(5,f(Y)).
+RD1(Y) :- e(5,f(1*Y+2)).
+b(2) :- c(X): d(X), e(Y), not RD2(X,Y).
+RD2(X,Y) :- p(g(X,Y)).
+
+A side benefit: since aux rules are bundled with their origin Statement, error reports during later pipeline stages point at the user's original rule.
+
+Tests updated accordingly (unit tests now assert the returned list; integration test expects the interleaved order). Verified: nox -s test → 153 tests, 100% coverage; mypy --strict clean; formatting clean.
+
+---
+
+The variables do not need to be writen in order of occurrence. Write them in the order produced by `sorted()`. As a ressult, you can use `collect_variables` instead of `collect_variables_ordered`. You can remove the later.
+
+---
+
+Let us plan how to extend this rewriting to `Aggregregates` and `SetAggregates` both in the head and in the body. Apply it to `HeadConditionalLiteral` if you did not do it already. Before executing further elaborating the plan, write a couple of examples for each case and show them to me for aproval.
+
+---
+
+Only LiteralSymbolic with sign == ast.Sign.Single. Comparisons (not f = X) and double negation are untouched (consistent with rewrite_negated_body_literals, which also only handles Sign.Single).
+
+Untouched: not not literals, comparisons, the conditional's main literal, non-rule statements.
+
+---
+
+Plan how to extend this to comparisons as well. Before executing further elaborating the plan, write a couple of examples for each case and show them to me for aproval.
+
+---
+
+Running ``funasp --mode=rewrite`` with program
+```
+f := 1.
+:- a : not p(f).
+```
+prints the following error message:
+```
+*** ERROR: (funasp): RuntimeError: Intensional functions are not allowed in negated literals in conditions of aggregates and conditional literals. Found 'p(f)' at -:1:20-24.
+*** Info : (funasp):
+*** Info : (funasp): At:
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/literals.py(221): _replace_term_condition
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(570): replace_term
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(414): apply_to_symbol
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(475): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(490): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(484): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(500): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/util/ast.py(625): replace_term
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/literals.py(227): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/literals.py(153): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/literals.py(81): unnest_functions
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/unnesting.py(120): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/unnesting.py(280): _
+*** Info : (funasp):   /home/jorge/miniconda3/envs/funasp/lib/python3.14/functools.py(1069): __call__
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/unnesting.py(59): transform_statement
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/unnesting.py(377): unnest_statement
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_core.py(66): rewrite
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/ast/_rewritings/__init__.py(75): rewrite_statements
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/control.py(51): parse_files
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/app.py(78): main
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/app.py(127): fasp_main
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/app.py(146): main
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/__main__.py(42): main
+*** Info : (funasp):   /home/jorge/git/funasp/funasp/__main__.py(46): <module>
+```
+and I was expecting only the first line. Can you explain why this happens?
+
+---
+
+Review the code. Look for potential refactors that
+- simplify the code, and
+- improve readablity
+Write a report with your suggestions.
+
+---
+
+Check the differences between the current commit and the branch `jorge/agg-not` and write a report that includes:
+- the changes made,
+- any possible bugs, and
+- any possible improvements ragarding code quality, readablity or simplicity.
+
+---
+
+I added a failing test to `tests/rewriting/test_integration.py`. Make a plan to fix it.
+
+---
+
+Pass to the body of the auxiliary rule only the non negated literas.
+For example ```f(X) := 1 :- p(X), not not q(f(X)), not r(X).``` becomes
+```
+Ff(X,1) :- p(X); not RD1(X), not r(X).
+RD1(X) :- p(X), #false: q(FUN), f(X) = FUN.
+```
+Thus, ```not r(X)``` is not added to the auxiliary rule.
+
+---
+
+Review the code. Look for potential bugs and refactoring oportunites that
+- simplify the code, and
+- improve readablity
+Write a report with your suggestions.
+
+---
+
+Let's refactor `test_integration.py.` Create a new test module `tests/integration/` and inside it create a test file for each type of construct: `test_negated_literals.py`, `test_coditional_literal.py`, `test_aggregates.py`, etc. Move the tests from `test_integration.py` in the corresponding file inside `tests/integration/`. Do not forget any test.
+
 # Future work
 
 - Good error messages during grounding.

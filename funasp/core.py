@@ -7,11 +7,15 @@ Currently this hosts :class:`Library`, a wrapper around the clingo
 carries the ``processing_statement`` text used in error reports.
 """
 
+import re
 import typing
 
-from clingo_funasp import ast
 from clingo_funasp.core import Library as ClingoLibrary
 from clingo_funasp.core import LogLevel, MessageType
+
+from funasp.util.types import SymbolSignature
+
+_UNDEFINED_PREDICATE_REGEX = re.compile(r"undefined predicate (\S+)/(\d+)")
 
 
 class Library:
@@ -27,12 +31,7 @@ class Library:
     ) -> None:
         """Initialize the clingo library wrapper and its message handling state."""
         self.error_messages: list[tuple[MessageType, str]] = []
-        self.last_error_reported = 0
-        self.shared = shared
-        self.slotted = slotted
-        self.log_level = log_level
         self.logger = logger
-        self.message_limit = message_limit
         self.library = ClingoLibrary(
             shared,
             slotted,
@@ -40,8 +39,8 @@ class Library:
             self.handle_log_message,
             message_limit,
         )
-        self.original_statements: dict[str, list[ast.Statement]] = {}
-        self.ignore_info = False
+        self.prefix_function = "F"
+        self.function_predicates: set[SymbolSignature] = set()
         self._processing_statement: str | None = None
 
     def processing_statement(self, statement: str) -> None:
@@ -52,28 +51,16 @@ class Library:
         """Clear the currently processing statement."""
         self._processing_statement = None
 
-    # def add_original_statement(self, statement: ast.Statement) -> None:
-    #     file = statement.location.begin.file
-    #     if file not in self.original_statements:
-    #         self.original_statements[file] = []
-    #     self.original_statements[file].append(statement)
-
     def handle_log_message(self, msg_type: MessageType, message: str) -> None:
         """Capture, normalize, and optionally forward messages emitted by clingo."""
         self.error_messages.append((msg_type, message))
         new_message = self.normalize_log_message(msg_type, message)
-        if (
-            new_message
-            and self.logger is not None
-            and (
-                not self.ignore_info
-                or msg_type not in {MessageType.Info, MessageType.OperationUndefined}
-            )
-        ):  # pragma: no cover
+        if new_message and self.logger is not None:  # pragma: no cover
             self.logger(msg_type, new_message)
 
     def normalize_log_message(self, msg_type: MessageType, message: str) -> str | None:
         """Normalize selected clingo messages for FASP-specific reporting."""
+        del msg_type
         if "unsafe variable" in message:
             lines = message.split("\n")
             if self._processing_statement is None:  # pragma: no cover
@@ -90,13 +77,29 @@ class Library:
             lines.insert(1, f"  {self._processing_statement}")
             lines.insert(2, "note: the following operations are undefined:")
             message = "\n".join(lines)
-        elif "undefined predicate F" in message:
-            if message.startswith("<functional>:0:0-0:"):
-                return None
-            message = message.replace(
-                "undefined predicate F", "undefined intensional function "
-            )
+        elif (match := _UNDEFINED_PREDICATE_REGEX.search(message)) is not None:
+            return self._normalize_undefined_predicate(message, match)
         return message
+
+    def _normalize_undefined_predicate(
+        self, message: str, match: re.Match[str]
+    ) -> str | None:
+        """Rewrite undefined-predicate messages about function encodings.
+
+        Only predicates registered in ``function_predicates`` are rewritten;
+        a user predicate whose name merely starts with the function prefix
+        (reachable with ``--ignore-prefix-collisions``) is reported verbatim.
+        """
+        signature = SymbolSignature(match.group(1), int(match.group(2)))
+        if signature not in self.function_predicates:
+            return message
+        if message.startswith("<functional>:0:0-0:"):
+            return None
+        name = signature.name[len(self.prefix_function) :]
+        return message.replace(
+            f"undefined predicate {signature}",
+            f"undefined intensional function {name}/{signature.arity}",
+        )
 
     def __enter__(self) -> typing.Self:
         """Enter the managed context and return this library wrapper."""

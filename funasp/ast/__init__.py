@@ -2,7 +2,6 @@ from ._core import (
     PARSER_PREFIX,
     SOME_MARKER,
     Statement,
-    transform_iterable,
 )
 from ._parsing import (
     parse_files,
@@ -17,7 +16,6 @@ __all__ = [
     "Statement",
     "parse_string",
     "parse_files",
-    "transform_iterable",
     "RewriteContext",
     "rewrite_statements",
 ]

@@ -21,6 +21,7 @@ standard clingo AST nodes:
   the value slot).
 """
 
+import os
 import textwrap
 import unittest
 
@@ -393,10 +394,12 @@ class TestParseAssignment2(unittest.TestCase):
             a := 1 :- b11; b12.
             b(X) := a+X :- b21(X); b22(X).
             """)
-        with tempfile.NamedTemporaryFile("w", suffix=".lp") as file:
+        with tempfile.NamedTemporaryFile("w", suffix=".lp", delete=False) as file:
             file.write(code)
             file.flush()
-            statements = parse_files(self.lib, [file.name])
+        file.close()
+        statements = parse_files(self.lib, [file.name])
+        os.unlink(file.name)
         expected = parse_string(self.lib, code)
         self.assertEqual(
             [str(s.original) for s in statements],
@@ -407,17 +410,19 @@ class TestParseAssignment2(unittest.TestCase):
         """Test that parse_files raises ParsingException on syntax errors."""
         import tempfile
 
-        with tempfile.NamedTemporaryFile("w", suffix=".lp") as file:
+        with tempfile.NamedTemporaryFile("w", suffix=".lp", delete=False) as file:
             file.write("1 := 2.\n")
             file.flush()
-            with self.assertRaises(ParsingException) as cm:
-                _ = parse_files(self.lib, [file.name])
+        file.close
+        with self.assertRaises(ParsingException) as cm:
+            _ = parse_files(self.lib, [file.name])
+        os.unlink(file.name)
         errors = cm.exception.errors
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].location.begin.line, 1)
         # clingo may relativize the path; compare the file name only.
         self.assertTrue(
-            errors[0].location.begin.file.endswith(file.name.rsplit("/", 1)[-1])
+            errors[0].location.begin.file.endswith(os.path.basename(file.name))
         )
 
 
