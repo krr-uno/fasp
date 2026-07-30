@@ -7,6 +7,8 @@ from clingo_funasp.core import Library
 
 from funasp.asp2funasp import RelationSkipReason, convert_statements
 from funasp.asp2funasp.util.types import FRelation
+from funasp.ast import RewriteContext, Statement, rewrite_statements
+from funasp.core import Library as FunaspLibrary
 from funasp.util.types import SymbolSignature
 from tests.asp2funasp.util import collect_statements
 
@@ -47,6 +49,44 @@ class ConvertStatementsTest(unittest.TestCase):
         self.assertEqual(len(statements), 1)
         self.assertEqual(result.converted_statements, tuple(statements))
         self.assertIs(result.converted_statements[0], statements[0])
+
+    def test_emits_canonical_ast_for_configured_funasp_prefix(self) -> None:
+        with FunaspLibrary() as library:
+            statements = collect_statements(
+                library.library,
+                textwrap.dedent("""
+                    1 { assign(N,C) : color(C) } 1 :- node(N).
+                    selected(N,C) :- assign(N,C).
+                    """).strip(),
+            )
+            result = convert_statements(library.library, statements)
+
+            self.assertEqual(
+                str(result.converted_statements[0]),
+                "1 <= { Fassign(N,C): color(C) } <= 1 :- node(N).",
+            )
+            self.assertEqual(
+                str(result.converted_statements[1]),
+                "selected(N,C) :- assign(N)=C.",
+            )
+
+            context = RewriteContext(library, prefix_function="G")
+            rewritten = rewrite_statements(
+                context,
+                [
+                    Statement(library.library, statement)
+                    for statement in result.converted_statements
+                ],
+            )
+            rewritten_program = "\n".join(
+                str(statement)
+                for wrapper in rewritten
+                for statement in wrapper.rewritten
+            )
+
+            self.assertIn("selected(N,C) :- Gassign(N,C).", rewritten_program)
+            self.assertNotIn("Fassign", rewritten_program)
+            self.assertNotIn("assign(N)=C", rewritten_program)
 
     def test_skips_multiple_output_positions(self) -> None:
         statements, result = self._convert("""

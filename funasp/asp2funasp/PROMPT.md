@@ -131,32 +131,35 @@ Two pattern detection strategies:
 
 ### Stage 3: AST Rewriting (rewriting/rewrite_into_funasp.py)
 
-**Current state**: Partially implemented
+**Current state**: Canonical parser-level conversion for single-output relations
 
 #### Implemented:
-- **FunctionalBodyRewriteTransformer** transforms body literals
-  - Detects symbolic literals (predicate calls) matching identified FRelations
-  - Rewrites them into comparison literals: `f(args) = values`
-  - Uses FRelation index for O(1) lookup
+- Body occurrences matching accepted FRelations become unprefixed equations:
+  `f(arguments) = value`.
+- Assignment-bearing head occurrences use the parser's fixed representation:
+  `Ff(arguments,value)`.
+- The converter always uses `PARSER_PREFIX` (`F`). The normal funasp rewrite
+  context later applies the configured runtime prefix.
+- Relations with anything other than one output position are skipped by
+  `convert_statements()` and recorded in its result.
 
 **Example**:
 ```prolog
-% ASP: body contains p(1, Y, Z)
-p(1, Y, Z)
+% ASP
+p(1, Y)
 
-% With FRelation: name=p, arguments=[0], values=[[1,2]]
-% Rewrites to FUNASP literal comparison:
-p(1) = (Y, Z)
+% With FRelation: name=p, arguments=[0], values=[[1]]
+% Body
+p(1) = Y
+
+% Head
+Fp(1,Y)
 ```
 
 #### Not yet implemented:
-- **Head rewriting**: Converting predicate definitions to assignment rules
-  - ASP: `p(X, Y) :- ...`
-  - FUNASP: `p(X) := Y :- ...`
-- **AST node conversion**: Changing clingo AST nodes to FASP AST nodes
-  - Body literal comparisons use clingo AST (LiteralComparison)
-  - Need to integrate FASP AST nodes for assignment heads
-  - Reference: funasp/fun_ast/_nodes.py for FASP node types
+- Converting matching `#show p/n.` signatures to canonical parser-level
+  `#show Fp/n.` signatures.
+- Tuple-valued/multiple-output conversion.
 
 ## Key Integration Points
 

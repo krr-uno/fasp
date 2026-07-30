@@ -135,6 +135,61 @@ class FunctionalPredicateRewriteTransformer:
             new_atom,
         )
 
+    def _rewrite_symbolic_literal_as_comparison(
+        self,
+        literal: ast.LiteralSymbolic,
+    ) -> ast.LiteralComparison | None:
+        """Rewrite a body occurrence into an unprefixed function equation."""
+        if not is_function(literal.atom):
+            return None
+
+        name, arguments = function_arguments_ast(self.lib, literal.atom)
+        key = SymbolSignature(name, len(arguments))
+        if key not in self.frelation_index:
+            return None
+
+        relation = self.frelation_index[key]
+        output_positions = [
+            position for value_group in relation.values for position in value_group
+        ]
+        assert (
+            len(output_positions) == 1
+        ), "body conversion requires exactly one output position"
+
+        assigned_function = ast.TermFunction(
+            self.lib,
+            literal.location,
+            self.function_name_index[key],
+            [
+                ast.ArgumentTuple(
+                    self.lib,
+                    [arguments[position] for position in relation.arguments],
+                )
+            ],
+        )
+        return ast.LiteralComparison(
+            self.lib,
+            literal.location,
+            literal.sign,
+            assigned_function,
+            [
+                ast.RightGuard(
+                    self.lib,
+                    ast.Relation.Equal,
+                    arguments[output_positions[0]],
+                )
+            ],
+        )
+
+    def _rewrite_head_literal(
+        self,
+        literal: ast.Literal,
+    ) -> ast.LiteralSymbolic | None:
+        """Rewrite an assignment-bearing head literal with ``PARSER_PREFIX``."""
+        if not isinstance(literal, ast.LiteralSymbolic):
+            return None
+        return self._rewrite_symbolic_literal_as_prefixed_literal(literal)
+
     def _rewrite_condition(
         self,
         condition: Sequence[ast.Literal],
@@ -159,12 +214,10 @@ class FunctionalPredicateRewriteTransformer:
     ) -> tuple[ast.HeadConditionalLiteral, bool]:
         new_condition, condition_changed = self._rewrite_condition(node.condition)
 
-        new_literal = self._rewrite(node.literal)
+        new_literal = self._rewrite_head_literal(node.literal)
         literal_changed = new_literal is not None
 
-        if literal_changed:
-            assert isinstance(new_literal, ast.Literal)
-        else:
+        if not literal_changed:
             new_literal = node.literal
 
         if not condition_changed and not literal_changed:
@@ -185,12 +238,10 @@ class FunctionalPredicateRewriteTransformer:
     ) -> tuple[ast.SetAggregateElement, bool]:
         new_condition, condition_changed = self._rewrite_condition(element.condition)
 
-        new_literal = self._rewrite(element.literal)
+        new_literal = self._rewrite_head_literal(element.literal)
         literal_changed = new_literal is not None
 
-        if literal_changed:
-            assert isinstance(new_literal, ast.Literal)
-        else:
+        if not literal_changed:
             new_literal = element.literal
 
         if not condition_changed and not literal_changed:
@@ -276,8 +327,8 @@ class FunctionalPredicateRewriteTransformer:
         )
 
     @_rewrite.register
-    def _(self, node: ast.LiteralSymbolic) -> ast.LiteralSymbolic | None:
-        return self._rewrite_symbolic_literal_as_prefixed_literal(node)
+    def _(self, node: ast.LiteralSymbolic) -> ast.LiteralComparison | None:
+        return self._rewrite_symbolic_literal_as_comparison(node)
 
     @singledispatchmethod
     def _rewrite_head(self, node: ast.HeadLiteral) -> HeadRewriteResult:
@@ -285,12 +336,10 @@ class FunctionalPredicateRewriteTransformer:
 
     @_rewrite_head.register
     def _(self, node: ast.HeadSimpleLiteral) -> ast.HeadSimpleLiteral | None:
-        new_literal = self._rewrite(node.literal)
+        new_literal = self._rewrite_head_literal(node.literal)
 
         if new_literal is None:
             return None
-
-        assert isinstance(new_literal, ast.Literal)
 
         return node.update(
             self.lib,

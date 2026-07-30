@@ -1,19 +1,20 @@
-from typing import List
+import re
 import textwrap
 import unittest
-
-import re
+from typing import List
 
 from clingo_funasp import ast
 from clingo_funasp.core import Library
 from clingo_funasp.symbol import parse_term
-from funasp.util.ast import AST
-from funasp.asp2funasp.util.types import FRelation
+
+from funasp.asp2funasp.rewriting.filter_disjunctions import (
+    remove_frelations_in_head_disjunctions,
+)
 from funasp.asp2funasp.rewriting.rewrite_into_funasp import (
     FunctionalPredicateRewriteTransformer,
 )
-from funasp.asp2funasp.rewriting.filter_disjunctions import remove_frelations_in_head_disjunctions
-
+from funasp.asp2funasp.util.types import FRelation
+from funasp.util.ast import AST
 from tests.asp2funasp.util import collect_statements
 
 
@@ -102,7 +103,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         program = ":- a."
         expected = ":- a."
-        
+
         self.assertEqualRewrite(program, expected, frels)
 
     def test_simple_body_rewrite(self):
@@ -121,14 +122,8 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        :-Fassign(N,C); node(N).
+        :- assign(N) = C; node(N).
         """
-
-        # expected = """
-        # :- assign(N) = C, node(N).
-        # """
-
-        
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -147,7 +142,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        :- #count { C,N: Fassign(N,C) } != 1; node(N).
+        :- #count { C,N: assign(N) = C } != 1; node(N).
         """
 
         self.assertEqualRewrite(program, expected, frels)
@@ -277,12 +272,8 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        { color(C): Fassign(N, C) } :- node(N).
+        { color(C): assign(N) = C } :- node(N).
         """
-
-        # expected = """
-        # { color(C): assign(N) = C } :- node(N).
-        # """
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -301,12 +292,8 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        { C = 1: Fassign(N, C) } :- node(N).
+        { C = 1: assign(N) = C } :- node(N).
         """
-
-        # expected = """
-        # { C = 1: assign(N) = C } :- node(N).
-        # """
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -329,7 +316,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         #count { assign(N,C): color(C) } = 1 :- node(N).
         """
 
-
         self.assertEqualRewrite(program, expected, frels)
 
     def test_rewrites_with_conflicts_1(self):
@@ -346,7 +332,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
                 arity=3,
                 arguments=(0, 1),
                 values=[(2,)],
-            )
+            ),
         ]
 
         program = """
@@ -378,7 +364,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
                 arity=3,
                 arguments=(0, 1),
                 values=[(2,)],
-            )
+            ),
         ]
 
         program = """
@@ -393,8 +379,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         # assign(N,C) := V.
-
-
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -486,12 +470,8 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        #count { C: q(C): Fassign(N, C) } = 1 :- node(N).
+        #count { C: q(C): assign(N) = C } = 1 :- node(N).
         """
-
-        # expected = """
-        # #count { C: q(C): assign(N) = C } = 1 :- node(N).
-        # """
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -510,7 +490,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        p(X): Fassign(N,C).
+        p(X): assign(N) = C.
         """
 
         self.assertEqualRewrite(program, expected, frels)
@@ -579,12 +559,8 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        :- Ff(X,Y,Z).
+        :- f(X,Y) = Z.
         """
-
-        # expected = """
-        # :- f(X,Y) = Z.
-        # """
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -603,12 +579,8 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         """
 
         expected = """
-        :- not Fassign(N,C).
+        :- not assign(N) = C.
         """
-
-        # expected = """
-        # :- not assign(N) = C.
-        # """
 
         self.assertEqualRewrite(program, expected, frels)
 
@@ -642,7 +614,6 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         self.assertIsNone(transformer._rewrite(literal))
 
-
     def test_comparison_head_set_aggregate_without_changes_remains_unchanged(self):
         frels = [
             FRelation(
@@ -659,6 +630,30 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
 
         expected = """
         { C = 1 } :- node(N).
+        """
+
+        self.assertEqualRewrite(program, expected, frels)
+
+    def test_uses_mapped_function_name_in_body_comparison(self):
+        frels = [
+            FRelation(
+                name="assign",
+                arity=2,
+                arguments=(0,),
+                values=[(1,)],
+            )
+        ]
+
+        program = """
+        keep(assign(N)).
+        assign(N,C).
+        :- assign(N,C).
+        """
+
+        expected = """
+        keep(assign(N)).
+        Fassign_1(N,C).
+        :- assign_1(N) = C.
         """
 
         self.assertEqualRewrite(program, expected, frels)
