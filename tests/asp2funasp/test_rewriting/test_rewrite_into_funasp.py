@@ -15,7 +15,7 @@ from funasp.asp2funasp.rewriting.rewrite_into_funasp import (
 )
 from funasp.asp2funasp.util.types import FRelation
 from funasp.util.ast import AST
-from tests.asp2funasp.util import collect_statements
+from tests.asp2funasp.util import collect_all_statements, collect_statements
 
 
 class FunctionalPredicateRewriteTest(unittest.TestCase):
@@ -33,7 +33,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
     ) -> List[AST]:
         program = textwrap.dedent(program).strip()
 
-        nodes: List[AST] = collect_statements(self.lib, program)
+        nodes: List[AST] = collect_all_statements(self.lib, program)
 
         safe_frelations = remove_frelations_in_head_disjunctions(
             self.lib,
@@ -49,7 +49,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         new_nodes: List[AST] = []
 
         for node in nodes:
-            new_node = transformer.transform_rule(node)
+            new_node = transformer.transform_statement(node)
 
             if new_node is None:
                 new_nodes.append(node)
@@ -170,6 +170,51 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         # """
 
         self.assertEqualRewrite(program, expected, frels)
+
+    def test_rewrites_matching_show_signature(self):
+        frels = [FRelation("assign", 2, (0,), [(1,)])]
+
+        self.assertEqualRewrite(
+            "#show assign/2.",
+            "#show Fassign/2. [true]",
+            frels,
+        )
+
+    def test_leaves_unmatched_show_signatures_unchanged(self):
+        frels = [FRelation("assign", 2, (0,), [(1,)])]
+
+        self.assertEqualRewrite(
+            "#show assign/1. #show color/1.",
+            "#show assign/1. [true] #show color/1. [true]",
+            frels,
+        )
+
+    def test_uses_mapped_function_name_in_show_signature(self):
+        frels = [FRelation("assign", 3, (0, 1), [(2,)])]
+
+        self.assertEqualRewrite(
+            "keep(assign(N,C)). #show assign/3.",
+            "keep(assign(N,C)). #show Fassign_1/3. [true]",
+            frels,
+        )
+
+    def test_does_not_double_prefix_native_showf_encoding(self):
+        frels = [FRelation("assign", 2, (0,), [(1,)])]
+
+        self.assertEqualRewrite(
+            "#showf assign/1.",
+            "#show Fassign/2. [true]",
+            frels,
+        )
+
+    def test_rewrites_functional_literal_in_show_condition(self):
+        frels = [FRelation("assign", 2, (0,), [(1,)])]
+
+        self.assertEqualRewrite(
+            "#show selected(N,C) : assign(N,C).",
+            "#show selected(N,C): assign(N) = C.",
+            frels,
+        )
 
     def test_does_not_rewrite_disjunction_head(self):
         """

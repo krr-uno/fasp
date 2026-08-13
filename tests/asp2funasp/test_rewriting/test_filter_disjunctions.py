@@ -1,23 +1,22 @@
-from typing import List
+import re
 import textwrap
 import unittest
-
-import re
+from typing import List
 
 from clingo_funasp import ast
 from clingo_funasp.core import Library
 from clingo_funasp.symbol import parse_term
-from funasp.util.ast import AST
-from funasp.asp2funasp.util.types import FRelation
-from funasp.asp2funasp.rewriting.rewrite_into_funasp import (
-    FunctionalPredicateRewriteTransformer,
-)
+
 from funasp.asp2funasp.rewriting.filter_disjunctions import (
     HeadDisjunctionFRelationCollector,
     remove_frelations_in_head_disjunctions,
 )
+from funasp.asp2funasp.rewriting.rewrite_into_funasp import (
+    FunctionalPredicateRewriteTransformer,
+)
+from funasp.asp2funasp.util.types import FRelation
 from funasp.asp2funasp.util.util import index_frelations
-
+from funasp.util.ast import AST
 from tests.asp2funasp.util import collect_statements
 
 
@@ -52,7 +51,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         new_nodes: List[AST] = []
 
         for node in nodes:
-            new_node = transformer.transform_rule(node)
+            new_node = transformer.transform_statement(node)
 
             if new_node is None:
                 new_nodes.append(node)

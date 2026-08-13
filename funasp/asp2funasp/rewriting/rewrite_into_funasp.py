@@ -51,7 +51,8 @@ class FunctionalPredicateRewriteTransformer:
             conflicting_signatures=conflicting_signatures,
         )
 
-    def transform_rule(self, node: AST) -> RewriteResult:
+    def transform_statement(self, node: AST) -> RewriteResult:
+        """Rewrite one source statement into canonical FUNASP parser AST."""
         return self._rewrite(node)
 
     def _function_name(self, key: SymbolSignature) -> str:
@@ -324,6 +325,21 @@ class FunctionalPredicateRewriteTransformer:
             self.lib,
             head=new_head if head_changed else node.head,
             body=new_body if body_changed else node.body,
+        )
+
+    @_rewrite.register
+    def _(
+        self,
+        node: ast.StatementShowSignature,
+    ) -> ast.StatementShowSignature | None:
+        """Rewrite a shown functional predicate as a canonical ``#showf``."""
+        key = SymbolSignature(node.name, node.arity)
+        if key not in self.frelation_index:
+            return None
+
+        return node.update(
+            self.lib,
+            name=self._function_name(key),
         )
 
     @_rewrite.register

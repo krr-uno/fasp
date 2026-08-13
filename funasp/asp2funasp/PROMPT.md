@@ -8,12 +8,12 @@
 1. Analyzing ASP programs to detect predicates that behave like deterministic functions
 2. Applying preprocessing transformations to normalize rules into standard forms
 3. Identifying and storing functional patterns via pattern matching
-4. Rewriting identified functional predicates using FUNASP's assignment rule syntax (`:=`)
-5. Converting clingo AST nodes to corresponding FUNASP AST nodes where applicable
+4. Rewriting identified functional predicates into FUNASP's canonical parser-level encoding
+5. Passing the converted clingo AST through FUNASP's normal semantic rewrite pipeline
 
 ## Parent Project: FUNASP
 
-FUNASP extends clingo 6 with **evaluable (intensional) functions** via assignment rules:
+FUNASP extends clingo 6 with **intensional functions** via assignment rules:
 
 ```prolog
 f(t1) := t2 :- Body.          % deterministic assignment
@@ -23,20 +23,20 @@ f(t1) := #sum{ X : p(X) } :- Body.  % aggregate assignment
 
 Key resources:
 - **funasp/** (parent directory) — Main FUNASP implementation
-- **funasp/fun_ast/_nodes.py** — FASP AST node types (mirrors the clingo AST interface)
-- **funasp/fun_ast/rewritings/integration.py** — Rewriting pipeline orchestrator
+- **funasp/ast/_core.py** — Statement wrapper, parser prefixes, and source rendering
+- **funasp/ast/_rewritings/__init__.py** — FUNASP semantic rewrite orchestrator
+- **funasp/asp2funasp/PARSER_MIGRATION.md** — Current parser-level encoding contract
 
 ## Directory Structure
 
 ```
-asp2funasp/
-├── asp2funasp/
-│   ├── pattern_finders/           # Detect functional predicates in ASP programs
+funasp/asp2funasp/
+├── pattern_finders/               # Detect functional predicates in ASP programs
 │   │   ├── aggregate_pattern_finder.py      # Find aggregate-based patterns
 │   │   ├── inequality_constraint_finder.py  # Find inequality-based functional predicates
 │   │   └── pattern_finder_utils.py          # Shared utilities for pattern matching
-│   ├── transformers/
-│   │   └── preprocessing/         # Normalize rules before pattern detection
+├── transformers/
+│   └── preprocessing/             # Normalize rules before pattern detection
 │   │       ├── base.py                      # Base transformer class
 │   │       ├── aggregate_head_body_condition_rewrite.py
 │   │       ├── choice_rule_guard_normalize_rewrite.py
@@ -44,20 +44,15 @@ asp2funasp/
 │   │       ├── notaggregate_constraint_rewrite.py
 │   │       ├── constraint_aggregate_guard_normalization.py
 │   │       └── __init__.py                  # Pipeline entry: processPipelinetransformers()
-│   ├── rewriting/
-│   │   ├── functional_predicate_finder.py   # Main orchestrator: finds patterns and generates FPredicate/FRelation
-│   │   └── rewrite_into_funasp.py           # Converts identified predicates to FUNASP syntax
-│   ├── util/
-│   │   ├── types.py               # Data type definitions (FPredicate, CPredicate, FRelation)
-│   │   └── util.py                # Utility functions
-│   └── __init__.py
-├── tests/                         # Test suites organized by component
-│   ├── test_pattern_finders/
-│   ├── test_transformers/
-│   ├── test_rewriting/
-│   └── test_util/
-├── noxfile.py                     # Build/test automation (local env, no venv)
+├── rewriting/
+│   ├── functional_predicate_finder.py       # Finds FPredicate/FRelation
+│   └── rewrite_into_funasp.py               # Emits canonical parser AST
+├── conversion.py                 # Stateless conversion orchestrator
+├── util/                         # Shared data types and utilities
 └── PROMPT.md                      # This file
+
+tests/asp2funasp/                  # Converter tests by component
+noxfile.py                         # Repository-wide build/test automation
 ```
 
 ## Core Data Types
@@ -138,6 +133,11 @@ Two pattern detection strategies:
   `f(arguments) = value`.
 - Assignment-bearing head occurrences use the parser's fixed representation:
   `Ff(arguments,value)`.
+- Matching `#show p/n.` signatures become canonical parser-level `#showf`
+  signatures: `#show Fp/n. [true]`. The encoded arity stays `n` because the
+  original relation already contains the function's value position.
+- Show-signature conversion uses the same collision-safe function-name mapping
+  as head and body conversion.
 - The converter always uses `PARSER_PREFIX` (`F`). The normal funasp rewrite
   context later applies the configured runtime prefix.
 - Relations with anything other than one output position are skipped by
@@ -157,9 +157,9 @@ Fp(1,Y)
 ```
 
 #### Not yet implemented:
-- Converting matching `#show p/n.` signatures to canonical parser-level
-  `#show Fp/n.` signatures.
 - Tuple-valued/multiple-output conversion.
+- CLI/control integration of `convert_statements()` into the normal FUNASP
+  parse → rewrite → solve path.
 
 ## Key Integration Points
 
@@ -176,8 +176,10 @@ Fp(1,Y)
 - SymbolSignature = (name, arity) tuple for fast predicate matching
 
 ### 3. FUNASP AST Integration
-- Assignment rule nodes: AssignmentAST subclasses from funasp/fun_ast/_nodes.py
-- Need to construct FASP nodes during rewriting (currently only using clingo nodes)
+- The converter emits ordinary `clingo_funasp.ast` nodes using the parser's
+  fixed `F` encoding; it does not construct a parallel FASP AST.
+- `funasp.ast.rewrite_statements()` subsequently supplies semantics, applies
+  the configured runtime prefix, and adds uniqueness constraints.
 
 ## Testing Strategy
 
@@ -193,16 +195,17 @@ Fp(1,Y)
 - Pattern detection infrastructure (FPredicate, FRelation identification)
 - Preprocessing pipeline (rule normalization)
 - Body literal rewriting (ASP predicates → FASP comparisons)
+- Head rewriting into canonical `F`-prefixed assignment atoms
+- Matching `StatementShowSignature` rewriting into canonical `#showf` encoding
 - FRelation indexing and lookup
+- Stateless conversion orchestration with accepted/skipped relation metadata
 
 ### In Progress
-- **Literal body rewrites** with FRelation info (partially done)
+- **Integration design** for opting ASP conversion into the FUNASP control/CLI path
 
 ### TODO
-- **Head rewriting**: Rewrite rule heads `p(X, Y)` → `p(X) := Y`
-- **AST node conversion**: Integrate FASP AST nodes (AssignmentAST) for assignment heads
 - **Aggregate rewriting**: Handle aggregate assignments (e.g., `f(X) := #sum{ ... }`)
-- **Testing**: Expand test coverage to match FunctionalBodyRewriteTransformer
+- **Tuple-valued conversion**: Define representation and behavior for multiple outputs
 - **End-to-end**: Pipeline from ASP input file → FUNASP output file
 
 ## Code Style & Conventions
@@ -231,25 +234,25 @@ Fp(1,Y)
 3. **AST structure errors?**
    - Check clingo AST node constructors — order and type of arguments matter
    - Use clingo.ast.show() for debugging AST structure
-   - Reference funasp/fun_ast/_nodes.py for FASP node constructors
+   - Reference `PARSER_MIGRATION.md` and `funasp/ast/_rewritings/` for the
+     canonical parser encoding and downstream semantics
 
 ## External Dependencies
 
-- **clingo ≥ 6.0.0** — logic solver and AST framework
+- **clingo-funasp ≥ 6.0.0.post13** — FASP parser fork and AST framework
 - **funasp** — parent project with FASP implementation and utilities
-- **tree_sitter_fasp** — optional, used for FASP-specific parsing (not core to asp2funasp detection)
 
 ## File Reference
 
 ### Entry Points
 - **conversion.py** — Stateless ASP-to-FUNASP orchestration; call `convert_statements()`
 - **functional_predicate_finder.py** — Main orchestrator; call `FunctionalPredicateFinder.find()`
-- **rewrite_into_funasp.py** — Rewriting transformer; instantiate `FunctionalBodyRewriteTransformer`
+- **rewrite_into_funasp.py** — Rewriting transformer; instantiate `FunctionalPredicateRewriteTransformer` and call `transform_statement()`
 
 ### Must-Know Files
 - **types.py** — Understand FPredicate/FRelation structure thoroughly
-- **integration.py** (in rewritings/) — Rewriting pipeline orchestrator pattern
-- **funasp/fun_ast/_nodes.py** — Reference for FASP AST nodes
+- **funasp/ast/_rewritings/__init__.py** — FUNASP rewrite pipeline orchestrator
+- **PARSER_MIGRATION.md** — Parser-to-rewriter encoding contract
 
 ---
 

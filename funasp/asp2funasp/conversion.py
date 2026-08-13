@@ -101,7 +101,7 @@ def convert_statements(
     )
     converted_statements: list[ast.Statement] = []
     for statement in original_statements:
-        converted = transformer.transform_rule(statement)
+        converted = transformer.transform_statement(statement)
         if converted is None:
             converted_statements.append(statement)
         else:

@@ -1,11 +1,12 @@
 
-from typing import List, Tuple, TypeVar, Type
+from typing import List, Tuple, Type, TypeVar
 
 from clingo_funasp import ast
 from clingo_funasp.core import Library
-from funasp.util.ast import AST
+
 from funasp.asp2funasp.util.util import collect_statements_from_parsed
 from funasp.ast import parse_string
+from funasp.util.ast import AST
 
 T = TypeVar('T')
 T_AST = TypeVar('T_AST', bound=AST)
@@ -15,6 +16,13 @@ def collect_statements(lib: Library,program:str) -> List[ast.StatementRule]:
     nodes:List[AST] = []
     ast.parse_string(lib, program, nodes.append)
     return collect_statements_from_parsed(nodes)
+
+
+def collect_all_statements(lib: Library, program: str) -> List[ast.Statement]:
+    """Parse all source statements, retaining directives but not parser setup."""
+    nodes: List[ast.Statement] = []
+    ast.parse_string(lib, program, nodes.append)
+    return [node for node in nodes if not isinstance(node, ast.StatementProgram)]
 
 
 # def collect_statements_funasp(lib: ELibrary,program:str) -> List[FASP_Statement]:
