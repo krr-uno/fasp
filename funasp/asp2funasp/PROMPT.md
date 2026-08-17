@@ -158,8 +158,6 @@ Fp(1,Y)
 
 #### Not yet implemented:
 - Tuple-valued/multiple-output conversion.
-- CLI/control integration of `convert_statements()` into the normal FUNASP
-  parse → rewrite → solve path.
 
 ## Key Integration Points
 
@@ -199,14 +197,15 @@ Fp(1,Y)
 - Matching `StatementShowSignature` rewriting into canonical `#showf` encoding
 - FRelation indexing and lookup
 - Stateless conversion orchestration with accepted/skipped relation metadata
-
-### In Progress
-- **Integration design** for opting ASP conversion into the FUNASP control/CLI path
+- Opt-in `Control(..., asp2funasp=True)` integration before FUNASP rewriting
+- Opt-in `funasp --asp2funasp` CLI integration for solving standard ASP input
 
 ### TODO
 - **Aggregate rewriting**: Handle aggregate assignments (e.g., `f(X) := #sum{ ... }`)
 - **Tuple-valued conversion**: Define representation and behavior for multiple outputs
-- **End-to-end**: Pipeline from ASP input file → FUNASP output file
+- **CLI diagnostics policy**: Decide whether and how to report relations skipped
+  during heuristic conversion; metadata is currently retained only on
+  `Control.conversion_result`.
 
 ## Code Style & Conventions
 

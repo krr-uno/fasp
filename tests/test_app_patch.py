@@ -1,14 +1,13 @@
-from os import PathLike
-from pathlib import Path
+import contextlib
+import io
 import sys
 import unittest
-import io, contextlib
-from unittest.mock import patch, MagicMock
-
+from os import PathLike
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from funasp.app import FaspApp, main
 from funasp.control import Control
-
 from tests.examples import EXAMPLES
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
@@ -164,6 +163,43 @@ class TestControl(unittest.TestCase):
 
         # Rewrites must differ
         self.assertNotEqual(rewrite_default, rewrite_custom)
+
+    def test_asp2funasp_cli_solves_standard_asp_as_functions(self):
+        """The CLI flag converts detected ASP relations before solving."""
+        output, error = self.execute_app_with_args(
+            [TEST_EXAMPLES_PATH / "asp2funasp.lp"],
+            ["--asp2funasp"],
+        )
+
+        self.assertEqual(error, "")
+        self.assertIn("assign(1)=red", output)
+        self.assertIn("assign(1)=blue", output)
+        self.assertNotIn("assign(1,red)", output)
+        self.assertNotIn("assign(1,blue)", output)
+
+    def test_asp2funasp_cli_is_disabled_by_default(self):
+        """Without the flag, standard ASP predicates retain their meaning."""
+        output, error = self.execute_app_with_args(
+            [TEST_EXAMPLES_PATH / "asp2funasp.lp"],
+            [],
+        )
+
+        self.assertEqual(error, "")
+        self.assertIn("assign(1,red)", output)
+        self.assertIn("assign(1,blue)", output)
+        self.assertNotIn("assign(1)=", output)
+
+    def test_asp2funasp_cli_rewrite_honors_custom_prefix(self):
+        """Rewrite mode exposes the fully flattened custom-prefix program."""
+        output, error = self.execute_app_with_args(
+            [TEST_EXAMPLES_PATH / "asp2funasp.lp"],
+            ["--asp2funasp", "--mode=rewrite", "--prefix-fun=G"],
+        )
+
+        self.assertEqual(error, "")
+        self.assertIn("#show Gassign/2. [true]", output)
+        self.assertIn("Gassign(N,C)", output)
+        self.assertNotIn("Fassign", output)
 
     def test_app_syntax_error(self):
         """Test app syntax error."""
