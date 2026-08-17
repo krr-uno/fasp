@@ -7,6 +7,7 @@ from clingo_funasp import ast
 from clingo_funasp import solve as clingo_solve
 from clingo_funasp import symbol
 
+from funasp.asp2funasp import ConversionResult, convert_statements
 from funasp.ast import (
     RewriteContext,
     Statement,
@@ -27,6 +28,7 @@ class Control:
         prefix: str = "F",
         clingo_control: Optional[clingo_funasp.control.Control] = None,
         ignore_prefix_collisions: bool = False,
+        asp2funasp: bool = False,
     ):
         """Initialize the Control instance."""
         self.library = library
@@ -36,6 +38,8 @@ class Control:
         self.prefix = prefix
         self.library.prefix_function = prefix
         self.ignore_prefix_collisions = ignore_prefix_collisions
+        self.asp2funasp = asp2funasp
+        self._conversion_result: ConversionResult | None = None
         self._rewritten_program: Optional[str] = None
         self._result: Optional[clingo_funasp.solve.SolveResult] = None
 
@@ -67,6 +71,7 @@ class Control:
 
     def _load(self, statements: list[Statement]) -> None:
         """Rewrite parsed statements and load them into the clingo control."""
+        statements = self._convert_asp2funasp(statements)
         rewrite_context = RewriteContext(
             self.library,
             self.prefix,
@@ -81,6 +86,25 @@ class Control:
         self._rewritten_program = "\n".join(
             str(statement) for wrapper in rewritten for statement in wrapper.rewritten
         )
+
+    def _convert_asp2funasp(self, statements: list[Statement]) -> list[Statement]:
+        """Convert parsed ASP statements when asp2funasp mode is enabled."""
+        if not self.asp2funasp:
+            return statements
+
+        self._conversion_result = convert_statements(
+            self.library.library,
+            [statement.original for statement in statements],
+        )
+        return [
+            Statement(self.library.library, statement)
+            for statement in self._conversion_result.converted_statements
+        ]
+
+    @property
+    def conversion_result(self) -> ConversionResult | None:
+        """Return metadata from the most recent asp2funasp conversion, if any."""
+        return self._conversion_result
 
     def ground(
         self,

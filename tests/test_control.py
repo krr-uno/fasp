@@ -1,22 +1,29 @@
-from contextlib import redirect_stderr
 import io
-from os import PathLike
-from pathlib import Path
 import sys
 import textwrap
-from typing import Iterable
 import unittest
+from contextlib import redirect_stderr
+from os import PathLike
+from pathlib import Path
+from typing import Iterable
 
 from clingo_funasp.core import MessageType
 
+from funasp.asp2funasp.util.types import FRelation
 from funasp.control import Control
 from funasp.core import Library
 from funasp.solve import Model
 from funasp.util.types import SymbolSignature
-
 from tests.examples import EXAMPLES
 
 TEST_EXAMPLES_PATH = Path(__file__).parent / "examples"
+
+ASP2FUNASP_PROGRAM = """
+    node(1).
+    color(red;blue).
+    1 { assign(N,C) : color(C) } 1 :- node(N).
+    #show assign/2.
+"""
 
 
 class TestControl(unittest.TestCase):
@@ -39,6 +46,24 @@ class TestControl(unittest.TestCase):
         models = [str(model) for model in self.get_models(files)]
         self.assertCountEqual(models, expected_models)
 
+    def _solve_program(
+        self,
+        program: str = ASP2FUNASP_PROGRAM,
+        *,
+        asp2funasp: bool = True,
+        prefix: str = "F",
+    ) -> tuple[Control, list[str]]:
+        """Parse and solve a string through a configured control."""
+        control = Control(
+            self.library,
+            ["0"],
+            prefix=prefix,
+            asp2funasp=asp2funasp,
+        )
+        control.parse_string(textwrap.dedent(program))
+        control.ground()
+        return control, [str(model) for model in control.solve()]
+
     def test_app(self):
         """Test app."""
         for i, example in enumerate(EXAMPLES):
@@ -51,6 +76,47 @@ class TestControl(unittest.TestCase):
         control = Control(self.library, ["0"])
         with self.assertRaises(ValueError):
             control.get_rewritten_program()
+
+    def test_asp2funasp_disabled_leaves_standard_asp_unchanged(self):
+        """Standard ASP retains predicate semantics unless conversion is enabled."""
+        control, models = self._solve_program(asp2funasp=False)
+
+        self.assertIsNone(control.conversion_result)
+        self.assertCountEqual(models, ["assign(1,red)", "assign(1,blue)"])
+
+    def test_asp2funasp_converts_and_solves_string(self):
+        """Detected relations are solved and displayed as function assignments."""
+        control, models = self._solve_program()
+
+        result = control.conversion_result
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(
+            result.accepted_relations,
+            (FRelation("assign", 2, (0,), [(1,)]),),
+        )
+        self.assertEqual(result.skipped_relations, ())
+        self.assertCountEqual(models, ["assign(1)=red", "assign(1)=blue"])
+
+    def test_asp2funasp_honors_custom_prefix(self):
+        """Conversion feeds canonical AST through the configured FUNASP prefix."""
+        control, models = self._solve_program(prefix="G")
+
+        self.assertIn("Gassign", control.get_rewritten_program())
+        self.assertNotIn("Fassign", control.get_rewritten_program())
+        self.assertCountEqual(models, ["assign(1)=red", "assign(1)=blue"])
+
+    def test_asp2funasp_converts_and_solves_file(self):
+        """File parsing uses the same conversion and solving path as strings."""
+        control = Control(self.library, ["0"], asp2funasp=True)
+        control.parse_files([str(TEST_EXAMPLES_PATH / "asp2funasp.lp")])
+        control.ground()
+
+        self.assertIsNotNone(control.conversion_result)
+        self.assertCountEqual(
+            [str(model) for model in control.solve()],
+            ["assign(1)=red", "assign(1)=blue"],
+        )
 
     def test_undefined_function_log_uses_configured_prefix(self):
         """Undefined function predicates are reported as intensional functions."""
