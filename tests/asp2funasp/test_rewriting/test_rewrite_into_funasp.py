@@ -211,7 +211,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         frels = [FRelation("assign", 2, (0,), [(1,)])]
 
         self.assertEqualRewrite(
-            "#show selected(N,C) : assign(N,C).",
+            "#show selected(N,C): assign(N,C).",
             "#show selected(N,C): assign(N) = C.",
             frels,
         )
@@ -273,7 +273,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         ]
 
         program = """
-        { assign(N,C) : color(C) } :- node(N).
+        { assign(N,C): color(C) } :- node(N).
         """
 
         expected = """
@@ -313,7 +313,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         ]
 
         program = """
-        { color(C) : assign(N,C) } :- node(N).
+        { color(C): assign(N,C) } :- node(N).
         """
 
         expected = """
@@ -333,7 +333,7 @@ class FunctionalPredicateRewriteTest(unittest.TestCase):
         ]
 
         program = """
-        { C = 1 : assign(N,C) } :- node(N).
+        { C = 1: assign(N,C) } :- node(N).
         """
 
         expected = """
