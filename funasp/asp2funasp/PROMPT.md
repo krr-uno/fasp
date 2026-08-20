@@ -48,6 +48,8 @@ funasp/asp2funasp/
 │   ├── functional_predicate_finder.py       # Finds FPredicate/FRelation
 │   └── rewrite_into_funasp.py               # Emits canonical parser AST
 ├── conversion.py                 # Stateless conversion orchestrator
+├── cli.py                        # Standalone ASP → parseable FUNASP command
+├── __main__.py                   # python -m funasp.asp2funasp entry point
 ├── util/                         # Shared data types and utilities
 └── PROMPT.md                      # This file
 
@@ -199,6 +201,8 @@ Fp(1,Y)
 - Stateless conversion orchestration with accepted/skipped relation metadata
 - Opt-in `Control(..., asp2funasp=True)` integration before FUNASP rewriting
 - Opt-in `funasp --asp2funasp` CLI integration for solving standard ASP input
+- Standalone `asp2funasp INPUT [--out=PATH]` source converter; it uses public
+  `funasp.ast.ast_to_str()` and never invokes FUNASP rewriting or solving
 
 ### TODO
 - **Aggregate rewriting**: Handle aggregate assignments (e.g., `f(X) := #sum{ ... }`)

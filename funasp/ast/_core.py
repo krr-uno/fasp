@@ -6,10 +6,10 @@ the :class:`Statement` wrapper and the parser-prefix constants
 (``PARSER_PREFIX``, ``SOME_MARKER``, ``PARSER_SOME_PREFIX``). The
 ``parse_string``/``parse_files`` wrappers live in :mod:`funasp.ast._parsing`.
 
-``_ast_to_str`` re-prints an as-parsed (F-encoded) statement in FASP syntax:
+``ast_to_str`` re-prints an as-parsed (F-encoded) statement in FASP syntax:
 the parser desugars assignments into prefixed atoms before the pipeline sees
 any text (``f := a+1.`` becomes ``Ff(a+1).``), so for error and info messages
-``_ast_to_str`` inverts exactly the shapes the parser generates (detected via
+``ast_to_str`` inverts exactly the shapes the parser generates (detected via
 the hardcoded ``F``/``FS`` markers, which user-written function names cannot
 produce); anything else falls back to ``str()``.
 """
@@ -51,7 +51,7 @@ class Statement:
         self.rewritten: list[ast.Statement] = [original]
 
     def __str__(self) -> str:
-        return _ast_to_str(self.original)
+        return ast_to_str(self.original)
 
     def rewrite(self, func: _REWRITE_FUNCTION) -> None:
         """
@@ -227,7 +227,7 @@ def _head_to_str(head: ast.HeadLiteral) -> str | None:
     return None
 
 
-def _ast_to_str(statement: ast.Statement) -> str:
+def ast_to_str(statement: ast.Statement) -> str:
     """
     Render an as-parsed statement in FASP syntax.
 

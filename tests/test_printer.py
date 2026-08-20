@@ -8,8 +8,7 @@ import unittest
 from clingo_funasp import ast
 from clingo_funasp.core import Location, Position
 
-from funasp.ast import parse_string
-from funasp.ast._core import _ast_to_str
+from funasp.ast import ast_to_str, parse_string
 from funasp.core import Library
 
 
@@ -28,7 +27,7 @@ class TestAstToStr(unittest.TestCase):
             if not isinstance(statement.original, ast.StatementProgram)
         ]
         self.assertEqual(len(statements), 1)
-        self.assertEqual(_ast_to_str(statements[0]), expected)
+        self.assertEqual(ast_to_str(statements[0]), expected)
 
     def test_simple_assignments(self):
         """Simple assignments round-trip."""
@@ -113,9 +112,9 @@ class TestAstToStr(unittest.TestCase):
         This is the form the parser produces for ``f(1;2) := 3.``.
         """
         statement = self._pooled_atom([3, 3])
-        self.assertEqual(_ast_to_str(statement), "f(1;2) := 3.")
+        self.assertEqual(ast_to_str(statement), "f(1;2) := 3.")
 
     def test_pooled_assignment_differing_values(self):
         """A pooled atom with differing values cannot come from source: as-is."""
         statement = self._pooled_atom([3, 4])
-        self.assertEqual(_ast_to_str(statement), "Ff(1,3;2,4).")
+        self.assertEqual(ast_to_str(statement), "Ff(1,3;2,4).")

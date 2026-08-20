@@ -23,6 +23,7 @@ build-backend = "setuptools.build_meta"
 
 [project.scripts]
 funasp = "funasp.__main__:main"
+asp2funasp = "funasp.asp2funasp.cli:main"
 
 [project.urls]
 Repository = "https://github.com/krr-uno/funasp"
@@ -31,5 +32,4 @@ Source = "https://github.com/krr-uno/funasp"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["funasp", "funasp.*"]
-
 

@@ -39,6 +39,24 @@ flattened program:
 funasp --asp2funasp --mode=rewrite program.lp
 ```
 
+### Standalone ASP-to-FUNASP conversion
+
+The separately installed `asp2funasp` command performs detection and source
+conversion only. It emits parseable FUNASP and does not rewrite FUNASP to plain
+ASP, ground the program, or invoke the solver:
+
+```bash
+asp2funasp program.lp
+asp2funasp program.lp --out=converted.lp
+cat program.lp | asp2funasp -
+```
+
+The same tool is available without the console-script wrapper as:
+
+```bash
+python -m funasp.asp2funasp program.lp
+```
+
 ## Language
 
 `funasp` is a strict superset of the clingo language: every clingo program is a
