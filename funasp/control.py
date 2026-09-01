@@ -72,6 +72,8 @@ class Control:
             self.prefix,
             ignore_prefix_collisions=self.ignore_prefix_collisions,
         )
+        for name in self.clingo_control.const_map.keys():
+            rewrite_context.ctx.add_param(name)
         rewritten = rewrite_statements(rewrite_context, statements)
         program = ast.Program(self.library.library)
         for wrapper in rewritten:

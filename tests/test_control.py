@@ -68,6 +68,37 @@ class TestControl(unittest.TestCase):
 
         self.assertEqual(models, ["p(1) p(2) p(3)"])
 
+    def test_command_line_const_interval_solves(self):
+        """Command-line constants are available during rewriting."""
+        control = Control(self.library, ["0", "-c", "n=3"])
+        control.parse_string(
+            """
+            p(1..n).
+            #show p/1.
+            """
+        )
+        control.ground()
+
+        models = [str(model) for model in control.solve()]
+
+        self.assertEqual(models, ["p(1) p(2) p(3)"])
+
+    def test_command_line_const_overrides_program_const(self):
+        """Command-line constants keep clingo's override semantics."""
+        control = Control(self.library, ["0", "-c", "n=3"])
+        control.parse_string(
+            """
+            #const n = 2.
+            p(1..n).
+            #show p/1.
+            """
+        )
+        control.ground()
+
+        models = [str(model) for model in control.solve()]
+
+        self.assertEqual(models, ["p(1) p(2) p(3)"])
+
     def test_undefined_function_log_uses_configured_prefix(self):
         """Undefined function predicates are reported as intensional functions."""
         self.library.prefix_function = "G"
