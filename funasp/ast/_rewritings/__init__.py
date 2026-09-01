@@ -115,6 +115,15 @@ def _validate_prefix_collisions(
     )
 
 
+def _register_constant_parameters(
+    context: RewriteContext, statements: Iterable[Statement]
+) -> None:
+    """Protect program ``#const`` names from clingo rewrite simplification."""
+    for stmt in statements:
+        if isinstance(stmt.original, ast.StatementConst):
+            context.ctx.add_param(stmt.original.name)
+
+
 def clingo_rewrite_wrapper(
     context: RewriteContext, original: Statement, statement: ast.Statement
 ) -> list[ast.Statement]:
@@ -148,6 +157,7 @@ def rewrite_statements(
             context.predicates |= collect_predicates(clingo_stmt)
             shown_functions |= collect_shown_function_signatures(clingo_stmt)
     _validate_prefix_collisions(context, statements)
+    _register_constant_parameters(context, statements)
     new_statements: list[Statement] = []
     for stmt in statements:
         stmt.rewrite(partial(rewrite_some_assignments, context))

@@ -8,6 +8,21 @@ from tests.integration.base import TransformTestCase
 
 
 class TestPrograms(TransformTestCase):
+    def test_const_interval_survives_rewrite(self):
+        """Program constants are protected while clingo rewrites intervals."""
+        self.assertTransformEqual(
+            """
+            #const n = 3.
+            p(1..n).
+            #show p/1.
+            """,
+            """
+            #const n=3. [default]
+            p(__A_0) :- __A_0=1..n; n>=1; __A_0>=1.
+            #show p/1. [true]
+            """,
+        )
+
     def test_family_full(self):
         """Test family full."""
         self.assertTransformEqual(

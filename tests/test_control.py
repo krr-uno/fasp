@@ -52,6 +52,22 @@ class TestControl(unittest.TestCase):
         with self.assertRaises(ValueError):
             control.get_rewritten_program()
 
+    def test_program_const_interval_solves(self):
+        """Program ``#const`` definitions are available during rewriting."""
+        control = Control(self.library, ["0"])
+        control.parse_string(
+            """
+            #const n = 3.
+            p(1..n).
+            #show p/1.
+            """
+        )
+        control.ground()
+
+        models = [str(model) for model in control.solve()]
+
+        self.assertEqual(models, ["p(1) p(2) p(3)"])
+
     def test_undefined_function_log_uses_configured_prefix(self):
         """Undefined function predicates are reported as intensional functions."""
         self.library.prefix_function = "G"
