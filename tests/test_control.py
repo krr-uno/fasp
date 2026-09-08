@@ -53,51 +53,60 @@ class TestControl(unittest.TestCase):
             control.get_rewritten_program()
 
     def test_program_const_interval_solves(self):
-        """Program ``#const`` definitions are available during rewriting."""
+        """Program ``#const`` definitions feed full function rewriting."""
         control = Control(self.library, ["0"])
         control.parse_string(
             """
             #const n = 3.
+            f(X):=X :- p(X).
             p(1..n).
-            #show p/1.
+            q(V) :- f(n)=V.
+            #show q/1.
+            #showf f/1.
             """
         )
         control.ground()
 
         models = [str(model) for model in control.solve()]
 
-        self.assertEqual(models, ["p(1) p(2) p(3)"])
+        self.assertEqual(models, ["q(3)\nf(1)=1 f(2)=2 f(3)=3"])
 
     def test_command_line_const_interval_solves(self):
-        """Command-line constants are available during rewriting."""
+        """Command-line constants feed full function rewriting."""
         control = Control(self.library, ["0", "-c", "n=3"])
         control.parse_string(
             """
+            f(X):=X :- p(X).
             p(1..n).
-            #show p/1.
+            q(V) :- f(n)=V.
+            #show q/1.
+            #showf f/1.
             """
         )
         control.ground()
 
         models = [str(model) for model in control.solve()]
 
-        self.assertEqual(models, ["p(1) p(2) p(3)"])
+        self.assertEqual(models, ["q(3)\nf(1)=1 f(2)=2 f(3)=3"])
 
     def test_command_line_const_overrides_program_const(self):
-        """Command-line constants keep clingo's override semantics."""
+        """Command-line constants keep override semantics through functions."""
         control = Control(self.library, ["0", "-c", "n=3"])
         control.parse_string(
             """
             #const n = 2.
+            f(X):=X :- p(X).
             p(1..n).
-            #show p/1.
+            q(V) :- f(n)=V.
+            #show q/1.
+            #showf f/1.
             """
         )
         control.ground()
 
         models = [str(model) for model in control.solve()]
 
-        self.assertEqual(models, ["p(1) p(2) p(3)"])
+        self.assertEqual(models, ["q(3)\nf(1)=1 f(2)=2 f(3)=3"])
 
     def test_undefined_function_log_uses_configured_prefix(self):
         """Undefined function predicates are reported as intensional functions."""
