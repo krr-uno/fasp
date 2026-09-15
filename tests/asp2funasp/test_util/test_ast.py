@@ -1,0 +1,21 @@
+import textwrap
+import unittest
+
+from typing import Tuple, Dict
+
+from clingo_funasp import ast
+from clingo_funasp.core import Library
+
+from funasp.util import ast as ast_util
+from funasp.asp2funasp.util.types import FRelation, SymbolSignature
+
+from tests.asp2funasp.util import find_in_ast, parse_and_find, collect_statements
+
+
+class UtilTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.lib = Library()
+
+    def test_function_pools(self) -> None:
+        node = parse_and_find(self.lib, "a((1,b)).", ast.TermTuple)
+        _,_ = ast_util.function_arguments(node)

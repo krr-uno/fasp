@@ -1,0 +1,33 @@
+HeadSimpleAssignment => nodes do not exist, we need to return HeadSimpleLiteral with a prefix F.
+
+
+
+For example, function `funasp.fun_ast.parsing.parser.parse_string` parses `a := 1 :- b11; b12.`  as an `AssignmentRule` rule whose head is an `HeadSimpleAssignment`. Function `clingo_funasp.parse_string` parses `a := 1 :- b11; b12.` as a `StatementRule` whose head is a `HeadSimpleLiteral`. The fact that is an assigment is marked by the fact that the name of the symbol is `Fa` instead of `a`.
+
+┌───────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────┐
+│           Old (tree-sitter)           │                                    New (clingo_funasp)                                     │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+│ AssignmentRule / HeadSimpleAssignment │ StatementRule / HeadSimpleLiteral with F-prefixed name, value as last arg (a := 1 → Fa(1)) │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+│ ChoiceAssignment                      │ HeadSetAggregate ({ a := 1 } → { Fa(1) })                                                  │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+│ HeadAssignmentAggregate               │ HeadAggregate with left guard Fa = #sum {...}, Relation.Equal                              │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+│ ChoiceSomeAssignment (#some)          │ HeadAggregate with FS prefix (FScolor(X) = #sum {...})                                     │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+│ ShowFDirective                        │ StatementShowSignature name="Fp", arity+1, value=True                                      │
+├───────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Head-aggregate assignments            │ element atoms desugared: f(X) := Y → Ff(X,Y)                                               │
+└───────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+
+
+     Exploration verified that the new parser does syntactic desugaring only:
+     - a := t :- B. → Fa(t) :- B. (StatementRule/HeadSimpleLiteral, F-prefix + value as last arg)
+     - { a := 1 } :- B. → { Fa(1) } :- B. (HeadSetAggregate)
+     - f(X) := #agg{…} :- B. → Ff(X) = #agg { tuple: NONE: cond } :- B. (HeadAggregate, left guard
+     Ff(X) with Relation.Equal; no value slot — arity stays the original)
+     - c(X) := #some{r;g;b} :- B. → FSc(X) = #sum { r: NONE; … } :- B. (FS prefix)
+     - #showf p/1. → #show Fp/2. [true] (value is the generic show/hide flag, not a FASP marker)
+     - Body occurrences are NOT touched: b :- a = 1. keeps the plain comparison a=1.

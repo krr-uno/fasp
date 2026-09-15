@@ -24,6 +24,39 @@ pip install -e .
 funasp examples/family.lp
 ```
 
+To detect functional predicates in a standard ASP program, convert them to
+FUNASP intensional functions, and solve the converted program, use:
+
+```bash
+funasp --asp2funasp program.lp
+```
+
+The conversion is opt-in: without `--asp2funasp`, standard ASP input keeps its
+ordinary predicate semantics. Use clingo's rewrite mode to inspect the final
+flattened program:
+
+```bash
+funasp --asp2funasp --mode=rewrite program.lp
+```
+
+### Standalone ASP-to-FUNASP conversion
+
+The separately installed `asp2funasp` command performs detection and source
+conversion only. It emits parseable FUNASP and does not rewrite FUNASP to plain
+ASP, ground the program, or invoke the solver:
+
+```bash
+asp2funasp program.lp
+asp2funasp program.lp --out=converted.lp
+cat program.lp | asp2funasp -
+```
+
+The same tool is available without the console-script wrapper as:
+
+```bash
+python -m funasp.asp2funasp program.lp
+```
+
 ## Language
 
 `funasp` is a strict superset of the clingo language: every clingo program is a
@@ -139,6 +172,7 @@ In addition to the clingo options, `funasp` accepts:
 
 | Option | Effect |
 |---|---|
+| `--asp2funasp` | Detect supported functional relations in standard ASP input and solve them as FUNASP intensional functions. |
 | `--prefix-fun=<prefix>` | Set the prefix for rewritten function predicates (default: `F`). Prefixes that collide with predicate names in the program are rejected. |
 | `--ignore-prefix-collisions` | Allow `--prefix-fun` values that collide with program predicates. |
 | `--order` | Print the atoms of each model in sorted order. |

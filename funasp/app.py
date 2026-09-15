@@ -21,6 +21,7 @@ class FaspApp(App):
         super().__init__("funasp", __version__)
         self._order = Flag()
         self._ignore_prefix_collisions = Flag()
+        self._asp2funasp = Flag()
         self._library = library
         self._clingo_options = clingo_options
         self._prefix = "F"
@@ -46,6 +47,12 @@ class FaspApp(App):
             "Allow --prefix-fun values that collide with program predicates.",
             self._ignore_prefix_collisions,
         )
+        options.add_flag(
+            "fasp",
+            "asp2funasp",
+            "Detect functional predicates in ASP input and convert them to FUNASP.",
+            self._asp2funasp,
+        )
 
     def print_model(
         self, model: solve.Model, default_printer: Callable[[], None]
@@ -67,6 +74,7 @@ class FaspApp(App):
             prefix,
             clingo_control,
             self._ignore_prefix_collisions.value,
+            asp2funasp=self._asp2funasp.value,
         )
         try:
             self._control.parse_files(files)
