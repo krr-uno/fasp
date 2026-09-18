@@ -80,6 +80,18 @@ class Asp2FunaspCliTest(unittest.TestCase):
         self.assertEqual(output, "")
         self.assertIn("syntax error", error)
 
+    def test_converts_aggregate_result_from_stdin(self) -> None:
+        result, output, error = self._run(
+            "-", stdin="total(N) :- N = #count { X : item(X) }. use(N) :- total(N)."
+        )
+        self.assertEqual((result, error), (0, ""))
+        self.assertEqual(
+            output,
+            "#program base.\n"
+            "total := N :- N = #count { X: item(X) }.\n"
+            "use(N) :- total=N.\n",
+        )
+
     def test_reports_output_errors(self) -> None:
         input_path = Path(__file__).parents[1] / "examples" / "asp2funasp.lp"
         with tempfile.TemporaryDirectory() as directory:

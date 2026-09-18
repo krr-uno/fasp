@@ -57,6 +57,9 @@ The same tool is available without the console-script wrapper as:
 python -m funasp.asp2funasp program.lp
 ```
 
+The converter also recognizes single-rule aggregate-result definitions using
+`#count`, `#sum`, `#sum+`, `#min`, and `#max`.
+
 ## Language
 
 `funasp` is a strict superset of the clingo language: every clingo program is a

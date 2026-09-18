@@ -6,6 +6,7 @@ from clingo_funasp.core import Library
 
 from funasp.asp2funasp.pattern_finders import (
     AggregatePatternFinder,
+    AggregateResultPatternFinder,
     InequalityConstraintFinder,
 )
 from funasp.asp2funasp.transformers.preprocessing import processPipelinetransformers
@@ -40,6 +41,12 @@ class FunctionalPredicateFinder:
         aggregate_finder.identifyAggregatePattern(processed_statements)
         aggregate_finder.identifyCountConstraintPattern(processed_statements)
         functional_predicates.extend(aggregate_finder.getFunctionalPredicates())
+
+        # Preserve source scopes and definition counts for aggregate-result
+        # inference; use the existing rewrite stage once the relation is known.
+        for predicate in AggregateResultPatternFinder(self.lib).find(statements):
+            if predicate not in functional_predicates:
+                functional_predicates.append(predicate)
 
         return functional_predicates, self._functional_relations(functional_predicates)
 
