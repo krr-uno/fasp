@@ -7,6 +7,9 @@ from funasp.asp2funasp.pattern_finders.pattern_finder_utils import (
     predicate_key_from_literal_symbolic,
     split_program,
 )
+from funasp.asp2funasp.pattern_finders.structured_choice_inputs import (
+    structured_choice_inputs,
+)
 from funasp.asp2funasp.util.types import CPredicate, FPredicate
 from funasp.asp2funasp.util.util import (
     collect_statements_from_parsed,
@@ -117,6 +120,15 @@ class AggregatePatternFinder:
                                             # If the parameter appears in the condition parameters, add its index to the return value list.
                                             if param in condition_parameters:
                                                 returnValueList.append(index)
+
+                                        argumentList = (
+                                            argumentList
+                                            if len(set(argumentList + returnValueList))
+                                            == len(choice_parameters)
+                                            else structured_choice_inputs(
+                                                rule, choice_literal, returnValueList
+                                            )
+                                        )
 
                                         all_indices = set(
                                             argumentList + returnValueList
