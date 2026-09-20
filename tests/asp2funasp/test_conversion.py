@@ -133,21 +133,27 @@ class ConvertStatementsTest(unittest.TestCase):
                 """,
             )
 
-    def test_skips_multiple_output_positions(self) -> None:
-        statements, result = self._convert("""
+    def test_converts_multiple_output_positions(self) -> None:
+        _, result = self._convert("""
             :- pos(I,X,Y); pos(I,X1,Y1); X1 != X.
             :- pos(I,X,Y1); pos(I,X1,Y); Y1 != Y.
             """)
-
         self.assertEqual(len(result.functional_predicates), 2)
+        self.assertEqual(
+            result.accepted_relations, (FRelation("pos", 3, (0,), [(1,), (2,)]),)
+        )
+        self.assertEqual(result.skipped_relations, ())
+        self.assertIn("pos(I)=(X,Y)", str(result.converted_statements[0]))
+
+    def test_skips_empty_output_positions(self) -> None:
+        relation = FRelation("p", 1, (0,), [])
+        with patch(
+            "funasp.asp2funasp.conversion.FunctionalPredicateFinder.find",
+            return_value=([], [relation]),
+        ):
+            statements, result = self._convert("p(1).")
         self.assertEqual(result.accepted_relations, ())
         self.assertEqual(result.converted_statements, tuple(statements))
-        self.assertEqual(result.function_name_mapping, {})
-        self.assertEqual(len(result.skipped_relations), 1)
-        self.assertEqual(
-            result.skipped_relations[0].relation,
-            FRelation("pos", 3, (0,), [(1,), (2,)]),
-        )
         self.assertEqual(
             result.skipped_relations[0].reason,
             RelationSkipReason.UNSUPPORTED_OUTPUT_COUNT,

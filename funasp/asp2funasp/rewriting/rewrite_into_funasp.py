@@ -76,17 +76,28 @@ class FunctionalPredicateRewriteTransformer:
         """
         lhs_args = [arguments[i] for i in frel.arguments]
 
-        rhs_terms = [
-            cast(ast.TermOrProjection, arguments[i])
-            for value_group in frel.values
-            for i in value_group
-        ]
-
-        prefixed_arguments = [*lhs_args, *rhs_terms]
+        value = self._output_value(arguments, frel)
+        prefixed_arguments = [*lhs_args, value]
 
         return (
             self._function_name(key),
             ast.ArgumentTuple(self.lib, prefixed_arguments),
+        )
+
+    def _output_value(
+        self,
+        arguments: Sequence[ast.TermOrProjection],
+        relation: FRelation,
+    ) -> ast.Term:
+        """Pack outputs in source-position order into one function value."""
+        positions = sorted({i for group in relation.values for i in group})
+        terms = [cast(ast.Term, arguments[i]) for i in positions]
+        if len(terms) == 1:
+            return terms[0]
+        return ast.TermTuple(
+            self.lib,
+            terms[0].location,
+            [ast.ArgumentTuple(self.lib, terms)],
         )
 
     def _rewrite_function_atom(
@@ -150,13 +161,6 @@ class FunctionalPredicateRewriteTransformer:
             return None
 
         relation = self.frelation_index[key]
-        output_positions = [
-            position for value_group in relation.values for position in value_group
-        ]
-        assert (
-            len(output_positions) == 1
-        ), "body conversion requires exactly one output position"
-
         assigned_function = ast.TermFunction(
             self.lib,
             literal.location,
@@ -177,7 +181,7 @@ class FunctionalPredicateRewriteTransformer:
                 ast.RightGuard(
                     self.lib,
                     ast.Relation.Equal,
-                    arguments[output_positions[0]],
+                    self._output_value(arguments, relation),
                 )
             ],
         )
@@ -340,6 +344,7 @@ class FunctionalPredicateRewriteTransformer:
         return node.update(
             self.lib,
             name=self._function_name(key),
+            arity=len(self.frelation_index[key].arguments) + 1,
         )
 
     @_rewrite.register

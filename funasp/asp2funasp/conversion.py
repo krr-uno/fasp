@@ -20,9 +20,7 @@ from funasp.asp2funasp.util.types import FPredicate, FRelation, SymbolSignature
 class RelationSkipReason(StrEnum):
     """Reasons a detected functional relation is not converted."""
 
-    UNSUPPORTED_OUTPUT_COUNT = (
-        "only relations with exactly one output position are supported"
-    )
+    UNSUPPORTED_OUTPUT_COUNT = "relations must have at least one output position"
     HEAD_DISJUNCTION = "predicate occurs in a disjunctive head"
 
 
@@ -45,11 +43,11 @@ class ConversionResult:
     skipped_relations: tuple[SkippedRelation, ...]
 
 
-def _has_single_output(relation: FRelation) -> bool:
+def _has_output(relation: FRelation) -> bool:
     output_positions = {
         position for value_group in relation.values for position in value_group
     }
-    return len(output_positions) == 1
+    return bool(output_positions)
 
 
 def convert_statements(
@@ -67,11 +65,11 @@ def convert_statements(
         original_statements
     )
 
-    single_output_relations: list[FRelation] = []
+    output_relations: list[FRelation] = []
     skipped_relations: list[SkippedRelation] = []
     for relation in detected_relations:
-        if _has_single_output(relation):
-            single_output_relations.append(relation)
+        if _has_output(relation):
+            output_relations.append(relation)
         else:
             skipped_relations.append(
                 SkippedRelation(
@@ -83,9 +81,9 @@ def convert_statements(
     accepted_relations = remove_frelations_in_head_disjunctions(
         library,
         original_statements,
-        single_output_relations,
+        output_relations,
     )
-    for relation in single_output_relations:
+    for relation in output_relations:
         if relation not in accepted_relations:
             skipped_relations.append(
                 SkippedRelation(
