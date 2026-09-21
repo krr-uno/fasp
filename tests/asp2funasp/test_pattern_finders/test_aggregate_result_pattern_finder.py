@@ -1,5 +1,6 @@
 """Aggregate-result inference, including scope and definition counterexamples."""
 
+import textwrap
 import unittest
 
 from clingo_funasp import ast
@@ -14,10 +15,15 @@ class AggregateResultPatternFinderTest(unittest.TestCase):
         self.lib = Library()
         self.finder = AggregateResultPatternFinder(self.lib)
 
-    def find(self, source: str) -> list[FPredicate]:
-        statements = []
-        ast.parse_string(self.lib, source, statements.append)
+    def _apply(self, source: str) -> list[FPredicate]:
+        """Parse original statements, retaining #program scope declarations."""
+        statements: list[ast.Statement] = []
+        ast.parse_string(self.lib, textwrap.dedent(source).strip(), statements.append)
         return self.finder.find(statements)
+
+    def assertFPredicateEqual(self, program: str, expected: list[FPredicate]) -> None:
+        """Compare detected predicates without depending on their order."""
+        self.assertCountEqual(self._apply(program), expected)
 
     def test_all_aggregate_operators_and_guard_directions(self) -> None:
         for operator in ("count", "sum", "sum+", "min", "max"):
@@ -26,34 +32,31 @@ class AggregateResultPatternFinderTest(unittest.TestCase):
                 f"#{operator} {{ V,I : item(K,I,V) }} = R",
             ):
                 with self.subTest(equality=equality):
-                    self.assertEqual(
-                        self.find(f"total(K,R) :- group(K), {equality}."),
+                    self.assertFPredicateEqual(
+                        f"total(K,R) :- group(K), {equality}.",
                         [FPredicate("total", 2, (0,), (1,), [])],
                     )
 
     def test_zero_inputs_local_variables_and_filters(self) -> None:
-        self.assertEqual(
-            self.find(
-                "total(N) :- allowed(N), N = #count { X,Y : edge(X,Y); Z : lone(Z) }."
-            ),
+        self.assertFPredicateEqual(
+            "total(N) :- allowed(N), N = #count { X,Y : edge(X,Y); Z : lone(Z) }.",
             [FPredicate("total", 1, (), (0,), [])],
         )
 
     def test_nonfinal_output_and_multiple_inputs(self) -> None:
-        self.assertEqual(
-            self.find("total(V,K,T) :- key(K,T), V = #sum { W,I : item(K,T,I,W) }."),
+        self.assertFPredicateEqual(
+            "total(V,K,T) :- key(K,T), V = #sum { W,I : item(K,T,I,W) }.",
             [FPredicate("total", 3, (1, 2), (0,), [])],
         )
 
     def test_empty_aggregate_and_additional_guard(self) -> None:
-        self.assertEqual(
-            self.find("total(N) :- N = #count {} <= 3."),
-            [FPredicate("total", 1, (), (0,), [])],
+        self.assertFPredicateEqual(
+            "total(N) :- N = #count {} <= 3.", [FPredicate("total", 1, (), (0,), [])]
         )
 
     def test_independent_body_variables_are_only_filters(self) -> None:
-        self.assertEqual(
-            self.find("total(N) :- enabled(K), N = #count { X : item(X) }."),
+        self.assertFPredicateEqual(
+            "total(N) :- enabled(K), N = #count { X : item(X) }.",
             [FPredicate("total", 1, (), (0,), [])],
         )
 
@@ -67,7 +70,7 @@ class AggregateResultPatternFinderTest(unittest.TestCase):
         ]
         for program in programs:
             with self.subTest(program=program):
-                self.assertEqual(self.find(program), [])
+                self.assertFPredicateEqual(program, [])
 
     def test_rejects_nonassignment_aggregates(self) -> None:
         for body in (
@@ -81,7 +84,7 @@ class AggregateResultPatternFinderTest(unittest.TestCase):
             "item(N)",
         ):
             with self.subTest(body=body):
-                self.assertEqual(self.find(f"total(N) :- domain(N), {body}."), [])
+                self.assertFPredicateEqual(f"total(N) :- domain(N), {body}.", [])
 
     def test_rejects_unsupported_heads(self) -> None:
         for head in (
@@ -99,8 +102,8 @@ class AggregateResultPatternFinderTest(unittest.TestCase):
             "total := N",
         ):
             with self.subTest(head=head):
-                self.assertEqual(
-                    self.find(f"{head} :- N = #count {{ X : item(X) }}."), []
+                self.assertFPredicateEqual(
+                    f"{head} :- N = #count {{ X : item(X) }}.", []
                 )
 
     def test_rejects_competing_definitions_and_external_declarations(self) -> None:
@@ -114,22 +117,19 @@ class AggregateResultPatternFinderTest(unittest.TestCase):
         ):
             for program in (definition + other, other + definition):
                 with self.subTest(program=program):
-                    self.assertEqual(self.find(program), [])
+                    self.assertFPredicateEqual(program, [])
 
     def test_rejects_parameterized_program_parts(self) -> None:
-        self.assertEqual(
-            self.find("#program step(t). total(N) :- N = #count { X : item(t,X) }."),
-            [],
+        self.assertFPredicateEqual(
+            "#program step(t). total(N) :- N = #count { X : item(t,X) }.", []
         )
 
     def test_finder_can_be_reused_and_ignores_unrelated_directives(self) -> None:
-        self.assertEqual(
-            self.find(
-                "#external other. total(N) :- N = #count { X : item(X) }. #show total/1."
-            ),
+        self.assertFPredicateEqual(
+            "#external other. total(N) :- N = #count { X : item(X) }. #show total/1.",
             [FPredicate("total", 1, (), (0,), [])],
         )
-        self.assertEqual(self.find("unrelated."), [])
+        self.assertFPredicateEqual("unrelated.", [])
 
 
 if __name__ == "__main__":
