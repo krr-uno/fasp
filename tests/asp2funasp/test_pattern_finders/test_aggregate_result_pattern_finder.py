@@ -92,13 +92,13 @@ class AggregateResultPatternFinderTest(unittest.TestCase):
             "total",
             "-total(N)",
             "not total(N)",
-            "{ total(N) }",
+            "{ total(N) }", # we can accept it as { total := N } :- N = #count { X : item(X) }.
             "total(N) | other(N)",
-            "total(N;N+1)",
-            "total(N,N)",
+            "total(N;N+1)", # we can accept it as total := (N,N+1) :- N = #count { X : item(X) }.
+            "total(N,N)", # we can accept it as total := (N,N) :- N = #count { X : item(X) }.
             "total(_)",
             "total(key(K),N)",
-            "total(1,N)",
+            "total(1,N)", # we can accept it as total(1) := #count { X : item(X) }.
             "total := N",
         ):
             with self.subTest(head=head):

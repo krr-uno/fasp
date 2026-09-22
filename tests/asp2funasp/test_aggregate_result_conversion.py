@@ -12,7 +12,8 @@ class AggregateResultConversionTest(ConversionTestCase):
     def test_count_assignment_lookups_and_show_signature(self) -> None:
         converted, relations = self.assertConversionEqual(
             "num_edges(N) :- N = #count { X,Y : edge(X,Y) }. "
-            "num(0). num(N) :- num(N1), N=N1+1, num_edges(E), N<=E. "
+            "num(0)."
+            "num(N) :- num(N1), N=N1+1, num_edges(E), N<=E. "
             "missing :- not num_edges(0). #show num_edges/1.",
             "#program base.\n"
             "num_edges := N :- N = #count { X,Y: edge(X,Y) }.\n"
@@ -43,6 +44,7 @@ class AggregateResultConversionTest(ConversionTestCase):
             "total(K,N) :- key(K), N = #count { I : item(K,I) }. "
             ":- total(K,N), total(K,M), N != M."
         )
+        # assertConversionEqual
         self.assertEqual(relations, (FRelation("total", 2, (0,), [(1,)]),))
         self.assertIn("total(K) := N", converted)
 
