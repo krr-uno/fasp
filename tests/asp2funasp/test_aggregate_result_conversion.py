@@ -11,16 +11,20 @@ from tests.asp2funasp.util import ConversionTestCase
 class AggregateResultConversionTest(ConversionTestCase):
     def test_count_assignment_lookups_and_show_signature(self) -> None:
         converted, relations = self.assertConversionEqual(
-            "num_edges(N) :- N = #count { X,Y : edge(X,Y) }. "
-            "num(0)."
-            "num(N) :- num(N1), N=N1+1, num_edges(E), N<=E. "
-            "missing :- not num_edges(0). #show num_edges/1.",
-            "#program base.\n"
-            "num_edges := N :- N = #count { X,Y: edge(X,Y) }.\n"
-            "num(0).\n"
-            "num(N) :- num(N1); N=N1+1; num_edges=E; N<=E.\n"
-            "missing :- not num_edges=0.\n"
-            "#showf num_edges/0.",
+            """
+            num_edges(N) :- N = #count { X,Y : edge(X,Y) }.
+            num(0).
+            num(N) :- num(N1), N=N1+1, num_edges(E), N<=E.
+            missing :- not num_edges(0). #show num_edges/1.
+            """,
+            """
+            #program base.
+            num_edges := N :- N = #count { X,Y: edge(X,Y) }.
+            num(0).
+            num(N) :- num(N1); N=N1+1; num_edges=E; N<=E.
+            missing :- not num_edges=0.
+            #showf num_edges/0.
+            """,
         )
         self.assertEqual(relations, (FRelation("num_edges", 1, (), [(0,)]),))
         with Library() as library:
