@@ -23,7 +23,7 @@ class StructuredChoiceConversionTest(ConversionTestCase):
             "missing(X,Y) :- edge(X,Y), not edge_value(edge(X,Y),1). "
             "#show edge_value/2."
         )
-        self.assertIn("{ edge_value(edge(X,Y)) := N: num(N), N>0 } = 1", result)
+        self.assertIn("{ edge_value(edge(X,Y)) := N: num(N), N>0 } = 1 :- edge(X,Y)", result)
         self.assertIn("seen(X,Y,N) :- edge_value(edge(X,Y))=N.", result)
         self.assertIn("not edge_value(edge(X,Y))=1", result)
         self.assertIn("#showf edge_value/1.", result)
