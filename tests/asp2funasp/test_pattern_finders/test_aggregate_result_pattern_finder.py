@@ -60,6 +60,46 @@ class AggregateResultPatternFinderTest(unittest.TestCase):
             [FPredicate("total", 1, (), (0,), [])],
         )
 
+    def test_choice_head(self) -> None:
+        self.assertFPredicateEqual(
+            "{ total(N) } :- N = #count { X : item(X) }.",
+            [FPredicate("total", 1, (), (0,), [])],
+        )
+
+    def test_repeated_result_forms_tuple_output(self) -> None:
+        self.assertFPredicateEqual(
+            "total(N,N) :- N = #count { X : item(X) }.",
+            [FPredicate("total", 2, (), (0, 1), [])],
+        )
+
+    def test_constant_input(self) -> None:
+        self.assertFPredicateEqual(
+            "total(1,N) :- N = #count { X : item(X) }.",
+            [FPredicate("total", 2, (0,), (1,), [])],
+        )
+
+    def test_repeated_inputs_and_noncontiguous_outputs(self) -> None:
+        self.assertFPredicateEqual(
+            "total(N,K,N,K) :- key(K), N = #count { X : item(K,X) }.",
+            [FPredicate("total", 4, (1, 3), (0, 2), [])],
+        )
+
+    def test_choice_condition_can_filter_the_result(self) -> None:
+        self.assertFPredicateEqual(
+            "{ total(N) : allowed(N) } :- N = #count { X : item(X) }.",
+            [FPredicate("total", 1, (), (0,), [])],
+        )
+
+    def test_choice_condition_cannot_supply_hidden_aggregate_inputs(self) -> None:
+        self.assertFPredicateEqual(
+            "{ total(N) : key(K) } :- N = #count { X : item(K,X) }.",
+            [],
+        )
+
+    def test_pooled_results_are_not_a_tuple(self) -> None:
+        # The pool defines two total/1 atoms, not one total/2 tuple-valued atom.
+        self.assertFPredicateEqual("total(N;N+1) :- N = #count { X : item(X) }.", [])
+
     def test_rejects_unfixed_context_in_conditions_and_tuples(self) -> None:
         programs = [
             "total(N) :- group(K), N = #count { I : item(K,I) }.",
@@ -92,13 +132,11 @@ class AggregateResultPatternFinderTest(unittest.TestCase):
             "total",
             "-total(N)",
             "not total(N)",
-            "{ total(N) }", # we can accept it as { total := N } :- N = #count { X : item(X) }.
+            "{ total(N); other(N) }",
+            "{ not total(N) }",
             "total(N) | other(N)",
-            "total(N;N+1)", # we can accept it as total := (N,N+1) :- N = #count { X : item(X) }.
-            "total(N,N)", # we can accept it as total := (N,N) :- N = #count { X : item(X) }.
             "total(_)",
             "total(key(K),N)",
-            "total(1,N)", # we can accept it as total(1) := #count { X : item(X) }.
             "total := N",
         ):
             with self.subTest(head=head):
@@ -121,12 +159,17 @@ class AggregateResultPatternFinderTest(unittest.TestCase):
 
     def test_rejects_parameterized_program_parts(self) -> None:
         self.assertFPredicateEqual(
-            "#program step(t). total(N) :- N = #count { X : item(t,X) }.", []
+         """#program step(t). 
+            total(N) :- N = #count { X : item(t,X) }.
+         """, []
         )
 
     def test_finder_can_be_reused_and_ignores_unrelated_directives(self) -> None:
         self.assertFPredicateEqual(
-            "#external other. total(N) :- N = #count { X : item(X) }. #show total/1.",
+            """#external other.
+            total(N) :- N = #count { X : item(X) }.
+            #show total/1.
+            """,
             [FPredicate("total", 1, (), (0,), [])],
         )
         self.assertFPredicateEqual("unrelated.", [])

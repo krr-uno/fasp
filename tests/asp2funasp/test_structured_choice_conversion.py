@@ -17,27 +17,34 @@ class StructuredChoiceConversionTest(ConversionTestCase):
     model_prefix = "G"
 
     def test_edge_assignment_and_lookups(self) -> None:
-        result = self._convert_source(
-            "{ edge_value(edge(X,Y),N) : num(N), N>0 } = 1 :- edge(X,Y). "
-            "seen(X,Y,N) :- edge_value(edge(X,Y),N). "
-            "missing(X,Y) :- edge(X,Y), not edge_value(edge(X,Y),1). "
-            "#show edge_value/2."
+        self.assertConversionEqual(
+            """
+            { edge_value(edge(X,Y),N) : num(N), N>0 } = 1 :- edge(X,Y).
+            seen(X,Y,N) :- edge_value(edge(X,Y),N).
+            missing(X,Y) :- edge(X,Y), not edge_value(edge(X,Y),1).
+            #show edge_value/2.
+            """,
+            """
+            #program base.
+            { edge_value(edge(X,Y)) := N: num(N), N>0 } = 1 :- edge(X,Y).
+            seen(X,Y,N) :- edge_value(edge(X,Y))=N.
+            missing(X,Y) :- edge(X,Y); not edge_value(edge(X,Y))=1.
+            #showf edge_value/1.
+            """,
         )
-        self.assertIn("{ edge_value(edge(X,Y)) := N: num(N), N>0 } = 1 :- edge(X,Y)", result)
-        self.assertIn("seen(X,Y,N) :- edge_value(edge(X,Y))=N.", result)
-        self.assertIn("not edge_value(edge(X,Y))=1", result)
-        self.assertIn("#showf edge_value/1.", result)
 
     def test_models_and_empty_domain(self) -> None:
         for numbers in ("num(0).", "num(0;1;2)."):
-            source = (
-                "edge(a,b). edge(b,c). "
-                + numbers
-                + " { edge_value(edge(X,Y),N) : num(N), N>0 } = 1 :- edge(X,Y). "
-                "seen(X,Y,N) :- edge_value(edge(X,Y),N). "
-                "missing(X,Y) :- edge(X,Y), not edge_value(edge(X,Y),1). "
-                "#show seen/3. #show missing/2."
-            )
+            source = f"""
+                edge(a,b).
+                edge(b,c).
+                {numbers}
+                {{ edge_value(edge(X,Y),N) : num(N), N>0 }} = 1 :- edge(X,Y).
+                seen(X,Y,N) :- edge_value(edge(X,Y),N).
+                missing(X,Y) :- edge(X,Y), not edge_value(edge(X,Y),1).
+                #show seen/3.
+                #show missing/2.
+            """
             with self.subTest(numbers=numbers):
                 expected = self._models(source)
                 self.assertEqual(len(expected), 0 if numbers == "num(0)." else 4)
@@ -46,19 +53,25 @@ class StructuredChoiceConversionTest(ConversionTestCase):
 
     def test_nested_tuple_and_multiple_outputs(self) -> None:
         for key in ("wrap(edge(X,Y),tag)", "(X,Y)"):
-            source = (
-                f"{{ pick({key},A,B) : option(A,B) }} = 1 :- edge(X,Y). "
-                f"seen(X,Y,A,B) :- pick({key},A,B)."
-            )
-            result = self._convert_source(source)
-            self.assertIn(f"pick({key}) := (A,B)", result)
-            self.assertIn(f"pick({key})=(A,B)", result)
-            facts = "edge(a,b). option(left,horizontal). "
-            projection = " #show seen/4."
-            self.assertEqual(
-                self._models(facts + source + projection),
-                self._models(facts + result + projection),
-            )
+            with self.subTest(key=key):
+                source = f"""
+                    {{ pick({key},A,B) : option(A,B) }} = 1 :- edge(X,Y).
+                    seen(X,Y,A,B) :- pick({key},A,B).
+                """
+                result, _ = self.assertConversionEqual(
+                    source,
+                    f"""
+                    #program base.
+                    {{ pick({key}) := (A,B): option(A,B) }} = 1 :- edge(X,Y).
+                    seen(X,Y,A,B) :- pick({key})=(A,B).
+                    """,
+                )
+                facts = "edge(a,b). option(left,horizontal). "
+                projection = " #show seen/4."
+                self.assertEqual(
+                    self._models(facts + source + projection),
+                    self._models(facts + result + projection),
+                )
 
     def test_rejects_unfixed_or_lost_context(self) -> None:
         rules = (
@@ -73,11 +86,14 @@ class StructuredChoiceConversionTest(ConversionTestCase):
                 self.assertNotIn(":=", self._convert_source(rule))
 
     def test_lost_context_counterexample_preserves_two_values(self) -> None:
-        source = (
-            "triple(a,b,c). triple(a,b,d). option(c,1). option(d,2). "
-            "{ pick(edge(X,Y),N) : option(Z,N) } = 1 :- triple(X,Y,Z). "
-            "#show pick/2."
-        )
+        source = """
+            triple(a,b,c).
+            triple(a,b,d).
+            option(c,1).
+            option(d,2).
+            { pick(edge(X,Y),N) : option(Z,N) } = 1 :- triple(X,Y,Z).
+            #show pick/2.
+        """
         expected = {"pick(edge(a,b),1) pick(edge(a,b),2)"}
         self.assertEqual(self._models(source), expected)
         self.assertEqual(self._models(source, True), expected)
@@ -91,20 +107,30 @@ class StructuredChoiceInputsTest(unittest.TestCase):
         """Parse a single rule using the existing pattern-finder test helper."""
         return collect_statements(self.lib, textwrap.dedent(program).strip())[0]
 
-    def test_helper_rejects_unsupported_terms(self) -> None:
+    def test_plain_variable_is_an_input(self) -> None:
         ordinary = self._apply("p(X) :- q(X).")
         self.assertEqual(
             structured_choice_inputs(ordinary, ordinary.head.literal, []), [0]
         )
+
+    def test_boolean_head_has_no_inputs(self) -> None:
+        ordinary = self._apply("p(X) :- q(X).")
         boolean = self._apply(":- q(X).").head.literal
         self.assertEqual(structured_choice_inputs(ordinary, boolean, []), [])
+
+    def test_constructor_rejects_unsupported_terms(self) -> None:
         for source in ("p(_).", "p(f(_)).", "p(X+1).", "p(f(a;b))."):
-            term = self._apply(source).head.literal.atom.pool[0].arguments[0]
-            self.assertIsNone(constructor_variables(term))
+            with self.subTest(source=source):
+                term = self._apply(source).head.literal.atom.pool[0].arguments[0]
+                self.assertIsNone(constructor_variables(term))
+
+    def test_negation_does_not_fix_constructor_variables(self) -> None:
         negative = self._apply("p(f(X),N) :- not q(X).")
         self.assertEqual(
             structured_choice_inputs(negative, negative.head.literal, [1]), []
         )
+
+    def test_arithmetic_does_not_fix_constructor_variables(self) -> None:
         unsupported = self._apply("p(f(X),N) :- q(X+1).")
         self.assertEqual(
             structured_choice_inputs(unsupported, unsupported.head.literal, [1]), []

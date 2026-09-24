@@ -9,22 +9,24 @@ class TupleConversionTest(ConversionTestCase):
     model_prefix = "G"
 
     def test_choice_and_later_occurrences(self) -> None:
-        source = (
-            "1 <= { selectDir(D,O,T): dir(D,O) } <= 1 :- step(T). "
-            "go(D,O,T) :- selectDir(D,O,T). "
-            "missing(T) :- step(T), not selectDir(left,horizontal,T). "
-            "n(N) :- N = #count { D,O,T : selectDir(D,O,T) }. "
-            "#show selectDir/3."
+        source = """
+            1 <= { selectDir(D,O,T): dir(D,O) } <= 1 :- step(T).
+            go(D,O,T) :- selectDir(D,O,T).
+            missing(T) :- step(T), not selectDir(left,horizontal,T).
+            n(N) :- N = #count { D,O,T : selectDir(D,O,T) }.
+            #show selectDir/3.
+        """
+        converted, _ = self.assertConversionEqual(
+            source,
+            """
+            #program base.
+            1 <= { selectDir(T) := (D,O): dir(D,O) } <= 1 :- step(T).
+            go(D,O,T) :- selectDir(T)=(D,O).
+            missing(T) :- step(T); not selectDir(T)=(left,horizontal).
+            n := N :- N = #count { D,O,T: selectDir(T)=(D,O) }.
+            #showf selectDir/1.
+            """,
         )
-        converted = self._convert_source(source)
-        self.assertIn(
-            "1 <= { selectDir(T) := (D,O): dir(D,O) } <= 1 :- step(T).",
-            converted,
-        )
-        self.assertIn("go(D,O,T) :- selectDir(T)=(D,O).", converted)
-        self.assertIn("not selectDir(T)=(left,horizontal)", converted)
-        self.assertIn("#count { D,O,T: selectDir(T)=(D,O) }", converted)
-        self.assertIn("#showf selectDir/1.", converted)
         # The rendered directive must show the actual tuple function signature.
         models = self._models("step(1). dir(left,horizontal). " + converted)
         self.assertEqual(models, {"selectDir(1)=(left,horizontal)"})
@@ -36,14 +38,15 @@ class TupleConversionTest(ConversionTestCase):
             "dir(left,horizontal;right,vertical).",
         ):
             with self.subTest(facts=facts):
-                source = (
-                    "step(1;2). "
-                    + facts
-                    + " 1 { selectDir(D,O,T): dir(D,O) } 1 :- step(T). "
-                    "chosen(D,O,T) :- selectDir(D,O,T). "
-                    "missing(T) :- step(T), not selectDir(left,horizontal,T). "
-                    "#show chosen/3. #show missing/1."
-                )
+                source = f"""
+                    step(1;2).
+                    {facts}
+                    1 {{ selectDir(D,O,T): dir(D,O) }} 1 :- step(T).
+                    chosen(D,O,T) :- selectDir(D,O,T).
+                    missing(T) :- step(T), not selectDir(left,horizontal,T).
+                    #show chosen/3.
+                    #show missing/1.
+                """
                 expected = self._models(source)
                 if not facts:
                     self.assertEqual(expected, set())
@@ -53,28 +56,42 @@ class TupleConversionTest(ConversionTestCase):
                 self.assertEqual(self._models(self._convert_source(source)), expected)
 
     def test_noncontiguous_outputs_and_three_component_tuple(self) -> None:
-        source = (
-            "{ pick(A,K,B,C) : option(A,B,C) } = 1 :- key(K). "
-            "seen(A,K,B,C) :- pick(A,K,B,C). #show pick/4."
+        source = """
+            { pick(A,K,B,C) : option(A,B,C) } = 1 :- key(K).
+            seen(A,K,B,C) :- pick(A,K,B,C).
+            #show pick/4.
+        """
+        converted, _ = self.assertConversionEqual(
+            source,
+            """
+            #program base.
+            { pick(K) := (A,B,C): option(A,B,C) } = 1 :- key(K).
+            seen(A,K,B,C) :- pick(K)=(A,B,C).
+            #showf pick/1.
+            """,
         )
-        converted = self._convert_source(source)
-        self.assertIn("pick(K) := (A,B,C)", converted)
-        self.assertIn("pick(K)=(A,B,C)", converted)
-        self.assertIn("#showf pick/1.", converted)
         self.assertEqual(
             self._models("key(k). option(a,b,c). " + converted),
             {"pick(k)=(a,b,c)"},
         )
 
     def test_scalar_tuple_and_name_collision(self) -> None:
-        source = (
-            "{ pick(A,B) : option(A,B) } = 1. "
-            "seen(A,B) :- pick(A,B). pick. #show pick/2."
+        source = """
+            { pick(A,B) : option(A,B) } = 1.
+            seen(A,B) :- pick(A,B).
+            pick.
+            #show pick/2.
+        """
+        converted, _ = self.assertConversionEqual(
+            source,
+            """
+            #program base.
+            { pick_1 := (A,B): option(A,B) } = 1.
+            seen(A,B) :- pick_1=(A,B).
+            pick.
+            #showf pick_1/0.
+            """,
         )
-        converted = self._convert_source(source)
-        self.assertIn("pick_1 := (A,B)", converted)
-        self.assertIn("pick_1=(A,B)", converted)
-        self.assertIn("#showf pick_1/0.", converted)
         self.assertEqual(self._models("option(a,b). " + converted), {"pick_1=(a,b)"})
 
 
