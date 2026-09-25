@@ -124,7 +124,7 @@ class AggregateResultConversionTest(ConversionTestCase):
             self.assertTrue(parse_string(library, converted))
 
     def test_nonfinal_output_and_aggregate_conditions(self) -> None:
-        converted, relations = self.assertConversionEqual(
+        _, relations = self.assertConversionEqual(
             """
             total(S,K) :- group(K), allowed(S), S = #sum { W,I : item(K,I,W) }.
             seen(N) :- N = #count { K,S : total(S,K) }.
