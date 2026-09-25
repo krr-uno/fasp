@@ -6,7 +6,6 @@ from tests.asp2funasp.util import ConversionTestCase
 
 
 class TupleConversionTest(ConversionTestCase):
-    model_prefix = "G"
 
     def test_choice_and_later_occurrences(self) -> None:
         source = """

@@ -14,7 +14,6 @@ from tests.asp2funasp.util import ConversionTestCase, collect_statements
 
 
 class StructuredChoiceConversionTest(ConversionTestCase):
-    model_prefix = "G"
 
     def test_edge_assignment_and_lookups(self) -> None:
         self.assertConversionEqual(
